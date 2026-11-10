@@ -54,7 +54,8 @@ export function parseTaggedName(fullName: string): (Tags & { name: string }) | n
 
 /**
  * Errors that count as the expected failure of a test for an unfinished milestone:
- * a stub that isn't implemented yet, or an assertion that doesn't hold. Anything
+ * a stub that isn't implemented yet, or an assertion that doesn't hold (Vitest's
+ * or Playwright's). Anything
  * else (a TypeError, a missing fixture) is a broken test and fails for real.
  */
 export function isExpectedFailure(error: unknown): boolean {
@@ -63,6 +64,8 @@ export function isExpectedFailure(error: unknown): boolean {
   while (current instanceof Error && !seen.has(current)) {
     seen.add(current);
     if (current.name === "NotImplementedError" || current.name === "AssertionError") return true;
+    // Playwright's expect() throws a plain Error carrying its matcher result.
+    if (typeof (current as { matcherResult?: unknown }).matcherResult === "object") return true;
     current = current.cause;
   }
   return false;

@@ -5,3 +5,6 @@
 *.yml
 package-lock.json
 var/
+.claude/
+playwright-report/
+test-results/

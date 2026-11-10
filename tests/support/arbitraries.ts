@@ -74,19 +74,17 @@ function entryArb(ref: ReferenceData, characterId: string, index: number): fc.Ar
             grants,
           }) as Entry,
       ),
-    fc
-      .tuple(fc.constantFrom(...armorKinds), rarity, grantsArb(ref, id))
-      .map(
-        ([slotKind, r, grants]) =>
-          ({
-            ...base,
-            category: "armor",
-            name: `Armor ${index}`,
-            slotKind,
-            ...(r ? { rarity: r } : {}),
-            grants,
-          }) as Entry,
-      ),
+    fc.tuple(fc.constantFrom(...armorKinds), rarity, grantsArb(ref, id)).map(
+      ([slotKind, r, grants]) =>
+        ({
+          ...base,
+          category: "armor",
+          name: `Armor ${index}`,
+          slotKind,
+          ...(r ? { rarity: r } : {}),
+          grants,
+        }) as Entry,
+    ),
     fc
       .tuple(fc.boolean(), rarity, grantsArb(ref, id))
       .map(
