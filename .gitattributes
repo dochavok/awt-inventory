@@ -1,0 +1,4 @@
+# LF everywhere, so a checkout on Windows never looks like a changed test (TF-7).
+* text=auto eol=lf
+*.png binary
+*.ico binary

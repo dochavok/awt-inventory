@@ -294,7 +294,7 @@ A character's totals are never typed in. They're worked out from the level chart
 - A shield goes only in the Off hand. Until Q2 is answered, a character can't hold two shields.
 - A bow and a melee weapon can be held together until Q3 says otherwise.
 
-**EQ-4 · Must · M4: Unequipping.** An equipped entry can be unequipped at any time. It stays in the inventory. Equipping and unequipping aren't recorded in the history.
+**EQ-4 · Must · M4: Unequipping.** An equipped entry can be unequipped at any time. It stays in the inventory. Equipping and unequipping aren't recorded in the history. An entry is equipped in at most one place at a time, whatever its quantity. To equip two of the same thing (such as a dagger in each hand), the player records them as separate entries.
 
 **EQ-5 · Must · M4: Paper doll view.** The character's equipment page shows every slot with what's in it, or *Empty*. A slot that comes from a grant is marked with its source (e.g. "Back 2: from *Title: Wanderer*").
 
@@ -375,7 +375,7 @@ The to-do list joins the printable sheet in M7 (section 11). Sheets are created 
 
 ## 11. Faire-Day To-Do List
 
-**Review this section with Craig before building M7.** It was agreed early and hasn't been tried in use.
+**Review this section with Craig before building M7.** It was agreed early and hasn't been tried in use, and it may be dropped. Its tests are written after the review (TF-1).
 
 **TD-1 · Must · M7: One list per user.** The to-do list belongs to the user, not to a character. Each task has:
 
@@ -455,7 +455,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 **NF-3 · Must · M3: Working offline.**
 
 - After a user has opened the app with signal on a phone, everything in their account stays on that phone. Without signal they can view, search and export it, and make any change. Changes sync when signal returns.
-- If two devices change the same field while offline, the later change wins. Quantity changes are combined (one *used* on each of two phones means two fewer). History records from both are kept. A clash that leaves too much equipped shows the over-limit alert (EQ-8).
+- If two devices change the same field while offline, the change made later wins, whichever phone gets signal first. Quantity changes are combined (one *used* on each of two phones means two fewer). History records from both are kept. A clash that leaves too much equipped shows the over-limit alert (EQ-8).
 - These need signal: signing in on a new device, creating an account, and browsing trade listings (later). Reports written offline are sent when signal returns.
 - The app shows when it's offline and how many changes are waiting to sync.
 
@@ -495,7 +495,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 
 ### 15.1 Tests first, and the test-change rule
 
-**TF-1 · Must · M1: Tests first.** M1 writes the functional tests for every requirement, from this document alone, before any app logic exists. Tests check behaviour (e.g. "Aldric's total CM is 170", "Back: 2 equipped, 1 allowed"), not exact screen layout.
+**TF-1 · Must · M1: Tests first.** M1 writes the functional tests for every requirement, from this document alone, before any app logic exists. Tests check behaviour (e.g. "Aldric's total CM is 170", "Back: 2 equipped, 1 allowed"), not exact screen layout. The exception is the to-do list (section 11): its tests are written after Craig's review of that section, before M7 starts.
 
 **TF-2 · Must · M1: The test harness, defined up front.** M1 fixes, as stubs with no logic, the interfaces the tests call:
 
@@ -509,7 +509,7 @@ Later milestones implement these interfaces without changing them. An interface 
 
 **TF-3 · Must · M1: Fixtures.** Test data lives in `tests/fixtures/` as YAML: made-up users and characters (never real players), and a **test copy of the reference data** separate from the real files, so changing real data never breaks a test. It includes a sample character whose CM adds up to the GR-8 example.
 
-**TF-4 · Must · M1: Traceability.** Every test names the requirement IDs it checks, and any DM question it depends on (e.g. Q1). An untagged test fails. A generated coverage table lists every requirement and its tests, and every *Must* has at least one. Requirement IDs are permanent: never renumbered or reused. A removed requirement keeps its place, marked *removed*.
+**TF-4 · Must · M1: Traceability.** Every test names the requirement IDs it checks, and any DM question it depends on (e.g. Q1). An untagged test fails. A generated coverage table lists every requirement and its tests, and every *Must* has at least one. Requirement IDs are permanent: never renumbered or reused. A removed requirement keeps its place, marked *removed*. Requirements about how the work is done rather than how the app behaves (TF-12, TF-14, DOC-3) are marked *checked in review* in the coverage table instead of needing a test; the pull request's Review section reports them.
 
 **TF-5 · Must · M1: Milestone markers.** Each test is marked with the milestone that implements it. Tests for unfinished milestones run as expected failures. Every test for a finished milestone must pass.
 

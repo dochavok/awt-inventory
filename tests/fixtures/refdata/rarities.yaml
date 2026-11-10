@@ -1,0 +1,9 @@
+# Rarities for tests only (TF-3). Made up: "Cursed" has a limit of 2 and a
+# minimum level of 10, so the limit and level checks (EQ-10, EQ-11) can't be
+# hard-coded to the game's Legendary rule. "Ancient" is retired.
+- { id: epic, name: Epic }
+- { id: legendary, name: Legendary, limit: 1 }
+- { id: divine, name: Divine }
+- { id: mythic, name: Mythic }
+- { id: cursed, name: Cursed, limit: 2, minLevel: 10 }
+- { id: ancient, name: Ancient, retired: true }

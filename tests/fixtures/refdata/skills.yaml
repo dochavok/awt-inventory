@@ -1,0 +1,90 @@
+# Skill trees and skills for tests only (TF-3, RD-8). Every name and every line
+# of text is MADE UP: nothing here is from the game's skill or spell cards. The
+# shapes match what the real skill list holds (RD-1): trees open to classes, an
+# entry level, prerequisites ("all" and "any", nested), tiers, how many times a
+# skill can be taken, retired and replaced skills, and maintainer notes (RD-7).
+trees:
+  - { id: bladework, name: Bladework, kind: class, classes: [Warrior] }
+  - { id: bulwark, name: Bulwark, kind: class, classes: [Warrior] }
+  - { id: shadowcraft, name: Shadowcraft, kind: class, classes: [Rogue] }
+  - { id: arcana, name: Arcana, kind: class, classes: [Mage] }
+  - id: warden
+    name: Warden
+    kind: prestige
+    classes: [Warrior, Rogue]
+    entryLevel: 21
+    maintainerNote: Made-up note for tests; never shown to players.
+
+skills:
+  # Bladework (Warrior)
+  - { id: blade-basics, name: Blade Basics, tree: bladework, usage: passive, tier: normal, starting: true }
+  - id: veterans-edge
+    name: Veteran's Edge
+    tree: bladework
+    usage: passive
+    tier: normal
+    maxTimes: 3
+    prerequisites: { skill: blade-basics }
+  - { id: twin-fangs, name: Twin Fangs, tree: bladework, usage: passive, tier: normal, prerequisites: { skill: blade-basics } }
+  - { id: longshot, name: Longshot, tree: bladework, usage: passive, tier: normal, prerequisites: { skill: blade-basics } }
+  - id: cleave
+    name: Cleave
+    tree: bladework
+    usage: 1/combat
+    tier: epic
+    prerequisites: { all: [{ skill: twin-fangs }, { skill: longshot }] }
+  - id: battle-focus
+    name: Battle Focus
+    tree: bladework
+    usage: passive
+    tier: normal
+    prerequisites: { skill: blade-basics }
+
+  # Bulwark (Warrior)
+  - { id: iron-guard, name: Iron Guard, tree: bulwark, usage: passive, tier: normal, starting: true }
+  - { id: thick-hide, name: Thick Hide, tree: bulwark, usage: passive, tier: normal, maxTimes: 3, prerequisites: { skill: iron-guard } }
+  - id: stoneskin
+    name: Stoneskin
+    tree: bulwark
+    usage: passive
+    tier: normal
+    prerequisites: { any: [{ skill: iron-guard }, { skill: thick-hide }] }
+    maintainerNote: Made-up note for tests; never shown to players.
+  - { id: broad-shoulders, name: Broad Shoulders, tree: bulwark, usage: passive, tier: normal, prerequisites: { skill: iron-guard } }
+  - id: oathbound
+    name: Oathbound
+    tree: bulwark
+    usage: task
+    tier: legendary
+    prerequisites: { all: [{ skill: stoneskin }, { any: [{ skill: thick-hide }, { skill: broad-shoulders }] }] }
+
+  # Shadowcraft (Rogue)
+  - { id: shadow-step, name: Shadow Step, tree: shadowcraft, usage: 1/day, tier: normal, starting: true }
+  - { id: quick-fingers, name: Quick Fingers, tree: shadowcraft, usage: passive, tier: normal, prerequisites: { skill: shadow-step } }
+  - id: veil
+    name: Veil
+    tree: shadowcraft
+    usage: 1/combat
+    tier: epic
+    text: "Made-up card text for tests: the user fades from sight for one round."
+    prerequisites: { skill: shadow-step }
+  - { id: night-eyes, name: Night Eyes, tree: shadowcraft, usage: passive, tier: normal, prerequisites: { skill: shadow-step } }
+
+  # Arcana (Mage)
+  - id: spark
+    name: Spark
+    tree: arcana
+    usage: 1/combat
+    tier: normal
+    starting: true
+    text: "Made-up card text for tests: a small burst of sparks."
+  - { id: ward, name: Ward, tree: arcana, usage: passive, tier: normal, starting: true }
+  - { id: deep-study, name: Deep Study, tree: arcana, usage: passive, tier: normal, prerequisites: { skill: spark } }
+  - { id: radiance, name: Radiance, tree: arcana, usage: 1/day, tier: normal, prerequisites: { skill: spark } }
+  - { id: glimmer, name: Glimmer, tree: arcana, usage: 1/combat, tier: normal, retired: true, replacedBy: [radiance] }
+  - { id: flicker, name: Flicker, tree: arcana, usage: 1/combat, tier: normal, retired: true, replacedBy: [radiance] }
+  - { id: old-chant, name: Old Chant, tree: arcana, usage: task, tier: normal, retired: true }
+
+  # Warden (prestige: Warrior and Rogue, level 21 and up)
+  - { id: wardens-oath, name: Warden's Oath, tree: warden, usage: passive, tier: legendary }
+  - { id: wardens-watch, name: Warden's Watch, tree: warden, usage: passive, tier: normal, prerequisites: { skill: wardens-oath } }

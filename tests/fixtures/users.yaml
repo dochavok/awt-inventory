@@ -1,0 +1,13 @@
+# Made-up users for tests (TF-3). Never real players or real email addresses.
+bram:
+  uid: uid-bram
+  email: bram@example.test
+  displayName: Bramblewick
+cass:
+  uid: uid-cass
+  email: cass@example.test
+  displayName: Cassia Vane
+dov:
+  uid: uid-dov
+  email: dov@example.test
+  displayName: Dovetail

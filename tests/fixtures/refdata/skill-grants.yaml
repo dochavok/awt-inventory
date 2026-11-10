@@ -1,0 +1,34 @@
+# Unconditional grants and permissions of the made-up test skills (SK-7, RD-1).
+# A grant with a condition is situational (GR-4).
+- skill: blade-basics
+  grants: [{ id: sg-blade-basics-1, kind: permission, permission: weapon-use }]
+- skill: veterans-edge
+  grants: [{ id: sg-veterans-edge-1, kind: cm, amount: 3 }]
+- skill: twin-fangs
+  grants: [{ id: sg-twin-fangs-1, kind: permission, permission: dual-wielding }]
+- skill: longshot
+  grants: [{ id: sg-longshot-1, kind: permission, permission: ranged-weapon-use }]
+- skill: battle-focus
+  grants: [{ id: sg-battle-focus-1, kind: cm, amount: 3, condition: with the chosen weapon group }]
+- skill: iron-guard
+  grants:
+    - { id: sg-iron-guard-1, kind: permission, permission: armor-use }
+    - { id: sg-iron-guard-2, kind: cm, amount: 2 }
+- skill: thick-hide
+  grants: [{ id: sg-thick-hide-1, kind: hearts, amount: 1 }]
+- skill: stoneskin
+  grants: [{ id: sg-stoneskin-1, kind: mitigation, amount: 1 }]
+- skill: broad-shoulders
+  grants: [{ id: sg-broad-shoulders-1, kind: slots, slotKind: back, amount: 1 }]
+- skill: quick-fingers
+  grants: [{ id: sg-quick-fingers-1, kind: arcane-slots, amount: 1 }]
+- skill: night-eyes
+  grants: [{ id: sg-night-eyes-1, kind: effect, effect: resistance, text: "Resistance: blinding light" }]
+- skill: ward
+  grants: [{ id: sg-ward-1, kind: cm, amount: 2 }]
+- skill: deep-study
+  grants: [{ id: sg-deep-study-1, kind: arcane-slots, amount: 1 }]
+- skill: wardens-oath
+  grants: [{ id: sg-wardens-oath-1, kind: allowance, rarity: legendary, amount: 1 }]
+- skill: wardens-watch
+  grants: [{ id: sg-wardens-watch-1, kind: die, die: 1d6 }]

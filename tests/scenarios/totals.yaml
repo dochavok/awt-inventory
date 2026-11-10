@@ -1,0 +1,443 @@
+# Rule scenarios for grants and totals (section 8). IDs are permanent (TF-6).
+# Characters come from tests/fixtures/characters.yaml; numbers from the made-up
+# test reference data. Aldric (Warrior 25) has Combat Bonus 63 in the test chart.
+
+# ---------------------------------------------------------------- CM (GR-7, GR-8)
+
+- id: cm-aldric-breakdown
+  req: [GR-8, TF-3]
+  milestone: M4
+  title: Aldric's CM is 170, broken down as Combat Bonus 63, Armor 71, Weapons 15, Skills 11, Ally 10
+  given: { character: aldric }
+  expect:
+    cm:
+      total: 170
+      lines: { class-bonus: 63, armor: 71, weapons: 15, skills: 11, ally: 10 }
+
+- id: cm-aldric-every-grant
+  req: [GR-12, GR-3, GR-4]
+  milestone: M4
+  title: Aldric's CM lists every grant in it, and Battle Focus separately as situational
+  given: { character: aldric }
+  expect:
+    cm:
+      grants:
+        - { source: level chart, amount: 63 }
+        - { source: Ironclad Plate, amount: 30 }
+        - { source: Hawkeye Helm, amount: 15 }
+        - { source: Stridewalk Boots, amount: 10 }
+        - { source: Ember Gauntlets, amount: 16 }
+        - { source: Duskfang, amount: 15 }
+        - { source: Iron Guard, amount: 2 }
+        - { source: Veteran's Edge, amount: 3 }
+        - { source: Veteran's Edge, amount: 3 }
+        - { source: Veteran's Edge, amount: 3 }
+        - { source: Grey Fang, amount: 10 }
+      situational:
+        - { source: Battle Focus, amount: 3, condition: with the chosen weapon group }
+
+- id: class-bonus-warrior
+  req: [GR-7]
+  milestone: M4
+  title: A Warrior's class bonus is called Combat Bonus and comes from the chart for class and level
+  given: { character: aldric }
+  expect:
+    classBonus: { name: Combat Bonus, value: 63 }
+
+- id: class-bonus-mage
+  req: [GR-7]
+  milestone: M4
+  title: A level 13 Mage's class bonus is Arcane Bonus 18
+  given: { character: isolde }
+  expect:
+    classBonus: { name: Arcane Bonus, value: 18 }
+
+- id: class-bonus-rogue
+  req: [GR-7]
+  milestone: M4
+  title: A level 8 Rogue's class bonus is Stealth Bonus 16
+  given: { character: brin }
+  expect:
+    classBonus: { name: Stealth Bonus, value: 16 }
+
+- id: class-bonus-follows-level
+  req: [GR-7, GR-5]
+  milestone: M4
+  title: Lowering Aldric to level 10 drops his Combat Bonus to the chart's 33, and his CM with it
+  given: { character: aldric, level: 10 }
+  expect:
+    classBonus: { name: Combat Bonus, value: 33 }
+    cm: { total: 140, lines: { class-bonus: 33, armor: 71, weapons: 15, skills: 11, ally: 10 } }
+
+- id: class-bonus-follows-class
+  req: [GR-7]
+  milestone: M4
+  title: Correcting Aldric's class to Rogue gives him the Rogue chart's Stealth Bonus 41 at level 25
+  given: { character: aldric, className: Rogue }
+  expect:
+    classBonus: { name: Stealth Bonus, value: 41 }
+
+- id: cm-zero-lines-hidden-in-order
+  req: [GR-8]
+  milestone: M4
+  title: Isolde's CM shows only her non-zero lines, in order (class bonus, Skills, Items)
+  given: { character: isolde }
+  expect:
+    cm: { total: 21, lines: { class-bonus: 18, skills: 2, items: 1 } }
+
+- id: cm-every-source-in-order
+  req: [GR-8]
+  milestone: M4
+  title: With a title and a manual grant, Aldric's CM lines run class bonus, Armor, Weapons, Skills, Ally, Items, Titles, Other
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-ring, category: items, name: Ring of Nerve, arcane: true, grants: [{ id: g-x-ring, kind: cm, amount: 4 }] }
+      equipped: [{ entryId: x-ring, slot: arcane }]
+      titles:
+        - { id: t-x-champion, name: Champion of the Lists, scope: { level: player }, grants: [{ id: g-x-title, kind: cm, amount: 2 }] }
+      manualGrants:
+        - { id: m-x-ruling, reason: "DM ruling, Faire 2026", grants: [{ id: g-x-manual, kind: cm, amount: 5 }] }
+  expect:
+    cm:
+      total: 181
+      lines: { class-bonus: 63, armor: 71, weapons: 15, skills: 11, ally: 10, items: 4, titles: 2, other: 5 }
+
+# ---------------------------------------------------------------- when grants count (GR-3)
+
+- id: grants-count-when-armor-equipped
+  req: [GR-3, GR-5]
+  milestone: M4
+  title: Equipping Aldric's Spare Cloak adds its +5 to Armor (76) and CM (175)
+  given:
+    character: aldric
+    add: { equipped: [{ entryId: aldric-cloak, slot: back }] }
+  expect:
+    cm: { total: 175, lines: { class-bonus: 63, armor: 76, weapons: 15, skills: 11, ally: 10 } }
+
+- id: grants-stop-when-weapon-unequipped
+  req: [GR-3, GR-5]
+  milestone: M4
+  title: Unequipping Duskfang removes its +15, so Aldric's CM is 155 and the Weapons line is hidden
+  given:
+    character: aldric
+    remove: { equipped: [aldric-sword] }
+  expect:
+    cm: { total: 155, lines: { class-bonus: 63, armor: 71, skills: 11, ally: 10 } }
+
+- id: grants-count-when-ally-active
+  req: [GR-3]
+  milestone: M4
+  title: Making Old Mule active adds its +4, so Aldric's Ally line is 14 and CM 174
+  given:
+    character: aldric
+    remove: { entries: [aldric-mule] }
+    add:
+      entries:
+        - { id: aldric-mule, category: allies, name: Old Mule, allyType: ally, active: true, grants: [{ id: g-mule-cm, kind: cm, amount: 4 }] }
+  expect:
+    cm: { total: 174, lines: { class-bonus: 63, armor: 71, weapons: 15, skills: 11, ally: 14 } }
+
+- id: grants-stop-when-arcane-item-unequipped
+  req: [GR-3]
+  milestone: M4
+  title: Taking Isolde's Glass Orb out of its arcane slot removes its +1 (CM 20, no Items line)
+  given:
+    character: isolde
+    remove: { equipped: [isolde-orb] }
+  expect:
+    cm: { total: 20, lines: { class-bonus: 18, skills: 2 } }
+
+- id: consumables-and-components-never-grant
+  req: [GR-3]
+  milestone: M4
+  title: Grants on a consumable or a component never count, so Aldric's CM stays 170
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-tonic, category: consumables, name: Tonic of Fury, grants: [{ id: g-x-tonic, kind: cm, amount: 7 }] }
+        - { id: x-scale, category: components, name: Wyrm Scale, tier: Radiant, grants: [{ id: g-x-scale, kind: cm, amount: 4 }] }
+  expect:
+    cm: { total: 170, lines: { class-bonus: 63, armor: 71, weapons: 15, skills: 11, ally: 10 } }
+
+- id: manual-grants-always-count
+  req: [GR-3, GR-2]
+  milestone: M4
+  title: A manual grant of +5 ("DM ruling, Faire 2026") shows as Other 5 and makes Aldric's CM 175
+  given:
+    character: aldric
+    add:
+      manualGrants:
+        - { id: m-x-ruling, reason: "DM ruling, Faire 2026", grants: [{ id: g-x-manual, kind: cm, amount: 5 }] }
+  expect:
+    cm:
+      total: 175
+      lines: { class-bonus: 63, armor: 71, weapons: 15, skills: 11, ally: 10, other: 5 }
+
+- id: player-level-title-grants-count
+  req: [GR-3, TI-5]
+  milestone: M4
+  title: A player-level title's +2 counts for Aldric, as Titles 2 (CM 172)
+  given:
+    character: aldric
+    add:
+      titles:
+        - { id: t-x-champion, name: Champion of the Lists, scope: { level: player }, grants: [{ id: g-x-title, kind: cm, amount: 2 }] }
+  expect:
+    cm: { total: 172, lines: { class-bonus: 63, armor: 71, weapons: 15, skills: 11, ally: 10, titles: 2 } }
+
+- id: own-character-title-grants-count
+  req: [GR-3, TI-5]
+  milestone: M4
+  title: A title made character-level for Aldric counts for Aldric (CM 172)
+  given:
+    character: aldric
+    add:
+      titles:
+        - { id: t-x-champion, name: Champion of the Lists, scope: { level: character, characterId: aldric }, grants: [{ id: g-x-title, kind: cm, amount: 2 }] }
+  expect:
+    cm: { total: 172, lines: { class-bonus: 63, armor: 71, weapons: 15, skills: 11, ally: 10, titles: 2 } }
+
+- id: other-character-title-grants-ignored
+  req: [GR-3, TI-5]
+  milestone: M4
+  title: A title made character-level for Isolde never counts for Aldric (CM stays 170)
+  given:
+    character: aldric
+    add:
+      titles:
+        - { id: t-x-champion, name: Champion of the Lists, scope: { level: character, characterId: isolde }, grants: [{ id: g-x-title, kind: cm, amount: 2 }] }
+  expect:
+    cm: { total: 170, lines: { class-bonus: 63, armor: 71, weapons: 15, skills: 11, ally: 10 } }
+
+# ---------------------------------------------------------------- situational (GR-4)
+
+- id: situational-cm-not-added
+  req: [GR-4, GR-12]
+  milestone: M4
+  title: A +6 "vs Evil" manual grant is listed as situational under CM but leaves Aldric's CM at 170
+  given:
+    character: aldric
+    add:
+      manualGrants:
+        - { id: m-x-evil, reason: Blessing of the shrine, grants: [{ id: g-x-evil, kind: cm, amount: 6, condition: vs Evil }] }
+  expect:
+    cm:
+      total: 170
+      lines: { class-bonus: 63, armor: 71, weapons: 15, skills: 11, ally: 10 }
+      situational:
+        - { source: Battle Focus, amount: 3, condition: with the chosen weapon group }
+        - { source: Blessing of the shrine, amount: 6, condition: vs Evil }
+
+- id: situational-mitigation-not-added
+  req: [GR-4, GR-12]
+  milestone: M4
+  title: A +2 "vs fire" mitigation on an equipped item is listed under mitigation but not added (Aldric stays at 3)
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-cloak, category: armor, name: Ashen Mantle, slotKind: shoulder, grants: [{ id: g-x-fire, kind: mitigation, amount: 2, condition: vs fire }] }
+      equipped: [{ entryId: x-cloak, slot: shoulder }]
+  expect:
+    mitigation:
+      total: 3
+      situational: [{ source: Ashen Mantle, amount: 2, condition: vs fire }]
+
+# ---------------------------------------------------------------- mitigation, hearts, dice (GR-9 to GR-11)
+
+- id: mitigation-aldric
+  req: [GR-9, GR-12]
+  milestone: M4
+  title: Aldric's mitigation is 3 hearts (Armor 1, Items 2), from Ironclad Plate and Amber Charm
+  given: { character: aldric }
+  expect:
+    mitigation:
+      total: 3
+      lines: { armor: 1, items: 2 }
+      grants:
+        - { source: Ironclad Plate, amount: 1 }
+        - { source: Amber Charm, amount: 2 }
+      situational: []
+
+- id: mitigation-has-no-maximum
+  req: [GR-9]
+  milestone: M4
+  title: Mitigation from several sources adds up with no maximum (Aldric with +40 more is 43)
+  given:
+    character: aldric
+    add:
+      manualGrants:
+        - { id: m-x-wall, reason: Test of a large ruling, grants: [{ id: g-x-wall, kind: mitigation, amount: 40 }] }
+  expect:
+    mitigation: { total: 43, lines: { armor: 1, items: 2, other: 40 } }
+
+- id: hearts-from-chart
+  req: [GR-10, GR-12]
+  milestone: M4
+  title: Aldric's max hearts are the chart's 13 for a level 25 Warrior
+  given: { character: aldric }
+  expect:
+    hearts: { total: 13, lines: { level-chart: 13 }, grants: [{ source: level chart, amount: 13 }] }
+
+- id: hearts-with-grants
+  req: [GR-10]
+  milestone: M4
+  title: Taking Thick Hide twice gives Aldric 15 max hearts (chart 13, Skills 2)
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-hide1, category: skills, skillId: thick-hide, howGained: level-up, levelGained: 23 }
+        - { id: x-hide2, category: skills, skillId: thick-hide, howGained: level-up, levelGained: 25 }
+  expect:
+    hearts: { total: 15, lines: { level-chart: 13, skills: 2 } }
+
+- id: dice-aldric
+  req: [GR-11]
+  milestone: M4
+  title: Aldric rolls the chart's 3d20, plus 1d6 from Grey Fang listed on its own
+  given: { character: aldric }
+  expect:
+    dice:
+      base: 3d20
+      extra: [{ source: Grey Fang, die: 1d6 }]
+
+- id: dice-not-merged
+  req: [GR-11]
+  milestone: M4
+  title: Extra dice from an ally, a skill and a manual grant are each listed with their source, never merged
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-oath, category: skills, skillId: wardens-oath, howGained: quest, levelGained: 22 }
+        - { id: x-watch, category: skills, skillId: wardens-watch, howGained: level-up, levelGained: 23 }
+      manualGrants:
+        - { id: m-x-die, reason: Gift of the storm, grants: [{ id: g-x-die, kind: die, die: 1d6 }] }
+  expect:
+    dice:
+      base: 3d20
+      extra:
+        - { source: Grey Fang, die: 1d6 }
+        - { source: Warden's Watch, die: 1d6 }
+        - { source: Gift of the storm, die: 1d6 }
+
+- id: dice-situational
+  req: [GR-11, GR-4]
+  milestone: M4
+  title: A 1d8 "vs undead" die is listed as situational, not among Aldric's extra dice
+  given:
+    character: aldric
+    add:
+      manualGrants:
+        - { id: m-x-undead, reason: Sunlit blade, grants: [{ id: g-x-undead, kind: die, die: 1d8, condition: vs undead }] }
+  expect:
+    dice:
+      base: 3d20
+      extra: [{ source: Grey Fang, die: 1d6 }]
+      situational: [{ source: Sunlit blade, die: 1d8, condition: vs undead }]
+
+- id: dice-follow-level
+  req: [GR-11]
+  milestone: M4
+  title: At level 9 the test chart gives Aldric 1d20
+  given: { character: aldric, level: 9 }
+  expect:
+    dice: { base: 1d20 }
+
+# ---------------------------------------------------------------- kinds of grant (GR-1)
+
+- id: every-kind-of-grant
+  req: [GR-1, GR-3]
+  milestone: M4
+  title: One manual grant of each kind changes the matching total, slot count, allowance or permission
+  given:
+    character: isolde
+    add:
+      manualGrants:
+        - id: m-x-all
+          reason: Every kind
+          grants:
+            - { id: g-k-cm, kind: cm, amount: 4 }
+            - { id: g-k-mit, kind: mitigation, amount: 2 }
+            - { id: g-k-hearts, kind: hearts, amount: 3 }
+            - { id: g-k-die, kind: die, die: 1d4 }
+            - { id: g-k-back, kind: slots, slotKind: back, amount: 1 }
+            - { id: g-k-arcane, kind: arcane-slots, amount: 2 }
+            - { id: g-k-legend, kind: allowance, rarity: legendary, amount: 1 }
+            - { id: g-k-perm, kind: permission, permission: armor-use }
+  expect:
+    cm: { total: 25, lines: { class-bonus: 18, skills: 2, items: 1, other: 4 } }
+    mitigation: { total: 2, lines: { other: 2 } }
+    hearts: { total: 8, lines: { level-chart: 5, other: 3 } }
+    dice: { base: 2d20, extra: [{ source: Every kind, die: 1d4 }] }
+    slots: { back: { allowed: 2 } }
+    arcane: { allowed: 7 }
+    rarities: { legendary: { allowed: 2 } }
+    permissions: [armor-use]
+
+# ---------------------------------------------------------------- effects (GR-6)
+
+- id: effects-listed-with-sources
+  req: [GR-6]
+  milestone: M5
+  title: Brin's resistance from Night Eyes and an immunity from a manual grant are listed with their sources
+  given:
+    character: brin
+    add:
+      entries:
+        - { id: x-eyes, category: skills, skillId: night-eyes, howGained: level-up, levelGained: 4 }
+      manualGrants:
+        - { id: m-x-imm, reason: Blessed by the river, grants: [{ id: g-x-imm, kind: effect, effect: immunity, text: "Immunity: drowning" }] }
+  expect:
+    effects:
+      - { effect: resistance, text: "Resistance: blinding light", source: Night Eyes }
+      - { effect: immunity, text: "Immunity: drowning", source: Blessed by the river }
+
+- id: effects-only-from-counted-sources
+  req: [GR-6, GR-3]
+  milestone: M5
+  title: An effect on an unequipped item isn't listed for Aldric
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-ward, category: items, name: Frost Ward, arcane: true, grants: [{ id: g-x-frost, kind: effect, effect: resistance, text: "Resistance: frost" }] }
+  expect:
+    effects: []
+
+# ---------------------------------------------------------------- allies (AL-1 interim, Q11)
+
+- id: any-number-of-allies-active
+  req: [GR-3, IN-6]
+  q: [Q11]
+  milestone: M4
+  title: Until Q11 is answered, any number of allies can be active, and all of them count (Ally 24)
+  given:
+    character: aldric
+    remove: { entries: [aldric-mule] }
+    add:
+      entries:
+        - { id: aldric-mule, category: allies, name: Old Mule, allyType: ally, active: true, grants: [{ id: g-mule-cm, kind: cm, amount: 4 }] }
+        - { id: x-crow, category: allies, name: Ash Crow, allyType: familiar, active: true, grants: [{ id: g-x-crow, kind: cm, amount: 10 }] }
+  expect:
+    cm: { total: 184, lines: { class-bonus: 63, armor: 71, weapons: 15, skills: 11, ally: 24 } }
+
+- id: consumable-grants-never-count-even-if-equipped
+  req: [GR-3]
+  milestone: M4
+  title: A consumable's grants never count, even if bad data or an offline clash lists it as equipped
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-tonic, category: consumables, name: Tonic of Fury, grants: [{ id: g-x-tonic, kind: cm, amount: 7 }] }
+        - { id: x-scale, category: components, name: Wyrm Scale, grants: [{ id: g-x-scale, kind: cm, amount: 4 }] }
+      equipped:
+        - { entryId: x-tonic, slot: belt }
+        - { entryId: x-scale, slot: arcane }
+  expect:
+    cm: { total: 170, lines: { class-bonus: 63, armor: 71, weapons: 15, skills: 11, ally: 10 } }
