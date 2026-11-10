@@ -20,6 +20,8 @@ export interface World {
   settings: AppSettings;
   /** The store for a fixture user ("bram", "cass"), or for nobody signed in (null). */
   as(user: string | null): InventoryStore;
+  /** A store acting for whoever `auth` says is signed in, as the app's is. */
+  forAuth(auth: { currentUser(): { uid: string } | null }): InventoryStore;
 }
 
 export function world(settings: Partial<AppSettings> = {}): World {
@@ -37,6 +39,9 @@ export function world(settings: Partial<AppSettings> = {}): World {
       const uid = user === null ? null : users[user]?.uid;
       if (uid === undefined) throw new Error(`No fixture user "${user}"`);
       return createMemoryStore(db, { currentUid: () => uid, clock, ref, settings: full });
+    },
+    forAuth(auth) {
+      return createMemoryStore(db, { currentUid: () => auth.currentUser()?.uid ?? null, clock, ref, settings: full });
     },
   };
 }
