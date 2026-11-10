@@ -6,7 +6,7 @@
 // any listed browser test whose name has no tags.
 
 import { test, type BrowserContext, type Page } from "@playwright/test";
-import { runForMilestone, taggedName, type Tags } from "./tags";
+import { isFinished, runForMilestone, taggedName, type Tags } from "./tags";
 
 export interface BrowserFixtures {
   page: Page;
@@ -25,6 +25,8 @@ export function browserRule(
     const expectedFailure = await runForMilestone(tags, () => body({ page, context }));
     if (expectedFailure !== undefined) {
       testInfo.annotations.push({ type: "expected failure", description: expectedFailure });
+    } else if (!isFinished(tags)) {
+      testInfo.annotations.push({ type: "passed early", description: `${tags.m} isn't finished` });
     }
   });
 }

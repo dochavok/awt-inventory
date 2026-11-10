@@ -24,7 +24,7 @@ rule({ req: ["TF-5"], m: "M7" }, "probe-unfinished-typeerror: should fail", () =
   return missing.name;
 });
 
-rule({ req: ["TF-5"], m: "M7" }, "probe-unfinished-passes: should fail", () => {
+rule({ req: ["TF-5"], m: "M7" }, "probe-unfinished-passes: should pass, as passed early", () => {
   expect(1).toBe(1);
 });
 

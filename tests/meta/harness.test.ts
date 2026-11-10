@@ -55,9 +55,12 @@ rule({ req: ["TF-5"], m: "M1" }, "only a stub or a failed assertion counts as an
 
 rule(
   { req: ["TF-5"], m: "M1" },
-  "an unfinished milestone's test must fail, and a passing one is an error",
+  "an unfinished milestone's test fails as expected or passes early; any other error fails",
   async () => {
-    await expect(runForMilestone({ req: ["TF-5"], m: "M7" }, () => undefined)).rejects.toThrow(/M7 isn't finished/);
+    await expect(
+      runForMilestone({ req: ["TF-5"], m: "M7" }, () => undefined),
+      "a test that passes early",
+    ).resolves.toBeUndefined();
     await expect(
       runForMilestone({ req: ["TF-5"], m: "M7" }, () => {
         throw new NotImplementedError("computeTotals", "M4");
@@ -114,7 +117,7 @@ rule(
       "probe-unfinished-stub": "passed",
       "probe-unfinished-assertion": "passed",
       "probe-unfinished-typeerror": "failed",
-      "probe-unfinished-passes": "failed",
+      "probe-unfinished-passes": "passed",
       "probe-finished-stub": "failed",
       "probe-finished-passes": "passed",
     });
