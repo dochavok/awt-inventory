@@ -132,7 +132,7 @@ rule(
       test("[GR-8 · M4] c", "tests/properties/totals.test.ts"),
     ]);
     const text = renderCoverage(coverage);
-    expect(text).toContain("| GR-8 | Must | M4 | rules/totals.test.ts (2), properties/totals.test.ts (1) |");
+    expect(text).toContain("| GR-8 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (2) |");
     expect(text).toContain("| GR-10 | Should | M4 | rules/totals.test.ts (1) |");
     expect(text).toContain("| NF-1 | Must | M2+ | none |");
     expect(text).toContain("| XX-3 | *removed* | M2 | *removed* |");

@@ -81,7 +81,7 @@ rule({ req: ["TF-5"], m: "M1" }, "a finished milestone's test must pass", async 
 });
 
 rule(
-  { req: ["TF-4", "TF-5"], m: "M1" },
+  { req: ["TF-4", "TF-5", "TF-8"], m: "M1" },
   "in a real Vitest run, untagged and broken tests fail, and stubs fail as expected",
   () => {
     const out = join(mkdtempSync(join(tmpdir(), "awt-probes-")), "result.json");

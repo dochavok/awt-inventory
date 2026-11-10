@@ -408,3 +408,20 @@
         - { id: x-ward, category: items, name: Frost Ward, arcane: true, grants: [{ id: g-x-frost, kind: effect, effect: resistance, text: "Resistance: frost" }] }
   expect:
     effects: []
+
+# ---------------------------------------------------------------- allies (AL-1 interim, Q11)
+
+- id: any-number-of-allies-active
+  req: [GR-3, IN-6]
+  q: [Q11]
+  milestone: M4
+  title: Until Q11 is answered, any number of allies can be active, and all of them count (Ally 24)
+  given:
+    character: aldric
+    remove: { entries: [aldric-mule] }
+    add:
+      entries:
+        - { id: aldric-mule, category: allies, name: Old Mule, allyType: ally, active: true, grants: [{ id: g-mule-cm, kind: cm, amount: 4 }] }
+        - { id: x-crow, category: allies, name: Ash Crow, allyType: familiar, active: true, grants: [{ id: g-x-crow, kind: cm, amount: 10 }] }
+  expect:
+    cm: { total: 184, lines: { class-bonus: 63, armor: 71, weapons: 15, skills: 11, ally: 24 } }

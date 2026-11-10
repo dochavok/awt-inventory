@@ -11,87 +11,87 @@ Tests shows each file with the number of its tests that name the requirement.
 | AC-1 | Must | M2 | data/accounts.test.ts (3) |
 | AC-2 | Must | M2 | data/accounts.test.ts (2) |
 | AC-3 | Must | M2 | data/accounts.test.ts (1) |
-| AC-4 | Must | M2 | data/accounts.test.ts (1), browser/phone.spec.ts (1) |
+| AC-4 | Must | M2 | browser/phone.spec.ts (1), data/accounts.test.ts (1) |
 | AC-5 | Must | M2 | data/accounts.test.ts (2), data/reports.test.ts (1) |
-| PV-1 | Must | M2 | data/inventory.test.ts (1), data/search-export.test.ts (1), data/titles.test.ts (1), data/reports.test.ts (1), data/privacy.test.ts (4), access/privacy.test.ts (9) |
+| PV-1 | Must | M2 | access/privacy.test.ts (9), data/inventory.test.ts (1), data/privacy.test.ts (4), data/reports.test.ts (1), data/search-export.test.ts (1), data/titles.test.ts (1) |
 | PV-2 | Must | M2 | data/accounts.test.ts (2), server/reports.test.ts (1) |
 | PV-3 | Must | M2 | data/privacy.test.ts (3) |
 | PV-4 | Must | M2 | browser/phone.spec.ts (1) |
 | CH-1 | Must | M2 | data/characters.test.ts (6) |
 | CH-2 | Must | M2 | data/characters.test.ts (2) |
-| CH-2a | Must | M2 | rules/equipping.test.ts (1), data/characters.test.ts (3) |
+| CH-2a | Must | M2 | data/characters.test.ts (3), rules/equipping.test.ts (1) |
 | CH-3 | Must | M2 | data/characters.test.ts (3) |
 | CH-4 | Must | M2 | data/characters.test.ts (1) |
 | CH-5 | Must | M2 | data/characters.test.ts (2), data/search-export.test.ts (2) |
 | CH-6 | Must | M2 | data/characters.test.ts (3) |
 | TI-1 | Must | M2 | data/titles.test.ts (2) |
-| TI-2 | Must | M2 | rules/equipping.test.ts (1), data/characters.test.ts (2), data/grants.test.ts (1), data/titles.test.ts (3) |
+| TI-2 | Must | M2 | data/characters.test.ts (2), data/grants.test.ts (1), data/titles.test.ts (3), rules/equipping.test.ts (1) |
 | TI-3 | Must | M2 | data/titles.test.ts (1) |
 | TI-4 | Must | M2 | data/grants.test.ts (1), data/titles.test.ts (1) |
-| TI-5 | Must | M4 | rules/totals.test.ts (3), data/grants.test.ts (2) |
-| IN-1 | Must | M2 | data/inventory.test.ts (2) |
+| TI-5 | Must | M4 | data/grants.test.ts (2), rules/totals.test.ts (3) |
+| IN-1 | Must | M2 | data/inventory.test.ts (2), data/limits.test.ts (1) |
 | IN-2 | Must | M2 | data/inventory.test.ts (5) |
 | IN-3 | Must | M2 | data/inventory.test.ts (1) |
 | IN-4 | Must | M2 | data/inventory.test.ts (1), rules/equipping.test.ts (2) |
 | IN-5 | Must | M2 | data/inventory.test.ts (1), rules/equipping.test.ts (2) |
-| IN-6 | Must | M2 | data/inventory.test.ts (1) |
+| IN-6 | Must | M2 | data/inventory.test.ts (1), rules/totals.test.ts (1) |
 | IN-7 | Must | M2 | data/inventory.test.ts (1) |
 | IN-8 | Must | M2 | data/inventory.test.ts (1) |
 | IN-9 | Must | M2 | data/inventory.test.ts (2) |
 | IN-10 | Must | M2 | data/inventory.test.ts (2) |
 | IN-11 | Should | M3 | data/inventory.test.ts (1) |
-| IN-12 | Must | M2 | data/inventory.test.ts (3) |
+| IN-12 | Must | M2 | access/offline.test.ts (1), data/inventory.test.ts (3) |
 | IN-13 | Must | M2 | data/inventory.test.ts (3) |
-| IN-14 | Must | M2 | data/inventory.test.ts (4), data/grants.test.ts (1) |
+| IN-14 | Must | M2 | data/grants.test.ts (1), data/inventory.test.ts (4) |
 | IN-15 | Must | M2 | data/inventory.test.ts (3), data/skills.test.ts (1) |
 | IN-16 | Must | M2 | data/inventory.test.ts (3) |
 | SK-1 | Must | M2 | data/skills.test.ts (1), rules/skills.test.ts (4) |
 | SK-1a | Must | M2 | rules/skills.test.ts (3) |
-| SK-2 | Must | M2 | data/skills.test.ts (3), data/search-export.test.ts (1) |
-| SK-3 | Must | M2 | data/skills.test.ts (1), rules/skills.test.ts (8) |
+| SK-2 | Must | M2 | data/search-export.test.ts (1), data/skills.test.ts (3) |
+| SK-3 | Must | M2 | data/skills.test.ts (1), docs/docs.test.ts (1), rules/skills.test.ts (8) |
 | SK-4 | Must | M2 | data/skills.test.ts (2) |
 | SK-5 | Must | M2 | data/skills.test.ts (2) |
 | SK-6 | Should | M4 | rules/skills.test.ts (2) |
 | SK-7 | Should | M4 | rules/equipping.test.ts (5) |
 | SK-8 | Must | M2 | data/skills.test.ts (1) |
 | SK-9 | Should | M5 | data/skills.test.ts (3) |
-| HI-1 | Must | M2 | data/inventory.test.ts (1), data/history.test.ts (1) |
-| HI-2 | Must | M2 | data/inventory.test.ts (1), data/characters.test.ts (2) |
+| HI-1 | Must | M2 | data/history.test.ts (1), data/inventory.test.ts (1) |
+| HI-2 | Must | M2 | data/characters.test.ts (2), data/inventory.test.ts (1) |
 | HI-3 | Must | M2 | data/characters.test.ts (1), data/history.test.ts (2) |
-| HI-4 | Must | M2 | data/inventory.test.ts (1), data/characters.test.ts (1), data/history.test.ts (2), access/privacy.test.ts (1) |
+| HI-4 | Must | M2 | access/privacy.test.ts (1), data/characters.test.ts (1), data/history.test.ts (2), data/inventory.test.ts (1) |
 | HI-5 | Should | M3 | data/history.test.ts (1) |
-| GR-1 | Must | M4 | rules/equipping.test.ts (2), rules/totals.test.ts (1), data/grants.test.ts (1) |
-| GR-2 | Must | M4 | rules/totals.test.ts (1), data/grants.test.ts (3), data/search-export.test.ts (1) |
-| GR-3 | Must | M4 | rules/totals.test.ts (12), data/grants.test.ts (1) |
-| GR-4 | Must | M4 | rules/totals.test.ts (5), properties/totals.test.ts (1) |
-| GR-5 | Must | M4 | rules/equipping.test.ts (1), rules/totals.test.ts (3), data/grants.test.ts (3), properties/totals.test.ts (1) |
+| GR-1 | Must | M4 | data/grants.test.ts (1), rules/equipping.test.ts (2), rules/totals.test.ts (1) |
+| GR-2 | Must | M4 | data/grants.test.ts (3), data/search-export.test.ts (1), rules/totals.test.ts (1) |
+| GR-3 | Must | M4 | data/grants.test.ts (1), rules/totals.test.ts (13) |
+| GR-4 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (5) |
+| GR-5 | Must | M4 | data/grants.test.ts (3), properties/totals.test.ts (1), rules/equipping.test.ts (1), rules/totals.test.ts (3) |
 | GR-6 | Should | M5 | rules/totals.test.ts (2) |
 | GR-7 | Must | M4 | rules/totals.test.ts (6) |
-| GR-8 | Must | M4 | rules/totals.test.ts (3), properties/totals.test.ts (1) |
-| GR-9 | Must | M4 | rules/totals.test.ts (2), properties/totals.test.ts (1) |
-| GR-10 | Should | M4 | rules/totals.test.ts (2), properties/totals.test.ts (1) |
+| GR-8 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (3) |
+| GR-9 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (2) |
+| GR-10 | Should | M4 | properties/totals.test.ts (1), rules/totals.test.ts (2) |
 | GR-11 | Must | M4 | rules/totals.test.ts (4) |
-| GR-12 | Must | M4 | rules/totals.test.ts (7), properties/totals.test.ts (1) |
+| GR-12 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (7) |
 | EQ-1 | Must | M4 | data/inventory.test.ts (1), rules/equipping.test.ts (8) |
-| EQ-2 | Must | M4 | rules/equipping.test.ts (5), properties/equipping.test.ts (1) |
-| EQ-3 | Must | M4 | rules/equipping.test.ts (9), properties/equipping.test.ts (1) |
-| EQ-4 | Must | M4 | data/inventory.test.ts (1), rules/equipping.test.ts (2), data/grants.test.ts (1) |
+| EQ-2 | Must | M4 | properties/equipping.test.ts (1), rules/equipping.test.ts (5) |
+| EQ-3 | Must | M4 | properties/equipping.test.ts (1), rules/equipping.test.ts (9) |
+| EQ-4 | Must | M4 | data/grants.test.ts (1), data/inventory.test.ts (1), rules/equipping.test.ts (2) |
 | EQ-5 | Must | M4 | rules/equipping.test.ts (3) |
 | EQ-6 | Must | M4 | rules/equipping.test.ts (7) |
-| EQ-7 | Must | M4 | rules/equipping.test.ts (6), properties/equipping.test.ts (1) |
-| EQ-8 | Must | M4 | rules/equipping.test.ts (11), data/grants.test.ts (1), properties/totals.test.ts (1), properties/equipping.test.ts (1) |
+| EQ-7 | Must | M4 | properties/equipping.test.ts (1), rules/equipping.test.ts (6) |
+| EQ-8 | Must | M4 | data/grants.test.ts (1), properties/equipping.test.ts (1), properties/totals.test.ts (1), rules/equipping.test.ts (11) |
 | EQ-9 | Should | M5 | rules/equipping.test.ts (10) |
-| EQ-10 | Should | M5 | rules/equipping.test.ts (7), properties/equipping.test.ts (1) |
+| EQ-10 | Should | M5 | properties/equipping.test.ts (1), rules/equipping.test.ts (7) |
 | EQ-11 | Should | M5 | rules/equipping.test.ts (3) |
 | SE-1 | Must | M3 | data/search-export.test.ts (2) |
-| SE-2 | Must | M3 | data/search-export.test.ts (1), data/privacy.test.ts (1) |
+| SE-2 | Must | M3 | data/privacy.test.ts (1), data/search-export.test.ts (1) |
 | SE-3 | Should | M3 | data/search-export.test.ts (2) |
 | EX-1 | Must | M3 | data/search-export.test.ts (5) |
 | EX-2 | Must | M3 | data/search-export.test.ts (1) |
 | EX-3 | Must | M3 | data/search-export.test.ts (1) |
 | EX-4 | Must | M3 | data/search-export.test.ts (3) |
-| EX-5 | Should | M3 | none |
-| SP-1 | Must | M3 | data/reports.test.ts (7), access/privacy.test.ts (1) |
+| EX-5 | Should | M3 | docs/docs.test.ts (1) |
+| SP-1 | Must | M3 | access/offline.test.ts (1), access/privacy.test.ts (1), data/reports.test.ts (7) |
 | SP-2 | Must | M3 | server/reports.test.ts (5) |
 | SP-3 | Must | M3 | server/reports.test.ts (1) |
 | TD-1 | Must | M7 | tests wait for the section 11 review (TF-1) |
@@ -105,7 +105,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | AL-1 | Could | M6 | none |
 | RD-1 | Must | M2 | refdata/refdata.test.ts (1) |
 | RD-2 | Must | M2 | data/skills.test.ts (1), refdata/refdata.test.ts (2) |
-| RD-3 | Must | M2 | data/inventory.test.ts (1), rules/equipping.test.ts (2), data/skills.test.ts (2), rules/skills.test.ts (1), refdata/refdata.test.ts (1) |
+| RD-3 | Must | M2 | data/inventory.test.ts (1), data/skills.test.ts (2), refdata/refdata.test.ts (1), rules/equipping.test.ts (2), rules/skills.test.ts (1) |
 | RD-4 | Must | M2 | refdata/refdata.test.ts (9) |
 | RD-5 | Must | M2 | data/characters.test.ts (1), refdata/refdata.test.ts (2) |
 | RD-6 | Must | M2 | refdata/refdata.test.ts (1) |
@@ -113,31 +113,31 @@ Tests shows each file with the number of its tests that name the requirement.
 | RD-8 | Must | M2 | data/skills.test.ts (1), refdata/refdata.test.ts (1) |
 | NF-1 | Must | M2+ | browser/phone.spec.ts (1) |
 | NF-2 | Must | M2 | browser/phone.spec.ts (2) |
-| NF-3 | Must | M3 | rules/equipping.test.ts (1) |
-| NF-4 | Must | M2+ | none |
-| NF-5 | Must | M2+ | none |
-| NF-6 | Must | M2+ | none |
-| NF-7 | Must | M2+ | access/privacy.test.ts (1) |
-| NF-8 | Must | M2+ | data/history.test.ts (2) |
+| NF-3 | Must | M3 | access/offline.test.ts (5), rules/equipping.test.ts (1) |
+| NF-4 | Must | M2+ | rules/speed.test.ts (1) |
+| NF-5 | Must | M2+ | ops/operations.test.ts (1) |
+| NF-6 | Must | M2+ | data/limits.test.ts (4) |
+| NF-7 | Must | M2+ | access/privacy.test.ts (1), ops/operations.test.ts (1) |
+| NF-8 | Must | M2+ | data/history.test.ts (2), platform/platform.test.ts (2) |
 | NF-9 | Should | M2+ | none |
-| NF-10 | Must | M3 | none |
-| NF-11 | Must | M3 | none |
-| NF-12 | Must | M3 | none |
-| NF-13 | Must | M3 | data/accounts.test.ts (2), access/privacy.test.ts (1) |
-| TF-1 | Must | M1 | none |
-| TF-2 | Must | M1 | none |
-| TF-3 | Must | M1 | rules/equipping.test.ts (2), rules/totals.test.ts (2), meta/test-change-check.test.ts (1) |
-| TF-4 | Must | M1 | meta/harness.test.ts (4), meta/coverage.test.ts (8) |
-| TF-5 | Must | M1 | meta/harness.test.ts (4), meta/test-change-check.test.ts (1), meta/coverage.test.ts (1) |
+| NF-10 | Must | M3 | ops/operations.test.ts (2) |
+| NF-11 | Must | M3 | ops/operations.test.ts (3) |
+| NF-12 | Must | M3 | platform/platform.test.ts (3) |
+| NF-13 | Must | M3 | access/privacy.test.ts (1), data/accounts.test.ts (2) |
+| TF-1 | Must | M1 | meta/requirements.test.ts (1) |
+| TF-2 | Must | M1 | meta/requirements.test.ts (1) |
+| TF-3 | Must | M1 | meta/scenarios.test.ts (1), meta/test-change-check.test.ts (1), rules/equipping.test.ts (2), rules/totals.test.ts (2) |
+| TF-4 | Must | M1 | meta/coverage.test.ts (8), meta/harness.test.ts (4), meta/requirements.test.ts (1) |
+| TF-5 | Must | M1 | meta/coverage.test.ts (1), meta/harness.test.ts (4), meta/test-change-check.test.ts (1) |
 | TF-6 | Must | M1 | meta/test-change-check.test.ts (3) |
 | TF-7 | Must | M1 | meta/test-change-check.test.ts (13) |
-| TF-8 | Must | M1 | none |
-| TF-9 | Must | M1 | meta/test-change-check.test.ts (1) |
-| TF-10 | Must | M1 | properties/totals.test.ts (4), properties/equipping.test.ts (3) |
+| TF-8 | Must | M1 | meta/harness.test.ts (1) |
+| TF-9 | Must | M1 | meta/scenarios.test.ts (3), meta/test-change-check.test.ts (1) |
+| TF-10 | Must | M1 | properties/equipping.test.ts (3), properties/totals.test.ts (4) |
 | TF-11 | Must | M1 | access/privacy.test.ts (11) |
-| TF-12 | Must | M2+ | none |
+| TF-12 | Must | M2+ | checked in review (TF-4) |
 | TF-13 | Should | M3 | none |
-| TF-14 | Must | M3 | none |
+| TF-14 | Must | M3 | checked in review (TF-4) |
 | TR-1 | Could | later | none |
 | TR-2 | Could | later | none |
 | TR-3 | Could | later | none |
@@ -147,10 +147,10 @@ Tests shows each file with the number of its tests that name the requirement.
 | BB-1 | Could | later | none |
 | IM-1 | Could | later | none |
 | DOC-1 | Must | M3 | browser/phone.spec.ts (1) |
-| DOC-2 | Must | M3+ | none |
-| DOC-3 | Must | M3+ | none |
-| DOC-4 | Must | M3 | none |
-| DOC-5 | Must | M3 | none |
-| DOC-6 | Should | M3 | none |
+| DOC-2 | Must | M3+ | docs/docs.test.ts (8) |
+| DOC-3 | Must | M3+ | checked in review (TF-4) |
+| DOC-4 | Must | M3 | docs/docs.test.ts (2) |
+| DOC-5 | Must | M3 | docs/docs.test.ts (1) |
+| DOC-6 | Should | M3 | docs/docs.test.ts (1) |
 
-Musts with a test: 97 of 117 (5 deferred by TF-1).
+Musts with a test: 109 of 117 (5 deferred by TF-1, 3 checked in review).

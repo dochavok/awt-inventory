@@ -122,7 +122,10 @@ function testsCell(requirement: Requirement, tests: ListedTest[]): string {
   }
   const files = new Map<string, number>();
   for (const t of tests) files.set(t.file, (files.get(t.file) ?? 0) + 1);
-  return [...files].map(([file, n]) => `${file.replace(/^tests\//, "")} (${n})`).join(", ");
+  return [...files]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([file, n]) => `${file.replace(/^tests\//, "")} (${n})`)
+    .join(", ");
 }
 
 export function renderCoverage(coverage: Coverage): string {
