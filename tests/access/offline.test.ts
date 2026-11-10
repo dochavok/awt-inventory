@@ -5,7 +5,7 @@
 import { expect } from "vitest";
 import { createFirestoreStore } from "../../src/data/firestore-store";
 import type { InventoryStore } from "../../src/data/store";
-import { device, uid, useEmulator } from "../support/emulator";
+import { device, seed, uid, useEmulator } from "../support/emulator";
 import { FakeClock } from "../support/fake-clock";
 import { testReferenceData } from "../support/fixtures";
 import { rule } from "../support/rule";
@@ -33,6 +33,8 @@ async function online(p: ReturnType<typeof phone>) {
 }
 
 async function setUp() {
+  // Sign-up is invite-only before 1.0 (NF-13), so Bram is on the invite list.
+  await seed({ "invites/bram@example.test": { addedBy: "maintainer" } });
   const a = phone("bram");
   await seedProfile(a.store, "bram");
   const aldric = await seedCharacter(a.store, "aldric");
