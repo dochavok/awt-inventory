@@ -10,14 +10,13 @@ import type {
   OverLimitAlert,
   ReferenceData,
   SheetChange,
-  SkillPicker,
-  SkillWarning,
   SlotState,
   SlotTarget,
   Totals,
 } from "./types";
 
 export * from "./types";
+export { skillPicker, skillWarnings } from "./skills";
 
 /** Class bonus, CM, mitigation, hearts, dice, permissions and effects (GR-1 to GR-12, EQ-9, GR-6). */
 export function computeTotals(_sheet: CharacterSheet, _ref: ReferenceData): Totals {
@@ -40,20 +39,6 @@ export function checkEquip(_sheet: CharacterSheet, _ref: ReferenceData, _entryId
  */
 export function overLimitAlerts(_sheet: CharacterSheet, _ref: ReferenceData, _change?: SheetChange): OverLimitAlert[] {
   throw new NotImplementedError("overLimitAlerts", "M4");
-}
-
-/** The skill picker's two lists (SK-1, SK-1a). `query` searches by name. */
-export function skillPicker(
-  _sheet: CharacterSheet,
-  _ref: ReferenceData,
-  _options: { allTrees: boolean; query?: string },
-): SkillPicker {
-  throw new NotImplementedError("skillPicker", "M2");
-}
-
-/** The warnings for adding `skillId` to the character (SK-3). Empty when nothing is wrong. */
-export function skillWarnings(_sheet: CharacterSheet, _ref: ReferenceData, _skillId: Id): SkillWarning[] {
-  throw new NotImplementedError("skillWarnings", "M2");
 }
 
 /** Levels where the chart gives a skill but none has that Level gained (SK-6). */
