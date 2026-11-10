@@ -62,7 +62,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | HI-5 | Should | M3 | data/history.test.ts (1) |
 | GR-1 | Must | M4 | data/grants.test.ts (1), rules/equipping.test.ts (2), rules/totals.test.ts (1) |
 | GR-2 | Must | M4 | data/grants.test.ts (3), data/search-export.test.ts (1), rules/totals.test.ts (1) |
-| GR-3 | Must | M4 | data/grants.test.ts (1), rules/totals.test.ts (13) |
+| GR-3 | Must | M4 | data/grants.test.ts (1), rules/totals.test.ts (14) |
 | GR-4 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (5) |
 | GR-5 | Must | M4 | data/grants.test.ts (3), properties/totals.test.ts (1), rules/equipping.test.ts (1), rules/totals.test.ts (3) |
 | GR-6 | Should | M5 | rules/totals.test.ts (2) |

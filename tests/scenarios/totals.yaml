@@ -425,3 +425,19 @@
         - { id: x-crow, category: allies, name: Ash Crow, allyType: familiar, active: true, grants: [{ id: g-x-crow, kind: cm, amount: 10 }] }
   expect:
     cm: { total: 184, lines: { class-bonus: 63, armor: 71, weapons: 15, skills: 11, ally: 24 } }
+
+- id: consumable-grants-never-count-even-if-equipped
+  req: [GR-3]
+  milestone: M4
+  title: A consumable's grants never count, even if bad data or an offline clash lists it as equipped
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-tonic, category: consumables, name: Tonic of Fury, grants: [{ id: g-x-tonic, kind: cm, amount: 7 }] }
+        - { id: x-scale, category: components, name: Wyrm Scale, grants: [{ id: g-x-scale, kind: cm, amount: 4 }] }
+      equipped:
+        - { entryId: x-tonic, slot: belt }
+        - { entryId: x-scale, slot: arcane }
+  expect:
+    cm: { total: 170, lines: { class-bonus: 63, armor: 71, weapons: 15, skills: 11, ally: 10 } }
