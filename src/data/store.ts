@@ -24,6 +24,7 @@ import type {
   Totals,
   CharacterSheet,
   Entry,
+  ItemEntry,
   SkillEntry,
 } from "../rules/types";
 import type {
@@ -109,9 +110,9 @@ export interface InventoryStore {
 
   // ---------------------------------------------------------------- entries (IN)
   /** Adds an entry outside Skills; recorded as acquired (IN-10, IN-11). */
-  addEntry(characterId: Id, entry: NewEntry, options?: GainOptions): Promise<Entry>;
+  addEntry(characterId: Id, entry: NewEntry, options?: GainOptions): Promise<ItemEntry>;
   /** Any field (IN-8). Raising the quantity is recorded as acquired; other edits aren't recorded. */
-  updateEntry(entryId: Id, patch: EntryPatch, options?: GainOptions): Promise<Entry>;
+  updateEntry(entryId: Id, patch: EntryPatch, options?: GainOptions): Promise<ItemEntry>;
   entry(entryId: Id): Promise<Entry>;
   /** A category's entries, alphabetical, with equipped or active marked (IN-9), optionally filtered (SE-3). */
   listEntries(characterId: Id, category: Category, filter?: ListFilter): Promise<EntryListItem[]>;

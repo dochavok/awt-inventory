@@ -6,7 +6,6 @@ import type {
   Character,
   ClassName,
   Entry,
-  Grant,
   NewGrant,
   HowGained,
   Id,
