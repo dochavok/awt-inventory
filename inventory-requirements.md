@@ -294,7 +294,7 @@ A character's totals are never typed in. They're worked out from the level chart
 - A shield goes only in the Off hand. Until Q2 is answered, a character can't hold two shields.
 - A bow and a melee weapon can be held together until Q3 says otherwise.
 
-**EQ-4 · Must · M4: Unequipping.** An equipped entry can be unequipped at any time. It stays in the inventory. Equipping and unequipping aren't recorded in the history.
+**EQ-4 · Must · M4: Unequipping.** An equipped entry can be unequipped at any time. It stays in the inventory. Equipping and unequipping aren't recorded in the history. An entry is equipped in at most one place at a time, whatever its quantity. To equip two of the same thing (such as a dagger in each hand), the player records them as separate entries.
 
 **EQ-5 · Must · M4: Paper doll view.** The character's equipment page shows every slot with what's in it, or *Empty*. A slot that comes from a grant is marked with its source (e.g. "Back 2: from *Title: Wanderer*").
 
