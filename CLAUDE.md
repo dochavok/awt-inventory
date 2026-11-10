@@ -59,7 +59,7 @@ Each is a CI job, and all five are required checks on `main`:
 | `test` | `npm test` | Vitest: rule scenarios, property tests, data layer, harness (`tests/meta`), and the coverage table |
 | `access-rules` | `npm run test:access` | Firestore rules and offline sync in the emulator (needs Java 21) |
 | `browser` | `npm run test:browser` | Playwright on iPhone (WebKit) and Android (Chromium) profiles |
-| `test-change-check` | `npm run check:test-changes -- --base origin/main` | The test-change rule (TF-7); see `scripts/test-change-lib.ts` |
+| `test-change-rule` | `npm run check:test-changes -- --base origin/main` | The test-change rule (TF-7), run in CI as it is on `main` (`test-change-rule.yml`); see `scripts/test-change-lib.ts` |
 
 - **Tags and milestones (TF-4, TF-5):** declare every test with `rule()`
   (`tests/support/rule.ts`) or `browserRule()`. Tests for milestones not in
