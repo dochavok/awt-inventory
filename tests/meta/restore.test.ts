@@ -19,3 +19,14 @@ rule({ req: ["TF-7"], m: "M1" }, "the next test gets the real Math.random back, 
   expect(Math.random, "Math.random is the real one").toBe(realRandom);
   expect("awtLeak" in globalThis, "the stubbed global is still there").toBe(false);
 });
+
+rule({ req: ["TF-7"], m: "M1" }, "a test that fakes the clock and sets it to 2020 sees 2020 during the test", () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2020-01-01T00:00:00Z"));
+  expect(new Date().getUTCFullYear(), "the year inside the faking test").toBe(2020);
+});
+
+rule({ req: ["TF-7"], m: "M1" }, "the next test has real timers and the real date again", () => {
+  expect(vi.isFakeTimers(), "fake timers still on").toBe(false);
+  expect(new Date().getUTCFullYear(), "the year after the faking test").toBeGreaterThan(2020);
+});

@@ -109,3 +109,40 @@ rule({ req: ["TF-7"], m: "M1" }, "a new declaration that only defines things is 
     expect(problems(`${TEST_FILE}\n${code}\n`), code).toEqual([]);
   }
 });
+
+rule({ req: ["TF-7"], m: "M1" }, "computed names, decorators and vi.spyOn in new declarations are refused too", () => {
+  for (const [code, runs] of [
+    [`const spy = vi.spyOn(Math, "random");`, 'vi.spyOn(Math, "random")'],
+    [`const o = { [setUp()]() {} };`, "[setUp()]"],
+    [`class H { [setUp()]() {} }`, "[setUp()]"],
+    [`@setUp class H {}`, "@setUp"],
+  ] as const) {
+    expect(problems(`${TEST_FILE}\n${code}\n`), code).toEqual([
+      `tests/rules/x.test.ts: new code runs when the file loads (${runs}), which could affect existing tests`,
+    ]);
+  }
+});
+
+rule(
+  { req: ["TF-7"], m: "M1" },
+  "importing a just-added helper is refused whichever extension the import names",
+  () => {
+    for (const specifier of ["../support/new-helper.js", "../support/new-helper.ts", "../support/new-helper"]) {
+      const after = TEST_FILE.replace(`import { rule }`, `import { helper } from "${specifier}";\nimport { rule }`);
+      const changes = [
+        { status: "M" as const, path: PATH },
+        { status: "A" as const, path: "tests/support/new-helper.ts" },
+      ];
+      expect(
+        testChangeProblems(
+          changes,
+          () => TEST_FILE,
+          (p) => (p === PATH ? after : ""),
+        ),
+        specifier,
+      ).toEqual([
+        "tests/rules/x.test.ts: imports tests/support/new-helper.ts, added in this change, which could affect existing tests",
+      ]);
+    }
+  },
+);

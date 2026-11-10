@@ -54,6 +54,13 @@ import { rule } from "./rule";
 // titles and grants inside `add` and `sheet` are domain data, checked by the
 // code under test, so here they only have to be objects.
 const record = z.record(z.string(), z.unknown());
+const isObject = (v: unknown) => typeof v === "object" && v !== null && !Array.isArray(v);
+/** A title or manual grant: domain data the code under test checks, typed for the runner. */
+const titleData = z.custom<Title>(isObject, "expected a title object");
+const manualGrantData = z.custom<ManualGrant>(isObject, "expected a manual grant object");
+/** A map of expectations by key (slot kind, rarity) with at least one key, so it checks something. */
+const someEntries = <T extends z.ZodType>(value: T) =>
+  z.record(z.string(), value).refine((r) => Object.keys(r).length > 0, "expects nothing");
 const names = z.array(z.string());
 /** An object with at least one of its optional keys given, so it checks something. */
 const someKey = <T extends z.ZodRawShape>(shape: T) =>
@@ -71,8 +78,8 @@ const sheetEdit = {
   add: someKey({
     entries: z.array(record).optional(),
     equipped: z.array(z.strictObject({ entryId: z.string(), slot: z.string() })).optional(),
-    titles: z.array(record).optional(),
-    manualGrants: z.array(record).optional(),
+    titles: z.array(titleData).optional(),
+    manualGrants: z.array(manualGrantData).optional(),
   }).optional(),
 };
 const grantExpect = z.strictObject({
@@ -90,11 +97,12 @@ const totalExpect = someKey({
 const lossReason = z.enum(LOSS_REASONS);
 /** A whole character written into the scenario, in the fixture format. */
 const sheetSchema = z.strictObject({
-  character: record,
+  owner: z.string().optional(),
+  character: z.custom<CharacterInput["character"]>(isObject, "expected a character object"),
   entries: z.array(record).optional(),
   equipped: z.array(z.strictObject({ entryId: z.string(), slot: z.string() })).optional(),
-  titles: z.array(record).optional(),
-  manualGrants: z.array(record).optional(),
+  titles: z.array(titleData).optional(),
+  manualGrants: z.array(manualGrantData).optional(),
 });
 
 const scenarioSchema = z
@@ -124,25 +132,22 @@ const scenarioSchema = z
       }).optional(),
       permissions: names.optional(),
       effects: z.array(z.strictObject({ effect: z.string(), text: z.string(), source: z.string() })).optional(),
-      slots: z
-        .record(
-          z.string(),
-          someKey({
-            allowed: z.number().optional(),
-            equipped: z.number().optional(),
-            occupants: names.optional(),
-            extra: z.array(z.strictObject({ label: z.string(), source: z.string() })).optional(),
-          }),
-        )
-        .optional(),
+      slots: someEntries(
+        someKey({
+          allowed: z.number().optional(),
+          equipped: z.number().optional(),
+          occupants: names.optional(),
+          extra: z.array(z.strictObject({ label: z.string(), source: z.string() })).optional(),
+        }),
+      ).optional(),
       arcane: someKey({
         allowed: z.number().optional(),
         used: z.number().optional(),
         occupants: names.optional(),
       }).optional(),
-      rarities: z
-        .record(z.string(), someKey({ allowed: z.number().nullable().optional(), equipped: z.number().optional() }))
-        .optional(),
+      rarities: someEntries(
+        someKey({ allowed: z.number().nullable().optional(), equipped: z.number().optional() }),
+      ).optional(),
       equip: z
         .strictObject({
           outcome: z.enum(["allowed", "blocked"]),
@@ -217,24 +222,17 @@ function applyEdit(sheet: CharacterSheet, edit: SheetEdit): CharacterSheet {
       ...sheet.equipped.filter((q) => !has(removed.equipped, q.entryId) && !has(removed.entries, q.entryId)),
       ...(added.equipped ?? []),
     ],
-    titles: [
-      ...sheet.titles.filter((t) => !has(removed.titles, t.id)),
-      ...((added.titles ?? []) as unknown as Title[]),
-    ],
+    titles: [...sheet.titles.filter((t) => !has(removed.titles, t.id)), ...(added.titles ?? [])],
     manualGrants: [
       ...sheet.manualGrants.filter((g) => !has(removed.manualGrants, g.id)),
-      ...((added.manualGrants ?? []) as unknown as ManualGrant[]),
+      ...(added.manualGrants ?? []),
     ],
   };
 }
 
 export function scenarioSheet(s: Scenario): CharacterSheet {
-  const base = s.given.character
-    ? fixtureSheet(s.given.character)
-    : s.given.sheet
-      ? toSheet(`scenario-${s.id}`, s.given.sheet as unknown as CharacterInput)
-      : undefined;
-  if (!base) throw new Error(`scenario ${s.id}: given needs a character or a sheet`);
+  // The schema makes sure exactly one of the two is given.
+  const base = s.given.sheet ? toSheet(`scenario-${s.id}`, s.given.sheet) : fixtureSheet(s.given.character!);
   return applyEdit(base, s.given);
 }
 

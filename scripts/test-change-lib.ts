@@ -5,10 +5,12 @@
 // change that:
 //   - changes or removes an existing top-level statement in a test file (a test,
 //     a helper, an import), compared as parsed code so formatting and comments
-//     don't count; or adds new top-level code that could affect existing tests
-//     (hooks, vi.mock, bare statements, imports run only for their effects, or
-//     a new declaration that calls a hook). New tests, helpers with new names,
-//     new imports, and new names added to an existing import are allowed;
+//     don't count; or adds new top-level code that could affect existing tests:
+//     a bare statement such as a hook or vi.mock, an import run only for its
+//     effects, an import of a file added in the same change, or a declaration
+//     that runs code when the file loads (anything but functions, classes,
+//     literals and plain data). New tests, helpers with new names, new imports,
+//     and new names added to an existing import are allowed;
 //   - changes or removes an existing scenario or fixture record in YAML under
 //     tests/ (records are matched by id, skill or level). New records are allowed;
 //   - changes or deletes any other file under tests/: the harness is every
@@ -19,7 +21,8 @@
 //     (vitest.config.ts, playwright.config.ts, firebase.json, eslint.config.js)
 //     or .claude/settings.json;
 //   - changes the test scripts in package.json, or adds or changes a script npm
-//     runs by itself (pre*, post*, install, prepare), or removes a finished
+//     runs by itself (its lifecycle scripts such as postinstall and prepare, or
+//     pre<name>/post<name> for an existing script), or removes a finished
 //     milestone;
 //   - changes or deletes a CI workflow, except to update the versions of the
 //     actions it uses (as Dependabot does).
@@ -244,19 +247,25 @@ function loadTimeCode(expr: ts.Expression, file: ts.SourceFile): string | undefi
       } else if (ts.isSpreadAssignment(property)) {
         const found = loadTimeCode(property.expression, file);
         if (found) return found;
-      } else if (!ts.isShorthandPropertyAssignment(property) && !ts.isMethodDeclaration(property)) {
-        return property.getText(file);
+      } else if (ts.isMethodDeclaration(property) || ts.isGetAccessor(property) || ts.isSetAccessor(property)) {
+        // The body runs only when called, but a computed name runs now.
+        if (ts.isComputedPropertyName(property.name)) return property.name.getText(file);
       }
+      // A shorthand property ({ name }) only reads a name.
     }
     return undefined;
   }
   return expr.getText(file);
 }
 
-/** Code a class runs when it's defined: static blocks and static field values. */
+/** Code a class runs when it's defined: decorators, computed member names, static blocks and static field values. */
 function staticCode(node: ts.ClassLikeDeclaration, file: ts.SourceFile): string | undefined {
+  const decorated = (n: ts.Node) => ts.canHaveDecorators(n) && (ts.getDecorators(n)?.length ?? 0) > 0;
+  if (decorated(node)) return ts.getDecorators(node)![0]!.getText(file);
   for (const member of node.members) {
     if (ts.isClassStaticBlockDeclaration(member)) return member.getText(file);
+    if (decorated(member)) return ts.getDecorators(member as ts.HasDecorators)![0]!.getText(file);
+    if (member.name && ts.isComputedPropertyName(member.name)) return member.name.getText(file);
     const isStatic =
       ts.canHaveModifiers(member) && ts.getModifiers(member)?.some((m) => m.kind === ts.SyntaxKind.StaticKeyword);
     if (isStatic && ts.isPropertyDeclaration(member) && member.initializer) {
@@ -290,8 +299,14 @@ function resolvesTo(path: string, specifier: string, files: Set<string>): string
     if (part === "..") parts.pop();
     else if (part !== ".") parts.push(part);
   }
-  const target = parts.join("/");
-  return [target, `${target}.ts`, `${target}.tsx`, `${target}/index.ts`].find((candidate) => files.has(candidate));
+  // The bundler resolution in tsconfig.json also maps .js, .jsx, .mjs and .cjs to their TypeScript files.
+  const target = parts.join("/").replace(/\.([cm]?)js(x?)$/, ".$1ts$2");
+  const stem = target.replace(/\.[cm]?tsx?$/, "");
+  const candidates = [
+    target,
+    ...["ts", "tsx", "mts", "cts"].flatMap((ext) => [`${stem}.${ext}`, `${target}/index.${ext}`]),
+  ];
+  return candidates.find((candidate) => files.has(candidate));
 }
 
 export function testFileProblems(

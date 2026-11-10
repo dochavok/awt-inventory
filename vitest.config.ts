@@ -8,8 +8,11 @@ export default defineConfig({
     passWithNoTests: false,
     setupFiles: ["tests/support/setup.ts"],
     environment: "node",
-    // Undo every spy, mock and stubbed global or variable after each test, so
-    // a test can never change how the tests after it run (TF-7).
+    // Before each test, undo the spies, mocks and stubbed globals and
+    // environment variables earlier tests left behind (TF-7). Fake timers are
+    // undone after each test by tests/support/setup.ts. Direct changes to
+    // globals (such as `Date.now = ...`) aren't undone; the test-change check
+    // refuses them at the top level of an existing test file.
     restoreMocks: true,
     unstubGlobals: true,
     unstubEnvs: true,
