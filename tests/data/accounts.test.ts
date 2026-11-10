@@ -147,7 +147,7 @@ rule({ req: ["PV-2"], m: "M2" }, "the profile holds only the sign-in identity an
 });
 
 rule(
-  { req: ["NF-13"], m: "M3" },
+  { req: ["NF-13"], m: "M2" },
   "before 1.0, only an invited email can sign up; others are told it's not open yet",
   async () => {
     const { auth, accounts } = await accountsWorld(["wren@example.test"]);
@@ -160,7 +160,7 @@ rule(
   },
 );
 
-rule({ req: ["NF-13"], m: "M3" }, "once the invite list is removed, anyone can sign up", async () => {
+rule({ req: ["NF-13"], m: "M2" }, "once the invite list is removed, anyone can sign up", async () => {
   const { accounts } = await accountsWorld(null);
   const profile = await accounts.signUpWithEmail({ ...signUp, email: "anyone@example.test" });
   expect(profile.email, "the new account").toBe("anyone@example.test");

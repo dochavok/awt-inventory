@@ -160,7 +160,7 @@ rule({ req: ["SP-1", "TF-11"], m: "M3" }, "Bram can send and read his own report
 });
 
 rule(
-  { req: ["NF-13", "TF-11"], m: "M3" },
+  { req: ["NF-13", "TF-11"], m: "M2" },
   "only an email on the invite list can create an account profile, and nobody can read the list",
   async () => {
     await seed({ "invites/bram@example.test": { addedBy: "maintainer" } });
