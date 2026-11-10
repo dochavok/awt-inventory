@@ -1,0 +1,112 @@
+# Made-up characters for tests (TF-3). Never real players' characters.
+# Each is keyed by its ID. Entries default to quantity 1. `equipped` lists the
+# entries in slots. `titles` are the titles that apply to the character.
+
+# Aldric's CM adds up to the GR-8 example:
+#   Combat Bonus 63 (test chart, Warrior 25) + Armor 71 + Weapons 15 + Skills 11 + Ally 10 = 170.
+# He also carries grants that must NOT count: an unequipped cloak (+5), an
+# inactive ally (+4), a situational skill (+3), and items with no CM.
+aldric:
+  owner: bram
+  character: { name: Aldric, className: Warrior, level: 25, notes: Made-up test character. }
+  entries:
+    - id: aldric-plate
+      category: armor
+      name: Ironclad Plate
+      slotKind: chest
+      rarity: epic
+      grants:
+        - { id: g-plate-cm, kind: cm, amount: 30 }
+        - { id: g-plate-mit, kind: mitigation, amount: 1 }
+    - id: aldric-helm
+      category: armor
+      name: Hawkeye Helm
+      slotKind: head
+      grants: [{ id: g-helm-cm, kind: cm, amount: 15 }]
+    - id: aldric-boots
+      category: armor
+      name: Stridewalk Boots
+      slotKind: boot
+      grants: [{ id: g-boots-cm, kind: cm, amount: 10 }]
+    - id: aldric-gauntlets
+      category: armor
+      name: Ember Gauntlets
+      slotKind: glove-arm
+      itemFamily: Emberforged
+      grants: [{ id: g-gauntlets-cm, kind: cm, amount: 16 }]
+    - id: aldric-cloak
+      category: armor
+      name: Spare Cloak
+      slotKind: back
+      grants: [{ id: g-cloak-cm, kind: cm, amount: 5 }]
+    - id: aldric-sword
+      category: weapons
+      name: Duskfang
+      hands: 1
+      range: melee
+      weaponGroup: Sword
+      rarity: legendary
+      extraDamage: 2
+      grants: [{ id: g-sword-cm, kind: cm, amount: 15 }]
+    - id: aldric-wolf
+      category: allies
+      name: Grey Fang
+      allyType: familiar
+      hearts: 4
+      active: true
+      grants:
+        - { id: g-wolf-cm, kind: cm, amount: 10 }
+        - { id: g-wolf-die, kind: die, die: 1d6 }
+    - id: aldric-mule
+      category: allies
+      name: Old Mule
+      allyType: ally
+      active: false
+      grants: [{ id: g-mule-cm, kind: cm, amount: 4 }]
+    - id: aldric-charm
+      category: items
+      name: Amber Charm
+      arcane: true
+      grants: [{ id: g-charm-mit, kind: mitigation, amount: 2 }]
+    - { id: aldric-lantern, category: items, name: Hooded Lantern, arcane: false }
+    - { id: aldric-draught, category: consumables, name: Healing Draught, quantity: 3 }
+    - { id: aldric-shard, category: components, name: Ember Shard, quantity: 2, tier: Bright }
+    - { id: aldric-sk-basics, category: skills, skillId: blade-basics, howGained: starting, levelGained: 1 }
+    - { id: aldric-sk-guard, category: skills, skillId: iron-guard, howGained: starting, levelGained: 1 }
+    - { id: aldric-sk-edge1, category: skills, skillId: veterans-edge, howGained: level-up, levelGained: 5 }
+    - { id: aldric-sk-edge2, category: skills, skillId: veterans-edge, howGained: level-up, levelGained: 11 }
+    - { id: aldric-sk-edge3, category: skills, skillId: veterans-edge, howGained: quest, levelGained: 17 }
+    - { id: aldric-sk-focus, category: skills, skillId: battle-focus, howGained: level-up, levelGained: 21 }
+  equipped:
+    - { entryId: aldric-plate, slot: chest }
+    - { entryId: aldric-helm, slot: head }
+    - { entryId: aldric-boots, slot: boot }
+    - { entryId: aldric-gauntlets, slot: glove-arm }
+    - { entryId: aldric-sword, slot: main-hand }
+    - { entryId: aldric-charm, slot: arcane }
+  titles:
+    - { id: t-forest, name: Friend of the Forest, description: Made-up title., scope: { level: player } }
+
+# A level 13 Mage. Test chart: 3 starting arcane slots, plus levels 4 and 9 = 5.
+isolde:
+  owner: bram
+  character: { name: Isolde, className: Mage, level: 13 }
+  entries:
+    - { id: isolde-sk-spark, category: skills, skillId: spark, howGained: starting, levelGained: 1 }
+    - { id: isolde-sk-ward, category: skills, skillId: ward, howGained: starting, levelGained: 1 }
+    - { id: isolde-orb, category: items, name: Glass Orb, arcane: true, grants: [{ id: g-orb-cm, kind: cm, amount: 1 }] }
+  equipped:
+    - { entryId: isolde-orb, slot: arcane }
+  titles: []
+
+# Another user's character, for privacy and access tests (PV-1, TF-11).
+brin:
+  owner: cass
+  character: { name: Brin, className: Rogue, level: 8 }
+  entries:
+    - { id: brin-sk-step, category: skills, skillId: shadow-step, howGained: starting, levelGained: 1 }
+    - { id: brin-dagger, category: weapons, name: Thornneedle, hands: 1, range: melee, weaponGroup: Dagger }
+    - { id: brin-rope, category: items, name: Silk Rope, arcane: false, quantity: 2 }
+  equipped:
+    - { entryId: brin-dagger, slot: main-hand }
+  titles: []

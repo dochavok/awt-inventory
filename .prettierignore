@@ -1,0 +1,7 @@
+# Hand-written documents and YAML data keep their own layout. Reformatting a
+# scenario or fixture would count as changing it (TF-7).
+*.md
+*.yaml
+*.yml
+package-lock.json
+var/

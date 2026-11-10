@@ -1,0 +1,19 @@
+# Paper-doll slot kinds for tests only (TF-3). Deliberately differs from the real
+# data: it has a made-up "Tail" slot and a retired "Cape" slot, so code that
+# hard-codes the real list fails.
+- { id: head, name: Head }
+- { id: chest, name: Chest }
+- { id: shoulder, name: Shoulder }
+- { id: neck, name: Neck }
+- { id: back, name: Back }
+- { id: glove-arm, name: Glove/Arm }
+- { id: ring-right, name: Right Hand (Ring) }
+- { id: ring-left, name: Left Hand (Ring) }
+- { id: pants, name: Pants }
+- { id: belt, name: Belt }
+- { id: boot, name: Boot }
+- { id: relic, name: Relic }
+- { id: tail, name: Tail }
+- { id: cape, name: Cape, retired: true }
+- { id: main-hand, name: Main hand }
+- { id: off-hand, name: Off hand }

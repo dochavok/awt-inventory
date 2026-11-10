@@ -1,0 +1,16 @@
+# Suggestion lists for tests only (TF-3): item families (IN-2), component tiers
+# (IN-7) and acquisition sources (IN-11). All made up.
+itemFamilies:
+  - { id: emberforged, name: Emberforged, aliases: [Ember, Forge-born], description: Made-up family for tests. }
+  - { id: moonwoven, name: Moonwoven, aliases: [Moon], description: Made-up family for tests. }
+  - { id: saltglass, name: Saltglass, retired: true, description: Retired made-up family. }
+componentTiers:
+  - { id: faint, name: Faint }
+  - { id: bright, name: Bright }
+  - { id: radiant, name: Radiant }
+  - { id: dull, name: Dull, retired: true }
+acquisitionSources:
+  - { id: vendor, name: Vendor }
+  - { id: quest, name: Quest }
+  - { id: dm-award, name: DM award }
+  - { id: trade, name: Trade }

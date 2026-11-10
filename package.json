@@ -3,5 +3,57 @@
   "version": "0.1.0",
   "private": true,
   "description": "Inventory, skills and totals for Adventures from the Wizards Tower characters, as a phone-first web app.",
-  "type": "module"
+  "type": "module",
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "test": "vitest run --project unit",
+    "test:access": "firebase emulators:exec --only firestore --project demo-awt-inventory \"vitest run --project access\"",
+    "test:browser": "playwright test",
+    "lint": "eslint . && prettier --check . && tsc",
+    "format": "prettier --write .",
+    "coverage:write": "tsx scripts/coverage.ts --write",
+    "coverage:check": "tsx scripts/coverage.ts --check",
+    "check:test-changes": "tsx scripts/check-test-changes.ts"
+  },
+  "awt": {
+    "finishedMilestones": [
+      "M1"
+    ]
+  },
+  "dependencies": {
+    "firebase": "13.2.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "yaml": "2.9.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@firebase/rules-unit-testing": "6.0.0",
+    "@playwright/test": "1.65.0",
+    "@types/node": "26.6.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.2.1",
+    "eslint": "10.14.0",
+    "fast-check": "4.10.2",
+    "firebase-tools": "15.35.0",
+    "prettier": "3.9.10",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1",
+    "vite": "8.3.6",
+    "vitest": "5.1.0"
+  },
+  "allowScripts": {
+    "@firebase/util": false,
+    "esbuild": false,
+    "protobufjs": false,
+    "re2": false
+  }
 }
