@@ -55,12 +55,16 @@ export function createAccounts(context: AccountsContext): Accounts {
   const notOpen = () =>
     new AccessDeniedError("Sign-up is not open yet: the app is invite-only until its first full release.");
 
-  /** The profile for the account just signed in to; if it can't be made, the new sign-in is removed. */
+  /**
+   * The profile for the account just signed in to. If it can't be made (e.g. the
+   * server refuses an email that isn't invited), a new email sign-in is removed
+   * and a Google one signed out, so nothing is left half made.
+   */
   async function createProfile(user: AuthUser, displayName: string, isNew: boolean): Promise<Profile> {
     try {
       return await context.store().createProfile({ displayName, email: user.email });
     } catch (error) {
-      if (isNew) await auth.deleteUser();
+      await (isNew ? auth.deleteUser() : auth.signOut());
       throw error;
     }
   }

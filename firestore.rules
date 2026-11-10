@@ -1,11 +1,78 @@
 rules_version = '2';
 
-// Server-side access rules (PV-1, NF-7). Stub for M1: nothing is allowed.
-// M2 writes the real rules; tests/access/ says what they must do.
+// Server-side access rules (PV-1, NF-7, NF-13). Tested against the emulator in
+// tests/access/. Every collection is listed: anything not matched here is
+// refused, so a later milestone's collection (e.g. reports, SP-1) stays closed
+// until its rules are written.
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+    function signedIn() {
+      return request.auth != null;
     }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // NF-13: before 1.0, only an email on the invite list can create a profile.
+    function invited() {
+      return request.auth.token.email != null
+        && exists(/databases/$(database)/documents/invites/$(request.auth.token.email.lower()));
+    }
+
+    // PV-2: a profile holds only the display name and the sign-in email.
+    function validProfile() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['displayName', 'email'])
+        && data.displayName is string && data.displayName.size() > 0 && data.displayName.size() <= 60
+        && (!('email' in data) || data.email is string);
+    }
+
+    match /users/{uid} {
+      allow read, delete: if isOwner(uid);
+      allow create: if isOwner(uid) && invited() && validProfile();
+      allow update: if isOwner(uid) && validProfile();
+
+      match /titles/{titleId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /characters/{characterId} {
+        allow read, write: if isOwner(uid);
+
+        match /entries/{entryId} {
+          allow read, write: if isOwner(uid);
+        }
+
+        // HI-4: records are added, never edited. One goes only with its entry
+        // (IN-15) or its character (CH-6, AC-5), in the same batched write.
+        match /history/{recordId} {
+          allow read, create: if isOwner(uid);
+          allow delete: if isOwner(uid) && (
+            !existsAfter(/databases/$(database)/documents/users/$(uid)/characters/$(characterId))
+            || (resource.data.get('entryId', null) is string
+                && !existsAfter(/databases/$(database)/documents/users/$(uid)/characters/$(characterId)/entries/$(resource.data.entryId)))
+          );
+        }
+      }
+    }
+
+    // Trade listings (PV-1, section 3.2): any signed-in user can read one; only
+    // its owner can create, change or remove it, and it carries only the
+    // fields section 3.2 allows, never notes or the character's name.
+    function validListing() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['ownerUid', 'ownerName', 'name', 'category', 'description', 'rarity', 'itemFamily', 'quantity'])
+        && data.ownerUid == request.auth.uid;
+    }
+
+    match /listings/{listingId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && validListing();
+      allow update: if signedIn() && resource.data.ownerUid == request.auth.uid && validListing();
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // The invite list (NF-13) is kept by the maintainer in the console; no user can read or change it.
   }
 }

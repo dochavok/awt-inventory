@@ -182,3 +182,65 @@ rule(
     await expectRefused(signedIn("bram").firestore().collection("invites").get(), "Bram listing the invite list");
   },
 );
+
+rule(
+  { req: ["IN-15", "HI-4", "TF-11"], m: "M2" },
+  "deleting an entry takes its history records with it in one batch, and only for Bram",
+  async () => {
+    await seedAldric();
+    const entry = `${character()}/entries/aldric-sword`;
+    const record = `${character()}/history/h1`;
+    const cass = signedIn("cass").firestore();
+    await expectRefused(
+      cass.batch().delete(cass.doc(entry)).delete(cass.doc(record)).commit(),
+      "Cass deleting Duskfang",
+    );
+    const mine = signedIn("bram").firestore();
+    await expectAllowed(
+      mine.batch().delete(mine.doc(entry)).delete(mine.doc(record)).commit(),
+      "Bram deleting Duskfang with its record",
+    );
+  },
+);
+
+rule(
+  { req: ["CH-6", "HI-4", "TF-11"], m: "M2" },
+  "deleting a character takes its history with it in one batch, but a record whose character stays can't go",
+  async () => {
+    await seedAldric();
+    await seed({ [`${character()}/history/h2`]: { event: "level-changed" } });
+    const mine = signedIn("bram").firestore();
+    await expectRefused(mine.doc(`${character()}/history/h2`).delete(), "Bram removing a level-change record alone");
+    await expectAllowed(
+      mine
+        .batch()
+        .delete(mine.doc(character()))
+        .delete(mine.doc(`${character()}/history/h2`))
+        .commit(),
+      "Bram deleting Aldric with his level-change record",
+    );
+  },
+);
+
+rule({ req: ["PV-2", "TF-11"], m: "M2" }, "a profile holds only the display name and email", async () => {
+  await seedAldric();
+  const mine = signedIn("bram").firestore();
+  await expectRefused(
+    mine.doc(`users/${bram()}`).set({ realName: "Made-up Name" }, { merge: true }),
+    "Bram adding a real name to his profile",
+  );
+  await expectRefused(mine.doc(`users/${bram()}`).set({ displayName: "" }, { merge: true }), "a blank display name");
+});
+
+rule({ req: ["PV-1", "TF-11"], m: "M2" }, "a listing can't be handed to another user", async () => {
+  await seed({
+    "listings/l1": { ownerUid: bram(), ownerName: "Bramblewick", name: "Duskfang", category: "weapons", quantity: 1 },
+  });
+  await expectRefused(
+    signedIn("bram")
+      .firestore()
+      .doc("listings/l1")
+      .update({ ownerUid: uid("cass") }),
+    "Bram giving his listing to Cass",
+  );
+});
