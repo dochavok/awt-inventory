@@ -1,10 +1,12 @@
-// Accounts (AC-1 to AC-5, NF-13): sign-up, sign-in and deletion, over the
-// hosting provider's sign-in (AuthProvider) and the data layer. M1 stub.
+// Accounts (AC-1 to AC-5): sign-up, sign-in and deletion, over the hosting
+// provider's sign-in (AuthProvider) and the data layer. The app never handles
+// passwords itself (NF-7).
 
-import { NotImplementedError } from "../errors";
+import { ValidationError } from "../errors";
 import type { AuthProvider, AuthUser } from "../platform/auth";
 import type { InventoryStore } from "./store";
 import type { Profile } from "./types";
+import * as check from "./validate";
 
 export interface SignUp {
   displayName: string;
@@ -33,16 +35,53 @@ export interface AccountsContext {
   inviteList: () => Promise<Set<string> | null>;
 }
 
-export function createAccounts(_context: AccountsContext): Accounts {
-  const fail = (method: string) => () => Promise.reject(new NotImplementedError(`Accounts.${method}`, "M2"));
+/** What every sign-up needs before an account is created: the terms accepted and a display name (AC-2, AC-4). */
+function checkSignUp(input: SignUp): string {
+  if (input.acceptedTerms !== true) {
+    throw new ValidationError("acceptedTerms", "Accept the terms of use to create an account.");
+  }
+  return check.displayName(input.displayName);
+}
+
+export function createAccounts(context: AccountsContext): Accounts {
+  const { auth } = context;
+
+  /** The profile for the account just signed in to; if it can't be made, the new sign-in is removed. */
+  async function createProfile(user: AuthUser, displayName: string, isNew: boolean): Promise<Profile> {
+    try {
+      return await context.store().createProfile({ displayName, email: user.email });
+    } catch (error) {
+      if (isNew) await auth.deleteUser();
+      throw error;
+    }
+  }
+
   return {
-    start: fail("start"),
-    signUpWithEmail: fail("signUpWithEmail"),
-    signUpWithGoogle: fail("signUpWithGoogle"),
-    signInWithEmail: fail("signInWithEmail"),
-    signInWithGoogle: fail("signInWithGoogle"),
-    resetPassword: fail("resetPassword"),
-    signOut: fail("signOut"),
-    deleteAccount: fail("deleteAccount"),
+    async start() {
+      await auth.setPersistence("local");
+    },
+
+    async signUpWithEmail(input) {
+      const displayName = checkSignUp(input);
+      const user = await auth.createUserWithPassword(input.email, input.password);
+      await auth.sendEmailVerification();
+      return createProfile(user, displayName, true);
+    },
+
+    async signUpWithGoogle(input) {
+      const displayName = checkSignUp(input);
+      const user = await auth.signInWithGoogle();
+      return createProfile(user, displayName, false);
+    },
+
+    signInWithEmail: (email, password) => auth.signInWithPassword(email, password),
+    signInWithGoogle: () => auth.signInWithGoogle(),
+    resetPassword: (email) => auth.sendPasswordReset(email),
+    signOut: () => auth.signOut(),
+
+    async deleteAccount(typedDisplayName) {
+      await context.store().deleteAccount(typedDisplayName);
+      await auth.deleteUser();
+    },
   };
 }
