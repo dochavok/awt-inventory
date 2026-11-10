@@ -375,7 +375,7 @@ The to-do list joins the printable sheet in M7 (section 11). Sheets are created 
 
 ## 11. Faire-Day To-Do List
 
-**Review this section with Craig before building M7.** It was agreed early and hasn't been tried in use.
+**Review this section with Craig before building M7.** It was agreed early and hasn't been tried in use, and it may be dropped. Its tests are written after the review (TF-1).
 
 **TD-1 · Must · M7: One list per user.** The to-do list belongs to the user, not to a character. Each task has:
 
@@ -495,7 +495,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 
 ### 15.1 Tests first, and the test-change rule
 
-**TF-1 · Must · M1: Tests first.** M1 writes the functional tests for every requirement, from this document alone, before any app logic exists. Tests check behaviour (e.g. "Aldric's total CM is 170", "Back: 2 equipped, 1 allowed"), not exact screen layout.
+**TF-1 · Must · M1: Tests first.** M1 writes the functional tests for every requirement, from this document alone, before any app logic exists. Tests check behaviour (e.g. "Aldric's total CM is 170", "Back: 2 equipped, 1 allowed"), not exact screen layout. The exception is the to-do list (section 11): its tests are written after Craig's review of that section, before M7 starts.
 
 **TF-2 · Must · M1: The test harness, defined up front.** M1 fixes, as stubs with no logic, the interfaces the tests call:
 
