@@ -455,7 +455,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 **NF-3 · Must · M3: Working offline.**
 
 - After a user has opened the app with signal on a phone, everything in their account stays on that phone. Without signal they can view, search and export it, and make any change. Changes sync when signal returns.
-- If two devices change the same field while offline, the later change wins. Quantity changes are combined (one *used* on each of two phones means two fewer). History records from both are kept. A clash that leaves too much equipped shows the over-limit alert (EQ-8).
+- If two devices change the same field while offline, the change made later wins, whichever phone gets signal first. Quantity changes are combined (one *used* on each of two phones means two fewer). History records from both are kept. A clash that leaves too much equipped shows the over-limit alert (EQ-8).
 - These need signal: signing in on a new device, creating an account, and browsing trade listings (later). Reports written offline are sent when signal returns.
 - The app shows when it's offline and how many changes are waiting to sync.
 

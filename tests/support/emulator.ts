@@ -51,6 +51,11 @@ export function signedIn(user: string): RulesTestContext {
   return environment().authenticatedContext(u.uid, { email: u.email, email_verified: true });
 }
 
+/** One phone signed in as a fixture user: its own Firestore instance and offline cache. */
+export function device(user: string): ReturnType<RulesTestContext["firestore"]> {
+  return signedIn(user).firestore();
+}
+
 export function signedOut(): RulesTestContext {
   return environment().unauthenticatedContext();
 }
