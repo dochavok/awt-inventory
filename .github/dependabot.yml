@@ -1,0 +1,23 @@
+# Keep dependencies current (NF-11).
+# Each ecosystem's minor and patch updates come as one pull request a week. Major
+# updates still come one per pull request, so a breaking one can be reviewed (or
+# closed) on its own. Security updates aren't grouped and arrive as soon as found.
+# The Cloud Functions folder gets its own npm entry once it exists (M3).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      npm-packages:
+        patterns: ["*"]
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+        update-types: [minor, patch]

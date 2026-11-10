@@ -1,0 +1,22 @@
+# Runtime files, such as Firestore emulator data (keep the folder itself)
+var/*
+!var/.gitkeep
+
+# Secrets and local settings
+.env
+.env.*
+*.local
+
+# Node and builds
+node_modules/
+dist/
+coverage/
+.vite/
+
+# Firebase
+.firebase/
+*-debug.log
+
+# Playwright
+playwright-report/
+test-results/

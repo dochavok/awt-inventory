@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "ask": [
+      "Edit(tests/**)",
+      "Edit(**/tests/**)",
+      "Write(tests/**)",
+      "Write(**/tests/**)",
+      "Edit(package.json)",
+      "Write(package.json)",
+      "Edit(vitest.config.*)",
+      "Write(vitest.config.*)",
+      "Edit(playwright.config.*)",
+      "Write(playwright.config.*)",
+      "Edit(scripts/**)",
+      "Write(scripts/**)",
+      "Edit(.github/**)",
+      "Write(.github/**)",
+      "Edit(.claude/settings.json)",
+      "Write(.claude/settings.json)"
+    ]
+  }
+}
