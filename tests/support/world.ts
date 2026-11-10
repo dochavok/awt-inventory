@@ -53,9 +53,9 @@ export interface Seeded {
 }
 
 /**
- * Creates a fixture character through the store. By default only M2 features
- * are used: entries without grants, nothing equipped. With `full`, grants are
- * kept, entries are equipped as the fixture says, and allies made active (M4).
+ * Creates a fixture character, with its entries and titles, through the store.
+ * By default only M2 features are used: no grants, nothing equipped. With
+ * `full`, grants are kept and entries equipped as the fixture says (M4).
  */
 export async function seedCharacter(
   store: InventoryStore,
@@ -91,14 +91,23 @@ export async function seedCharacter(
       ...rest,
       ...(options.full && grants ? { grants: grants.map(({ id: _, ...g }) => g) } : {}),
     };
-    if (!options.full && entry.category === "allies") entry.active = false;
     entries.set(fixtureId, await store.addEntry(character.id, entry as unknown as NewEntry));
+  }
+  // The fixture's titles, once per user: a player-level title shared by two
+  // fixture characters is added only by the first.
+  const existing = new Set((await store.listTitles()).map((t) => t.name));
+  for (const title of input.titles ?? []) {
+    if (existing.has(title.name)) continue;
+    await store.addTitle({
+      name: title.name,
+      ...(title.description ? { description: title.description } : {}),
+      ...(title.earned ? { earned: title.earned } : {}),
+      scope: title.scope.level === "player" ? title.scope : { level: "character", characterId: character.id },
+      ...(options.full && title.grants ? { grants: title.grants.map(({ id: _, ...g }) => g) } : {}),
+    });
   }
   if (options.full) {
     for (const q of input.equipped ?? []) await store.equip(entries.get(q.entryId)!.id, q.slot);
-    for (const raw of input.entries ?? []) {
-      if (raw.category === "allies" && raw.active) await store.setActive(entries.get(raw.id as string)!.id, true);
-    }
   }
   return { character, entries };
 }
