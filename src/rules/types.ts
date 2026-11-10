@@ -34,6 +34,9 @@ export type Grant = GrantBase &
 
 export type GrantKind = Grant["kind"];
 
+/** A grant before it has an ID (each kind kept separate). */
+export type NewGrant = Grant extends infer G ? (G extends unknown ? Omit<G, "id"> : never) : never;
+
 // ---------------------------------------------------------------- characters, titles, entries
 
 export interface Character {
