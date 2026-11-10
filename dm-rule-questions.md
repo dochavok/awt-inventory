@@ -54,8 +54,13 @@ The app lets a player record a character's familiars and allies, mark them *acti
 
 ## For the game's owner
 
-**Q10. May the app show the skill and spell text from the skill sheets to its users?**
-The app lets players pick their skills and spells from the game's list, and it would show each one's card text. That text belongs to the game. Is it OK for the app to show it to its users?
+**Q10. May the app show the game's skill text and use its level chart, and may they be published in the app's public code repository?**
+The app lets players pick their skills and spells from the game's list, and it would show each one's card text. It also needs the level chart (class bonus, combat dice, hearts and arcane slots by level) to work out each character's totals. Both belong to the game. The app's code is public on GitHub, under a licence that says the game's content isn't covered by it and still belongs to you.
+- May the app show the skill and spell card text to its users?
+- May the skill and spell text be kept in the public repository?
+- May the level chart's numbers be kept in the public repository?
+
+Until you answer, none of this goes into the public repository.
 
 ## Numbers not used
 

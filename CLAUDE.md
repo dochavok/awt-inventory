@@ -72,3 +72,6 @@ Firestore emulator tests (TF-11) and the test-change check (TF-7).
   the same pull request (DOC-3).
 - No real player data in tests, fixtures, docs or examples. Use made-up
   characters.
+- **No game content in this public repository** until the game's owner agrees
+  (RD-8, Q10): no skill or spell card text and no level chart numbers. Tests use
+  their own made-up reference data. The code is MIT; game content isn't covered.

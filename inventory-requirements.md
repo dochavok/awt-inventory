@@ -1,6 +1,6 @@
 # AWT Inventory: Requirements
 
-**Version:** 0.3 (sections 1–20 approved by Craig) · **Date:** 2026-11-09 · **Owner:** Craig
+**Version:** 0.4 (sections 1–20 approved by Craig) · **Date:** 2026-11-09 · **Owner:** Craig
 **Related:** [dm-rule-questions.md](dm-rule-questions.md) (rule questions waiting on the DMs)
 
 ---
@@ -442,6 +442,8 @@ Invalid data can't be deployed.
 
 **RD-7 · Must · M2: Unclear entries.** Anything still unclear in a skill after the clean-up is recorded as a maintainer note in the skill list. It isn't shown to players: the app shows the skill as recorded.
 
+**RD-8 · Must · M2: Game content in the public repository.** The repository is public, and its licence doesn't cover the game's content. Until the game's owner agrees (Q10), nothing from the game is committed: no skill or spell card text, and no level chart numbers. Tests are unaffected, since they use their own made-up reference data (TF-3). If the owner agrees to the app showing the text but not to publishing it, the text is kept out of the repository and loaded into the app another way, to be decided then.
+
 ## 14. Non-Functional Requirements
 
 These describe *how well* the app must work, not what it does. **M2+** means the requirement applies from M2 onward.
@@ -588,7 +590,7 @@ Each milestone from M2 on is done when all of its tests from M1 pass, with no te
 - Q9: weapon groups
 - Q11: familiars, allies and minions
 
-**Waiting on the game's owner:** Q10, whether the app may show skill and spell card text.
+**Waiting on the game's owner:** Q10, whether the app may show the skill and spell card text and use the level chart, and whether both may be published in the public repository (RD-8). The real reference data can't be committed until then.
 
 **Waiting on Craig:** clean up the skill artifacts' unclear prerequisites, tiers and text before the skill list is built (RD-6).
 
