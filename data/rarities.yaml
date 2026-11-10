@@ -1,0 +1,8 @@
+# Item rarities (IN-2, EQ-10, EQ-11). `limit` is how many may be equipped at once
+# (absent: no limit); `minLevel` is the lowest level that may equip it.
+# Legendary's limit of 1 is in the requirements. Divine and Mythic have no limit
+# until Q7 is answered, and no rarity has a minimum level until Q5 is.
+- { id: epic, name: Epic }
+- { id: legendary, name: Legendary, limit: 1 }
+- { id: divine, name: Divine }
+- { id: mythic, name: Mythic }

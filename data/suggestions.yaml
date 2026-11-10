@@ -1,0 +1,22 @@
+# Suggestions for free-text fields (RD-1): offered as the user types, but any
+# value can be typed. Item families (IN-2), component tiers (IN-7) and
+# acquisition sources (IN-11). All are named in the requirements.
+itemFamilies:
+  - id: passion
+    name: Passion
+    aliases: [Will Passion]
+    description: Made by Will Passion, or through the Path of Passion quest.
+  - id: glizzy
+    name: Glizzy
+    aliases: [hotdog]
+    description: Hotdog items.
+componentTiers:
+  - { id: minor, name: Minor }
+  - { id: major, name: Major }
+  - { id: epic, name: Epic }
+  - { id: legendary, name: Legendary }
+acquisitionSources:
+  - { id: vendor, name: Vendor }
+  - { id: quest, name: Quest }
+  - { id: dm-award, name: DM award }
+  - { id: trade, name: Trade }

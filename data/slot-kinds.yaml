@@ -1,0 +1,17 @@
+# Paper-doll slot kinds (EQ-1, IN-4), including Main hand and Off hand. The list
+# is the one in the requirements. IDs are permanent (RD-2); a slot kind leaving
+# the game is retired, never deleted (RD-3).
+- { id: head, name: Head }
+- { id: chest, name: Chest }
+- { id: shoulder, name: Shoulder }
+- { id: neck, name: Neck }
+- { id: back, name: Back }
+- { id: glove-arm, name: Glove/Arm }
+- { id: ring-right, name: Right Hand (Ring) }
+- { id: ring-left, name: Left Hand (Ring) }
+- { id: pants, name: Pants }
+- { id: belt, name: Belt }
+- { id: boot, name: Boot }
+- { id: relic, name: Relic }
+- { id: main-hand, name: Main hand }
+- { id: off-hand, name: Off hand }
