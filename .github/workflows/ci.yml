@@ -11,7 +11,9 @@
 #   access-rules       the Firestore security rules against the emulator (TF-11)
 #   browser            phone-sized browser tests, iPhone and Android (TF-13)
 #   test-change-check  pull requests only: the test-change rule (TF-7). See
-#                      scripts/test-change-lib.ts for what it refuses.
+#                      scripts/test-change-lib.ts for what it refuses. Being
+#                      replaced by test-change-rule.yml, which always runs from
+#                      main; this job goes once that is the required check.
 # Changing this workflow, except to update action versions, fails the
 # test-change check unless the requirements document changes too.
 

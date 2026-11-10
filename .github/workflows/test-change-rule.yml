@@ -1,0 +1,59 @@
+# The test-change rule (TF-7), run from main for every pull request.
+#
+# pull_request_target always runs this file as it is on main, so a pull request
+# can't change how it's judged. To keep that safe, nothing from the pull request
+# is ever run: the check script and its packages come from main (installed with
+# install scripts off), the pull request is checked out only as files to read,
+# the token is read-only and isn't kept on disk, and there are no secrets.
+# See scripts/test-change-lib.ts for what the check refuses.
+
+name: Test-change rule
+
+on:
+  pull_request_target:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-change-rule-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  test-change-rule:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out main (the check script and its packages)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: base/package-lock.json
+      - name: Install main's packages, with install scripts off
+        working-directory: base
+        run: npm ci --ignore-scripts
+      - name: Check out the pull request, as files to read only
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: pr
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Fetch main's commit into the pull request's checkout
+        working-directory: pr
+        env:
+          BASE_REPO: ${{ github.repository }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: git fetch --no-tags "https://github.com/$BASE_REPO" "$BASE_SHA"
+      - name: Test-change rule (main's copy, reading the pull request)
+        working-directory: pr
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node ../base/node_modules/tsx/dist/cli.mjs ../base/scripts/check-test-changes.ts --base "$BASE_SHA"
