@@ -509,7 +509,7 @@ Later milestones implement these interfaces without changing them. An interface 
 
 **TF-3 · Must · M1: Fixtures.** Test data lives in `tests/fixtures/` as YAML: made-up users and characters (never real players), and a **test copy of the reference data** separate from the real files, so changing real data never breaks a test. It includes a sample character whose CM adds up to the GR-8 example.
 
-**TF-4 · Must · M1: Traceability.** Every test names the requirement IDs it checks, and any DM question it depends on (e.g. Q1). An untagged test fails. A generated coverage table lists every requirement and its tests, and every *Must* has at least one. Requirement IDs are permanent: never renumbered or reused. A removed requirement keeps its place, marked *removed*.
+**TF-4 · Must · M1: Traceability.** Every test names the requirement IDs it checks, and any DM question it depends on (e.g. Q1). An untagged test fails. A generated coverage table lists every requirement and its tests, and every *Must* has at least one. Requirement IDs are permanent: never renumbered or reused. A removed requirement keeps its place, marked *removed*. Requirements about how the work is done rather than how the app behaves (TF-12, TF-14, DOC-3) are marked *checked in review* in the coverage table instead of needing a test; the pull request's Review section reports them.
 
 **TF-5 · Must · M1: Milestone markers.** Each test is marked with the milestone that implements it. Tests for unfinished milestones run as expected failures. Every test for a finished milestone must pass.
 

@@ -20,6 +20,10 @@ const SAMPLE = `
 
 **TD-1 · Must · M7: One list per user.** The to-do list ...
 
+## 15. Testing
+
+**TF-12 · Must · M2+: Proven by mutation.** New tests are ...
+
 ## 18. Later
 
 **TR-1 · Could · later: Listing for trade.** A user ...
@@ -44,6 +48,7 @@ rule(
       { id: "NF-1", priority: "Must", milestone: "M2+", title: "Phone first", section: "8" },
       { id: "XX-3", priority: "removed", milestone: "M2", title: "Old idea", section: "8" },
       { id: "TD-1", priority: "Must", milestone: "M7", title: "One list per user", section: "11" },
+      { id: "TF-12", priority: "Must", milestone: "M2+", title: "Proven by mutation", section: "15" },
       { id: "TR-1", priority: "Could", milestone: "later", title: "Listing for trade", section: "18" },
     ]);
   },
@@ -77,7 +82,7 @@ rule({ req: ["TF-4"], m: "M1" }, "DM questions are read from their bold numbers"
 
 rule(
   { req: ["TF-4"], m: "M1" },
-  "a Must with no test is a problem, a Should or Could isn't, and section 11 is deferred",
+  "a Must with no test is a problem; a Should, a Could, section 11 and the process Musts aren't",
   () => {
     expect(problemsFor("[GR-8 · M4] a")).toEqual(["NF-1 is a Must with no test (TF-4)"]);
   },
@@ -132,6 +137,7 @@ rule(
     expect(text).toContain("| NF-1 | Must | M2+ | none |");
     expect(text).toContain("| XX-3 | *removed* | M2 | *removed* |");
     expect(text).toContain("| TD-1 | Must | M7 | tests wait for the section 11 review (TF-1) |");
-    expect(text).toContain("Musts with a test: 1 of 3 (1 deferred by TF-1).");
+    expect(text).toContain("| TF-12 | Must | M2+ | checked in review (TF-4) |");
+    expect(text).toContain("Musts with a test: 1 of 4 (1 deferred by TF-1, 1 checked in review).");
   },
 );
