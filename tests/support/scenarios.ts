@@ -35,7 +35,6 @@ import {
   type BreakdownGroup,
   type CharacterSheet,
   type ClassName,
-  type Entry,
   type Equipped,
   type LossReason,
   type ManualGrant,
@@ -43,7 +42,7 @@ import {
   type Title,
   type Total,
 } from "../../src/rules";
-import { fixtureSheet, testReferenceData, toSheet, type CharacterInput } from "./fixtures";
+import { fixtureSheet, testReferenceData, toEntry, toSheet, type CharacterInput } from "./fixtures";
 import type { Milestone } from "./milestones";
 import { rule } from "./rule";
 
@@ -167,7 +166,7 @@ function applyEdit(sheet: CharacterSheet, edit: SheetEdit): CharacterSheet {
     },
     entries: [
       ...sheet.entries.filter((e) => !has(removed.entries, e.id)),
-      ...(added.entries ?? []).map((e) => ({ quantity: 1, ...e, characterId: id }) as unknown as Entry),
+      ...(added.entries ?? []).map((e) => toEntry(id, e)),
     ],
     equipped: [
       ...sheet.equipped.filter((q) => !has(removed.equipped, q.entryId) && !has(removed.entries, q.entryId)),
@@ -204,14 +203,14 @@ export function sourceName(source: SourceRef): string {
 }
 
 function grantList(lines: { source: SourceRef; amount?: number; die?: string; condition?: string }[]) {
-  return lines
-    .map((g) => ({
+  return sorted(
+    lines.map((g) => ({
       source: sourceName(g.source),
       ...(g.amount !== undefined ? { amount: g.amount } : {}),
       ...(g.die !== undefined ? { die: g.die } : {}),
       ...(g.condition !== undefined ? { condition: g.condition } : {}),
-    }))
-    .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+    })),
+  );
 }
 
 function sorted<T>(list: T[]): T[] {

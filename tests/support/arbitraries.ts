@@ -15,7 +15,8 @@ import type {
 
 const CLASSES: ClassName[] = ["Warrior", "Mage", "Rogue"];
 
-export function grantArb(ref: ReferenceData, id: string, situational?: boolean): fc.Arbitrary<Grant> {
+/** A random grant; `situational: true` always gives it a condition, otherwise one in five has one. */
+export function grantArb(ref: ReferenceData, id: string, situational?: true): fc.Arbitrary<Grant> {
   const slotKinds = ref.slotKinds.filter((k) => !k.retired).map((k) => k.id);
   const rarities = ref.rarities.filter((r) => !r.retired).map((r) => r.id);
   const amount = fc.integer({ min: 1, max: 20 });
@@ -32,10 +33,9 @@ export function grantArb(ref: ReferenceData, id: string, situational?: boolean):
       .tuple(fc.constantFrom(...rarities), fc.integer({ min: 1, max: 2 }))
       .map(([r, n]) => ({ kind: "allowance", rarity: r, amount: n }) as const),
   );
-  const condition =
-    situational === undefined
-      ? fc.option(fc.constantFrom("vs Evil", "vs fire", "ranged weapons only"), { nil: undefined, freq: 4 })
-      : fc.constant(situational ? "vs Evil" : undefined);
+  const condition = situational
+    ? fc.constant("vs Evil")
+    : fc.option(fc.constantFrom("vs Evil", "vs fire", "ranged weapons only"), { nil: undefined, freq: 4 });
   return fc.tuple(kind, condition).map(([k, c]) => ({ id, ...k, ...(c ? { condition: c } : {}) }) as Grant);
 }
 

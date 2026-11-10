@@ -5,11 +5,10 @@ import type { Clock } from "../../src/platform/clock";
 export const FAIRE_SATURDAY = "2026-06-13T15:00:00.000Z";
 
 export class FakeClock implements Clock {
-  private current: number;
+  private current = 0;
 
   constructor(start: string = FAIRE_SATURDAY) {
-    this.current = Date.parse(start);
-    if (!start.endsWith("Z") || Number.isNaN(this.current)) throw new Error(`FakeClock needs a UTC time, got ${start}`);
+    this.set(start);
   }
 
   now(): Date {
@@ -21,8 +20,9 @@ export class FakeClock implements Clock {
   }
 
   set(iso: string): void {
-    if (!iso.endsWith("Z")) throw new Error(`FakeClock needs a UTC time, got ${iso}`);
-    this.current = Date.parse(iso);
+    const time = Date.parse(iso);
+    if (!iso.endsWith("Z") || Number.isNaN(time)) throw new Error(`FakeClock needs a UTC time, got ${iso}`);
+    this.current = time;
   }
 
   advance(ms: number): void {

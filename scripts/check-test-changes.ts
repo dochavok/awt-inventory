@@ -1,16 +1,15 @@
 // The test-change check (TF-7). See scripts/test-change-lib.ts for what it refuses.
 //
-//   npm run check:test-changes -- --base origin/main [--repo <path>]
+//   npm run check:test-changes -- --base origin/main
 //
-// Compares the merge base of <base> and HEAD with HEAD, in the repository at
-// <path> (default: the one this script is in). CI runs main's copy of this
-// script against the pull request with --repo. On GitHub Actions it also
-// writes a job summary.
+// Compares the merge base of <base> and HEAD with HEAD, in the repository it's
+// run from (the current directory), so CI can run main's copy of this script
+// against the pull request. On GitHub Actions it also writes a job summary.
 
 import { execFileSync } from "node:child_process";
-import { appendFileSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { appendFileSync, readdirSync, readFileSync } from "node:fs";
+import { join, relative } from "node:path";
+import { parseArgs } from "node:util";
 import { parse } from "yaml";
 import {
   RULE,
@@ -21,8 +20,7 @@ import {
   type Reader,
 } from "./test-change-lib";
 
-const repoFlag = process.argv.indexOf("--repo");
-const ROOT = repoFlag >= 0 ? process.argv[repoFlag + 1]! : fileURLToPath(new URL("..", import.meta.url));
+const ROOT = process.cwd();
 
 function git(...args: string[]): string {
   return execFileSync("git", args, { cwd: ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
@@ -48,18 +46,15 @@ function readerAt(ref: string): Reader {
   };
 }
 
+/** Repository paths of the files under `dir`; none if it doesn't exist. */
 function filesUnder(dir: string): string[] {
-  const full = join(ROOT, dir);
-  let entries: string[];
   try {
-    entries = readdirSync(full);
+    return readdirSync(join(ROOT, dir), { recursive: true, withFileTypes: true })
+      .filter((e) => e.isFile())
+      .map((e) => relative(ROOT, join(e.parentPath, e.name)).replaceAll("\\", "/"));
   } catch {
     return [];
   }
-  return entries.flatMap((name) => {
-    const path = `${dir}/${name}`;
-    return statSync(join(ROOT, path)).isDirectory() ? filesUnder(path) : [path];
-  });
 }
 
 function fixtureNames(): string[] {
@@ -71,10 +66,9 @@ function fixtureNames(): string[] {
 }
 
 function main(argv: string[]): number {
-  const at = argv.indexOf("--base");
-  const baseRef = at >= 0 ? argv[at + 1] : undefined;
+  const baseRef = parseArgs({ args: argv, options: { base: { type: "string" } } }).values.base;
   if (!baseRef) {
-    console.error("Usage: tsx scripts/check-test-changes.ts --base <git ref> [--repo <path>]");
+    console.error("Usage: tsx scripts/check-test-changes.ts --base <git ref>");
     return 2;
   }
   const base = git("merge-base", baseRef, "HEAD").trim();

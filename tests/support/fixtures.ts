@@ -16,10 +16,14 @@ import type {
 } from "../../src/rules/types";
 
 const FIXTURES = new URL("../fixtures/", import.meta.url);
+const parsed = new Map<string, unknown>();
 
+/** A fixture file, parsed once per test process; each call returns a fresh copy tests may change. */
 export function readYaml<T>(relativePath: string): T {
-  const path = fileURLToPath(new URL(relativePath, FIXTURES));
-  return parse(readFileSync(path, "utf8")) as T;
+  if (!parsed.has(relativePath)) {
+    parsed.set(relativePath, parse(readFileSync(fileURLToPath(new URL(relativePath, FIXTURES)), "utf8")));
+  }
+  return structuredClone(parsed.get(relativePath)) as T;
 }
 
 export function testReferenceData(): ReferenceData {
@@ -49,6 +53,13 @@ export function testUsers(): Record<string, FixtureUser> {
   return readYaml("users.yaml");
 }
 
+/** A fixture user by name (e.g. "bram"). */
+export function fixtureUser(name: string): FixtureUser {
+  const user = testUsers()[name];
+  if (!user) throw new Error(`No fixture user "${name}" in tests/fixtures/users.yaml`);
+  return user;
+}
+
 /** A character as written in YAML: IDs, but no characterId or default quantity on entries. */
 export interface CharacterInput {
   owner?: string;
@@ -59,10 +70,15 @@ export interface CharacterInput {
   manualGrants?: ManualGrant[];
 }
 
+/** An entry as written in YAML, with its character and the default quantity of 1. */
+export function toEntry(characterId: string, raw: Record<string, unknown>): Entry {
+  return { quantity: 1, ...raw, characterId } as unknown as Entry;
+}
+
 export function toSheet(id: string, input: CharacterInput): CharacterSheet {
   return {
     character: { ...input.character, id },
-    entries: (input.entries ?? []).map((e) => ({ quantity: 1, ...e, characterId: id }) as unknown as Entry),
+    entries: (input.entries ?? []).map((e) => toEntry(id, e)),
     equipped: [...(input.equipped ?? [])],
     titles: [...(input.titles ?? [])],
     manualGrants: [...(input.manualGrants ?? [])],
@@ -73,9 +89,14 @@ export function fixtureCharacters(): Record<string, CharacterInput> {
   return readYaml("characters.yaml");
 }
 
-/** A fixture character's sheet, by its ID (e.g. "aldric"). */
-export function fixtureSheet(id: string): CharacterSheet {
+/** A fixture character as written in YAML, by its ID (e.g. "aldric"). */
+export function fixtureCharacter(id: string): CharacterInput {
   const input = fixtureCharacters()[id];
   if (!input) throw new Error(`No fixture character "${id}" in tests/fixtures/characters.yaml`);
-  return toSheet(id, input);
+  return input;
+}
+
+/** A fixture character's sheet, by its ID. */
+export function fixtureSheet(id: string): CharacterSheet {
+  return toSheet(id, fixtureCharacter(id));
 }

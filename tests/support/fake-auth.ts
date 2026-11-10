@@ -86,11 +86,4 @@ export class FakeAuth implements AuthProvider {
   account(email: string): AuthUser | undefined {
     return this.accounts.get(email)?.user;
   }
-
-  /** Test helper: marks an email verified, as clicking the link would. */
-  verify(email: string): void {
-    const account = this.accounts.get(email);
-    if (account) account.user = { ...account.user, emailVerified: true };
-    if (this.signedIn?.email === email) this.signedIn = account!.user;
-  }
 }

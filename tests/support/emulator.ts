@@ -13,7 +13,7 @@ import {
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
 import { afterAll, beforeAll, beforeEach, expect } from "vitest";
-import { testUsers } from "./fixtures";
+import { fixtureUser } from "./fixtures";
 
 export const PROJECT_ID = "demo-awt-inventory";
 
@@ -46,8 +46,7 @@ function environment(): RulesTestEnvironment {
 
 /** A fixture user ("bram", "cass") signed in, with a verified email. */
 export function signedIn(user: string): RulesTestContext {
-  const u = testUsers()[user];
-  if (!u) throw new Error(`No fixture user "${user}"`);
+  const u = fixtureUser(user);
   return environment().authenticatedContext(u.uid, { email: u.email, email_verified: true });
 }
 
@@ -61,9 +60,7 @@ export function signedOut(): RulesTestContext {
 }
 
 export function uid(user: string): string {
-  const u = testUsers()[user];
-  if (!u) throw new Error(`No fixture user "${user}"`);
-  return u.uid;
+  return fixtureUser(user).uid;
 }
 
 /** Writes documents with the rules switched off, as setup. */

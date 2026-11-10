@@ -10,11 +10,12 @@
 //     imports, and new names added to an existing import are allowed;
 //   - changes or removes an existing scenario or fixture record in YAML under
 //     tests/ (records are matched by id, skill or level). New records are allowed;
-//   - changes or deletes any other file under tests/ (the harness in
-//     tests/support/, the probes in tests/meta/probes/), except tests/COVERAGE.md,
-//     which is generated;
-//   - changes or deletes the test settings (vitest.config.ts,
-//     playwright.config.ts, firebase.json, eslint.config.js), the check scripts,
+//   - changes or deletes any other file under tests/: the harness is every
+//     TypeScript file that isn't itself a test (*.test.ts, *.spec.ts), such as
+//     tests/support/ and tests/meta/probes/. tests/COVERAGE.md is exempt: it's
+//     generated;
+//   - changes or deletes anything in scripts/, the test settings
+//     (vitest.config.ts, playwright.config.ts, firebase.json, eslint.config.js)
 //     or .claude/settings.json;
 //   - changes the test scripts in package.json, or removes a finished milestone;
 //   - changes or deletes a CI workflow, except to update the versions of the
@@ -44,10 +45,6 @@ const PROTECTED_FILES = new Set([
   "firebase.json",
   "eslint.config.js",
   ".claude/settings.json",
-  "scripts/check-test-changes.ts",
-  "scripts/test-change-lib.ts",
-  "scripts/coverage.ts",
-  "scripts/coverage-lib.ts",
 ]);
 
 const PROTECTED_SCRIPTS = [
@@ -93,13 +90,13 @@ function changeProblems(change: Change, base: Reader, head: Reader): string[] {
     if (removed) return [`${path}: a CI workflow was deleted`];
     return sameApartFromActionVersions(base(path), head(path)) ? [] : [`${path}: a CI workflow was changed`];
   }
-  if (PROTECTED_FILES.has(path))
+  if (PROTECTED_FILES.has(path) || path.startsWith("scripts/"))
     return [`${path}: ${removed ? "deleted" : "changed"} (test settings and check scripts are protected)`];
   if (!path.startsWith("tests/")) return [];
   if (removed) return [`${path}: deleted`];
-  const isHarness = path.startsWith("tests/support/") || path.startsWith("tests/meta/probes/");
-  if (!isHarness && /\.tsx?$/.test(path)) return testFileProblems(path, base(path) ?? "", head(path) ?? "");
-  if (!isHarness && /\.ya?ml$/.test(path)) return yamlProblems(path, base(path) ?? "", head(path) ?? "");
+  if (/\.(test|spec)\.tsx?$/.test(path)) return testFileProblems(path, base(path) ?? "", head(path) ?? "");
+  if (/\.ya?ml$/.test(path)) return yamlProblems(path, base(path) ?? "", head(path) ?? "");
+  const isHarness = /\.[cm]?[jt]sx?$/.test(path);
   return [`${path}: changed (${isHarness ? "the test harness" : "files under tests/"} can't change)`];
 }
 

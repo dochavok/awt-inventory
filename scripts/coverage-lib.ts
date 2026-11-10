@@ -30,6 +30,12 @@ export const DEFERRED_SECTIONS: Record<string, string> = {
 export const CHECKED_IN_REVIEW = new Set(["TF-12", "TF-14", "DOC-3"]);
 const REVIEW_CELL = "checked in review (TF-4)";
 
+/** Why a requirement needs no test yet (shown in its Tests cell), or undefined if it does. */
+function exemption(requirement: Requirement): string | undefined {
+  if (CHECKED_IN_REVIEW.has(requirement.id)) return REVIEW_CELL;
+  return DEFERRED_SECTIONS[requirement.section];
+}
+
 const BLOCK = /^\*\*([A-Z]{2,3}-\d+[a-z]?) · (Must|Should|Could|Removed) · ([^:]+?): (.+?)\*\*/;
 const SECTION = /^## (\d+)\./;
 
@@ -103,8 +109,7 @@ export function buildCoverage(requirements: Requirement[], questions: Set<string
   }
   const rows = requirements.map((requirement) => ({ requirement, tests: testsOf.get(requirement.id) ?? [] }));
   for (const { requirement, tests: covering } of rows) {
-    const exempt = DEFERRED_SECTIONS[requirement.section] || CHECKED_IN_REVIEW.has(requirement.id);
-    if (requirement.priority === "Must" && covering.length === 0 && !exempt) {
+    if (requirement.priority === "Must" && covering.length === 0 && !exemption(requirement)) {
       problems.push(`${requirement.id} is a Must with no test (TF-4)`);
     }
     if (DEFERRED_SECTIONS[requirement.section] && covering.length > 0) {
@@ -117,8 +122,7 @@ export function buildCoverage(requirements: Requirement[], questions: Set<string
 function testsCell(requirement: Requirement, tests: ListedTest[]): string {
   if (tests.length === 0) {
     if (requirement.priority === "removed") return "*removed*";
-    if (CHECKED_IN_REVIEW.has(requirement.id)) return REVIEW_CELL;
-    return DEFERRED_SECTIONS[requirement.section] ?? "none";
+    return exemption(requirement) ?? "none";
   }
   const files = new Map<string, number>();
   for (const t of tests) files.set(t.file, (files.get(t.file) ?? 0) + 1);
@@ -147,8 +151,9 @@ export function renderCoverage(coverage: Coverage): string {
   }
   const musts = coverage.rows.filter((r) => r.requirement.priority === "Must");
   const covered = musts.filter((r) => r.tests.length > 0).length;
-  const deferred = musts.filter((r) => r.tests.length === 0 && DEFERRED_SECTIONS[r.requirement.section]).length;
-  const reviewed = musts.filter((r) => r.tests.length === 0 && CHECKED_IN_REVIEW.has(r.requirement.id)).length;
+  const exempt = musts.filter((r) => r.tests.length === 0).map((r) => exemption(r.requirement));
+  const deferred = exempt.filter((e) => e !== undefined && e !== REVIEW_CELL).length;
+  const reviewed = exempt.filter((e) => e === REVIEW_CELL).length;
   lines.push(
     "",
     `Musts with a test: ${covered} of ${musts.length} (${deferred} deferred by TF-1, ${reviewed} checked in review).`,

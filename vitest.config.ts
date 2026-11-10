@@ -6,6 +6,8 @@ export default defineConfig({
     reporters: ["default", "./tests/support/reporter.ts"],
     allowOnly: false,
     passWithNoTests: false,
+    setupFiles: ["tests/support/setup.ts"],
+    environment: "node",
     projects: [
       {
         extends: true,
@@ -13,8 +15,6 @@ export default defineConfig({
           name: "unit",
           include: ["tests/**/*.test.ts"],
           exclude: ["tests/access/**", "tests/browser/**"],
-          setupFiles: ["tests/support/setup.ts"],
-          environment: "node",
         },
       },
       {
@@ -23,8 +23,6 @@ export default defineConfig({
           // Run inside the Firestore emulator: npm run test:access (TF-11).
           name: "access",
           include: ["tests/access/**/*.test.ts"],
-          setupFiles: ["tests/support/setup.ts"],
-          environment: "node",
           fileParallelism: false,
           testTimeout: 20_000,
         },

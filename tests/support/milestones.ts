@@ -9,8 +9,11 @@ export const MILESTONES = ["M1", "M2", "M3", "M4", "M5", "M6", "M7"] as const;
 export type Milestone = (typeof MILESTONES)[number];
 
 const packageJson = fileURLToPath(new URL("../../package.json", import.meta.url));
+let finished: readonly string[] | undefined;
 
+/** Read once per test process. */
 export function finishedMilestones(): Set<string> {
+  if (finished) return new Set(finished);
   const pkg = JSON.parse(readFileSync(packageJson, "utf8")) as { awt?: { finishedMilestones?: unknown } };
   const list = pkg.awt?.finishedMilestones;
   if (
@@ -19,7 +22,8 @@ export function finishedMilestones(): Set<string> {
   ) {
     throw new Error("package.json awt.finishedMilestones must be a list of milestone IDs (M1 to M7)");
   }
-  return new Set(list);
+  finished = list as string[];
+  return new Set(finished);
 }
 
 export function milestoneNumber(m: string): number {

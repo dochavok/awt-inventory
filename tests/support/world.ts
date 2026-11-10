@@ -11,13 +11,11 @@ import { MemoryDatabase, createMemoryStore } from "../../src/data/memory-store";
 import type { Character, Entry, Grant, ReferenceData } from "../../src/rules/types";
 import type { NewEntry } from "../../src/data/types";
 import { FakeClock } from "./fake-clock";
-import { fixtureCharacters, testReferenceData, testUsers } from "./fixtures";
+import { fixtureCharacter, fixtureUser, testReferenceData } from "./fixtures";
 
 export interface World {
-  db: MemoryDatabase;
   clock: FakeClock;
   ref: ReferenceData;
-  settings: AppSettings;
   /** The store for a fixture user ("bram", "cass"), or for nobody signed in (null). */
   as(user: string | null): InventoryStore;
   /** A store acting for whoever `auth` says is signed in, as the app's is. */
@@ -29,15 +27,11 @@ export function world(settings: Partial<AppSettings> = {}): World {
   const clock = new FakeClock();
   const ref = testReferenceData();
   const full: AppSettings = { showSkillText: false, appVersion: "0.1.0-test", ...settings };
-  const users = testUsers();
   return {
-    db,
     clock,
     ref,
-    settings: full,
     as(user) {
-      const uid = user === null ? null : users[user]?.uid;
-      if (uid === undefined) throw new Error(`No fixture user "${user}"`);
+      const uid = user === null ? null : fixtureUser(user).uid;
       return createMemoryStore(db, { currentUid: () => uid, clock, ref, settings: full });
     },
     forAuth(auth) {
@@ -47,7 +41,7 @@ export function world(settings: Partial<AppSettings> = {}): World {
 }
 
 export async function seedProfile(store: InventoryStore, user: string): Promise<void> {
-  const u = testUsers()[user]!;
+  const u = fixtureUser(user);
   await store.createProfile({ displayName: u.displayName, email: u.email });
 }
 
@@ -67,8 +61,7 @@ export async function seedCharacter(
   id: string,
   options: { full?: boolean } = {},
 ): Promise<Seeded> {
-  const input = fixtureCharacters()[id];
-  if (!input) throw new Error(`No fixture character "${id}"`);
+  const input = fixtureCharacter(id);
   const character = await store.createCharacter({
     name: input.character.name,
     className: input.character.className,

@@ -3,8 +3,8 @@
 # Runs on every pull request and every push to main:
 #   lint               ESLint, Prettier and the TypeScript compiler
 #   test               rule scenarios, property tests, the data layer and the
-#                      harness's own tests (Vitest), then the coverage table:
-#                      every Must has a test, every tag is valid, and
+#                      harness's own tests (Vitest). One of them runs the coverage
+#                      check: every Must has a test, every tag is valid, and
 #                      tests/COVERAGE.md is up to date (TF-4). Tests for unfinished
 #                      milestones run as expected failures; finished milestones
 #                      (package.json awt.finishedMilestones) must pass (TF-5).
@@ -50,10 +50,8 @@ jobs:
           node-version: 26
           cache: npm
       - run: npm ci
-      - name: Vitest
+      - name: Vitest, including the coverage check
         run: npm test
-      - name: Coverage table
-        run: npm run coverage:check
 
   access-rules:
     runs-on: ubuntu-latest
@@ -71,6 +69,7 @@ jobs:
         with:
           path: ~/.cache/firebase/emulators
           key: firebase-emulators-${{ hashFiles('package-lock.json') }}
+          restore-keys: firebase-emulators-
       - run: npm ci
       - name: Firestore rules in the emulator
         run: npm run test:access
@@ -84,6 +83,12 @@ jobs:
           node-version: 26
           cache: npm
       - run: npm ci
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: playwright-
+      # Installs only the browsers the cache doesn't already have, plus their system packages.
       - run: npx playwright install --with-deps chromium webkit
       - name: Phone-sized browser tests
         run: npm run test:browser
@@ -109,7 +114,7 @@ jobs:
           if git cat-file -e "origin/$BASE:scripts/check-test-changes.ts" 2>/dev/null; then
             git worktree add --detach "$RUNNER_TEMP/base" "origin/$BASE"
             ln -s "$PWD/node_modules" "$RUNNER_TEMP/base/node_modules"
-            npx tsx "$RUNNER_TEMP/base/scripts/check-test-changes.ts" --repo "$PWD" --base "origin/$BASE"
+            npx tsx "$RUNNER_TEMP/base/scripts/check-test-changes.ts" --base "origin/$BASE"
           else
             npm run check:test-changes -- --base "origin/$BASE"
           fi
