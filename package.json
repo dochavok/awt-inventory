@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "emulators": "firebase emulators:start --only firestore,auth --project demo-awt-inventory",
     "build": "vite build",
     "preview": "vite preview --port 4173 --strictPort",
     "test": "vitest run --project unit",
