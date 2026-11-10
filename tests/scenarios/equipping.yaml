@@ -1,0 +1,857 @@
+# Rule scenarios for equipping (section 9). IDs are permanent (TF-6).
+# Aldric has equipped: Ironclad Plate (chest), Hawkeye Helm (head), Stridewalk
+# Boots (boot), Ember Gauntlets (glove-arm), Duskfang (legendary, main hand) and
+# Amber Charm (arcane). The test chart gives him 2 arcane slots at level 25.
+
+# ---------------------------------------------------------------- slots (EQ-1, EQ-5)
+
+- id: slots-one-of-each-kind
+  req: [EQ-1, EQ-5]
+  milestone: M4
+  title: Aldric has one slot of each kind in the reference data, including the made-up Tail, and both hands
+  given: { character: aldric }
+  expect:
+    slots:
+      head: { allowed: 1, equipped: 1, occupants: [Hawkeye Helm] }
+      chest: { allowed: 1, equipped: 1, occupants: [Ironclad Plate] }
+      back: { allowed: 1, equipped: 0, occupants: [] }
+      tail: { allowed: 1, equipped: 0, occupants: [] }
+      main-hand: { allowed: 1, equipped: 1, occupants: [Duskfang] }
+      off-hand: { allowed: 1, equipped: 0, occupants: [] }
+
+- id: slot-grant-adds-a-slot
+  req: [EQ-1, EQ-5, GR-1]
+  milestone: M4
+  title: A player-level title "Wanderer" granting +1 Back gives Aldric a second Back slot, marked as from the title
+  given:
+    character: aldric
+    add:
+      titles:
+        - { id: t-wanderer, name: Wanderer, scope: { level: player }, grants: [{ id: g-wanderer, kind: slots, slotKind: back, amount: 1 }] }
+  expect:
+    slots:
+      back: { allowed: 2, equipped: 0, extra: [{ label: Back 2, source: Wanderer }] }
+
+- id: slot-grant-from-skill
+  req: [EQ-1, SK-7]
+  milestone: M4
+  title: The skill Broad Shoulders grants Aldric a second Back slot
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-shoulders, category: skills, skillId: broad-shoulders, howGained: level-up, levelGained: 23 }
+  expect:
+    slots:
+      back: { allowed: 2, extra: [{ label: Back 2, source: Broad Shoulders }] }
+
+# ---------------------------------------------------------------- armor (EQ-2)
+
+- id: armor-in-free-slot
+  req: [EQ-2]
+  milestone: M4
+  title: Aldric can equip his Spare Cloak in his empty Back slot
+  given: { character: aldric }
+  equip: { entry: aldric-cloak, slot: back }
+  expect:
+    equip: { outcome: allowed }
+
+- id: armor-slot-full
+  req: [EQ-2]
+  milestone: M4
+  title: A second chest piece is blocked, naming the Chest slot and Ironclad Plate in it
+  given:
+    character: aldric
+    add:
+      entries: [{ id: x-mail, category: armor, name: Chain Shirt, slotKind: chest }]
+  equip: { entry: x-mail, slot: chest }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: slot-full, about: chest, occupants: [Ironclad Plate], mentions: [Chest, Ironclad Plate] }
+
+- id: armor-wrong-slot
+  req: [EQ-2, IN-4]
+  milestone: M4
+  title: Armor that fits Chest is blocked from the Back slot
+  given:
+    character: aldric
+    add:
+      entries: [{ id: x-mail, category: armor, name: Chain Shirt, slotKind: chest }]
+  equip: { entry: x-mail, slot: back }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: wrong-slot, about: back, mentions: [Chain Shirt, Chest] }
+
+- id: armor-second-slot-from-grant
+  req: [EQ-2, EQ-1]
+  milestone: M4
+  title: With a manual grant of +1 Chest, Aldric can wear a second chest piece
+  given:
+    character: aldric
+    add:
+      entries: [{ id: x-mail, category: armor, name: Chain Shirt, slotKind: chest }]
+      manualGrants:
+        - { id: m-x-chest, reason: DM ruling, grants: [{ id: g-x-chest, kind: slots, slotKind: chest, amount: 1 }] }
+  equip: { entry: x-mail, slot: chest }
+  expect:
+    equip: { outcome: allowed }
+
+- id: retired-slot-kind
+  req: [EQ-1, RD-3]
+  milestone: M4
+  title: A retired slot kind (Cape) isn't on the paper doll and can't be newly equipped
+  given:
+    character: aldric
+    add:
+      entries: [{ id: x-cape, category: armor, name: Old Cape, slotKind: cape }]
+  equip: { entry: x-cape, slot: cape }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: wrong-slot, about: cape, mentions: [Cape] }
+
+- id: entry-equipped-once
+  req: [EQ-4]
+  milestone: M4
+  title: An entry with quantity 2 is equipped in one place only; equipping it again is blocked, saying where it is
+  given:
+    character: aldric
+    add:
+      entries: [{ id: x-daggers, category: weapons, name: Iron Dagger, quantity: 2, hands: 1, range: melee }]
+      equipped: [{ entryId: x-daggers, slot: off-hand }]
+    remove: { equipped: [aldric-sword] }
+  equip: { entry: x-daggers, slot: main-hand }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: already-equipped, about: off-hand, mentions: [Iron Dagger, Off hand] }
+
+- id: not-equippable
+  req: [EQ-2, EQ-7]
+  milestone: M4
+  title: A consumable can't be equipped anywhere
+  given: { character: aldric }
+  equip: { entry: aldric-draught, slot: belt }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: cannot-equip, about: belt, mentions: [Healing Draught] }
+
+# ---------------------------------------------------------------- hands (EQ-3)
+
+- id: one-hander-in-off-hand
+  req: [EQ-3]
+  milestone: M4
+  title: A one-handed dagger goes in Aldric's free Off hand
+  given:
+    character: aldric
+    add:
+      entries: [{ id: x-dagger, category: weapons, name: Iron Dagger, hands: 1, range: melee }]
+  equip: { entry: x-dagger, slot: off-hand }
+  expect:
+    equip: { outcome: allowed }
+
+- id: two-hander-needs-both-hands
+  req: [EQ-3]
+  milestone: M4
+  title: A two-handed greatsword is blocked while Duskfang is in Aldric's Main hand, naming Duskfang
+  given:
+    character: aldric
+    add:
+      entries: [{ id: x-great, category: weapons, name: Greatsword, hands: 2, range: melee }]
+  equip: { entry: x-great, slot: both-hands }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: hands-not-free, about: main-hand, occupants: [Duskfang], mentions: [Main hand, Duskfang] }
+
+- id: two-hander-with-free-hands
+  req: [EQ-3]
+  milestone: M4
+  title: With both hands free, the greatsword takes Main hand and Off hand
+  given:
+    character: aldric
+    remove: { equipped: [aldric-sword] }
+    add:
+      entries: [{ id: x-great, category: weapons, name: Greatsword, hands: 2, range: melee }]
+      equipped: [{ entryId: x-great, slot: both-hands }]
+  expect:
+    slots:
+      main-hand: { equipped: 1, occupants: [Greatsword] }
+      off-hand: { equipped: 1, occupants: [Greatsword] }
+
+- id: one-hander-blocked-by-two-hander
+  req: [EQ-3]
+  milestone: M4
+  title: While the greatsword is held, a dagger in the Off hand is blocked, naming the greatsword
+  given:
+    character: aldric
+    remove: { equipped: [aldric-sword] }
+    add:
+      entries:
+        - { id: x-great, category: weapons, name: Greatsword, hands: 2, range: melee }
+        - { id: x-dagger, category: weapons, name: Iron Dagger, hands: 1, range: melee }
+      equipped: [{ entryId: x-great, slot: both-hands }]
+  equip: { entry: x-dagger, slot: off-hand }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: slot-full, about: off-hand, occupants: [Greatsword], mentions: [Off hand, Greatsword] }
+
+- id: two-hander-not-in-one-hand
+  req: [EQ-3]
+  milestone: M4
+  title: A two-handed weapon can't go in one hand
+  given:
+    character: aldric
+    remove: { equipped: [aldric-sword] }
+    add:
+      entries: [{ id: x-great, category: weapons, name: Greatsword, hands: 2, range: melee }]
+  equip: { entry: x-great, slot: main-hand }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: wrong-slot, about: main-hand, mentions: [Greatsword] }
+
+- id: shield-off-hand-only
+  req: [EQ-3, IN-4]
+  milestone: M4
+  title: A shield is blocked from the Main hand
+  given:
+    character: aldric
+    remove: { equipped: [aldric-sword] }
+    add:
+      entries: [{ id: x-shield, category: armor, name: Oak Shield, slotKind: off-hand }]
+  equip: { entry: x-shield, slot: main-hand }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: wrong-slot, about: main-hand, mentions: [Oak Shield] }
+
+- id: shield-in-off-hand
+  req: [EQ-3]
+  milestone: M4
+  title: A shield goes in Aldric's free Off hand beside Duskfang
+  given:
+    character: aldric
+    add:
+      entries: [{ id: x-shield, category: armor, name: Oak Shield, slotKind: off-hand }]
+  equip: { entry: x-shield, slot: off-hand }
+  expect:
+    equip: { outcome: allowed }
+
+- id: no-two-shields
+  req: [EQ-3]
+  q: [Q2]
+  milestone: M4
+  title: Even with a second Off hand slot, a second shield is blocked (until Q2 is answered)
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-shield, category: armor, name: Oak Shield, slotKind: off-hand }
+        - { id: x-shield2, category: armor, name: Iron Buckler, slotKind: off-hand }
+      equipped: [{ entryId: x-shield, slot: off-hand }]
+      manualGrants:
+        - { id: m-x-hand, reason: Odd ruling, grants: [{ id: g-x-hand, kind: slots, slotKind: off-hand, amount: 1 }] }
+  equip: { entry: x-shield2, slot: off-hand }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: two-shields, about: off-hand, occupants: [Oak Shield], mentions: [Oak Shield] }
+
+- id: bow-with-melee
+  req: [EQ-3]
+  q: [Q3]
+  milestone: M4
+  title: A one-handed bow can be held with Duskfang (until Q3 says otherwise)
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-bow, category: weapons, name: Hunting Bow, hands: 1, range: ranged }
+        - { id: x-fangs, category: skills, skillId: twin-fangs, howGained: level-up, levelGained: 3 }
+        - { id: x-long, category: skills, skillId: longshot, howGained: level-up, levelGained: 7 }
+  equip: { entry: x-bow, slot: off-hand }
+  expect:
+    equip: { outcome: allowed }
+
+- id: unequip-frees-slot
+  req: [EQ-4]
+  milestone: M4
+  title: Unequipping Ironclad Plate leaves Aldric's Chest slot empty, and the plate can be equipped again
+  given:
+    character: aldric
+    remove: { equipped: [aldric-plate] }
+  equip: { entry: aldric-plate, slot: chest }
+  expect:
+    slots:
+      chest: { allowed: 1, equipped: 0, occupants: [] }
+    equip: { outcome: allowed }
+
+# ---------------------------------------------------------------- arcane slots (EQ-6, EQ-7)
+
+- id: arcane-slots-mage
+  req: [EQ-6]
+  milestone: M4
+  title: A level 13 Mage has 5 arcane slots in the test chart (3 to start, plus levels 4 and 9)
+  given: { character: isolde }
+  expect:
+    arcane: { allowed: 5, used: 1, occupants: [Glass Orb] }
+
+- id: arcane-slots-at-boundary
+  req: [EQ-6]
+  milestone: M4
+  title: At level 8, Isolde has 4 arcane slots (the level 9 slot doesn't count yet)
+  given: { character: isolde, level: 8 }
+  expect:
+    arcane: { allowed: 4 }
+
+- id: arcane-slots-at-level-9
+  req: [EQ-6]
+  milestone: M4
+  title: At level 9, the slot from level 9 counts, so Isolde has 5 arcane slots
+  given: { character: isolde, level: 9 }
+  expect:
+    arcane: { allowed: 5 }
+
+- id: arcane-slots-warrior-and-rogue
+  req: [EQ-6]
+  milestone: M4
+  title: Brin (Rogue 8) has 2 arcane slots in the test chart (1 to start, plus level 7)
+  given: { character: brin }
+  expect:
+    arcane: { allowed: 2, used: 0 }
+
+- id: arcane-slots-aldric
+  req: [EQ-6]
+  milestone: M4
+  title: Aldric has 2 arcane slots (Warrior starts with 0; levels 12 and 24 give one each), with Amber Charm in one
+  given: { character: aldric }
+  expect:
+    arcane: { allowed: 2, used: 1, occupants: [Amber Charm] }
+
+- id: arcane-slot-grants
+  req: [EQ-6, SK-7]
+  milestone: M4
+  title: Deep Study adds an arcane slot, so Isolde has 6
+  given:
+    character: isolde
+    add:
+      entries: [{ id: x-study, category: skills, skillId: deep-study, howGained: level-up, levelGained: 5 }]
+  expect:
+    arcane: { allowed: 6 }
+
+- id: arcane-item-in-arcane-slot
+  req: [EQ-7]
+  milestone: M4
+  title: An arcane item goes in Aldric's free arcane slot
+  given:
+    character: aldric
+    add:
+      entries: [{ id: x-ring, category: items, name: Ring of Nerve, arcane: true }]
+  equip: { entry: x-ring, slot: arcane }
+  expect:
+    equip: { outcome: allowed }
+
+- id: arcane-full
+  req: [EQ-7]
+  milestone: M4
+  title: With both arcane slots used, a third arcane item is blocked, saying 2 of 2 are used
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-ring, category: items, name: Ring of Nerve, arcane: true }
+        - { id: x-feather, category: items, name: Jay Feather, arcane: true }
+      equipped: [{ entryId: x-ring, slot: arcane }]
+  equip: { entry: x-feather, slot: arcane }
+  expect:
+    arcane: { allowed: 2, used: 2 }
+    equip:
+      outcome: blocked
+      block: { reason: arcane-full, about: arcane, occupants: [Amber Charm, Ring of Nerve], mentions: ["2 of 2"] }
+
+- id: arcane-item-not-in-paper-doll
+  req: [EQ-7, IN-5]
+  milestone: M4
+  title: An arcane item never takes a paper-doll slot
+  given:
+    character: aldric
+    add:
+      entries: [{ id: x-ring, category: items, name: Ring of Nerve, arcane: true }]
+  equip: { entry: x-ring, slot: ring-left }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: wrong-slot, about: ring-left, mentions: [Ring of Nerve] }
+
+- id: plain-item-not-in-arcane-slot
+  req: [EQ-7, IN-5]
+  milestone: M4
+  title: An item that isn't arcane can't go in an arcane slot
+  given: { character: aldric }
+  equip: { entry: aldric-lantern, slot: arcane }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: not-arcane, about: arcane, mentions: [Hooded Lantern] }
+
+# ---------------------------------------------------------------- over-limit alerts (EQ-8)
+
+- id: alert-grant-traded
+  req: [EQ-8]
+  milestone: M4
+  title: "Trading Cloak of the Wanderer leaves Back: 2 equipped, 1 allowed, naming the traded cloak"
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-wander, category: items, name: Cloak of the Wanderer, arcane: true, grants: [{ id: g-x-wander, kind: slots, slotKind: back, amount: 1 }] }
+        - { id: x-pack, category: armor, name: Traveller's Pack, slotKind: back }
+      equipped:
+        - { entryId: x-wander, slot: arcane }
+        - { entryId: aldric-cloak, slot: back }
+        - { entryId: x-pack, slot: back }
+  change:
+    reason: traded
+    remove: { entries: [x-wander] }
+  expect:
+    alerts:
+      - scope: back
+        equipped: 2
+        allowed: 1
+        lost: { source: Cloak of the Wanderer, reason: traded }
+        mentions: [Back, "2 equipped", "1 allowed", Cloak of the Wanderer, traded]
+    slots:
+      back: { allowed: 1, equipped: 2, occupants: [Spare Cloak, Traveller's Pack] }
+
+- id: alert-nothing-unequipped
+  req: [EQ-8, GR-5]
+  milestone: M4
+  title: After the cloak is traded, the app hasn't unequipped anything, but its grants are gone
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-wander, category: items, name: Cloak of the Wanderer, arcane: true, grants: [{ id: g-x-wander, kind: slots, slotKind: back, amount: 1 }] }
+        - { id: x-pack, category: armor, name: Traveller's Pack, slotKind: back, grants: [{ id: g-x-pack, kind: cm, amount: 2 }] }
+      equipped:
+        - { entryId: x-wander, slot: arcane }
+        - { entryId: aldric-cloak, slot: back }
+        - { entryId: x-pack, slot: back }
+  change:
+    reason: traded
+    remove: { entries: [x-wander] }
+  expect:
+    cm: { total: 177, lines: { class-bonus: 63, armor: 78, weapons: 15, skills: 11, ally: 10 } }
+    slots:
+      back: { equipped: 2 }
+
+- id: alert-blocks-more-in-that-kind
+  req: [EQ-8]
+  milestone: M4
+  title: While Back is over its limit, equipping anything more in Back is blocked
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-pack, category: armor, name: Traveller's Pack, slotKind: back }
+        - { id: x-quiver, category: armor, name: Quiver, slotKind: back }
+      equipped:
+        - { entryId: aldric-cloak, slot: back }
+        - { entryId: x-pack, slot: back }
+  equip: { entry: x-quiver, slot: back }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: over-limit, about: back, occupants: [Spare Cloak, Traveller's Pack], mentions: [Back] }
+
+- id: alert-other-kinds-still-open
+  req: [EQ-8]
+  milestone: M4
+  title: While Back is over its limit, Aldric can still equip in other slot kinds
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-pack, category: armor, name: Traveller's Pack, slotKind: back }
+        - { id: x-belt, category: armor, name: Wide Belt, slotKind: belt }
+      equipped:
+        - { entryId: aldric-cloak, slot: back }
+        - { entryId: x-pack, slot: back }
+  equip: { entry: x-belt, slot: belt }
+  expect:
+    equip: { outcome: allowed }
+
+- id: alert-clears-when-unequipped
+  req: [EQ-8]
+  milestone: M4
+  title: Unequipping one of the two Back items clears the alert
+  given:
+    character: aldric
+    add:
+      entries: [{ id: x-pack, category: armor, name: Traveller's Pack, slotKind: back }]
+      equipped: [{ entryId: x-pack, slot: back }]
+  expect:
+    alerts: []
+
+- id: alert-title-moved
+  req: [EQ-8, TI-2]
+  milestone: M4
+  title: Switching the Wanderer title to another character leaves Aldric over his Back limit, naming the title
+  given:
+    character: aldric
+    add:
+      entries: [{ id: x-pack, category: armor, name: Traveller's Pack, slotKind: back }]
+      titles:
+        - { id: t-wanderer, name: Wanderer, scope: { level: player }, grants: [{ id: g-wanderer, kind: slots, slotKind: back, amount: 1 }] }
+      equipped:
+        - { entryId: aldric-cloak, slot: back }
+        - { entryId: x-pack, slot: back }
+  change:
+    reason: title-moved
+    remove: { titles: [t-wanderer] }
+  expect:
+    alerts:
+      - { scope: back, equipped: 2, allowed: 1, lost: { source: Wanderer, reason: title-moved }, mentions: [Wanderer] }
+
+- id: alert-level-lowered
+  req: [EQ-8, EQ-6]
+  milestone: M4
+  title: Lowering Isolde from 13 to 8 leaves 5 arcane items in 4 arcane slots, and says the level changed
+  given:
+    character: isolde
+    add:
+      entries:
+        - { id: x-a1, category: items, name: Blue Bead, arcane: true }
+        - { id: x-a2, category: items, name: Red Bead, arcane: true }
+        - { id: x-a3, category: items, name: Green Bead, arcane: true }
+        - { id: x-a4, category: items, name: White Bead, arcane: true }
+      equipped:
+        - { entryId: x-a1, slot: arcane }
+        - { entryId: x-a2, slot: arcane }
+        - { entryId: x-a3, slot: arcane }
+        - { entryId: x-a4, slot: arcane }
+  change: { reason: level-lowered, level: 8 }
+  expect:
+    alerts:
+      - { scope: arcane, equipped: 5, allowed: 4, lost: { source: level chart, reason: level-lowered }, mentions: ["5 equipped", "4 allowed"] }
+
+- id: alert-class-corrected
+  req: [EQ-8, CH-2a]
+  milestone: M4
+  title: Correcting Isolde from Mage to Warrior leaves 2 arcane items in 1 arcane slot
+  given:
+    character: isolde
+    add:
+      entries: [{ id: x-a1, category: items, name: Blue Bead, arcane: true }]
+      equipped: [{ entryId: x-a1, slot: arcane }]
+  change: { reason: class-corrected, className: Warrior }
+  expect:
+    alerts:
+      - { scope: arcane, equipped: 2, allowed: 1, lost: { source: level chart, reason: class-corrected } }
+
+- id: alert-grant-unequipped
+  req: [EQ-8]
+  milestone: M4
+  title: Unequipping the cloak that gives the second Back slot raises the alert, saying it was unequipped
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-wander, category: items, name: Cloak of the Wanderer, arcane: true, grants: [{ id: g-x-wander, kind: slots, slotKind: back, amount: 1 }] }
+        - { id: x-pack, category: armor, name: Traveller's Pack, slotKind: back }
+      equipped:
+        - { entryId: x-wander, slot: arcane }
+        - { entryId: aldric-cloak, slot: back }
+        - { entryId: x-pack, slot: back }
+  change:
+    reason: unequipped
+    remove: { equipped: [x-wander] }
+  expect:
+    alerts:
+      - { scope: back, equipped: 2, allowed: 1, lost: { source: Cloak of the Wanderer, reason: unequipped } }
+
+- id: alert-without-known-cause
+  req: [EQ-8, NF-3]
+  milestone: M4
+  title: A sheet that's over its limit with no known cause (e.g. after an offline clash) still shows the alert
+  given:
+    character: aldric
+    add:
+      entries: [{ id: x-pack, category: armor, name: Traveller's Pack, slotKind: back }]
+      equipped:
+        - { entryId: aldric-cloak, slot: back }
+        - { entryId: x-pack, slot: back }
+  expect:
+    alerts:
+      - { scope: back, equipped: 2, allowed: 1, mentions: [Back, "2 equipped", "1 allowed"] }
+
+# ---------------------------------------------------------------- permissions (EQ-9)
+
+- id: permission-weapon-use
+  req: [EQ-9]
+  milestone: M5
+  title: Isolde (no Weapon Use) can equip a sword, with a Weapon Use warning
+  given:
+    character: isolde
+    add:
+      entries: [{ id: x-sword, category: weapons, name: Short Sword, hands: 1, range: melee }]
+  equip: { entry: x-sword, slot: main-hand }
+  expect:
+    equip: { outcome: allowed, warnings: [weapon-use] }
+
+- id: permission-ranged
+  req: [EQ-9]
+  milestone: M5
+  title: Aldric has Weapon Use but not Ranged Weapon Use, so a bow warns about Ranged Weapon Use only
+  given:
+    character: aldric
+    remove: { equipped: [aldric-sword] }
+    add:
+      entries: [{ id: x-bow, category: weapons, name: Hunting Bow, hands: 2, range: ranged }]
+  equip: { entry: x-bow, slot: both-hands }
+  expect:
+    equip: { outcome: allowed, warnings: [ranged-weapon-use] }
+
+- id: permission-ranged-without-weapon-use
+  req: [EQ-9]
+  milestone: M5
+  title: Isolde equipping a bow gets both the Weapon Use and the Ranged Weapon Use warnings
+  given:
+    character: isolde
+    add:
+      entries: [{ id: x-bow, category: weapons, name: Hunting Bow, hands: 2, range: ranged }]
+  equip: { entry: x-bow, slot: both-hands }
+  expect:
+    equip: { outcome: allowed, warnings: [weapon-use, ranged-weapon-use] }
+
+- id: permission-armor-use
+  req: [EQ-9]
+  milestone: M5
+  title: Isolde (no Armor Use) can wear a helm, with an Armor Use warning
+  given:
+    character: isolde
+    add:
+      entries: [{ id: x-helm, category: armor, name: Felt Cap, slotKind: head }]
+  equip: { entry: x-helm, slot: head }
+  expect:
+    equip: { outcome: allowed, warnings: [armor-use] }
+
+- id: permission-shield-armor-use
+  req: [EQ-9]
+  milestone: M5
+  title: A shield counts as armor, so Isolde gets an Armor Use warning for it
+  given:
+    character: isolde
+    add:
+      entries: [{ id: x-shield, category: armor, name: Oak Shield, slotKind: off-hand }]
+  equip: { entry: x-shield, slot: off-hand }
+  expect:
+    equip: { outcome: allowed, warnings: [armor-use] }
+
+- id: permission-dual-wielding
+  req: [EQ-9]
+  milestone: M5
+  title: A second one-handed weapon warns about Dual Wielding when Aldric lacks it
+  given:
+    character: aldric
+    add:
+      entries: [{ id: x-dagger, category: weapons, name: Iron Dagger, hands: 1, range: melee }]
+  equip: { entry: x-dagger, slot: off-hand }
+  expect:
+    equip: { outcome: allowed, warnings: [dual-wielding] }
+
+- id: permission-dual-wielding-from-skill
+  req: [EQ-9, SK-7]
+  milestone: M5
+  title: With Twin Fangs, Aldric's second one-handed weapon gives no warning
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-dagger, category: weapons, name: Iron Dagger, hands: 1, range: melee }
+        - { id: x-fangs, category: skills, skillId: twin-fangs, howGained: level-up, levelGained: 3 }
+  equip: { entry: x-dagger, slot: off-hand }
+  expect:
+    equip: { outcome: allowed, warnings: [] }
+
+- id: permission-from-grant
+  req: [EQ-9, GR-1]
+  milestone: M5
+  title: A manual Armor Use grant stops Isolde's Armor Use warning
+  given:
+    character: isolde
+    add:
+      entries: [{ id: x-helm, category: armor, name: Felt Cap, slotKind: head }]
+      manualGrants:
+        - { id: m-x-armor, reason: Trained by the guard, grants: [{ id: g-x-armor, kind: permission, permission: armor-use }] }
+  equip: { entry: x-helm, slot: head }
+  expect:
+    equip: { outcome: allowed, warnings: [] }
+
+- id: permission-two-hander-no-dual
+  req: [EQ-9]
+  q: [Q1]
+  milestone: M5
+  title: A two-handed weapon gives no Dual Wielding warning (until Q1 is answered)
+  given:
+    character: aldric
+    remove: { equipped: [aldric-sword] }
+    add:
+      entries: [{ id: x-great, category: weapons, name: Greatsword, hands: 2, range: melee }]
+  equip: { entry: x-great, slot: both-hands }
+  expect:
+    equip: { outcome: allowed, warnings: [] }
+
+- id: permissions-listed
+  req: [EQ-9, SK-7]
+  milestone: M5
+  title: Aldric's permissions are Weapon Use (Blade Basics) and Armor Use (Iron Guard)
+  given: { character: aldric }
+  expect:
+    permissions: [weapon-use, armor-use]
+
+# ---------------------------------------------------------------- rarity (EQ-10, EQ-11)
+
+- id: rarity-legendary-limit
+  req: [EQ-10]
+  milestone: M5
+  title: With Duskfang equipped, a second Legendary item is blocked, naming Legendary and Duskfang
+  given:
+    character: aldric
+    add:
+      entries: [{ id: x-crown, category: armor, name: Sun Crown, slotKind: neck, rarity: legendary }]
+  equip: { entry: x-crown, slot: neck }
+  expect:
+    rarities: { legendary: { allowed: 1, equipped: 1 } }
+    equip:
+      outcome: blocked
+      block: { reason: rarity-limit, about: legendary, occupants: [Duskfang], mentions: [Legendary, Duskfang] }
+
+- id: rarity-allowance-grant
+  req: [EQ-10, SK-7]
+  milestone: M5
+  title: Warden's Oath (+1 Legendary allowance) lets Aldric equip a second Legendary item
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-crown, category: armor, name: Sun Crown, slotKind: neck, rarity: legendary }
+        - { id: x-oath, category: skills, skillId: wardens-oath, howGained: quest, levelGained: 22 }
+  equip: { entry: x-crown, slot: neck }
+  expect:
+    rarities: { legendary: { allowed: 2, equipped: 1 } }
+    equip: { outcome: allowed }
+
+- id: rarity-limit-from-data
+  req: [EQ-10]
+  milestone: M5
+  title: The test data's Cursed rarity allows 2 at once, so a third Cursed item is blocked
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-c1, category: armor, name: Bitter Ring, slotKind: ring-left, rarity: cursed }
+        - { id: x-c2, category: armor, name: Sour Ring, slotKind: ring-right, rarity: cursed }
+        - { id: x-c3, category: armor, name: Grim Belt, slotKind: belt, rarity: cursed }
+      equipped:
+        - { entryId: x-c1, slot: ring-left }
+        - { entryId: x-c2, slot: ring-right }
+  equip: { entry: x-c3, slot: belt }
+  expect:
+    rarities: { cursed: { allowed: 2, equipped: 2 } }
+    equip:
+      outcome: blocked
+      block: { reason: rarity-limit, about: cursed, occupants: [Bitter Ring, Sour Ring], mentions: [Cursed] }
+
+- id: rarity-unlimited
+  req: [EQ-10]
+  q: [Q7]
+  milestone: M5
+  title: Epic, Divine and Mythic have no limit (until Q7), so a second Epic item is allowed
+  given:
+    character: aldric
+    add:
+      entries: [{ id: x-epic, category: armor, name: Storm Mantle, slotKind: shoulder, rarity: epic }]
+  equip: { entry: x-epic, slot: shoulder }
+  expect:
+    rarities: { epic: { allowed: null, equipped: 1 } }
+    equip: { outcome: allowed }
+
+- id: rarity-arcane-counts
+  req: [EQ-10]
+  milestone: M5
+  title: An arcane item with a rarity counts toward it, so a Legendary arcane item is blocked while Duskfang is equipped
+  given:
+    character: aldric
+    add:
+      entries: [{ id: x-orb, category: items, name: Star Orb, arcane: true, rarity: legendary }]
+  equip: { entry: x-orb, slot: arcane }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: rarity-limit, about: legendary, occupants: [Duskfang] }
+
+- id: rarity-allowance-lost
+  req: [EQ-10, EQ-8]
+  milestone: M5
+  title: Deleting Warden's Oath with two Legendary items equipped raises a Legendary alert, naming the skill
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-crown, category: armor, name: Sun Crown, slotKind: neck, rarity: legendary }
+        - { id: x-oath, category: skills, skillId: wardens-oath, howGained: quest, levelGained: 22 }
+      equipped: [{ entryId: x-crown, slot: neck }]
+  change:
+    reason: deleted
+    remove: { entries: [x-oath] }
+  expect:
+    alerts:
+      - { scope: "rarity:legendary", equipped: 2, allowed: 1, lost: { source: Warden's Oath, reason: deleted }, mentions: [Legendary] }
+
+- id: rarity-level-blocked
+  req: [EQ-11]
+  q: [Q5]
+  milestone: M5
+  title: The test data's Cursed rarity needs level 10, so Brin (level 8) is blocked from equipping a Cursed ring
+  given:
+    character: brin
+    add:
+      entries: [{ id: x-c1, category: armor, name: Bitter Ring, slotKind: ring-left, rarity: cursed }]
+  equip: { entry: x-c1, slot: ring-left }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: rarity-level, about: cursed, mentions: [Cursed, "10"] }
+
+- id: rarity-level-reached
+  req: [EQ-11]
+  q: [Q5]
+  milestone: M5
+  title: Isolde (level 13) can equip the Cursed ring
+  given:
+    character: isolde
+    add:
+      entries: [{ id: x-c1, category: armor, name: Bitter Ring, slotKind: ring-left, rarity: cursed }]
+  equip: { entry: x-c1, slot: ring-left }
+  expect:
+    equip: { outcome: allowed, warnings: [armor-use] }
+
+- id: rarity-no-level-check
+  req: [EQ-11]
+  q: [Q5]
+  milestone: M5
+  title: A rarity with no minimum level in the data (Legendary) has no level check, even at level 1
+  given:
+    character: brin
+    level: 1
+    add:
+      entries: [{ id: x-crown, category: armor, name: Sun Crown, slotKind: neck, rarity: legendary }]
+  equip: { entry: x-crown, slot: neck }
+  expect:
+    equip: { outcome: allowed, warnings: [armor-use] }

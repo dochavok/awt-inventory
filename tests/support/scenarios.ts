@@ -21,6 +21,7 @@
 //     level / className / remove / add, as above
 //   equip: { entry: id, slot: target }   optional: the equip to check
 //   expect: see Expect below. Every key given is checked; lists are exact.
+//     equip.warnings is checked only when given (permission warnings are M5).
 
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -338,9 +339,12 @@ export function checkScenario(s: Scenario): void {
     } else {
       expect(result.block, `${what} has no block`).toBeUndefined();
     }
-    expect(result.warnings.map((w) => w.permission).sort(), `warnings for ${what}`).toEqual(
-      [...(want.equip.warnings ?? [])].sort(),
-    );
+    // Permission warnings are M5 (EQ-9): checked only where a scenario lists them.
+    if (want.equip.warnings !== undefined) {
+      expect(result.warnings.map((w) => w.permission).sort(), `warnings for ${what}`).toEqual(
+        [...want.equip.warnings].sort(),
+      );
+    }
   }
 
   if (want.alerts) {

@@ -19,21 +19,21 @@ Tests shows each file with the number of its tests that name the requirement.
 | PV-4 | Must | M2 | browser/phone.spec.ts (1) |
 | CH-1 | Must | M2 | none |
 | CH-2 | Must | M2 | none |
-| CH-2a | Must | M2 | none |
+| CH-2a | Must | M2 | rules/equipping.test.ts (1) |
 | CH-3 | Must | M2 | none |
 | CH-4 | Must | M2 | none |
 | CH-5 | Must | M2 | none |
 | CH-6 | Must | M2 | none |
 | TI-1 | Must | M2 | none |
-| TI-2 | Must | M2 | none |
+| TI-2 | Must | M2 | rules/equipping.test.ts (1) |
 | TI-3 | Must | M2 | none |
 | TI-4 | Must | M2 | none |
 | TI-5 | Must | M4 | rules/totals.test.ts (3) |
 | IN-1 | Must | M2 | none |
 | IN-2 | Must | M2 | none |
 | IN-3 | Must | M2 | none |
-| IN-4 | Must | M2 | none |
-| IN-5 | Must | M2 | none |
+| IN-4 | Must | M2 | rules/equipping.test.ts (2) |
+| IN-5 | Must | M2 | rules/equipping.test.ts (2) |
 | IN-6 | Must | M2 | none |
 | IN-7 | Must | M2 | none |
 | IN-8 | Must | M2 | none |
@@ -52,7 +52,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | SK-4 | Must | M2 | none |
 | SK-5 | Must | M2 | none |
 | SK-6 | Should | M4 | none |
-| SK-7 | Should | M4 | none |
+| SK-7 | Should | M4 | rules/equipping.test.ts (5) |
 | SK-8 | Must | M2 | none |
 | SK-9 | Should | M5 | none |
 | HI-1 | Must | M2 | none |
@@ -60,11 +60,11 @@ Tests shows each file with the number of its tests that name the requirement.
 | HI-3 | Must | M2 | none |
 | HI-4 | Must | M2 | access/privacy.test.ts (1) |
 | HI-5 | Should | M3 | none |
-| GR-1 | Must | M4 | rules/totals.test.ts (1) |
+| GR-1 | Must | M4 | rules/equipping.test.ts (2), rules/totals.test.ts (1) |
 | GR-2 | Must | M4 | rules/totals.test.ts (1) |
 | GR-3 | Must | M4 | rules/totals.test.ts (12) |
 | GR-4 | Must | M4 | rules/totals.test.ts (5), properties/totals.test.ts (1) |
-| GR-5 | Must | M4 | rules/totals.test.ts (3), properties/totals.test.ts (1) |
+| GR-5 | Must | M4 | rules/equipping.test.ts (1), rules/totals.test.ts (3), properties/totals.test.ts (1) |
 | GR-6 | Should | M5 | rules/totals.test.ts (2) |
 | GR-7 | Must | M4 | rules/totals.test.ts (6) |
 | GR-8 | Must | M4 | rules/totals.test.ts (3), properties/totals.test.ts (1) |
@@ -72,17 +72,17 @@ Tests shows each file with the number of its tests that name the requirement.
 | GR-10 | Should | M4 | rules/totals.test.ts (2), properties/totals.test.ts (1) |
 | GR-11 | Must | M4 | rules/totals.test.ts (4) |
 | GR-12 | Must | M4 | rules/totals.test.ts (7), properties/totals.test.ts (1) |
-| EQ-1 | Must | M4 | none |
-| EQ-2 | Must | M4 | none |
-| EQ-3 | Must | M4 | none |
-| EQ-4 | Must | M4 | none |
-| EQ-5 | Must | M4 | none |
-| EQ-6 | Must | M4 | none |
-| EQ-7 | Must | M4 | none |
-| EQ-8 | Must | M4 | properties/totals.test.ts (1) |
-| EQ-9 | Should | M5 | none |
-| EQ-10 | Should | M5 | none |
-| EQ-11 | Should | M5 | none |
+| EQ-1 | Must | M4 | rules/equipping.test.ts (8) |
+| EQ-2 | Must | M4 | rules/equipping.test.ts (5), properties/equipping.test.ts (1) |
+| EQ-3 | Must | M4 | rules/equipping.test.ts (9), properties/equipping.test.ts (1) |
+| EQ-4 | Must | M4 | rules/equipping.test.ts (2) |
+| EQ-5 | Must | M4 | rules/equipping.test.ts (3) |
+| EQ-6 | Must | M4 | rules/equipping.test.ts (7) |
+| EQ-7 | Must | M4 | rules/equipping.test.ts (6), properties/equipping.test.ts (1) |
+| EQ-8 | Must | M4 | rules/equipping.test.ts (11), properties/totals.test.ts (1), properties/equipping.test.ts (1) |
+| EQ-9 | Should | M5 | rules/equipping.test.ts (10) |
+| EQ-10 | Should | M5 | rules/equipping.test.ts (7), properties/equipping.test.ts (1) |
+| EQ-11 | Should | M5 | rules/equipping.test.ts (3) |
 | SE-1 | Must | M3 | none |
 | SE-2 | Must | M3 | none |
 | SE-3 | Should | M3 | none |
@@ -105,7 +105,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | AL-1 | Could | M6 | none |
 | RD-1 | Must | M2 | none |
 | RD-2 | Must | M2 | none |
-| RD-3 | Must | M2 | none |
+| RD-3 | Must | M2 | rules/equipping.test.ts (2) |
 | RD-4 | Must | M2 | none |
 | RD-5 | Must | M2 | none |
 | RD-6 | Must | M2 | none |
@@ -113,7 +113,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | RD-8 | Must | M2 | none |
 | NF-1 | Must | M2+ | browser/phone.spec.ts (1) |
 | NF-2 | Must | M2 | browser/phone.spec.ts (2) |
-| NF-3 | Must | M3 | none |
+| NF-3 | Must | M3 | rules/equipping.test.ts (1) |
 | NF-4 | Must | M2+ | none |
 | NF-5 | Must | M2+ | none |
 | NF-6 | Must | M2+ | none |
@@ -126,14 +126,14 @@ Tests shows each file with the number of its tests that name the requirement.
 | NF-13 | Must | M3 | access/privacy.test.ts (1) |
 | TF-1 | Must | M1 | none |
 | TF-2 | Must | M1 | none |
-| TF-3 | Must | M1 | rules/totals.test.ts (2), meta/test-change-check.test.ts (1) |
+| TF-3 | Must | M1 | rules/equipping.test.ts (2), rules/totals.test.ts (2), meta/test-change-check.test.ts (1) |
 | TF-4 | Must | M1 | meta/harness.test.ts (4), meta/coverage.test.ts (8) |
 | TF-5 | Must | M1 | meta/harness.test.ts (4), meta/test-change-check.test.ts (1), meta/coverage.test.ts (1) |
 | TF-6 | Must | M1 | meta/test-change-check.test.ts (3) |
 | TF-7 | Must | M1 | meta/test-change-check.test.ts (13) |
 | TF-8 | Must | M1 | none |
 | TF-9 | Must | M1 | meta/test-change-check.test.ts (1) |
-| TF-10 | Must | M1 | properties/totals.test.ts (4) |
+| TF-10 | Must | M1 | properties/totals.test.ts (4), properties/equipping.test.ts (3) |
 | TF-11 | Must | M1 | access/privacy.test.ts (11) |
 | TF-12 | Must | M2+ | none |
 | TF-13 | Should | M3 | none |
@@ -153,4 +153,4 @@ Tests shows each file with the number of its tests that name the requirement.
 | DOC-5 | Must | M3 | none |
 | DOC-6 | Should | M3 | none |
 
-Musts with a test: 30 of 117 (5 deferred by TF-1).
+Musts with a test: 43 of 117 (5 deferred by TF-1).
