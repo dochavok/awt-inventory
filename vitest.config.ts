@@ -8,6 +8,11 @@ export default defineConfig({
     passWithNoTests: false,
     setupFiles: ["tests/support/setup.ts"],
     environment: "node",
+    // Undo every spy, mock and stubbed global or variable after each test, so
+    // a test can never change how the tests after it run (TF-7).
+    restoreMocks: true,
+    unstubGlobals: true,
+    unstubEnvs: true,
     projects: [
       {
         extends: true,

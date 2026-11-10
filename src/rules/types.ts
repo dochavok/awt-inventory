@@ -400,16 +400,18 @@ export interface EquipCheck {
   warnings: EquipWarning[];
 }
 
-export type LossReason =
-  | "traded"
-  | "given-away"
-  | "unequipped"
-  | "deleted"
-  | "title-moved"
-  | "title-removed"
-  | "grant-removed"
-  | "level-lowered"
-  | "class-corrected";
+export const LOSS_REASONS = [
+  "traded",
+  "given-away",
+  "unequipped",
+  "deleted",
+  "title-moved",
+  "title-removed",
+  "grant-removed",
+  "level-lowered",
+  "class-corrected",
+] as const;
+export type LossReason = (typeof LOSS_REASONS)[number];
 
 /** What changed, so an alert can name the grant that was lost (EQ-8). */
 export interface SheetChange {

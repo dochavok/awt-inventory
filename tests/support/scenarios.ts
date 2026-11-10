@@ -30,6 +30,8 @@ import { parse } from "yaml";
 import { z } from "zod";
 import {
   BREAKDOWN_ORDER,
+  CLASS_NAMES,
+  LOSS_REASONS,
   checkEquip,
   computeTotals,
   overLimitAlerts,
@@ -37,108 +39,41 @@ import {
   type BreakdownGroup,
   type CharacterSheet,
   type ClassName,
-  type Equipped,
-  type LossReason,
   type ManualGrant,
   type SourceRef,
   type Title,
   type Total,
 } from "../../src/rules";
 import { fixtureSheet, testReferenceData, toEntry, toSheet, type CharacterInput } from "./fixtures";
-import type { Milestone } from "./milestones";
+import { MILESTONES } from "./milestones";
 import { rule } from "./rule";
 
-interface SheetEdit {
-  level?: number;
-  className?: ClassName;
-  remove?: { entries?: string[]; equipped?: string[]; titles?: string[]; manualGrants?: string[] };
-  add?: {
-    entries?: Record<string, unknown>[];
-    equipped?: Equipped[];
-    titles?: Title[];
-    manualGrants?: ManualGrant[];
-  };
-}
-
-interface GrantExpect {
-  source: string;
-  amount?: number;
-  die?: string;
-  condition?: string;
-}
-
-interface TotalExpect {
-  total?: number;
-  lines?: Partial<Record<BreakdownGroup, number>>;
-  grants?: GrantExpect[];
-  situational?: GrantExpect[];
-}
-
-interface Expect {
-  classBonus?: { name: string; value: number };
-  cm?: TotalExpect;
-  mitigation?: TotalExpect;
-  hearts?: TotalExpect;
-  dice?: { base?: string; extra?: GrantExpect[]; situational?: GrantExpect[] };
-  permissions?: string[];
-  effects?: { effect: string; text: string; source: string }[];
-  slots?: Record<
-    string,
-    { allowed?: number; equipped?: number; occupants?: string[]; extra?: { label: string; source: string }[] }
-  >;
-  arcane?: { allowed?: number; used?: number; occupants?: string[] };
-  rarities?: Record<string, { allowed?: number | null; equipped?: number }>;
-  equip?: {
-    outcome: "allowed" | "blocked";
-    block?: { reason: string; about: string; occupants?: string[]; mentions?: string[] };
-    warnings?: string[];
-  };
-  alerts?: {
-    scope: string;
-    equipped: number;
-    allowed: number;
-    lost?: { source: string; reason: LossReason };
-    mentions?: string[];
-  }[];
-}
-
-export interface Scenario {
-  id: string;
-  req: string[];
-  q?: string[];
-  milestone: Milestone;
-  title: string;
-  given: SheetEdit & { character?: string; sheet?: CharacterInput };
-  change?: SheetEdit & { reason: LossReason };
-  equip?: { entry: string; slot: string };
-  expect: Expect;
-}
-
 // The scenario format, strict at every level the runner reads, so a misspelled
-// key fails loudly instead of silently dropping an edit or an assertion (TF-8).
-// Entries, titles and grants inside `add` and `sheet` are domain data and are
-// checked by the code under test, so they're only required to be objects.
+// key or an empty expectation fails loudly instead of silently dropping an
+// edit or an assertion (TF-8). The Scenario type is derived from it. Entries,
+// titles and grants inside `add` and `sheet` are domain data, checked by the
+// code under test, so here they only have to be objects.
 const record = z.record(z.string(), z.unknown());
 const names = z.array(z.string());
+/** An object with at least one of its optional keys given, so it checks something. */
+const someKey = <T extends z.ZodRawShape>(shape: T) =>
+  z.strictObject(shape).refine((o) => Object.values(o).some((v) => v !== undefined), "expects nothing");
+
 const sheetEdit = {
   level: z.number().optional(),
-  className: z.enum(["Warrior", "Mage", "Rogue"]).optional(),
-  remove: z
-    .strictObject({
-      entries: names.optional(),
-      equipped: names.optional(),
-      titles: names.optional(),
-      manualGrants: names.optional(),
-    })
-    .optional(),
-  add: z
-    .strictObject({
-      entries: z.array(record).optional(),
-      equipped: z.array(z.strictObject({ entryId: z.string(), slot: z.string() })).optional(),
-      titles: z.array(record).optional(),
-      manualGrants: z.array(record).optional(),
-    })
-    .optional(),
+  className: z.enum(CLASS_NAMES as [ClassName, ...ClassName[]]).optional(),
+  remove: someKey({
+    entries: names.optional(),
+    equipped: names.optional(),
+    titles: names.optional(),
+    manualGrants: names.optional(),
+  }).optional(),
+  add: someKey({
+    entries: z.array(record).optional(),
+    equipped: z.array(z.strictObject({ entryId: z.string(), slot: z.string() })).optional(),
+    titles: z.array(record).optional(),
+    manualGrants: z.array(record).optional(),
+  }).optional(),
 };
 const grantExpect = z.strictObject({
   source: z.string(),
@@ -146,57 +81,53 @@ const grantExpect = z.strictObject({
   die: z.string().optional(),
   condition: z.string().optional(),
 });
-const totalExpect = z
+const totalExpect = someKey({
+  total: z.number().optional(),
+  lines: z.partialRecord(z.enum(BREAKDOWN_ORDER as [BreakdownGroup, ...BreakdownGroup[]]), z.number()).optional(),
+  grants: z.array(grantExpect).optional(),
+  situational: z.array(grantExpect).optional(),
+}).optional();
+const lossReason = z.enum(LOSS_REASONS);
+/** A whole character written into the scenario, in the fixture format. */
+const sheetSchema = z.strictObject({
+  character: record,
+  entries: z.array(record).optional(),
+  equipped: z.array(z.strictObject({ entryId: z.string(), slot: z.string() })).optional(),
+  titles: z.array(record).optional(),
+  manualGrants: z.array(record).optional(),
+});
+
+const scenarioSchema = z
   .strictObject({
-    total: z.number().optional(),
-    lines: z.partialRecord(z.enum(BREAKDOWN_ORDER as [BreakdownGroup, ...BreakdownGroup[]]), z.number()).optional(),
-    grants: z.array(grantExpect).optional(),
-    situational: z.array(grantExpect).optional(),
-  })
-  .optional();
-const scenarioSchema = z.strictObject({
-  id: z.string().min(1),
-  req: z.array(z.string()).min(1),
-  q: z.array(z.string()).optional(),
-  milestone: z.enum(["M1", "M2", "M3", "M4", "M5", "M6", "M7"]),
-  title: z.string().min(1),
-  given: z.strictObject({ character: z.string().optional(), sheet: record.optional(), ...sheetEdit }),
-  change: z
-    .strictObject({
-      reason: z.enum([
-        "traded",
-        "given-away",
-        "unequipped",
-        "deleted",
-        "title-moved",
-        "title-removed",
-        "grant-removed",
-        "level-lowered",
-        "class-corrected",
-      ]),
-      ...sheetEdit,
-    })
-    .optional(),
-  equip: z.strictObject({ entry: z.string(), slot: z.string() }).optional(),
-  expect: z
-    .strictObject({
+    id: z.string().min(1),
+    req: z.array(z.string()).min(1),
+    q: z.array(z.string()).optional(),
+    milestone: z.enum(MILESTONES),
+    title: z.string().min(1),
+    given: z
+      .strictObject({ character: z.string().optional(), sheet: sheetSchema.optional(), ...sheetEdit })
+      .refine(
+        (g) => (g.character === undefined) !== (g.sheet === undefined),
+        "given needs a character or a sheet, not both",
+      ),
+    change: z.strictObject({ reason: lossReason, ...sheetEdit }).optional(),
+    equip: z.strictObject({ entry: z.string(), slot: z.string() }).optional(),
+    expect: someKey({
       classBonus: z.strictObject({ name: z.string(), value: z.number() }).optional(),
       cm: totalExpect,
       mitigation: totalExpect,
       hearts: totalExpect,
-      dice: z
-        .strictObject({
-          base: z.string().optional(),
-          extra: z.array(grantExpect).optional(),
-          situational: z.array(grantExpect).optional(),
-        })
-        .optional(),
+      dice: someKey({
+        base: z.string().optional(),
+        extra: z.array(grantExpect).optional(),
+        situational: z.array(grantExpect).optional(),
+      }).optional(),
       permissions: names.optional(),
       effects: z.array(z.strictObject({ effect: z.string(), text: z.string(), source: z.string() })).optional(),
       slots: z
         .record(
           z.string(),
-          z.strictObject({
+          someKey({
             allowed: z.number().optional(),
             equipped: z.number().optional(),
             occupants: names.optional(),
@@ -204,14 +135,13 @@ const scenarioSchema = z.strictObject({
           }),
         )
         .optional(),
-      arcane: z
-        .strictObject({ allowed: z.number().optional(), used: z.number().optional(), occupants: names.optional() })
-        .optional(),
+      arcane: someKey({
+        allowed: z.number().optional(),
+        used: z.number().optional(),
+        occupants: names.optional(),
+      }).optional(),
       rarities: z
-        .record(
-          z.string(),
-          z.strictObject({ allowed: z.number().nullable().optional(), equipped: z.number().optional() }),
-        )
+        .record(z.string(), someKey({ allowed: z.number().nullable().optional(), equipped: z.number().optional() }))
         .optional(),
       equip: z
         .strictObject({
@@ -233,14 +163,18 @@ const scenarioSchema = z.strictObject({
             scope: z.string(),
             equipped: z.number(),
             allowed: z.number(),
-            lost: z.strictObject({ source: z.string(), reason: z.string() }).optional(),
+            lost: z.strictObject({ source: z.string(), reason: lossReason }).optional(),
             mentions: names.optional(),
           }),
         )
         .optional(),
-    })
-    .refine((e) => Object.keys(e).length > 0, "expects nothing"),
-});
+    }),
+  })
+  .refine((s) => (s.expect.equip === undefined) === (s.equip === undefined), "expect.equip and equip go together");
+
+export type Scenario = z.infer<typeof scenarioSchema>;
+type SheetEdit = Pick<Scenario["given"], "level" | "className" | "remove" | "add">;
+type TotalExpect = NonNullable<z.infer<typeof totalExpect>>;
 
 const SCENARIO_DIR = new URL("../scenarios/", import.meta.url);
 
@@ -254,7 +188,7 @@ export function loadScenarios(file: string): Scenario[] {
       const id = (raw as { id?: string })?.id ?? `number ${i + 1}`;
       throw new Error(`${file} scenario ${id}: ${z.prettifyError(result.error)}`);
     }
-    return raw as Scenario;
+    return result.data;
   });
 }
 
@@ -283,10 +217,13 @@ function applyEdit(sheet: CharacterSheet, edit: SheetEdit): CharacterSheet {
       ...sheet.equipped.filter((q) => !has(removed.equipped, q.entryId) && !has(removed.entries, q.entryId)),
       ...(added.equipped ?? []),
     ],
-    titles: [...sheet.titles.filter((t) => !has(removed.titles, t.id)), ...(added.titles ?? [])],
+    titles: [
+      ...sheet.titles.filter((t) => !has(removed.titles, t.id)),
+      ...((added.titles ?? []) as unknown as Title[]),
+    ],
     manualGrants: [
       ...sheet.manualGrants.filter((g) => !has(removed.manualGrants, g.id)),
-      ...(added.manualGrants ?? []),
+      ...((added.manualGrants ?? []) as unknown as ManualGrant[]),
     ],
   };
 }
@@ -295,7 +232,7 @@ export function scenarioSheet(s: Scenario): CharacterSheet {
   const base = s.given.character
     ? fixtureSheet(s.given.character)
     : s.given.sheet
-      ? toSheet(`scenario-${s.id}`, s.given.sheet)
+      ? toSheet(`scenario-${s.id}`, s.given.sheet as unknown as CharacterInput)
       : undefined;
   if (!base) throw new Error(`scenario ${s.id}: given needs a character or a sheet`);
   return applyEdit(base, s.given);

@@ -60,6 +60,21 @@ const PROTECTED_SCRIPTS = [
   "check:test-changes",
 ];
 
+/** Scripts npm runs by itself on install, publish and the like. */
+const NPM_LIFECYCLE = new Set([
+  "preinstall",
+  "install",
+  "postinstall",
+  "prepare",
+  "preprepare",
+  "postprepare",
+  "prepublish",
+  "prepublishOnly",
+  "prepack",
+  "postpack",
+  "dependencies",
+]);
+
 const TEST_TOOLS = ["vitest", "fast-check", "@firebase/rules-unit-testing", "@playwright/test"];
 const IDENTITY_KEYS = ["id", "skill", "level"] as const;
 
@@ -79,10 +94,11 @@ export function requirementsChanged(changes: Change[]): boolean {
 /** Part 1: problems with changes to tests and their settings. Empty when the requirements changed too. */
 export function testChangeProblems(changes: Change[], base: Reader, head: Reader): string[] {
   if (requirementsChanged(changes)) return [];
-  return changes.flatMap((c) => changeProblems(c, base, head));
+  const added = new Set(changes.filter((c) => c.status === "A").map((c) => c.path));
+  return changes.flatMap((c) => changeProblems(c, base, head, added));
 }
 
-function changeProblems(change: Change, base: Reader, head: Reader): string[] {
+function changeProblems(change: Change, base: Reader, head: Reader, added: Set<string>): string[] {
   const { path, status } = change;
   if (status === "A") return [];
   if (path === "tests/COVERAGE.md") return [];
@@ -97,7 +113,7 @@ function changeProblems(change: Change, base: Reader, head: Reader): string[] {
     return [`${path}: ${removed ? "deleted" : "changed"} (test settings and check scripts are protected)`];
   if (!path.startsWith("tests/")) return [];
   if (removed) return [`${path}: deleted`];
-  if (/\.(test|spec)\.tsx?$/.test(path)) return testFileProblems(path, base(path) ?? "", head(path) ?? "");
+  if (/\.(test|spec)\.tsx?$/.test(path)) return testFileProblems(path, base(path) ?? "", head(path) ?? "", added);
   if (/\.ya?ml$/.test(path)) return yamlProblems(path, base(path) ?? "", head(path) ?? "");
   const isHarness = /\.[cm]?[jt]sx?$/.test(path);
   return [`${path}: changed (${isHarness ? "the test harness" : "files under tests/"} can't change)`];
@@ -189,24 +205,101 @@ function importOnlyGrew(before: ImportShape, after: ImportShape): boolean {
   );
 }
 
-const HOOKS = new Set(["beforeEach", "afterEach", "beforeAll", "afterAll", "aroundEach", "aroundAll"]);
-
-/** A test hook or vi.* call made at load time anywhere inside `node` (not inside a function), if any. */
-function hookCall(node: ts.Node, file: ts.SourceFile): string | undefined {
-  let found: string | undefined;
-  const visit = (n: ts.Node): void => {
-    if (found || ts.isFunctionLike(n)) return;
-    if (ts.isCallExpression(n)) {
-      const callee = n.expression.getText(file);
-      if (HOOKS.has(callee) || callee.startsWith("vi.")) found = `${callee}()`;
+/**
+ * The first part of `expr` that would run code when the file loads, if any.
+ * Only definitions are inert: functions, classes without static code, literals,
+ * names, and objects and arrays of those. Calls, `new`, assignments and the
+ * like all run code, whatever they're called, so they're refused.
+ */
+function loadTimeCode(expr: ts.Expression, file: ts.SourceFile): string | undefined {
+  if (ts.isFunctionExpression(expr) || ts.isArrowFunction(expr)) return undefined;
+  if (ts.isClassExpression(expr)) return staticCode(expr, file);
+  if (
+    ts.isStringLiteral(expr) ||
+    ts.isNumericLiteral(expr) ||
+    ts.isNoSubstitutionTemplateLiteral(expr) ||
+    ts.isRegularExpressionLiteral(expr) ||
+    ts.isIdentifier(expr) ||
+    [ts.SyntaxKind.TrueKeyword, ts.SyntaxKind.FalseKeyword, ts.SyntaxKind.NullKeyword].includes(expr.kind)
+  ) {
+    return undefined;
+  }
+  if (ts.isPrefixUnaryExpression(expr) && ts.isNumericLiteral(expr.operand)) return undefined;
+  if (ts.isParenthesizedExpression(expr) || ts.isAsExpression(expr) || ts.isSatisfiesExpression(expr)) {
+    return loadTimeCode(expr.expression, file);
+  }
+  if (ts.isArrayLiteralExpression(expr)) {
+    for (const element of expr.elements) {
+      const found = loadTimeCode(ts.isSpreadElement(element) ? element.expression : element, file);
+      if (found) return found;
     }
-    ts.forEachChild(n, visit);
-  };
-  ts.forEachChild(node, visit);
-  return found;
+    return undefined;
+  }
+  if (ts.isObjectLiteralExpression(expr)) {
+    for (const property of expr.properties) {
+      if (ts.isPropertyAssignment(property)) {
+        if (ts.isComputedPropertyName(property.name)) return property.name.getText(file);
+        const found = loadTimeCode(property.initializer, file);
+        if (found) return found;
+      } else if (ts.isSpreadAssignment(property)) {
+        const found = loadTimeCode(property.expression, file);
+        if (found) return found;
+      } else if (!ts.isShorthandPropertyAssignment(property) && !ts.isMethodDeclaration(property)) {
+        return property.getText(file);
+      }
+    }
+    return undefined;
+  }
+  return expr.getText(file);
 }
 
-export function testFileProblems(path: string, oldSource: string, newSource: string): string[] {
+/** Code a class runs when it's defined: static blocks and static field values. */
+function staticCode(node: ts.ClassLikeDeclaration, file: ts.SourceFile): string | undefined {
+  for (const member of node.members) {
+    if (ts.isClassStaticBlockDeclaration(member)) return member.getText(file);
+    const isStatic =
+      ts.canHaveModifiers(member) && ts.getModifiers(member)?.some((m) => m.kind === ts.SyntaxKind.StaticKeyword);
+    if (isStatic && ts.isPropertyDeclaration(member) && member.initializer) {
+      const found = loadTimeCode(member.initializer, file);
+      if (found) return found;
+    }
+  }
+  if (node.heritageClauses?.some((h) => h.types.some((t) => !ts.isIdentifier(t.expression))))
+    return "a computed base class";
+  return undefined;
+}
+
+/** What a new top-level declaration would run at load time, if anything. */
+function declarationLoadTimeCode(statement: ts.Statement, file: ts.SourceFile): string | undefined {
+  if (ts.isVariableStatement(statement)) {
+    for (const d of statement.declarationList.declarations) {
+      const found = d.initializer && loadTimeCode(d.initializer, file);
+      if (found) return found;
+    }
+    return undefined;
+  }
+  if (ts.isClassDeclaration(statement)) return staticCode(statement, file);
+  return undefined;
+}
+
+/** The repository path a relative import in `path` points to, if it's one of `files`. */
+function resolvesTo(path: string, specifier: string, files: Set<string>): string | undefined {
+  if (!specifier.startsWith(".")) return undefined;
+  const parts = path.split("/").slice(0, -1);
+  for (const part of specifier.split("/")) {
+    if (part === "..") parts.pop();
+    else if (part !== ".") parts.push(part);
+  }
+  const target = parts.join("/");
+  return [target, `${target}.ts`, `${target}.tsx`, `${target}/index.ts`].find((candidate) => files.has(candidate));
+}
+
+export function testFileProblems(
+  path: string,
+  oldSource: string,
+  newSource: string,
+  addedFiles: Set<string> = new Set(),
+): string[] {
   const before = statements(path, oldSource);
   const after = statements(path, newSource);
   const problems: string[] = [];
@@ -214,6 +307,7 @@ export function testFileProblems(path: string, oldSource: string, newSource: str
   for (const s of after.list) unmatched.set(s.text, (unmatched.get(s.text) ?? 0) + 1);
   const grownImports = new Set<Statement>();
   const kept: Statement[] = [];
+  const reported = new Set<string>();
 
   for (const s of before.list) {
     const count = unmatched.get(s.text) ?? 0;
@@ -235,6 +329,7 @@ export function testFileProblems(path: string, oldSource: string, newSource: str
       continue;
     }
     problems.push(`${path}: ${describeStatement(s.node, before.file)} was changed or removed`);
+    for (const name of boundNames(s.node)) reported.add(name);
   }
 
   // Only names from unchanged statements: a changed one is reported above already.
@@ -246,16 +341,23 @@ export function testFileProblems(path: string, oldSource: string, newSource: str
     remaining.set(s.text, count - 1);
     if (isTestDeclaration(s.node)) continue;
     if (ts.isImportDeclaration(s.node)) {
-      if (!s.node.importClause)
+      const shape = importShape(s.node);
+      if (!s.node.importClause) {
         problems.push(`${path}: new import run for its effects (${s.text}) could affect existing tests`);
+      } else if (shape) {
+        const added = resolvesTo(path, shape.module, addedFiles);
+        if (added) problems.push(`${path}: imports ${added}, added in this change, which could affect existing tests`);
+      }
       continue;
     }
     const names = boundNames(s.node);
     if (names.length > 0) {
       const clash = names.filter((n) => oldNames.has(n));
       if (clash.length) problems.push(`${path}: new code redefines ${clash.join(", ")}, which existing tests may use`);
-      const hook = hookCall(s.node, after.file);
-      if (hook) problems.push(`${path}: new code calls ${hook}, which could affect existing tests`);
+      // A new version of a statement reported as changed above isn't reported twice.
+      const code = names.some((n) => reported.has(n)) ? undefined : declarationLoadTimeCode(s.node, after.file);
+      if (code)
+        problems.push(`${path}: new code runs when the file loads (${code}), which could affect existing tests`);
       continue;
     }
     problems.push(`${path}: new ${describeStatement(s.node, after.file)} could affect existing tests`);
@@ -314,10 +416,11 @@ export function packageProblems(oldText: string, newText: string): string[] {
   const before = JSON.parse(oldText) as Pkg;
   const after = JSON.parse(newText) as Pkg;
   const problems: string[] = [];
-  // The test scripts, and every script npm runs by itself around another one
-  // (pre*, post*) or on install.
-  const automatic = (name: string) => /^(pre|post)/.test(name) || ["install", "prepare", "dependencies"].includes(name);
+  // The test scripts, and every script npm runs by itself: its lifecycle
+  // scripts, and pre<name>/post<name> for any script <name>.
   const names = new Set([...Object.keys(before.scripts ?? {}), ...Object.keys(after.scripts ?? {})]);
+  const automatic = (name: string) =>
+    NPM_LIFECYCLE.has(name) || [...names].some((other) => name === `pre${other}` || name === `post${other}`);
   for (const name of [...PROTECTED_SCRIPTS, ...[...names].filter(automatic)]) {
     if (before.scripts?.[name] !== after.scripts?.[name])
       problems.push(`package.json: the "${name}" script was changed`);

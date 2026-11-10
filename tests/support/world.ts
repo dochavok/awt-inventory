@@ -93,9 +93,10 @@ export async function seedCharacter(
   }
   // The fixture's titles, once per user: a player-level title shared by two
   // fixture characters is added only by the first.
-  const existing = new Set((await store.listTitles()).map((t) => t.name));
+  const existing = new Set((await store.listTitles()).filter((t) => t.scope.level === "player").map((t) => t.name));
   for (const title of input.titles ?? []) {
     if (title.scope.level === "player" && existing.has(title.name)) continue;
+    if (title.scope.level === "player") existing.add(title.name);
     await store.addTitle({
       name: title.name,
       ...(title.description ? { description: title.description } : {}),
