@@ -33,9 +33,10 @@ export function grantArb(ref: ReferenceData, id: string, situational?: true): fc
       .tuple(fc.constantFrom(...rarities), fc.integer({ min: 1, max: 2 }))
       .map(([r, n]) => ({ kind: "allowance", rarity: r, amount: n }) as const),
   );
+  const conditions = fc.constantFrom("vs Evil", "vs fire", "ranged weapons only");
   const condition = situational
     ? fc.constant("vs Evil")
-    : fc.option(fc.constantFrom("vs Evil", "vs fire", "ranged weapons only"), { nil: undefined, freq: 4 });
+    : fc.oneof({ weight: 4, arbitrary: fc.constant(undefined) }, { weight: 1, arbitrary: conditions });
   return fc.tuple(kind, condition).map(([k, c]) => ({ id, ...k, ...(c ? { condition: c } : {}) }) as Grant);
 }
 

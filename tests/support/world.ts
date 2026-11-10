@@ -95,7 +95,7 @@ export async function seedCharacter(
   // fixture characters is added only by the first.
   const existing = new Set((await store.listTitles()).map((t) => t.name));
   for (const title of input.titles ?? []) {
-    if (existing.has(title.name)) continue;
+    if (title.scope.level === "player" && existing.has(title.name)) continue;
     await store.addTitle({
       name: title.name,
       ...(title.description ? { description: title.description } : {}),

@@ -24,11 +24,8 @@ export function useEmulator(): void {
   beforeAll(async () => {
     env = await initializeTestEnvironment({
       projectId: PROJECT_ID,
-      firestore: {
-        rules: readFileSync(new URL("../../firestore.rules", import.meta.url), "utf8"),
-        host: "127.0.0.1",
-        port: 8080,
-      },
+      // Host and port come from FIRESTORE_EMULATOR_HOST, which `firebase emulators:exec` sets from firebase.json.
+      firestore: { rules: readFileSync(new URL("../../firestore.rules", import.meta.url), "utf8") },
     });
   });
   beforeEach(async () => {

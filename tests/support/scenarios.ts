@@ -27,7 +27,9 @@ import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { expect } from "vitest";
 import { parse } from "yaml";
+import { z } from "zod";
 import {
+  BREAKDOWN_ORDER,
   checkEquip,
   computeTotals,
   overLimitAlerts,
@@ -112,39 +114,148 @@ export interface Scenario {
   expect: Expect;
 }
 
-const SCENARIO_KEYS = new Set(["id", "req", "q", "milestone", "title", "given", "change", "equip", "expect"]);
-const EXPECT_KEYS = new Set([
-  "classBonus",
-  "cm",
-  "mitigation",
-  "hearts",
-  "dice",
-  "permissions",
-  "effects",
-  "slots",
-  "arcane",
-  "rarities",
-  "equip",
-  "alerts",
-]);
+// The scenario format, strict at every level the runner reads, so a misspelled
+// key fails loudly instead of silently dropping an edit or an assertion (TF-8).
+// Entries, titles and grants inside `add` and `sheet` are domain data and are
+// checked by the code under test, so they're only required to be objects.
+const record = z.record(z.string(), z.unknown());
+const names = z.array(z.string());
+const sheetEdit = {
+  level: z.number().optional(),
+  className: z.enum(["Warrior", "Mage", "Rogue"]).optional(),
+  remove: z
+    .strictObject({
+      entries: names.optional(),
+      equipped: names.optional(),
+      titles: names.optional(),
+      manualGrants: names.optional(),
+    })
+    .optional(),
+  add: z
+    .strictObject({
+      entries: z.array(record).optional(),
+      equipped: z.array(z.strictObject({ entryId: z.string(), slot: z.string() })).optional(),
+      titles: z.array(record).optional(),
+      manualGrants: z.array(record).optional(),
+    })
+    .optional(),
+};
+const grantExpect = z.strictObject({
+  source: z.string(),
+  amount: z.number().optional(),
+  die: z.string().optional(),
+  condition: z.string().optional(),
+});
+const totalExpect = z
+  .strictObject({
+    total: z.number().optional(),
+    lines: z.partialRecord(z.enum(BREAKDOWN_ORDER as [BreakdownGroup, ...BreakdownGroup[]]), z.number()).optional(),
+    grants: z.array(grantExpect).optional(),
+    situational: z.array(grantExpect).optional(),
+  })
+  .optional();
+const scenarioSchema = z.strictObject({
+  id: z.string().min(1),
+  req: z.array(z.string()).min(1),
+  q: z.array(z.string()).optional(),
+  milestone: z.enum(["M1", "M2", "M3", "M4", "M5", "M6", "M7"]),
+  title: z.string().min(1),
+  given: z.strictObject({ character: z.string().optional(), sheet: record.optional(), ...sheetEdit }),
+  change: z
+    .strictObject({
+      reason: z.enum([
+        "traded",
+        "given-away",
+        "unequipped",
+        "deleted",
+        "title-moved",
+        "title-removed",
+        "grant-removed",
+        "level-lowered",
+        "class-corrected",
+      ]),
+      ...sheetEdit,
+    })
+    .optional(),
+  equip: z.strictObject({ entry: z.string(), slot: z.string() }).optional(),
+  expect: z
+    .strictObject({
+      classBonus: z.strictObject({ name: z.string(), value: z.number() }).optional(),
+      cm: totalExpect,
+      mitigation: totalExpect,
+      hearts: totalExpect,
+      dice: z
+        .strictObject({
+          base: z.string().optional(),
+          extra: z.array(grantExpect).optional(),
+          situational: z.array(grantExpect).optional(),
+        })
+        .optional(),
+      permissions: names.optional(),
+      effects: z.array(z.strictObject({ effect: z.string(), text: z.string(), source: z.string() })).optional(),
+      slots: z
+        .record(
+          z.string(),
+          z.strictObject({
+            allowed: z.number().optional(),
+            equipped: z.number().optional(),
+            occupants: names.optional(),
+            extra: z.array(z.strictObject({ label: z.string(), source: z.string() })).optional(),
+          }),
+        )
+        .optional(),
+      arcane: z
+        .strictObject({ allowed: z.number().optional(), used: z.number().optional(), occupants: names.optional() })
+        .optional(),
+      rarities: z
+        .record(
+          z.string(),
+          z.strictObject({ allowed: z.number().nullable().optional(), equipped: z.number().optional() }),
+        )
+        .optional(),
+      equip: z
+        .strictObject({
+          outcome: z.enum(["allowed", "blocked"]),
+          block: z
+            .strictObject({
+              reason: z.string(),
+              about: z.string(),
+              occupants: names.optional(),
+              mentions: names.optional(),
+            })
+            .optional(),
+          warnings: names.optional(),
+        })
+        .optional(),
+      alerts: z
+        .array(
+          z.strictObject({
+            scope: z.string(),
+            equipped: z.number(),
+            allowed: z.number(),
+            lost: z.strictObject({ source: z.string(), reason: z.string() }).optional(),
+            mentions: names.optional(),
+          }),
+        )
+        .optional(),
+    })
+    .refine((e) => Object.keys(e).length > 0, "expects nothing"),
+});
 
 const SCENARIO_DIR = new URL("../scenarios/", import.meta.url);
 
 export function loadScenarios(file: string): Scenario[] {
   const text = readFileSync(fileURLToPath(new URL(file, SCENARIO_DIR)), "utf8");
-  const list = parse(text) as Scenario[];
+  const list = parse(text) as unknown;
   if (!Array.isArray(list)) throw new Error(`${file}: expected a list of scenarios`);
-  for (const s of list) {
-    const unknown = Object.keys(s).filter((k) => !SCENARIO_KEYS.has(k));
-    const unknownExpect = Object.keys(s.expect ?? {}).filter((k) => !EXPECT_KEYS.has(k));
-    if (unknown.length || unknownExpect.length) {
-      throw new Error(`${file} scenario ${s.id}: unknown keys ${[...unknown, ...unknownExpect].join(", ")}`);
+  return list.map((raw, i) => {
+    const result = scenarioSchema.safeParse(raw);
+    if (!result.success) {
+      const id = (raw as { id?: string })?.id ?? `number ${i + 1}`;
+      throw new Error(`${file} scenario ${id}: ${z.prettifyError(result.error)}`);
     }
-    if (!s.id || !s.title || !s.expect || Object.keys(s.expect).length === 0) {
-      throw new Error(`${file}: every scenario needs an id, a title and something to expect (${s.id ?? "no id"})`);
-    }
-  }
-  return list;
+    return raw as Scenario;
+  });
 }
 
 export function allScenarioFiles(): string[] {

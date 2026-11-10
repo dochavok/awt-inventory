@@ -60,9 +60,9 @@ function filesUnder(dir: string): string[] {
 function fixtureNames(): string[] {
   const read = (file: string) =>
     parse(readFileSync(join(ROOT, "tests", "fixtures", file), "utf8")) as Record<string, Record<string, unknown>>;
-  const characters = Object.values(read("characters.yaml")).map((c) => (c.character as { name: string }).name);
-  const users = Object.values(read("users.yaml")).flatMap((u) => [u.displayName as string, u.email as string]);
-  return [...new Set([...characters, ...users])];
+  const characters = Object.values(read("characters.yaml")).map((c) => (c.character as { name?: unknown })?.name);
+  const users = Object.values(read("users.yaml")).flatMap((u) => [u.displayName, u.email]);
+  return [...new Set([...characters, ...users])].filter((n): n is string => typeof n === "string" && n !== "");
 }
 
 function main(argv: string[]): number {

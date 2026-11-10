@@ -6,8 +6,9 @@
 //   - changes or removes an existing top-level statement in a test file (a test,
 //     a helper, an import), compared as parsed code so formatting and comments
 //     don't count; or adds new top-level code that could affect existing tests
-//     (hooks, vi.mock, bare statements). New tests, helpers with new names, new
-//     imports, and new names added to an existing import are allowed;
+//     (hooks, vi.mock, bare statements, imports run only for their effects, or
+//     a new declaration that calls a hook). New tests, helpers with new names,
+//     new imports, and new names added to an existing import are allowed;
 //   - changes or removes an existing scenario or fixture record in YAML under
 //     tests/ (records are matched by id, skill or level). New records are allowed;
 //   - changes or deletes any other file under tests/: the harness is every
@@ -17,7 +18,9 @@
 //   - changes or deletes anything in scripts/, the test settings
 //     (vitest.config.ts, playwright.config.ts, firebase.json, eslint.config.js)
 //     or .claude/settings.json;
-//   - changes the test scripts in package.json, or removes a finished milestone;
+//   - changes the test scripts in package.json, or adds or changes a script npm
+//     runs by itself (pre*, post*, install, prepare), or removes a finished
+//     milestone;
 //   - changes or deletes a CI workflow, except to update the versions of the
 //     actions it uses (as Dependabot does).
 // Adding new files is always allowed.
@@ -186,6 +189,23 @@ function importOnlyGrew(before: ImportShape, after: ImportShape): boolean {
   );
 }
 
+const HOOKS = new Set(["beforeEach", "afterEach", "beforeAll", "afterAll", "aroundEach", "aroundAll"]);
+
+/** A test hook or vi.* call made at load time anywhere inside `node` (not inside a function), if any. */
+function hookCall(node: ts.Node, file: ts.SourceFile): string | undefined {
+  let found: string | undefined;
+  const visit = (n: ts.Node): void => {
+    if (found || ts.isFunctionLike(n)) return;
+    if (ts.isCallExpression(n)) {
+      const callee = n.expression.getText(file);
+      if (HOOKS.has(callee) || callee.startsWith("vi.")) found = `${callee}()`;
+    }
+    ts.forEachChild(n, visit);
+  };
+  ts.forEachChild(node, visit);
+  return found;
+}
+
 export function testFileProblems(path: string, oldSource: string, newSource: string): string[] {
   const before = statements(path, oldSource);
   const after = statements(path, newSource);
@@ -224,11 +244,18 @@ export function testFileProblems(path: string, oldSource: string, newSource: str
     const count = remaining.get(s.text) ?? 0;
     if (count === 0) continue;
     remaining.set(s.text, count - 1);
-    if (isTestDeclaration(s.node) || ts.isImportDeclaration(s.node)) continue;
+    if (isTestDeclaration(s.node)) continue;
+    if (ts.isImportDeclaration(s.node)) {
+      if (!s.node.importClause)
+        problems.push(`${path}: new import run for its effects (${s.text}) could affect existing tests`);
+      continue;
+    }
     const names = boundNames(s.node);
     if (names.length > 0) {
       const clash = names.filter((n) => oldNames.has(n));
       if (clash.length) problems.push(`${path}: new code redefines ${clash.join(", ")}, which existing tests may use`);
+      const hook = hookCall(s.node, after.file);
+      if (hook) problems.push(`${path}: new code calls ${hook}, which could affect existing tests`);
       continue;
     }
     problems.push(`${path}: new ${describeStatement(s.node, after.file)} could affect existing tests`);
@@ -287,7 +314,11 @@ export function packageProblems(oldText: string, newText: string): string[] {
   const before = JSON.parse(oldText) as Pkg;
   const after = JSON.parse(newText) as Pkg;
   const problems: string[] = [];
-  for (const name of PROTECTED_SCRIPTS) {
+  // The test scripts, and every script npm runs by itself around another one
+  // (pre*, post*) or on install.
+  const automatic = (name: string) => /^(pre|post)/.test(name) || ["install", "prepare", "dependencies"].includes(name);
+  const names = new Set([...Object.keys(before.scripts ?? {}), ...Object.keys(after.scripts ?? {})]);
+  for (const name of [...PROTECTED_SCRIPTS, ...[...names].filter(automatic)]) {
     if (before.scripts?.[name] !== after.scripts?.[name])
       problems.push(`package.json: the "${name}" script was changed`);
   }
