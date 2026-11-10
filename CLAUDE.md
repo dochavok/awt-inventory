@@ -51,9 +51,28 @@ When a DM answers a question in `dm-rule-questions.md`, start at step 2.
 
 ## Running the checks
 
-Set up in M1; this section is filled in then. It will cover the tests (with
-milestone markers, TF-5), type checks and lint, the coverage table (TF-4), the
-Firestore emulator tests (TF-11) and the test-change check (TF-7).
+Each is a CI job, and all five are required checks on `main`:
+
+| CI job | Command | What it checks |
+|---|---|---|
+| `lint` | `npm run lint` | ESLint, Prettier and `tsc` |
+| `test` | `npm test` | Vitest: rule scenarios, property tests, data layer, harness (`tests/meta`), and the coverage table |
+| `access-rules` | `npm run test:access` | Firestore rules and offline sync in the emulator (needs Java 21) |
+| `browser` | `npm run test:browser` | Playwright on iPhone (WebKit) and Android (Chromium) profiles |
+| `test-change-check` | `npm run check:test-changes -- --base origin/main` | The test-change rule (TF-7); see `scripts/test-change-lib.ts` |
+
+- **Tags and milestones (TF-4, TF-5):** declare every test with `rule()`
+  (`tests/support/rule.ts`) or `browserRule()`. Tests for milestones not in
+  `package.json` `awt.finishedMilestones` must fail as expected (a stub or an
+  assertion); the run ends with a table of passed / failed as expected / failed
+  by milestone. Finishing a milestone adds it to that list.
+- **Coverage (TF-4):** after adding or retagging tests, run
+  `npm run coverage:write` and commit `tests/COVERAGE.md`; `npm test` fails if
+  it's stale.
+- **Scenarios (TF-9):** YAML in `tests/scenarios/`, checked against a strict
+  schema (`tests/support/scenarios.ts`); IDs are permanent.
+- **On this PC:** Norton quarantined Playwright's WebKit, so run browser tests
+  locally with `npx playwright test --project android`; CI runs both phones.
 
 ## Other conventions
 
