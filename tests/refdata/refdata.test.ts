@@ -205,3 +205,22 @@ rule(
     expect(withText, "skills in data/ with card text").toEqual([]);
   },
 );
+
+rule(
+  { req: ["RD-8"], q: ["Q10"], m: "M2" },
+  "until the owner agrees, data/'s level chart holds no numbers: every bonus and heart is 0 and every die 1d1",
+  () => {
+    const chart = parse(readFileSync(new URL("level-chart.yaml", DATA), "utf8")) as Record<
+      string,
+      { levels: { level: number; classBonus: unknown; dice: unknown; hearts: unknown }[] }
+    >;
+    expect(Object.keys(chart).sort(), "the classes in data/level-chart.yaml").toEqual(["Mage", "Rogue", "Warrior"]);
+    for (const [className, { levels }] of Object.entries(chart)) {
+      expect(levels.length, `${className}'s levels in data/`).toBeGreaterThan(0);
+      const numbered = levels
+        .filter((l) => l.classBonus !== 0 || l.hearts !== 0 || l.dice !== "1d1")
+        .map((l) => `${className} level ${l.level}`);
+      expect(numbered, `${className}'s levels in data/ with real numbers`).toEqual([]);
+    }
+  },
+);

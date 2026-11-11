@@ -353,7 +353,9 @@ rule(
       await expect(attempt, `a gain with the link ${link}`).rejects.toMatchObject({ field: "link" });
     }
     expect(
-      (await bram.listEntries(characterId, "items")).filter((e) => e.entry.name === "Owl Charm"),
+      (await bram.listEntries(characterId, "items")).filter(
+        (e) => e.entry.category === "items" && e.entry.name === "Owl Charm",
+      ),
       "Aldric's Owl Charms after the refused gains",
     ).toEqual([]);
     await bram.addEntry(
