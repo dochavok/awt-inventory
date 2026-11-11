@@ -18,6 +18,8 @@ export interface ReportDelivery {
   issues: IssueTracker;
   mailer: Mailer;
   maintainerEmail: string;
+  /** The user's display name, so the issue can leave it out (SP-2). */
+  displayNameOf?: (uid: string) => Promise<string | undefined>;
 }
 
 /** Delivers one report: an issue, or for an account problem an email. Leaves it pending if delivery fails. */
