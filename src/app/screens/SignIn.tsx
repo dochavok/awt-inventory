@@ -8,10 +8,11 @@ import { href } from "../router";
 import { Feedback, useAction } from "../useAction";
 import { HomeScreenHelp } from "./HomeScreenHelp";
 
-export function SignIn({ accounts }: { accounts: Accounts }) {
+export function SignIn({ accounts, onBusy }: { accounts: Accounts; onBusy: (busy: boolean) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { busy, error, notice, run } = useAction();
+  // This screen stays up while signing in (onBusy), so a refusal is shown here.
+  const { busy, error, notice, run } = useAction(onBusy);
 
   const signIn = (e: FormEvent) => {
     e.preventDefault();

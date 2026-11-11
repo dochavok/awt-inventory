@@ -94,12 +94,18 @@ export function howGained(value: unknown): HowGained {
   return value as HowGained;
 }
 
-/** An event date (HI-3): today unless given, and stored in UTC. */
+/** How far ahead of now an event date may be: enough for "today" in any time zone. */
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+/** An event date (HI-3): today unless given, earlier if the user says so, and stored in UTC. */
 export function eventDate(value: string | undefined, now: string): string {
   if (value === undefined) return now;
   const date = new Date(value);
   if (typeof value !== "string" || Number.isNaN(date.getTime())) {
     throw new ValidationError("date", `${String(value)} isn't a date and time.`);
+  }
+  if (date.getTime() > Date.parse(now) + ONE_DAY_MS) {
+    throw new ValidationError("date", "An event can be dated today or earlier, not in the future.");
   }
   return toStoredTime(date);
 }

@@ -8,23 +8,18 @@ import { go, href } from "../router";
 import { Feedback, useAction } from "../useAction";
 import { Terms } from "./Terms";
 
-export function SignUp({ accounts, onSigningUp }: { accounts: Accounts; onSigningUp: (busy: boolean) => void }) {
+export function SignUp({ accounts, onBusy }: { accounts: Accounts; onBusy: (busy: boolean) => void }) {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [accepted, setAccepted] = useState(false);
-  const { busy, error, notice, run } = useAction();
+  // This screen stays up while signing up (onBusy), then the account page opens if it worked.
+  const { busy, error, notice, run } = useAction(onBusy);
 
-  /** Keeps this screen up while signing up, then opens the account page if it worked. */
   const signUp = (action: () => Promise<unknown>) =>
     run(async () => {
-      onSigningUp(true);
-      try {
-        await action();
-        go("account");
-      } finally {
-        onSigningUp(false);
-      }
+      await action();
+      go("account");
     });
 
   const create = (e: FormEvent) => {

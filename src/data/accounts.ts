@@ -79,8 +79,10 @@ export function createAccounts(context: AccountsContext): Accounts {
       const displayName = checkSignUp(input);
       if (!(await invited(input.email))) throw notOpen();
       const user = await auth.createUserWithPassword(input.email, input.password);
-      await auth.sendEmailVerification();
-      return createProfile(user, displayName, true);
+      const profile = await createProfile(user, displayName, true);
+      // The account is made either way: if the email can't go now, the account page sends it again.
+      await auth.sendEmailVerification().catch(() => undefined);
+      return profile;
     },
 
     async signUpWithGoogle(input) {
@@ -90,7 +92,15 @@ export function createAccounts(context: AccountsContext): Accounts {
         await auth.signOut();
         throw notOpen();
       }
-      return createProfile(user, displayName, false);
+      // A Google account that already has an account is simply signed in; its profile is kept.
+      const existing = await context
+        .store()
+        .profile()
+        .catch((error: unknown) => {
+          if (error instanceof NotFoundError) return null;
+          throw error;
+        });
+      return existing ?? createProfile(user, displayName, false);
     },
 
     signInWithEmail: (email, password) => auth.signInWithPassword(email, password),

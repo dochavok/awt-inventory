@@ -165,3 +165,48 @@ rule({ req: ["NF-13"], m: "M2" }, "once the invite list is removed, anyone can s
   const profile = await accounts.signUpWithEmail({ ...signUp, email: "anyone@example.test" });
   expect(profile.email, "the new account").toBe("anyone@example.test");
 });
+
+rule(
+  { req: ["AC-1", "AC-2"], m: "M2" },
+  "signing up with Google again keeps the existing account's display name",
+  async () => {
+    const { auth, store, accounts } = await accountsWorld();
+    auth.nextGoogleAccount = { uid: "google-uid-3", email: "wren.g@example.test" };
+    await accounts.signUpWithGoogle({ displayName: "Wren G", acceptedTerms: true });
+    await accounts.signOut();
+    const again = await accounts.signUpWithGoogle({ displayName: "Someone Else", acceptedTerms: true });
+    expect(again.displayName, "the profile returned").toBe("Wren G");
+    expect((await store.profile()).displayName, "the stored display name").toBe("Wren G");
+  },
+);
+
+rule(
+  { req: ["AC-1"], m: "M2" },
+  "signing in with a Google account that never signed up is refused and signed out again",
+  async () => {
+    const { auth, accounts } = await accountsWorld();
+    auth.nextGoogleAccount = { uid: "google-uid-4", email: "never@example.test" };
+    const attempt = accounts.signInWithGoogle();
+    await expect(attempt, "signing in without an account").rejects.toThrow(AccessDeniedError);
+    await expect(attempt, "signing in without an account").rejects.toThrow(/no account/i);
+    expect(auth.currentUser(), "signed in after the refusal").toBeNull();
+  },
+);
+
+/** A sign-in service whose verification emails can't be sent. */
+class NoEmailAuth extends FakeAuth {
+  override async sendEmailVerification(): Promise<void> {
+    throw new Error("made-up email outage");
+  }
+}
+
+rule({ req: ["AC-1", "AC-2"], m: "M2" }, "an account is made even if the verification email can't go yet", async () => {
+  const w = world();
+  const auth = new NoEmailAuth();
+  const store = w.forAuth(auth);
+  const accounts = createAccounts({ auth, store: () => store, inviteList: async () => null });
+  const profile = await accounts.signUpWithEmail(signUp);
+  expect(profile.displayName, "the new account's display name").toBe("Wrenna");
+  expect(auth.currentUser()?.email, "signed in as").toBe("wren@example.test");
+  expect((await store.profile()).displayName, "the stored display name").toBe("Wrenna");
+});

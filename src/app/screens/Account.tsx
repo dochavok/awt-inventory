@@ -3,6 +3,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import type { Profile } from "../../data/types";
+import { NotFoundError } from "../../errors";
 import { LIMITS } from "../../data/validate";
 import { href } from "../router";
 import type { Services } from "../services";
@@ -13,6 +14,8 @@ export function Account({ services }: { services: Services }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [name, setName] = useState("");
   const [typed, setTyped] = useState("");
+  /** Signed in, but with no profile: deleting the account stopped partway, or sign-up never finished. */
+  const [missing, setMissing] = useState(false);
   const load = useAction();
   const rename = useAction();
   const verify = useAction();
@@ -21,9 +24,14 @@ export function Account({ services }: { services: Services }) {
 
   useEffect(() => {
     void load.run(async () => {
-      const p = await store.profile();
-      setProfile(p);
-      setName(p.displayName);
+      try {
+        const p = await store.profile();
+        setProfile(p);
+        setName(p.displayName);
+      } catch (error) {
+        if (!(error instanceof NotFoundError)) throw error;
+        setMissing(true);
+      }
     });
     // Load once when the page opens.
   }, []);
@@ -85,14 +93,36 @@ export function Account({ services }: { services: Services }) {
             <h2>Your characters</h2>
             <p>Characters, inventory and skills come in the next version of the app.</p>
           </section>
-          <section className="card">
-            <p>
-              <a href={href("privacy")}>Privacy note</a>: what the app stores and who can see it.
-            </p>
-            <button type="button" className="secondary" onClick={() => void accounts.signOut()}>
-              Sign out
-            </button>
-          </section>
+        </>
+      )}
+      {missing && (
+        <section className="card note" aria-labelledby="missing-title">
+          <h2 id="missing-title">No account records</h2>
+          <p>
+            This sign-in has no account: deleting the account stopped partway, or creating it didn&apos;t finish. You
+            can remove the sign-in, or sign out and create an account again.
+          </p>
+          <Feedback error={remove.error} notice={null} />
+          <button
+            type="button"
+            className="danger"
+            disabled={remove.busy}
+            onClick={() => void remove.run(() => auth.deleteUser())}
+          >
+            Remove this sign-in
+          </button>
+        </section>
+      )}
+      <section className="card">
+        <p>
+          <a href={href("privacy")}>Privacy note</a>: what the app stores and who can see it.
+        </p>
+        <button type="button" className="secondary" onClick={() => void accounts.signOut()}>
+          Sign out
+        </button>
+      </section>
+      {profile && (
+        <>
           <form className="card danger" onSubmit={deleteAccount} aria-labelledby="delete-title">
             <h2 id="delete-title">Delete your account</h2>
             <p>

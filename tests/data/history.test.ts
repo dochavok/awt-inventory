@@ -2,6 +2,7 @@
 // also checked where they're caused, in inventory.test.ts and characters.test.ts.
 
 import { expect } from "vitest";
+import { ValidationError } from "../../src/errors";
 import { rule } from "../support/rule";
 import { seedCharacter, seedProfile, world } from "../support/world";
 
@@ -54,6 +55,19 @@ rule({ req: ["HI-3", "NF-8"], m: "M2" }, "an event date given with a time zone o
   const { bram, id } = await bramWithAldric();
   const record = await bram.markUsed(id("aldric-draught"), { date: "2026-06-13T14:00:00-05:00" });
   expect(record.date, "the stored date").toBe("2026-06-13T19:00:00.000Z");
+});
+
+rule({ req: ["HI-3"], m: "M2" }, "an event can't be dated days into the future", async () => {
+  const { w, bram, characterId, id } = await bramWithAldric();
+  w.clock.set("2026-06-15T02:30:00.000Z");
+  const attempt = bram.markUsed(id("aldric-draught"), { date: "2026-06-20T12:00:00.000Z" });
+  await expect(attempt, "using a draught five days from now").rejects.toThrow(ValidationError);
+  await expect(attempt, "using a draught five days from now").rejects.toMatchObject({ field: "date" });
+  expect((await bram.entry(id("aldric-draught"))).quantity, "Healing Draughts").toBe(3);
+  expect(
+    (await bram.history(characterId)).filter((r) => r.event === "used"),
+    "Aldric's used records",
+  ).toEqual([]);
 });
 
 rule({ req: ["HI-4"], m: "M2" }, "editing an entry never changes its earlier history records", async () => {

@@ -54,16 +54,22 @@ export function createFirestoreStore(firestore: unknown, context: StoreContext):
   }
 
   /**
-   * Deletes documents in batches, in the order given. A history record can go
-   * only in or after the batch that deletes its character (HI-4), so characters
-   * come first.
+   * Deletes groups of documents in order, packed into batches; a group is never
+   * split between two batches. If a batch fails, a retry finds whatever is left.
    */
-  async function deleteAll(refs: DocumentReference[]): Promise<void> {
-    for (let i = 0; i < refs.length; i += BATCH_LIMIT) {
-      const batch = writeBatch(db);
-      for (const ref of refs.slice(i, i + BATCH_LIMIT)) batch.delete(ref);
-      await batch.commit();
+  async function deleteInOrder(groups: DocumentReference[][]): Promise<void> {
+    let batch = writeBatch(db);
+    let size = 0;
+    for (const group of groups) {
+      if (size > 0 && size + group.length > BATCH_LIMIT) {
+        await batch.commit();
+        batch = writeBatch(db);
+        size = 0;
+      }
+      for (const ref of group) batch.delete(ref);
+      size += group.length;
     }
+    if (size > 0) await batch.commit();
   }
 
   return {
@@ -103,15 +109,25 @@ export function createFirestoreStore(firestore: unknown, context: StoreContext):
         getDocs(collection(user, "characters")),
         getDocs(collection(user, "titles")),
       ]);
-      const contents = await Promise.all(
-        characters.docs.flatMap((c) => [getDocs(collection(c.ref, "entries")), getDocs(collection(c.ref, "history"))]),
+      // Each character goes last, so until it's gone a retry can find what's left in it. Entries
+      // go first; then their history records (HI-4: allowed once their entry is gone); then the
+      // records about no entry (level changes), in the same batch as the character itself.
+      const perCharacter = await Promise.all(
+        characters.docs.map(async (character) => {
+          const [entries, history] = await Promise.all([
+            getDocs(collection(character.ref, "entries")),
+            getDocs(collection(character.ref, "history")),
+          ]);
+          const aboutEntry = history.docs.filter((d) => typeof d.get("entryId") === "string");
+          const aboutCharacter = history.docs.filter((d) => typeof d.get("entryId") !== "string");
+          return [
+            ...entries.docs.map((d) => [d.ref]),
+            ...aboutEntry.map((d) => [d.ref]),
+            [...aboutCharacter.map((d) => d.ref), character.ref],
+          ];
+        }),
       );
-      await deleteAll([
-        ...characters.docs.map((d) => d.ref),
-        ...contents.flatMap((snap) => snap.docs.map((d) => d.ref)),
-        ...titles.docs.map((d) => d.ref),
-        user,
-      ]);
+      await deleteInOrder([...perCharacter.flat(), ...titles.docs.map((d) => [d.ref]), [user]]);
     },
 
     // ---------------------------------------------------------------- everything else: M3 (with NF-3) and later

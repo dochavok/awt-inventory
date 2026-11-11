@@ -12,8 +12,11 @@ import { SignUp } from "./screens/SignUp";
 export function App({ services }: { services: Services }) {
   const route = useRoute();
   const [signedIn, setSignedIn] = useState(() => services.auth.currentUser() !== null);
-  // Sign-up signs in before the profile exists, so its screen stays until it finishes or fails.
-  const [signingUp, setSigningUp] = useState(false);
+  // Firebase signs in before sign-up has made the profile, or before sign-in has
+  // checked there is one. While either runs, its screen stays, so what happens
+  // (or why it was refused) is shown there.
+  const [holding, setHolding] = useState<"sign-in" | "sign-up" | null>(null);
+  const hold = (screen: "sign-in" | "sign-up") => (busy: boolean) => setHolding(busy ? screen : null);
 
   useEffect(() => {
     void services.accounts.start();
@@ -22,10 +25,11 @@ export function App({ services }: { services: Services }) {
 
   let screen;
   if (route === "privacy") screen = <Privacy signedIn={signedIn} />;
-  else if (signingUp || (!signedIn && route === "sign-up")) {
-    screen = <SignUp accounts={services.accounts} onSigningUp={setSigningUp} />;
-  } else if (signedIn) screen = <Account services={services} />;
-  else screen = <SignIn accounts={services.accounts} />;
+  else if (holding === "sign-up" || (!signedIn && route === "sign-up")) {
+    screen = <SignUp accounts={services.accounts} onBusy={hold("sign-up")} />;
+  } else if (holding === "sign-in" || !signedIn) {
+    screen = <SignIn accounts={services.accounts} onBusy={hold("sign-in")} />;
+  } else screen = <Account services={services} />;
 
   return (
     <>

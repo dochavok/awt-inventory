@@ -8,8 +8,8 @@ Tests shows each file with the number of its tests that name the requirement.
 
 | ID | Priority | Milestone | Tests |
 |---|---|---|---|
-| AC-1 | Must | M2 | access/accounts.test.ts (3), data/accounts.test.ts (3) |
-| AC-2 | Must | M2 | access/accounts.test.ts (2), data/accounts.test.ts (2) |
+| AC-1 | Must | M2 | access/accounts.test.ts (3), data/accounts.test.ts (6) |
+| AC-2 | Must | M2 | access/accounts.test.ts (2), data/accounts.test.ts (4) |
 | AC-3 | Must | M2 | access/accounts.test.ts (1), data/accounts.test.ts (1) |
 | AC-4 | Must | M2 | browser/phone.spec.ts (1), data/accounts.test.ts (1) |
 | AC-5 | Must | M2 | access/accounts.test.ts (1), data/accounts.test.ts (2), data/reports.test.ts (1) |
@@ -57,7 +57,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | SK-9 | Should | M5 | data/skills.test.ts (3) |
 | HI-1 | Must | M2 | data/history.test.ts (1), data/inventory.test.ts (1) |
 | HI-2 | Must | M2 | data/characters.test.ts (2), data/inventory.test.ts (1) |
-| HI-3 | Must | M2 | data/characters.test.ts (1), data/history.test.ts (2) |
+| HI-3 | Must | M2 | data/characters.test.ts (1), data/history.test.ts (3) |
 | HI-4 | Must | M2 | access/accounts.test.ts (1), access/privacy.test.ts (3), data/characters.test.ts (1), data/history.test.ts (2), data/inventory.test.ts (1) |
 | HI-5 | Should | M3 | data/history.test.ts (1) |
 | GR-1 | Must | M4 | data/grants.test.ts (1), rules/equipping.test.ts (2), rules/totals.test.ts (1) |

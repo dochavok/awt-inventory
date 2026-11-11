@@ -3,13 +3,19 @@
 import { useState } from "react";
 import { messageFor } from "./messages";
 
-export function useAction() {
+/**
+ * `onBusy`, when given, hears when an action starts and ends. The sign-in and
+ * sign-up screens use it to stay on screen while Firebase signs in, so their
+ * outcome (or refusal) is shown where it was asked for.
+ */
+export function useAction(onBusy?: (busy: boolean) => void) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   async function run(action: () => Promise<string | void>): Promise<void> {
     setBusy(true);
+    onBusy?.(true);
     setError(null);
     setNotice(null);
     try {
@@ -19,6 +25,7 @@ export function useAction() {
       setError(messageFor(e));
     } finally {
       setBusy(false);
+      onBusy?.(false);
     }
   }
 
