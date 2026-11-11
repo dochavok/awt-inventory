@@ -14,10 +14,10 @@ import { seedCharacter, seedProfile } from "../support/world";
 
 useEmulator();
 
-const clock = new FakeClock();
 const ref = testReferenceData();
 
-function phone(user: string): { db: ReturnType<typeof device>; store: InventoryStore } {
+/** A phone with its own offline cache. Phones in one test share that test's clock (TF-3). */
+function phone(user: string, clock: FakeClock): { db: ReturnType<typeof device>; store: InventoryStore } {
   const db = device(user);
   const store = createFirestoreStore(db, {
     currentUid: () => uid(user),
@@ -41,15 +41,16 @@ async function online(p: ReturnType<typeof phone>) {
 async function setUp(user = "bram") {
   // Sign-up is invite-only before 1.0 (NF-13), so the user is on the invite list.
   await seed({ [`invites/${fixtureUser(user).email}`]: { addedBy: "maintainer" } });
-  const a = phone(user);
+  const clock = new FakeClock();
+  const a = phone(user, clock);
   await seedProfile(a.store, user);
   const aldric = await seedCharacter(a.store, "aldric");
   const draught = aldric.entries.get("aldric-draught")!.id;
-  const b = phone(user);
+  const b = phone(user, clock);
   // Phone B opens Aldric with signal first, so his records are on it.
   await b.store.sheet(aldric.character.id);
   await b.store.history(aldric.character.id);
-  return { a, b, characterId: aldric.character.id, draught };
+  return { a, b, clock, characterId: aldric.character.id, draught };
 }
 
 rule(
@@ -112,7 +113,7 @@ rule(
   "when two offline phones change the same field, the later change wins, whichever syncs last",
   async () => {
     for (const order of ["a-first", "b-first"] as const) {
-      const { a, b, draught } = await setUp(order === "a-first" ? "bram" : "cass");
+      const { a, b, clock, draught } = await setUp(order === "a-first" ? "bram" : "cass");
       await a.db.disableNetwork();
       await b.db.disableNetwork();
       await a.store.updateEntry(draught, { notes: "earlier note, phone A" });
@@ -183,8 +184,8 @@ rule(
   { req: ["NF-3"], m: "M3" },
   "an older change that sets the same value can't turn back the time of a later one",
   async () => {
-    const { a, b, draught, characterId } = await setUp();
-    const c = phone("bram");
+    const { a, b, clock, draught, characterId } = await setUp();
+    const c = phone("bram", clock);
     await c.store.sheet(characterId);
     await b.db.disableNetwork();
     await c.db.disableNetwork();
