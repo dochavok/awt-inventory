@@ -37,6 +37,14 @@ async function seedAldric(): Promise<void> {
   });
 }
 
+/** Bram, who lists things for trade, is invited and has his profile (NF-13, section 3.2). */
+async function seedListingOwner(): Promise<void> {
+  await seed({
+    "invites/bram@example.test": { addedBy: "maintainer" },
+    [`users/${bram()}`]: { displayName: "Bramblewick", email: "bram@example.test" },
+  });
+}
+
 /** Owner allowed to read and change `path`; Cass and a signed-out visitor refused both. */
 async function ownerOnly(path: string, change: Record<string, unknown>, what: string): Promise<void> {
   await seedAldric();
@@ -107,6 +115,7 @@ rule(
   { req: ["PV-1", "TF-11"], m: "M2" },
   "any signed-in user can read a trade listing, only its owner can change it, and signed-out visitors can't read it",
   async () => {
+    await seedListingOwner();
     await seed({
       "listings/l1": {
         ownerUid: bram(),
@@ -134,6 +143,7 @@ rule(
   { req: ["PV-1", "TF-11"], m: "M2" },
   "a listing can't carry fields beyond those section 3.2 allows, and can't be created in another user's name",
   async () => {
+    await seedListingOwner();
     const listing = { ownerUid: bram(), ownerName: "Bramblewick", name: "Duskfang", category: "weapons", quantity: 1 };
     const db = signedIn("bram").firestore();
     await expectAllowed(db.doc("listings/ok").set(listing), "Bram listing Duskfang");
@@ -302,6 +312,28 @@ rule({ req: ["PV-2", "TF-11"], m: "M2" }, "a profile's email is the sign-in's ow
     "Bram keeping his own email on his profile",
   );
 });
+
+rule(
+  { req: ["PV-1", "NF-13", "TF-11"], m: "M2" },
+  "a listing needs its owner's profile, and shows the owner's own display name",
+  async () => {
+    const listing = {
+      ownerUid: uid("cass"),
+      ownerName: "Cassia Vane",
+      name: "Thornneedle",
+      category: "weapons",
+      quantity: 1,
+    };
+    const cass = signedIn("cass").firestore();
+    await expectRefused(cass.doc("listings/c1").set(listing), "Cass, with no profile, listing Thornneedle");
+    await seed({ [`users/${uid("cass")}`]: { displayName: "Cassia Vane" } });
+    await expectRefused(
+      cass.doc("listings/c1").set({ ...listing, ownerName: "Bramblewick" }),
+      "Cass listing Thornneedle under Bram's display name",
+    );
+    await expectAllowed(cass.doc("listings/c1").set(listing), "Cass listing Thornneedle under her own name");
+  },
+);
 
 rule({ req: ["PV-1", "TF-11"], m: "M2" }, "a listing can't be handed to another user", async () => {
   await seed({

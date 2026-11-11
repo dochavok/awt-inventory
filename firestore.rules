@@ -132,11 +132,14 @@ service cloud.firestore {
 
     // Trade listings (PV-1, section 3.2): any signed-in user can read one; only
     // its owner can create, change or remove it, and it carries only the
-    // fields section 3.2 allows, never notes or the character's name.
+    // fields section 3.2 allows, never notes or the character's name. The owner
+    // must be able to store records (invited profile, verified email), and the
+    // listing shows their own display name.
     function validListing() {
       let data = request.resource.data;
       return data.keys().hasOnly(['ownerUid', 'ownerName', 'name', 'category', 'description', 'rarity', 'itemFamily', 'quantity'])
-        && data.ownerUid == request.auth.uid
+        && data.ownerUid == request.auth.uid && canStore(request.auth.uid)
+        && data.ownerName == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.displayName
         && text(data, 'ownerName', 60) && text(data, 'name', 100) && text(data, 'category', 20)
         && text(data, 'description', 10000) && text(data, 'rarity', 100) && text(data, 'itemFamily', 100)
         && wholeNumber(data, 'quantity');
@@ -144,9 +147,8 @@ service cloud.firestore {
 
     match /listings/{listingId} {
       allow read: if signedIn();
-      allow create: if signedIn() && request.auth.token.email_verified == true && validListing();
-      allow update: if signedIn() && request.auth.token.email_verified == true
-        && resource.data.ownerUid == request.auth.uid && validListing();
+      allow create: if signedIn() && validListing();
+      allow update: if signedIn() && resource.data.ownerUid == request.auth.uid && validListing();
       allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
     }
 

@@ -13,7 +13,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | AC-3 | Must | M2 | access/accounts.test.ts (1), data/accounts.test.ts (1) |
 | AC-4 | Must | M2 | browser/phone.spec.ts (1), data/accounts.test.ts (1) |
 | AC-5 | Must | M2 | access/accounts.test.ts (1), data/accounts.test.ts (3), data/reports.test.ts (1) |
-| PV-1 | Must | M2 | access/privacy.test.ts (10), data/inventory.test.ts (1), data/privacy.test.ts (4), data/reports.test.ts (1), data/search-export.test.ts (1), data/titles.test.ts (1) |
+| PV-1 | Must | M2 | access/privacy.test.ts (11), data/inventory.test.ts (1), data/privacy.test.ts (4), data/reports.test.ts (1), data/search-export.test.ts (1), data/titles.test.ts (1) |
 | PV-2 | Must | M2 | access/accounts.test.ts (1), access/privacy.test.ts (2), data/accounts.test.ts (2), server/reports.test.ts (1) |
 | PV-3 | Must | M2 | data/privacy.test.ts (3) |
 | PV-4 | Must | M2 | browser/phone.spec.ts (1) |
@@ -123,7 +123,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | NF-10 | Must | M3 | ops/operations.test.ts (2) |
 | NF-11 | Must | M3 | ops/operations.test.ts (3) |
 | NF-12 | Must | M3 | platform/platform.test.ts (3) |
-| NF-13 | Must | M2 | access/accounts.test.ts (4), access/privacy.test.ts (2), data/accounts.test.ts (2) |
+| NF-13 | Must | M2 | access/accounts.test.ts (4), access/privacy.test.ts (3), data/accounts.test.ts (2) |
 | TF-1 | Must | M1 | meta/requirements.test.ts (1) |
 | TF-2 | Must | M1 | meta/requirements.test.ts (1) |
 | TF-3 | Must | M1 | meta/scenarios.test.ts (1), meta/test-change-check.test.ts (1), rules/equipping.test.ts (2), rules/totals.test.ts (2) |
@@ -134,7 +134,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | TF-8 | Must | M1 | meta/harness.test.ts (1) |
 | TF-9 | Must | M1 | meta/scenarios.test.ts (3), meta/test-change-check.test.ts (1) |
 | TF-10 | Must | M1 | properties/equipping.test.ts (3), properties/totals.test.ts (4) |
-| TF-11 | Must | M1 | access/privacy.test.ts (18) |
+| TF-11 | Must | M1 | access/privacy.test.ts (19) |
 | TF-12 | Must | M2+ | checked in review (TF-4) |
 | TF-13 | Should | M3 | none |
 | TF-14 | Must | M3 | checked in review (TF-4) |
