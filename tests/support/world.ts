@@ -14,6 +14,8 @@ import { FakeClock } from "./fake-clock";
 import { fixtureCharacter, fixtureUser, testReferenceData } from "./fixtures";
 
 export interface World {
+  /** The in-memory database itself, for checking records no store can reach any more (TF-3). */
+  db: MemoryDatabase;
   clock: FakeClock;
   ref: ReferenceData;
   /** The store for a fixture user ("bram", "cass"), or for nobody signed in (null). */
@@ -28,6 +30,7 @@ export function world(settings: Partial<AppSettings> = {}): World {
   const ref = testReferenceData();
   const full: AppSettings = { showSkillText: false, appVersion: "0.1.0-test", ...settings };
   return {
+    db,
     clock,
     ref,
     as(user) {

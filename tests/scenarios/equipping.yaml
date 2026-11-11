@@ -130,6 +130,7 @@
 
 - id: not-equippable
   req: [EQ-2, EQ-7]
+  q: [Q4]
   milestone: M4
   title: A consumable can't be equipped anywhere
   given: { character: aldric }
@@ -494,9 +495,16 @@
     character: aldric
     add:
       entries: [{ id: x-pack, category: armor, name: Traveller's Pack, slotKind: back }]
-      equipped: [{ entryId: x-pack, slot: back }]
+      equipped:
+        - { entryId: aldric-cloak, slot: back }
+        - { entryId: x-pack, slot: back }
+  change:
+    reason: unequipped
+    remove: { equipped: [x-pack] }
   expect:
     alerts: []
+    slots:
+      back: { allowed: 1, equipped: 1, occupants: [Spare Cloak] }
 
 - id: alert-title-moved
   req: [EQ-8, TI-2]

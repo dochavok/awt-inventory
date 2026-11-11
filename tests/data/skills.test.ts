@@ -48,7 +48,7 @@ rule({ req: ["SK-3"], m: "M2" }, "a skill that warns is still added", async () =
 });
 
 rule(
-  { req: ["SK-2", "RD-8"], m: "M2" },
+  { req: ["SK-2", "RD-8"], q: ["Q10"], m: "M2" },
   "a skill shows its name, tree, usage and tier, and no card text until the owner agrees",
   async () => {
     const w = world({ showSkillText: false });
@@ -62,15 +62,21 @@ rule(
   },
 );
 
-rule({ req: ["SK-2"], m: "M2" }, "once the owner agrees, the card text from the skill list is shown", async () => {
-  const w = world({ showSkillText: true });
-  const cass = w.as("cass");
-  await seedProfile(cass, "cass");
-  const brin = await seedCharacter(cass, "brin");
-  await cass.addSkill(brin.character.id, { skillId: "veil", howGained: "level-up", levelGained: 8 });
-  const veil = (await cass.skills(brin.character.id)).find((s) => s.skillId === "veil");
-  expect(veil?.text, "Veil's card text").toBe("Made-up card text for tests: the user fades from sight for one round.");
-});
+rule(
+  { req: ["SK-2"], q: ["Q10"], m: "M2" },
+  "once the owner agrees, the card text from the skill list is shown",
+  async () => {
+    const w = world({ showSkillText: true });
+    const cass = w.as("cass");
+    await seedProfile(cass, "cass");
+    const brin = await seedCharacter(cass, "brin");
+    await cass.addSkill(brin.character.id, { skillId: "veil", howGained: "level-up", levelGained: 8 });
+    const veil = (await cass.skills(brin.character.id)).find((s) => s.skillId === "veil");
+    expect(veil?.text, "Veil's card text").toBe(
+      "Made-up card text for tests: the user fades from sight for one round.",
+    );
+  },
+);
 
 rule(
   { req: ["SK-2", "RD-7"], m: "M2" },

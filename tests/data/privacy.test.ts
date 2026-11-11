@@ -153,9 +153,10 @@ rule(
   },
 );
 
-rule({ req: ["PV-3"], m: "M2" }, "the data layer has no way to browse other users", async () => {
+// A name check only. The server's owner check (another user is refused) is
+// tested in tests/access/privacy.test.ts.
+rule({ req: ["PV-3"], m: "M2" }, "the data layer has no method named for browsing other users", async () => {
   const x = await setUp();
   const browsing = Object.keys(x.bram).filter((m) => /users|accounts|everyone|admin/i.test(m));
   expect(browsing, "store methods that could browse other users").toEqual([]);
-  await x.bram.listCharacters("main");
 });

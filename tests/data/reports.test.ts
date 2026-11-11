@@ -116,8 +116,10 @@ rule({ req: ["SP-1", "AC-5"], m: "M3" }, "reports are deleted with the account",
     acceptedTerms: true,
   };
   await accounts.signUpWithEmail(signUp);
+  const oldUid = auth.currentUser()!.uid;
   await store.sendReport({ kind: "idea", subject: "Made up", message: "Made up." });
   await accounts.deleteAccount("Wrenna");
-  await accounts.signUpWithEmail(signUp);
-  expect(await store.reports(), "reports after deleting the account and signing up again").toEqual([]);
+  // TF-3: read as the deleted account's own user; a new sign-up would get a new one.
+  const old = w.forAuth({ currentUser: () => ({ uid: oldUid }) });
+  expect(await old.reports(), "the deleted account's reports").toEqual([]);
 });
