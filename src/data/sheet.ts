@@ -216,7 +216,7 @@ export async function renderPdf(sheet: SheetDocument, options: PrintOptions): Pr
   return { fileName: `${fileStem(sheet)}.pdf`, mimeType: "application/pdf", bytes, pageCount: doc.getPageCount() };
 }
 
-/** "Aldric 2026-06-13", or "AWT characters 2026-06-13" for several (EX-2). */
+/** "Rowan 2026-06-13", or "AWT characters 2026-06-13" for several (EX-2). */
 function fileStem(sheet: SheetDocument): string {
   const only = sheet.characters.length === 1 ? sheet.characters[0]!.name : "AWT characters";
   const safe = only.replace(/[\\/:*?"<>|]+/g, "-").trim() || "Character";
