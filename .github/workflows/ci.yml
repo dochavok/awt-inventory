@@ -9,7 +9,8 @@
 #                      milestones run as expected failures; finished milestones
 #                      (package.json awt.finishedMilestones) must pass (TF-5).
 #   access-rules       the Firestore security rules against the emulator (TF-11)
-#   browser            phone-sized browser tests, iPhone and Android (TF-13)
+#   browser            phone-sized browser tests, iPhone and Android, against
+#                      the emulators (TF-13)
 # The test-change rule (TF-7) is in test-change-rule.yml, which always runs as
 # it is on main.
 # Changing this workflow, except to update action versions, fails the
@@ -84,6 +85,15 @@ jobs:
         with:
           node-version: 26
           cache: npm
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('package-lock.json') }}
+          restore-keys: firebase-emulators-
       - run: npm ci
       - uses: actions/cache@v6
         with:

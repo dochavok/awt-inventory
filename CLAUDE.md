@@ -58,7 +58,7 @@ Each is a CI job, and all five are required checks on `main`:
 | `lint` | `npm run lint` | ESLint, Prettier and `tsc` |
 | `test` | `npm test` | Vitest: rule scenarios, property tests, data layer, harness (`tests/meta`), and the coverage table |
 | `access-rules` | `npm run test:access` | Firestore rules and offline sync in the emulator (needs Java 21) |
-| `browser` | `npm run test:browser` | Playwright on iPhone (WebKit) and Android (Chromium) profiles |
+| `browser` | `npm run test:browser` | Playwright on iPhone (WebKit) and Android (Chromium) profiles, against the emulators it starts itself (needs Java 21) |
 | `test-change-rule` | `npm run check:test-changes -- --base origin/main` | The test-change rule (TF-7), run in CI as it is on `main` (`test-change-rule.yml`); see `scripts/test-change-lib.ts` |
 
 - **Tags and milestones (TF-4, TF-5):** declare every test with `rule()`
