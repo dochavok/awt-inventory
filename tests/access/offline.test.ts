@@ -126,6 +126,13 @@ rule(
   },
 );
 
+rule({ req: ["NF-3"], m: "M3" }, "one change to several fields of an entry counts as one change waiting", async () => {
+  const { b, draught } = await setUp();
+  await b.db.disableNetwork();
+  await b.store.updateEntry(draught, { notes: "Kept for the gate", description: "Changed offline on phone B" });
+  expect(await b.store.syncStatus(), "phone B offline").toEqual({ online: false, pendingChanges: 1 });
+});
+
 rule(
   { req: ["NF-3"], m: "M3" },
   "a phone without signal can change the display name without waiting, and it's sent when signal returns",
