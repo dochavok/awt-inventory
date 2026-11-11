@@ -83,7 +83,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | EQ-9 | Should | M5 | rules/equipping.test.ts (10) |
 | EQ-10 | Should | M5 | properties/equipping.test.ts (1), rules/equipping.test.ts (7) |
 | EQ-11 | Should | M5 | rules/equipping.test.ts (3) |
-| SE-1 | Must | M3 | access/firestore-store.test.ts (1), data/privacy.test.ts (1), data/search-export.test.ts (7) |
+| SE-1 | Must | M3 | access/firestore-store.test.ts (1), data/privacy.test.ts (1), data/search-export.test.ts (9) |
 | SE-2 | Must | M3 | data/privacy.test.ts (1), data/search-export.test.ts (3) |
 | SE-3 | Should | M3 | data/privacy.test.ts (1), data/search-export.test.ts (2) |
 | EX-1 | Must | M3 | data/privacy.test.ts (1), data/search-export.test.ts (5) |

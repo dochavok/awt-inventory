@@ -91,6 +91,29 @@ rule(
   },
 );
 
+rule(
+  { req: ["SE-1"], m: "M3" },
+  "with several words typed, a result comes first only if every word starts a word",
+  async () => {
+    const { bram, aldric } = await bramWithTwo();
+    await bram.addEntry(aldric.character.id, { category: "consumables", name: "Rune Fang" });
+    const names = (await bram.search("fang r", { characterId: aldric.character.id })).map((r) => r.name);
+    // In Grey Fang, "r" is only inside "grey".
+    expect(names, `Aldric's results for "fang r", in order`).toEqual(["Rune Fang", "Grey Fang"]);
+  },
+);
+
+rule({ req: ["SE-1"], m: "M3" }, "an accented letter matches however the phone wrote it", async () => {
+  const { bram, aldric } = await bramWithTwo();
+  const id = aldric.character.id;
+  // é written as e plus an accent mark, as some keyboards and pasted text do.
+  await bram.addEntry(id, { category: "consumables", name: "Café Tonic" });
+  for (const query of ["café", "café", "afé"]) {
+    const names = (await bram.search(query, { characterId: id })).map((r) => r.name);
+    expect(names, `Aldric's results for "${query}"`).toEqual(["Café Tonic"]);
+  }
+});
+
 rule({ req: ["SE-1"], m: "M3" }, "with several words typed, each must be in the same field", async () => {
   const { bram, aldric } = await bramWithTwo();
   const id = aldric.character.id;

@@ -5,11 +5,16 @@
 import type { Character, Entry, ReferenceData } from "../rules/types";
 import type { SearchResult } from "./types";
 
-/** The words in a text, lower-cased: letters and digits, split at everything else. */
+/**
+ * The words in a text, lower-cased: letters (with their accent marks) and
+ * digits, split at everything else. An accented letter typed as one character
+ * or as a letter plus a mark is made the same first (NFC).
+ */
 function words(text: string): string[] {
   return text
+    .normalize("NFC")
     .toLowerCase()
-    .split(/[^\p{L}\p{N}]+/u)
+    .split(/[^\p{L}\p{M}\p{N}]+/u)
     .filter(Boolean);
 }
 
