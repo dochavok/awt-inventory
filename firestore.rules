@@ -33,8 +33,8 @@ service cloud.firestore {
       return !(field in data) || (data[field] is string && data[field].size() <= max);
     }
 
-    // An optional link (IN-11): a web address of at most 2,000 characters, as
-    // src/data/validate.ts webLink checks.
+    // An optional link (IN-11): at most 2,000 characters, starting http:// or
+    // https://. The app (src/data/validate.ts webLink) also checks it parses.
     function webLink(data, field) {
       return !(field in data) || (text(data, field, 2000) && data[field].matches('(?i)https?://\\S+'));
     }
