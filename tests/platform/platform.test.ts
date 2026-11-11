@@ -112,6 +112,35 @@ rule(
   },
 );
 
+rule(
+  { req: ["NF-12"], m: "M3" },
+  "a stack frame's file is the code file without its query, or only the app's address for code on the page",
+  () => {
+    const report: ErrorEvent = {
+      exception: {
+        values: [
+          {
+            type: "TypeError",
+            stacktrace: {
+              frames: [
+                null,
+                { filename: "https://app.example.test/assets/index.js?v=3#x", function: "save", lineno: 1 },
+                { filename: "https://app.example.test/#/characters/c123/entries/e456?q=Duskfang", lineno: 2 },
+              ],
+            },
+          },
+        ],
+      },
+    };
+    expect(scrubEvent(report, known).exception?.values?.[0]?.stacktrace, "the scrubbed frames").toEqual({
+      frames: [
+        { filename: "https://app.example.test/assets/index.js", function: "save", lineno: 1 },
+        { filename: "https://app.example.test", lineno: 2 },
+      ],
+    });
+  },
+);
+
 rule({ req: ["NF-12"], m: "M3" }, "an error report's address is only the app's, never the screen it was on", () => {
   const report: ErrorEvent = { request: { url: "https://app.example.test/#/characters/c123/entries/e456?q=Duskfang" } };
   expect(scrubEvent(report, known).request, "the scrubbed address").toEqual({ url: "https://app.example.test" });

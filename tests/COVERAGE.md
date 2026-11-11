@@ -122,7 +122,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | NF-9 | Should | M2+ | none |
 | NF-10 | Must | M3 | ops/operations.test.ts (2) |
 | NF-11 | Must | M3 | ops/operations.test.ts (3) |
-| NF-12 | Must | M3 | platform/platform.test.ts (6) |
+| NF-12 | Must | M3 | platform/platform.test.ts (7) |
 | NF-13 | Must | M2 | access/accounts.test.ts (4), access/privacy.test.ts (3), data/accounts.test.ts (3) |
 | TF-1 | Must | M1 | meta/requirements.test.ts (1) |
 | TF-2 | Must | M1 | meta/requirements.test.ts (1) |

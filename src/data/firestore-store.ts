@@ -146,7 +146,8 @@ export function createFirestoreStore(
   function send(batches: WriteBatch[]): void {
     if (batches.length === 0) return;
     pending += 1;
-    void Promise.all(
+    // allSettled: the count goes down even if the refusal handler throws.
+    void Promise.allSettled(
       batches.map((batch) => batch.commit().catch((error: unknown) => options.onWriteRefused?.(error))),
     ).then(() => {
       pending -= 1;
@@ -283,11 +284,12 @@ export function createFirestoreStore(
     },
 
     async setDisplayName(displayName) {
-      // Like every other change, it doesn't wait for signal (NF-3).
-      watch();
       const batch = writeBatch(db);
       batch.update(user(), { displayName });
-      send([batch]);
+      // With signal, wait for the server, so the account screen can show a refusal (AC-2).
+      // Without, don't wait: it's sent when signal returns, like every other change (NF-3).
+      if (await online()) await batch.commit();
+      else send([batch]);
     },
 
     async deleteAccount() {

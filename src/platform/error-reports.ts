@@ -26,12 +26,34 @@ const SAFE_CONTEXTS = ["browser", "os", "device", "runtime", "culture"];
 /** What a stack frame may keep: where the code is, never its variables or source lines. */
 const FRAME_FIELDS = ["filename", "abs_path", "function", "module", "lineno", "colno", "in_app"];
 
+/**
+ * A code file's address without its query or fragment, or only the app's address
+ * when it isn't a code file (code run inline has the page's address, which can
+ * name a character or an entry).
+ */
+function codeFile(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  try {
+    const url = new URL(value);
+    return /\.[cm]?js$/.test(url.pathname) ? url.origin + url.pathname : url.origin;
+  } catch {
+    return value;
+  }
+}
+
 function whereOnly(stacktrace: unknown): { frames: Record<string, unknown>[] } {
   const frames = (stacktrace as { frames?: unknown } | null)?.frames;
   return {
-    frames: (Array.isArray(frames) ? frames : []).map((frame: Record<string, unknown>) =>
-      Object.fromEntries(FRAME_FIELDS.filter((k) => frame[k] !== undefined).map((k) => [k, frame[k]])),
-    ),
+    frames: (Array.isArray(frames) ? frames : [])
+      .filter((frame): frame is Record<string, unknown> => typeof frame === "object" && frame !== null)
+      .map((frame) =>
+        Object.fromEntries(
+          FRAME_FIELDS.filter((k) => frame[k] !== undefined).map((k) => [
+            k,
+            k === "filename" || k === "abs_path" ? codeFile(frame[k]) : frame[k],
+          ]),
+        ),
+      ),
   };
 }
 
