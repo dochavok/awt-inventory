@@ -27,26 +27,36 @@ const KIND_NAMES: Record<ReportKind, string> = {
   "account-problem": "Account problem",
 };
 
-/** Removes email addresses the user typed, so the issue never holds one (SP-2, PV-2). */
-function withoutEmails(text: string): string {
-  return text.replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, "[email removed]");
+/**
+ * Replaces email addresses and the sender's display name (as a whole word, any
+ * case) with a marker, so the issue never holds them (SP-2, PV-2).
+ */
+function scrubbed(text: string, displayName: string | undefined): string {
+  let out = text.replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, "[email removed]");
+  const name = displayName?.trim();
+  if (name) {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    out = out.replace(new RegExp(`(?<![\\p{L}\\p{N}_])${escaped}(?![\\p{L}\\p{N}_])`, "giu"), "[name removed]");
+  }
+  return out;
 }
 
 /**
  * The issue for a report (SP-2): subject, message, kind, app version and report
- * number. Never the sender's email address or display name: the report carries
- * neither, and emails the user typed are removed.
+ * number, with the sender's email address and display name replaced by a
+ * marker. It points to the full report, as sent, in the database.
  */
-export function issueFor(report: Report): { title: string; body: string; labels: string[] } {
+function issueFor(report: Report, displayName: string | undefined): { title: string; body: string; labels: string[] } {
   return {
-    title: withoutEmails(report.subject),
+    title: scrubbed(report.subject, displayName),
     body: [
-      withoutEmails(report.message),
+      scrubbed(report.message, displayName),
       "",
       "---",
       `Kind: ${report.kind} (${KIND_NAMES[report.kind]})`,
       `App version: ${report.appVersion}`,
       `Report number: ${report.number}`,
+      `Email addresses and the sender's name are removed here. The full report, as sent, is in the app's database under report number ${report.number}.`,
     ].join("\n"),
     labels: [report.kind],
   };
@@ -65,7 +75,10 @@ export async function deliverReport(report: Report, delivery: ReportDelivery): P
       });
       return { ...report, delivery: "emailed" };
     }
-    const issue = await delivery.issues.createIssue(issueFor(report));
+    // If the name can't be looked up, the catch below leaves the report pending
+    // rather than send it unscrubbed.
+    const displayName = await delivery.displayNameOf?.(report.uid);
+    const issue = await delivery.issues.createIssue(issueFor(report, displayName));
     return { ...report, delivery: "issue-created", issueNumber: issue.number };
   } catch {
     // SP-2: GitHub (or the mail service) can't be reached; the report waits for the next try.
