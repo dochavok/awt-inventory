@@ -13,6 +13,9 @@ function words(text: string): string[] {
     .filter(Boolean);
 }
 
+/** The fields a search looks in. */
+const FIELDS = ["name", "description", "notes"] as const;
+
 /** How `text` matches the query: every query word starts one of its words, every one is inside one, or not at all. */
 function match(tokens: string[], text: string | undefined): "start" | "inside" | undefined {
   if (text === undefined) return undefined;
@@ -46,8 +49,8 @@ export function searchEntries(
         description: entry.category === "skills" ? (showSkillText ? skill?.text : undefined) : entry.description,
         notes: entry.notes,
       };
-      const how = (["name", "description", "notes"] as const).map((f) => [f, match(tokens, fields[f])] as const);
-      const matched = how.filter(([, m]) => m !== undefined).map(([f]) => f);
+      const kinds = FIELDS.map((f) => match(tokens, fields[f]));
+      const matched = FIELDS.filter((_, i) => kinds[i] !== undefined);
       if (matched.length === 0) continue;
       results.push({
         result: {
@@ -58,7 +61,7 @@ export function searchEntries(
           characterName: character.name,
           matched,
         },
-        start: how.some(([, m]) => m === "start"),
+        start: kinds.includes("start"),
       });
     }
   }
