@@ -58,3 +58,23 @@ rule({ req: ["NF-12"], m: "M3" }, "the error itself is kept, so the maintainer c
   expect(scrubbed.exception?.values?.[0]?.value, "the error message").toContain("x is undefined");
   expect(scrubbed.tags, "the tags").toEqual({ screen: "inventory" });
 });
+
+rule(
+  { req: ["NF-12"], m: "M3" },
+  "an error report never includes an email address, even one that isn't the signed-in user's",
+  () => {
+    const report: ErrorEvent = {
+      message: "Lookup failed for wren.g@example.test",
+      exception: { values: [{ type: "Error", value: "no account for cass@example.test" }] },
+      tags: { screen: "account", typed: "someone@example.test" },
+    };
+    const scrubbed = JSON.stringify(scrubEvent(report, known));
+    expect(scrubbed, "the scrubbed report").not.toMatch(/[\w.+-]+@[\w-]+\.[\w.]+/);
+    expect(scrubbed, "the scrubbed report").toContain("Lookup failed for");
+  },
+);
+
+rule({ req: ["NF-12"], m: "M3" }, "an error report's address is only the app's, never the screen it was on", () => {
+  const report: ErrorEvent = { request: { url: "https://app.example.test/#/characters/c123/entries/e456?q=Duskfang" } };
+  expect(scrubEvent(report, known).request, "the scrubbed address").toEqual({ url: "https://app.example.test" });
+});
