@@ -553,7 +553,7 @@ When a DM answers a question, start at step 2.
 
 **TF-12 · Must · M2+: Proven by mutation.** New tests are proven by temporarily breaking the code they guard (a scripted mutation run that restores every file) and confirming they fail. The caught and survived counts are reported in the pull request, and tests that let a mutation survive are fixed.
 
-**TF-13 · Should · M3: Phone-sized browser tests.** The main flows (sign in, add a character, add and use an entry, export) run automatically in a phone-sized browser.
+**TF-13 · Should · M3: Phone-sized browser tests.** The main flows (sign in, add a character, add and use an entry, export) run automatically in a phone-sized browser, against the app's production build and the hosting service's local emulators for sign-in and the database, never a real project. Each test signs up its own made-up users, so tests can run side by side and never rely on an empty database.
 
 **TF-14 · Must · M3: The 0.x trial.** Craig uses release 0.x at a faire. Every mismatch with his paper sheet is a bug, a rule modelled wrong, or a data error, and each becomes a new test or a data fix.
 
