@@ -13,7 +13,7 @@ import {
   signInWithEmailAndPassword,
   type Auth,
 } from "firebase/auth";
-import { connectFirestoreEmulator, getFirestore } from "firebase/firestore";
+import { connectFirestoreEmulator, doc, getFirestore, setDoc } from "firebase/firestore";
 import { afterEach, beforeEach, expect } from "vitest";
 import { createAccounts } from "../../src/data/accounts";
 import { createFirestoreStore } from "../../src/data/firestore-store";
@@ -156,6 +156,44 @@ rule({ req: ["AC-1", "NF-13"], m: "M2" }, "an invited Google account can sign up
   expect(user, "signed in with Google").toMatchObject({ email: "wren.g@example.test", provider: "google" });
   expect((await store.profile()).displayName, "the profile after signing in again").toBe("Wren G");
 });
+
+rule(
+  { req: ["AC-1", "NF-13"], m: "M2" },
+  "until the email is verified, the account can store no records and list nothing for trade",
+  async () => {
+    await invite(wren.email);
+    const { auth, accounts } = phone();
+    await accounts.signUpWithEmail(wren);
+    expect(auth.currentUser?.emailVerified, "Wrenna's email verified").toBe(false);
+    const db = getFirestore(apps.at(-1)!);
+    const uid = auth.currentUser!.uid;
+    const refused = async (attempt: Promise<unknown>, what: string) => {
+      const code = await attempt.then(
+        () => "allowed",
+        (e: { code?: string }) => e.code,
+      );
+      expect(code, what).toBe("permission-denied");
+    };
+    await refused(
+      setDoc(doc(db, `users/${uid}/characters/rook`), { name: "Rook", className: "Warrior", level: 1 }),
+      "an unverified account creating a character",
+    );
+    await refused(
+      setDoc(doc(db, `users/${uid}/titles/t1`), { name: "Made-up Title" }),
+      "an unverified account adding a title",
+    );
+    await refused(
+      setDoc(doc(db, "listings/l1"), {
+        ownerUid: uid,
+        ownerName: "Wrenna",
+        name: "Tonic",
+        category: "consumables",
+        quantity: 1,
+      }),
+      "an unverified account listing something for trade",
+    );
+  },
+);
 
 rule({ req: ["AC-2"], m: "M2" }, "a display name changed in the app is changed on the server", async () => {
   await invite(wren.email);

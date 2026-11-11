@@ -15,9 +15,11 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
-    // A user's records can be written once their profile exists, which only an invited email can create (NF-13).
-    function hasProfile(uid) {
-      return exists(/databases/$(database)/documents/users/$(uid));
+    // A user's records can be written once their profile exists, which only an invited email can create (NF-13),
+    // and their email is verified, so the sign-in belongs to that email's owner (AC-1).
+    function canStore(uid) {
+      return isOwner(uid) && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/users/$(uid));
     }
 
     // NF-13: before 1.0, only an email on the invite list can create a profile.
@@ -102,23 +104,23 @@ service cloud.firestore {
 
       match /titles/{titleId} {
         allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid) && hasProfile(uid) && validTitle();
+        allow create, update: if canStore(uid) && validTitle();
       }
 
       match /characters/{characterId} {
         allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid) && hasProfile(uid) && validCharacter();
+        allow create, update: if canStore(uid) && validCharacter();
 
         match /entries/{entryId} {
           allow read, delete: if isOwner(uid);
-          allow create, update: if isOwner(uid) && hasProfile(uid) && validEntry();
+          allow create, update: if canStore(uid) && validEntry();
         }
 
         // HI-4: records are added, never edited. One goes only with its entry
         // (IN-15) or its character (CH-6, AC-5), in the same batched write.
         match /history/{recordId} {
           allow read: if isOwner(uid);
-          allow create: if isOwner(uid) && hasProfile(uid) && validRecord();
+          allow create: if canStore(uid) && validRecord();
           allow delete: if isOwner(uid) && (
             !existsAfter(/databases/$(database)/documents/users/$(uid)/characters/$(characterId))
             || (resource.data.get('entryId', null) is string
@@ -142,8 +144,9 @@ service cloud.firestore {
 
     match /listings/{listingId} {
       allow read: if signedIn();
-      allow create: if signedIn() && validListing();
-      allow update: if signedIn() && resource.data.ownerUid == request.auth.uid && validListing();
+      allow create: if signedIn() && request.auth.token.email_verified == true && validListing();
+      allow update: if signedIn() && request.auth.token.email_verified == true
+        && resource.data.ownerUid == request.auth.uid && validListing();
       allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
     }
 
