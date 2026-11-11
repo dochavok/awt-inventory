@@ -1,6 +1,6 @@
 // Search (SE-1, SE-2): finds entries by name, description and notes, matching
-// anywhere in a word as the user types, ignoring case. Matches at the start of
-// words come first. Pure functions.
+// anywhere in a word as the user types, ignoring case and accents. Matches at
+// the start of words come first. Pure functions.
 
 import type { Character, Entry, ReferenceData } from "../rules/types";
 import type { SearchResult } from "./types";
@@ -8,13 +8,14 @@ import type { SearchResult } from "./types";
 /**
  * The words in a text, lower-cased and without accents (SE-1): letters and
  * digits, split at everything else. Accent marks are split off their letters
- * (NFD) and dropped, however the text was typed.
+ * (NFD) and dropped, however the text was typed. Only the Latin accent marks
+ * go: marks that make a different letter in other scripts stay.
  */
 function words(text: string): string[] {
   return text
     .toLowerCase()
     .normalize("NFD")
-    .replace(/\p{M}/gu, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .split(/[^\p{L}\p{N}]+/u)
     .filter(Boolean);
 }

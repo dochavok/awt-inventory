@@ -108,15 +108,22 @@ rule({ req: ["SE-1"], m: "M3" }, "search ignores accents, however the phone wrot
   const { bram, aldric } = await bramWithTwo();
   const id = aldric.character.id;
   // é written as e plus an accent mark, as some keyboards and pasted text do.
-  await bram.addEntry(id, { category: "consumables", name: "Café Tonic" });
-  for (const query of ["café", "café", "afé", "cafe", "CAFE", "cafe tonic"]) {
+  await bram.addEntry(id, { category: "consumables", name: "Cafe\u0301 Tonic" });
+  for (const query of ["caf\u00e9", "cafe\u0301", "af\u00e9", "cafe", "CAFE", "cafe tonic"]) {
     const names = (await bram.search(query, { characterId: id })).map((r) => r.name);
-    expect(names, `Aldric's results for "${query}"`).toEqual(["Café Tonic"]);
+    expect(names, `Aldric's results for "${query}"`).toEqual(["Cafe\u0301 Tonic"]);
   }
   // An accent in the middle of a word doesn't split it.
-  await bram.addEntry(id, { category: "consumables", name: "Résine Salve" });
+  await bram.addEntry(id, { category: "consumables", name: "Re\u0301sine Salve" });
   const resine = (await bram.search("resine", { characterId: id })).map((r) => r.name);
-  expect(resine, `Aldric's results for "resine"`).toEqual(["Résine Salve"]);
+  expect(resine, `Aldric's results for "resine"`).toEqual(["Re\u0301sine Salve"]);
+  // The usual way: é stored as one character.
+  await bram.addEntry(id, { category: "consumables", name: "Cr\u00e8me Draught" });
+  const creme = (await bram.search("creme", { characterId: id })).map((r) => r.name);
+  expect(creme, `Aldric's results for "creme"`).toEqual(["Cr\u00e8me Draught"]);
+  // A mark that makes a different letter (Japanese が is not か) still counts.
+  await bram.addEntry(id, { category: "consumables", name: "\u304c\u304d Charm" });
+  expect(await bram.search("\u304b\u304d", { characterId: id }), `Aldric's results for "\u304b\u304d"`).toEqual([]);
 });
 
 rule({ req: ["SE-1"], m: "M3" }, "with several words typed, each must be in the same field", async () => {
