@@ -15,5 +15,5 @@ export interface BackupPlan {
 }
 
 export function backupPlan(_env: { appProject: string; backupProject: string; bucket: string }): BackupPlan {
-  throw new NotImplementedError("backupPlan", "M3");
+  throw NotImplementedError.stub("backupPlan", "M3");
 }

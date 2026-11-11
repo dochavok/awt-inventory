@@ -55,9 +55,12 @@ rule({ req: ["TF-5"], m: "M1" }, "only a stub or a failed assertion counts as an
 
 rule(
   { req: ["TF-5"], m: "M1" },
-  "an unfinished milestone's test must fail, and a passing one is an error",
+  "an unfinished milestone's test fails as expected or passes early; any other error fails",
   async () => {
-    await expect(runForMilestone({ req: ["TF-5"], m: "M7" }, () => undefined)).rejects.toThrow(/M7 isn't finished/);
+    await expect(
+      runForMilestone({ req: ["TF-5"], m: "M7" }, () => undefined),
+      "a test that passes early",
+    ).resolves.toBeUndefined();
     await expect(
       runForMilestone({ req: ["TF-5"], m: "M7" }, () => {
         throw new NotImplementedError("computeTotals", "M4");
@@ -68,6 +71,34 @@ rule(
         throw new TypeError("boom");
       }),
     ).rejects.toThrow(TypeError);
+  },
+);
+
+rule(
+  { req: ["TF-5", "TF-8"], m: "M1" },
+  "a test that reaches a stub never counts as passing, even if it catches the error",
+  async () => {
+    const catchesStub = async () => {
+      await expect(Promise.reject(NotImplementedError.stub("search", "M3"))).rejects.toThrow();
+    };
+    // This test reaches stubs on purpose, inside the runs it checks; it puts the count back after.
+    const reached = NotImplementedError.reached;
+    try {
+      await expect(
+        runForMilestone({ req: ["TF-5"], m: "M7" }, catchesStub),
+        "an unfinished test that caught a stub",
+      ).resolves.toBe("NotImplementedError: reached search (M3) during the test");
+      await expect(
+        runForMilestone({ req: ["TF-5"], m: "M1" }, catchesStub),
+        "a finished test that caught a stub",
+      ).rejects.toThrow(/reached code a later milestone builds \(search \(M3\)\)/);
+      await expect(
+        runForMilestone({ req: ["TF-5"], m: "M7" }, () => undefined),
+        "an unfinished test that reached no stub",
+      ).resolves.toBeUndefined();
+    } finally {
+      NotImplementedError.reached = reached;
+    }
   },
 );
 
@@ -114,7 +145,9 @@ rule(
       "probe-unfinished-stub": "passed",
       "probe-unfinished-assertion": "passed",
       "probe-unfinished-typeerror": "failed",
-      "probe-unfinished-passes": "failed",
+      "probe-unfinished-passes": "passed",
+      "probe-unfinished-catches-stub": "passed",
+      "probe-finished-catches-stub": "failed",
       "probe-finished-stub": "failed",
       "probe-finished-passes": "passed",
     });

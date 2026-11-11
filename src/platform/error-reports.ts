@@ -21,5 +21,5 @@ export interface ErrorEvent {
  * appear in text.
  */
 export function scrubEvent(_event: ErrorEvent, _known: { displayName?: string; email?: string }): ErrorEvent {
-  throw new NotImplementedError("scrubEvent", "M3");
+  throw NotImplementedError.stub("scrubEvent", "M3");
 }

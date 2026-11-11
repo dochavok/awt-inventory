@@ -147,7 +147,7 @@ rule({ req: ["PV-2"], m: "M2" }, "the profile holds only the sign-in identity an
 });
 
 rule(
-  { req: ["NF-13"], m: "M3" },
+  { req: ["NF-13"], m: "M2" },
   "before 1.0, only an invited email can sign up; others are told it's not open yet",
   async () => {
     const { auth, accounts } = await accountsWorld(["wren@example.test"]);
@@ -160,8 +160,102 @@ rule(
   },
 );
 
-rule({ req: ["NF-13"], m: "M3" }, "once the invite list is removed, anyone can sign up", async () => {
+rule({ req: ["NF-13"], m: "M2" }, "once the invite list is removed, anyone can sign up", async () => {
   const { accounts } = await accountsWorld(null);
   const profile = await accounts.signUpWithEmail({ ...signUp, email: "anyone@example.test" });
   expect(profile.email, "the new account").toBe("anyone@example.test");
+});
+
+rule(
+  { req: ["AC-1", "AC-2"], m: "M2" },
+  "signing up with Google again keeps the existing account's display name",
+  async () => {
+    const { auth, store, accounts } = await accountsWorld();
+    auth.nextGoogleAccount = { uid: "google-uid-3", email: "wren.g@example.test" };
+    await accounts.signUpWithGoogle({ displayName: "Wren G", acceptedTerms: true });
+    await accounts.signOut();
+    const again = await accounts.signUpWithGoogle({ displayName: "Someone Else", acceptedTerms: true });
+    expect(again.displayName, "the profile returned").toBe("Wren G");
+    expect((await store.profile()).displayName, "the stored display name").toBe("Wren G");
+  },
+);
+
+rule(
+  { req: ["AC-1"], m: "M2" },
+  "signing in with a Google account that never signed up is refused and signed out again",
+  async () => {
+    const { auth, accounts } = await accountsWorld();
+    auth.nextGoogleAccount = { uid: "google-uid-4", email: "never@example.test" };
+    const attempt = accounts.signInWithGoogle();
+    await expect(attempt, "signing in without an account").rejects.toThrow(AccessDeniedError);
+    await expect(attempt, "signing in without an account").rejects.toThrow(/no account/i);
+    expect(auth.currentUser(), "signed in after the refusal").toBeNull();
+  },
+);
+
+/** A sign-in service that says the user last signed in long ago. */
+class StaleSignInAuth extends FakeAuth {
+  async recentlySignedIn(): Promise<boolean> {
+    return false;
+  }
+}
+
+rule(
+  { req: ["AC-5"], m: "M2" },
+  "without a recent sign-in, deleting the account is refused before anything is removed",
+  async () => {
+    const w = world();
+    const auth = new StaleSignInAuth();
+    const store = w.forAuth(auth);
+    const accounts = createAccounts({ auth, store: () => store, inviteList: async () => null });
+    await accounts.signUpWithEmail(signUp);
+    await store.createCharacter({ name: "Rook", className: "Warrior", level: 1 });
+    const attempt = accounts.deleteAccount("Wrenna");
+    await expect(attempt, "deleting after a stale sign-in").rejects.toThrow(ValidationError);
+    await expect(attempt, "deleting after a stale sign-in").rejects.toThrow(/sign in again/i);
+    expect((await store.profile()).displayName, "Wrenna's profile").toBe("Wrenna");
+    expect(
+      (await store.listCharacters("main")).map((c) => c.name),
+      "Wrenna's characters",
+    ).toEqual(["Rook"]);
+    expect(auth.account("wren@example.test"), "Wrenna's sign-in").toBeDefined();
+  },
+);
+
+/** A sign-in service that loses its connection when asked to delete a sign-in. */
+class NoDeleteAuth extends FakeAuth {
+  override async deleteUser(): Promise<void> {
+    throw new Error("made-up network failure");
+  }
+}
+
+rule(
+  { req: ["NF-13"], m: "M2" },
+  "when the server refuses the profile, the user is told why, even if cleaning up fails",
+  async () => {
+    const w = world();
+    const auth = new NoDeleteAuth();
+    const store = w.forAuth(auth);
+    const refusing = { ...store, createProfile: () => Promise.reject(new AccessDeniedError("refused by the server")) };
+    const accounts = createAccounts({ auth, store: () => refusing, inviteList: async () => null });
+    await expect(accounts.signUpWithEmail(signUp), "a sign-up the server refuses").rejects.toThrow(/not open yet/i);
+  },
+);
+
+/** A sign-in service whose verification emails can't be sent. */
+class NoEmailAuth extends FakeAuth {
+  override async sendEmailVerification(): Promise<void> {
+    throw new Error("made-up email outage");
+  }
+}
+
+rule({ req: ["AC-1", "AC-2"], m: "M2" }, "an account is made even if the verification email can't go yet", async () => {
+  const w = world();
+  const auth = new NoEmailAuth();
+  const store = w.forAuth(auth);
+  const accounts = createAccounts({ auth, store: () => store, inviteList: async () => null });
+  const profile = await accounts.signUpWithEmail(signUp);
+  expect(profile.displayName, "the new account's display name").toBe("Wrenna");
+  expect(auth.currentUser()?.email, "signed in as").toBe("wren@example.test");
+  expect((await store.profile()).displayName, "the stored display name").toBe("Wrenna");
 });

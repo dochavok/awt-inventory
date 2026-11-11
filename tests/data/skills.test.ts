@@ -126,6 +126,18 @@ rule({ req: ["SK-5", "RD-3"], m: "M2" }, "a retired skill can't be newly added",
   await expect(attempt, "adding the retired Glimmer").rejects.toThrow(/Glimmer/);
 });
 
+rule({ req: ["SK-5", "RD-3"], m: "M2" }, "a skill in a retired tree can't be newly added", async () => {
+  const { w, bram, id } = await bramWithAldric();
+  w.ref.trees.find((t) => t.id === "bladework")!.retired = true;
+  const attempt = bram.addSkill(id, { skillId: "twin-fangs", howGained: "level-up", levelGained: 25 });
+  await expect(attempt, "adding Twin Fangs from the retired Bladework tree").rejects.toThrow(ValidationError);
+  await expect(attempt, "adding Twin Fangs from the retired Bladework tree").rejects.toThrow(/Twin Fangs/);
+  expect(
+    (await bram.skills(id)).map((s) => s.skillId),
+    "Aldric's skills",
+  ).not.toContain("twin-fangs");
+});
+
 rule(
   { req: ["SK-8", "RD-2"], m: "M2" },
   "characters keep skills by ID, so renaming a skill in the list renames it on the character",

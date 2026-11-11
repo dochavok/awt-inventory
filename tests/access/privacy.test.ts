@@ -37,6 +37,14 @@ async function seedAldric(): Promise<void> {
   });
 }
 
+/** Bram, who lists things for trade, is invited and has his profile (NF-13, section 3.2). */
+async function seedListingOwner(): Promise<void> {
+  await seed({
+    "invites/bram@example.test": { addedBy: "maintainer" },
+    [`users/${bram()}`]: { displayName: "Bramblewick", email: "bram@example.test" },
+  });
+}
+
 /** Owner allowed to read and change `path`; Cass and a signed-out visitor refused both. */
 async function ownerOnly(path: string, change: Record<string, unknown>, what: string): Promise<void> {
   await seedAldric();
@@ -107,6 +115,7 @@ rule(
   { req: ["PV-1", "TF-11"], m: "M2" },
   "any signed-in user can read a trade listing, only its owner can change it, and signed-out visitors can't read it",
   async () => {
+    await seedListingOwner();
     await seed({
       "listings/l1": {
         ownerUid: bram(),
@@ -134,6 +143,7 @@ rule(
   { req: ["PV-1", "TF-11"], m: "M2" },
   "a listing can't carry fields beyond those section 3.2 allows, and can't be created in another user's name",
   async () => {
+    await seedListingOwner();
     const listing = { ownerUid: bram(), ownerName: "Bramblewick", name: "Duskfang", category: "weapons", quantity: 1 };
     const db = signedIn("bram").firestore();
     await expectAllowed(db.doc("listings/ok").set(listing), "Bram listing Duskfang");
@@ -160,7 +170,7 @@ rule({ req: ["SP-1", "TF-11"], m: "M3" }, "Bram can send and read his own report
 });
 
 rule(
-  { req: ["NF-13", "TF-11"], m: "M3" },
+  { req: ["NF-13", "TF-11"], m: "M2" },
   "only an email on the invite list can create an account profile, and nobody can read the list",
   async () => {
     await seed({ "invites/bram@example.test": { addedBy: "maintainer" } });
@@ -182,3 +192,158 @@ rule(
     await expectRefused(signedIn("bram").firestore().collection("invites").get(), "Bram listing the invite list");
   },
 );
+
+rule(
+  { req: ["IN-15", "HI-4", "TF-11"], m: "M2" },
+  "deleting an entry takes its history records with it in one batch, and only for Bram",
+  async () => {
+    await seedAldric();
+    const entry = `${character()}/entries/aldric-sword`;
+    const record = `${character()}/history/h1`;
+    const cass = signedIn("cass").firestore();
+    await expectRefused(
+      cass.batch().delete(cass.doc(entry)).delete(cass.doc(record)).commit(),
+      "Cass deleting Duskfang",
+    );
+    const mine = signedIn("bram").firestore();
+    await expectAllowed(
+      mine.batch().delete(mine.doc(entry)).delete(mine.doc(record)).commit(),
+      "Bram deleting Duskfang with its record",
+    );
+  },
+);
+
+rule(
+  { req: ["CH-6", "HI-4", "TF-11"], m: "M2" },
+  "deleting a character takes its history with it in one batch, but a record whose character stays can't go",
+  async () => {
+    await seedAldric();
+    await seed({ [`${character()}/history/h2`]: { event: "level-changed" } });
+    const mine = signedIn("bram").firestore();
+    await expectRefused(mine.doc(`${character()}/history/h2`).delete(), "Bram removing a level-change record alone");
+    await expectAllowed(
+      mine
+        .batch()
+        .delete(mine.doc(character()))
+        .delete(mine.doc(`${character()}/history/h2`))
+        .commit(),
+      "Bram deleting Aldric with his level-change record",
+    );
+  },
+);
+
+rule({ req: ["PV-2", "TF-11"], m: "M2" }, "a profile holds only the display name and email", async () => {
+  await seedAldric();
+  const mine = signedIn("bram").firestore();
+  await expectRefused(
+    mine.doc(`users/${bram()}`).set({ realName: "Made-up Name" }, { merge: true }),
+    "Bram adding a real name to his profile",
+  );
+  await expectRefused(mine.doc(`users/${bram()}`).set({ displayName: "" }, { merge: true }), "a blank display name");
+});
+
+rule(
+  { req: ["NF-13", "TF-11"], m: "M2" },
+  "a signed-in user without a profile can't store characters or titles, even in their own account",
+  async () => {
+    const cass = signedIn("cass").firestore();
+    const mine = `users/${uid("cass")}`;
+    await expectRefused(
+      cass.doc(`${mine}/characters/c1`).set({ name: "Brin", className: "Rogue", level: 8 }),
+      "Cass, with no profile, creating a character",
+    );
+    await expectRefused(
+      cass.doc(`${mine}/titles/t1`).set({ name: "Made-up Title" }),
+      "Cass, with no profile, adding a title",
+    );
+    await seed({ [mine]: { displayName: "Cassia Vane" } });
+    await expectAllowed(
+      cass.doc(`${mine}/characters/c1`).set({ name: "Brin", className: "Rogue", level: 8 }),
+      "Cass, once she has a profile, creating a character",
+    );
+  },
+);
+
+rule(
+  { req: ["NF-6", "TF-11"], m: "M2" },
+  "records can't carry unknown fields or oversized text, so nobody can run up storage",
+  async () => {
+    await seedAldric();
+    const mine = signedIn("bram").firestore();
+    const huge = "x".repeat(20_000);
+    await expectRefused(
+      mine.doc(character()).set({ notes: huge }, { merge: true }),
+      "Aldric with 20,000-character notes",
+    );
+    await expectRefused(
+      mine.doc(`${character()}/entries/e2`).set({ category: "consumables", name: "Tonic", quantity: 1, junk: "x" }),
+      "an entry with a made-up field",
+    );
+    await expectRefused(
+      mine.doc(`${character()}/history/h9`).set({ event: "used", entryId: "aldric-sword", note: huge }),
+      "a history record with a 20,000-character note",
+    );
+    await expectRefused(
+      mine.doc(`users/${bram()}/titles/t2`).set({ name: "t".repeat(500) }),
+      "a title with a 500-character name",
+    );
+    await expectRefused(
+      mine.doc("listings/big").set({ ownerUid: bram(), ownerName: "Bramblewick", name: "Duskfang", description: huge }),
+      "a listing with a 20,000-character description",
+    );
+    await expectAllowed(
+      mine
+        .doc(`${character()}/entries/e3`)
+        .set({ category: "consumables", name: "Tonic", quantity: 1, notes: "short" }),
+      "an ordinary entry",
+    );
+  },
+);
+
+rule({ req: ["PV-2", "TF-11"], m: "M2" }, "a profile's email is the sign-in's own email", async () => {
+  await seedAldric();
+  const mine = signedIn("bram").firestore();
+  await expectRefused(
+    mine.doc(`users/${bram()}`).set({ email: "someone.else@example.test" }, { merge: true }),
+    "Bram setting someone else's email on his profile",
+  );
+  await expectAllowed(
+    mine.doc(`users/${bram()}`).set({ email: "bram@example.test" }, { merge: true }),
+    "Bram keeping his own email on his profile",
+  );
+});
+
+rule(
+  { req: ["PV-1", "NF-13", "TF-11"], m: "M2" },
+  "a listing needs its owner's profile, and shows the owner's own display name",
+  async () => {
+    const listing = {
+      ownerUid: uid("cass"),
+      ownerName: "Cassia Vane",
+      name: "Thornneedle",
+      category: "weapons",
+      quantity: 1,
+    };
+    const cass = signedIn("cass").firestore();
+    await expectRefused(cass.doc("listings/c1").set(listing), "Cass, with no profile, listing Thornneedle");
+    await seed({ [`users/${uid("cass")}`]: { displayName: "Cassia Vane" } });
+    await expectRefused(
+      cass.doc("listings/c1").set({ ...listing, ownerName: "Bramblewick" }),
+      "Cass listing Thornneedle under Bram's display name",
+    );
+    await expectAllowed(cass.doc("listings/c1").set(listing), "Cass listing Thornneedle under her own name");
+  },
+);
+
+rule({ req: ["PV-1", "TF-11"], m: "M2" }, "a listing can't be handed to another user", async () => {
+  await seed({
+    "listings/l1": { ownerUid: bram(), ownerName: "Bramblewick", name: "Duskfang", category: "weapons", quantity: 1 },
+  });
+  await expectRefused(
+    signedIn("bram")
+      .firestore()
+      .doc("listings/l1")
+      .update({ ownerUid: uid("cass") }),
+    "Bram giving his listing to Cass",
+  );
+});

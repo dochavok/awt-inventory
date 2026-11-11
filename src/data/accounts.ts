@@ -1,10 +1,12 @@
-// Accounts (AC-1 to AC-5, NF-13): sign-up, sign-in and deletion, over the
-// hosting provider's sign-in (AuthProvider) and the data layer. M1 stub.
+// Accounts (AC-1 to AC-5): sign-up, sign-in and deletion, over the hosting
+// provider's sign-in (AuthProvider) and the data layer. The app never handles
+// passwords itself (NF-7).
 
-import { NotImplementedError } from "../errors";
+import { AccessDeniedError, NotFoundError, ValidationError } from "../errors";
 import type { AuthProvider, AuthUser } from "../platform/auth";
 import type { InventoryStore } from "./store";
 import type { Profile } from "./types";
+import * as check from "./validate";
 
 export interface SignUp {
   displayName: string;
@@ -33,16 +35,102 @@ export interface AccountsContext {
   inviteList: () => Promise<Set<string> | null>;
 }
 
-export function createAccounts(_context: AccountsContext): Accounts {
-  const fail = (method: string) => () => Promise.reject(new NotImplementedError(`Accounts.${method}`, "M2"));
+/** What every sign-up needs before an account is created: the terms accepted and a display name (AC-2, AC-4). */
+function checkSignUp(input: SignUp): string {
+  if (input.acceptedTerms !== true) {
+    throw new ValidationError("acceptedTerms", "Accept the terms of use to create an account.");
+  }
+  return check.displayName(input.displayName);
+}
+
+export function createAccounts(context: AccountsContext): Accounts {
+  const { auth } = context;
+
+  /** NF-13: before 1.0, only an email on the invite list may sign up. */
+  async function invited(email: string): Promise<boolean> {
+    const list = await context.inviteList();
+    return list === null || list.has(email.trim().toLowerCase());
+  }
+
+  const notOpen = () =>
+    new AccessDeniedError("Sign-up is not open yet: the app is invite-only until its first full release.");
+
+  /**
+   * The profile for the account just signed in to. If it can't be made (e.g. the
+   * server refuses an email that isn't invited), a new email sign-in is removed
+   * and a Google one signed out, so nothing is left half made.
+   */
+  async function createProfile(user: AuthUser, displayName: string, isNew: boolean): Promise<Profile> {
+    try {
+      return await context.store().createProfile({ displayName, email: user.email });
+    } catch (error) {
+      // Clean up as far as possible, but the reason shown is why the profile was refused.
+      await (isNew ? auth.deleteUser() : auth.signOut()).catch(() => undefined);
+      // A server that refuses a new profile is enforcing the invite list (NF-13).
+      throw error instanceof AccessDeniedError ? notOpen() : error;
+    }
+  }
+
   return {
-    start: fail("start"),
-    signUpWithEmail: fail("signUpWithEmail"),
-    signUpWithGoogle: fail("signUpWithGoogle"),
-    signInWithEmail: fail("signInWithEmail"),
-    signInWithGoogle: fail("signInWithGoogle"),
-    resetPassword: fail("resetPassword"),
-    signOut: fail("signOut"),
-    deleteAccount: fail("deleteAccount"),
+    async start() {
+      await auth.setPersistence("local");
+    },
+
+    async signUpWithEmail(input) {
+      const displayName = checkSignUp(input);
+      if (!(await invited(input.email))) throw notOpen();
+      const user = await auth.createUserWithPassword(input.email, input.password);
+      const profile = await createProfile(user, displayName, true);
+      // The account is made either way: if the email can't go now, the account page sends it again.
+      await auth.sendEmailVerification().catch(() => undefined);
+      return profile;
+    },
+
+    async signUpWithGoogle(input) {
+      const displayName = checkSignUp(input);
+      const user = await auth.signInWithGoogle();
+      if (!(await invited(user.email))) {
+        await auth.signOut();
+        throw notOpen();
+      }
+      // A Google account that already has an account is simply signed in; its profile is kept.
+      const existing = await context
+        .store()
+        .profile()
+        .catch((error: unknown) => {
+          if (error instanceof NotFoundError) return null;
+          throw error;
+        });
+      return existing ?? createProfile(user, displayName, false);
+    },
+
+    signInWithEmail: (email, password) => auth.signInWithPassword(email, password),
+    // A Google account that never signed up has no profile: it's signed out again, with the reason.
+    async signInWithGoogle() {
+      const user = await auth.signInWithGoogle();
+      try {
+        await context.store().profile();
+      } catch (error) {
+        if (!(error instanceof NotFoundError)) throw error;
+        await auth.signOut();
+        throw new AccessDeniedError("There's no account for that Google account yet. Create an account first.");
+      }
+      return user;
+    },
+    resetPassword: (email) => auth.sendPasswordReset(email),
+    signOut: () => auth.signOut(),
+
+    async deleteAccount(typedDisplayName) {
+      // The sign-in can only be deleted after a recent sign-in; check before any record goes,
+      // so a refusal never leaves the records gone and the sign-in still there.
+      if (auth.recentlySignedIn && !(await auth.recentlySignedIn())) {
+        throw new ValidationError(
+          "signIn",
+          "For your safety, sign out and sign in again, then delete your account within a few minutes.",
+        );
+      }
+      await context.store().deleteAccount(typedDisplayName);
+      await auth.deleteUser();
+    },
   };
 }

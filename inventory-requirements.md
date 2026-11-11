@@ -166,7 +166,7 @@ A character's inventory has seven categories. This section covers every category
 
 **IN-12 · Must · M2: Used.** A consumable or component can be marked *used*. Its quantity drops by one, and the history records it with an optional note. At zero, the entry leaves the list but stays in the history (IN-16).
 
-**IN-13 · Must · M2: Restoring.** A *used* history record can be restored, for example if it was marked used by mistake. The quantity goes back up by one (bringing the entry back if it was at zero), and the history records the restore next to the original.
+**IN-13 · Must · M2: Restoring.** A *used* history record can be restored, for example if it was marked used by mistake. The quantity goes back up by one (bringing the entry back if it was at zero, whether it was used up or the rest was traded or given away), and the history records the restore next to the original.
 
 **IN-14 · Must · M2: Traded or given away.** An entry in any category except Skills can be marked *traded* or *given away*, for all or part of its quantity, with an optional note of who to. If it was equipped or active, it's unequipped first. The history records it with a snapshot of the entry (IN-16). The recipient isn't affected: a transfer between accounts is part of trading (section 18).
 
@@ -489,7 +489,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 
 **NF-12 · Must · M3: Error reports.** Errors in the app are reported to the maintainer automatically. Reports never include game records, display names or email addresses.
 
-**NF-13 · Must · M3: Invite-only before 1.0.** Until release 1.0, only accounts on an allow list kept by the maintainer can sign up. Anyone else sees "not open yet". The list is removed at 1.0.
+**NF-13 · Must · M2: Invite-only before 1.0.** Until release 1.0, only accounts on an allow list kept by the maintainer can sign up. Anyone else sees "not open yet". The list is removed at 1.0.
 
 ## 15. Testing
 
@@ -511,7 +511,7 @@ Later milestones implement these interfaces without changing them. An interface 
 
 **TF-4 · Must · M1: Traceability.** Every test names the requirement IDs it checks, and any DM question it depends on (e.g. Q1). An untagged test fails. A generated coverage table lists every requirement and its tests, and every *Must* has at least one. Requirement IDs are permanent: never renumbered or reused. A removed requirement keeps its place, marked *removed*. Requirements about how the work is done rather than how the app behaves (TF-12, TF-14, DOC-3) are marked *checked in review* in the coverage table instead of needing a test; the pull request's Review section reports them.
 
-**TF-5 · Must · M1: Milestone markers.** Each test is marked with the milestone that implements it. Tests for unfinished milestones run as expected failures. Every test for a finished milestone must pass.
+**TF-5 · Must · M1: Milestone markers.** Each test is marked with the milestone that implements it. Tests for unfinished milestones run as expected failures; one that passes because the code it checks already exists is reported as *passed early*, and doesn't fail the run. A test that reaches code a later milestone builds (a stub) never counts as passing: for an unfinished milestone it's reported as failed as expected, and for a finished one it fails. Every test for a finished milestone must pass.
 
 **TF-6 · Must · M1: The test-change rule.** A failing test means the **code** is wrong, unless Craig confirms the **test** is wrong. A test is never changed, deleted, skipped or weakened to make code pass. When a test seems wrong:
 
@@ -564,8 +564,8 @@ Each milestone from M2 on is done when all of its tests from M1 pass, with no te
 | Milestone | Scope | Release |
 |---|---|---|
 | **M1: Functional tests** | The test harness with stubbed interfaces (TF-2); fixtures and the test reference data (TF-3); rule scenarios, property tests and access rule tests for every requirement; the coverage table; CI that runs them as expected failures and enforces the test-change rule. No app logic. | none |
-| **M2: Core records** | Accounts and privacy (AC, PV); characters and titles (CH, TI-1 to TI-4); inventory (IN, except IN-11); skills from the list (SK-1 to SK-5, SK-8); history (HI-1 to HI-4); reference data and its CI checks (RD); home screen (NF-2). Runs in a test environment only. | none |
-| **M3: Search, export and first release** | Search (SE), both exports (EX), working offline (NF-3), reports to the maintainer (SP-1 to SP-3), acquisition sources (IN-11), history filters (HI-5). Operations: hosting, protected deployment, backups with a tested restore, error reports, invite-only sign-up (NF-10 to NF-13); phone-sized browser tests (TF-13); the maintainer guide; the documentation site, with pages for everything built so far (section 19). Then Craig's trial (TF-14). | **0.x**, for Craig only |
+| **M2: Core records** | Accounts and privacy (AC, PV); characters and titles (CH, TI-1 to TI-4); inventory (IN, except IN-11); skills from the list (SK-1 to SK-5, SK-8); history (HI-1 to HI-4); reference data and its CI checks (RD); home screen (NF-2); invite-only sign-up (NF-13). Runs in a test environment only. | none |
+| **M3: Search, export and first release** | Search (SE), both exports (EX), working offline (NF-3), reports to the maintainer (SP-1 to SP-3), acquisition sources (IN-11), history filters (HI-5). Operations: hosting, protected deployment, backups with a tested restore, error reports (NF-10 to NF-12); phone-sized browser tests (TF-13); the maintainer guide; the documentation site, with pages for everything built so far (section 19). Then Craig's trial (TF-14). | **0.x**, for Craig only |
 | **M4: Equipping and totals** | Grants (GR-1 to GR-5); class bonus, CM, mitigation, hearts and dice (GR-7 to GR-12); paper doll, hands, arcane slots and over-limit alerts (EQ-1 to EQ-8); title grants (TI-5); skill grants and the record check (SK-6, SK-7). | 0.x |
 | **M5: Permissions, rarity and 1.0** | Permissions and rarity (EQ-9 to EQ-11); effects as grants (GR-6); skill list changes (SK-9). Then a full review of the user documentation, and invite-only sign-up is lifted (NF-13). | **1.0**, open to players |
 | **M6: Waiting on the DMs** | Quickslots, DM Arcane and ally rules (QS-1, DA-1, AL-1), each written out in full and approved once its DM answer arrives. | 1.x |

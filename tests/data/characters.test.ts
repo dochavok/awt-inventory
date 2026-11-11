@@ -162,6 +162,21 @@ rule(
   },
 );
 
+rule(
+  { req: ["CH-2a"], m: "M2" },
+  "there's no class correction notice for the class a character already has",
+  async () => {
+    const { bram } = await bramsWorld();
+    const { character } = await seedCharacter(bram, "aldric");
+    await expect(
+      bram.classCorrectionNotice(character.id, "Warrior"),
+      "a notice for Warrior → Warrior",
+    ).rejects.toMatchObject({
+      field: "className",
+    });
+  },
+);
+
 rule({ req: ["CH-4"], m: "M2" }, "there's no limit on how many characters a user can have (60 here)", async () => {
   const { bram } = await bramsWorld();
   for (let i = 1; i <= 60; i++) await bram.createCharacter({ name: `Rook ${i}`, className: "Warrior", level: 1 });

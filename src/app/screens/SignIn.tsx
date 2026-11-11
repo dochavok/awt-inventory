@@ -1,0 +1,73 @@
+// AC-1: signing in with an email and password, or with Google; a reset email
+// for a forgotten password. The start screen when no one is signed in.
+
+import { useState, type FormEvent } from "react";
+import type { Accounts } from "../../data/accounts";
+import { ValidationError } from "../../errors";
+import { href } from "../router";
+import { Feedback, useAction } from "../useAction";
+import { HomeScreenHelp } from "./HomeScreenHelp";
+
+export function SignIn({ accounts, onBusy }: { accounts: Accounts; onBusy: (busy: boolean) => void }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  // This screen stays up while signing in (onBusy), so a refusal is shown here.
+  const { busy, error, notice, run } = useAction(onBusy);
+
+  const signIn = (e: FormEvent) => {
+    e.preventDefault();
+    void run(async () => {
+      await accounts.signInWithEmail(email.trim(), password);
+    });
+  };
+
+  const withGoogle = () =>
+    run(async () => {
+      await accounts.signInWithGoogle();
+    });
+
+  const reset = () =>
+    run(async () => {
+      if (!email.trim()) throw new ValidationError("email", "Enter your email address first.");
+      await accounts.resetPassword(email.trim());
+      return `If there's an account for ${email.trim()}, a reset email is on its way.`;
+    });
+
+  return (
+    <>
+      <h1>Sign in</h1>
+      <form className="card" onSubmit={signIn}>
+        <label>
+          Email
+          <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        </label>
+        <label>
+          Password
+          <input
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </label>
+        <Feedback error={error} notice={notice} />
+        <button type="submit" disabled={busy}>
+          Sign in
+        </button>
+        <button type="button" className="link-button" onClick={() => void reset()} disabled={busy}>
+          Forgot your password?
+        </button>
+      </form>
+      <div className="card">
+        <button type="button" className="secondary" disabled={busy} onClick={() => void withGoogle()}>
+          Sign in with Google
+        </button>
+      </div>
+      <p className="center">
+        New here? <a href={href("sign-up")}>Create an account</a>
+      </p>
+      <HomeScreenHelp />
+    </>
+  );
+}

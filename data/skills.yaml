@@ -1,0 +1,29 @@
+# PLACEHOLDER skill list (RD-6, RD-8). The real list is built from the
+# maintainer's skill and spell artifacts once their unclear entries are cleaned
+# up, and its card text can be added only if the game's owner agrees (Q10).
+# Until then, one placeholder tree and starting skill per class, so the app
+# and its checks have something to work with. Nothing here is from the game.
+trees:
+  - { id: placeholder-warrior, name: Placeholder Warrior tree, kind: class, classes: [Warrior] }
+  - { id: placeholder-mage, name: Placeholder Mage tree, kind: class, classes: [Mage] }
+  - { id: placeholder-rogue, name: Placeholder Rogue tree, kind: class, classes: [Rogue] }
+
+skills:
+  - id: placeholder-warrior-skill
+    name: Placeholder Warrior skill
+    tree: placeholder-warrior
+    usage: passive
+    tier: normal
+    starting: true
+  - id: placeholder-mage-skill
+    name: Placeholder Mage skill
+    tree: placeholder-mage
+    usage: passive
+    tier: normal
+    starting: true
+  - id: placeholder-rogue-skill
+    name: Placeholder Rogue skill
+    tree: placeholder-rogue
+    usage: passive
+    tier: normal
+    starting: true

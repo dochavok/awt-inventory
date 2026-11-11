@@ -63,9 +63,14 @@ Each is a CI job, and all five are required checks on `main`:
 
 - **Tags and milestones (TF-4, TF-5):** declare every test with `rule()`
   (`tests/support/rule.ts`) or `browserRule()`. Tests for milestones not in
-  `package.json` `awt.finishedMilestones` must fail as expected (a stub or an
-  assertion); the run ends with a table of passed / failed as expected / failed
-  by milestone. Finishing a milestone adds it to that list.
+  `package.json` `awt.finishedMilestones` fail as expected (a stub or an
+  assertion), or pass early once earlier code already does what they check;
+  any other error fails. A test that reaches a stub (stubs throw
+  `NotImplementedError.stub(…)`, which counts them) never passes: unfinished,
+  it fails as expected; finished, it fails. The run ends with a table of passed / passed early /
+  failed as expected / failed by milestone. Finishing a milestone adds it to
+  that list. List the tests that passed early in the PR; before any code exists
+  (M1), a test that passes early can't fail, so fix it.
 - **Coverage (TF-4):** after adding or retagging tests, run
   `npm run coverage:write` and commit `tests/COVERAGE.md`; `npm test` fails if
   it's stale.

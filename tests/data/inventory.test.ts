@@ -196,6 +196,63 @@ rule(
   },
 );
 
+rule(
+  { req: ["IN-8"], m: "M2" },
+  "a field left undefined in an edit is unchanged, and empty text clears an optional one",
+  async () => {
+    const { bram, id } = await bramWithAldric();
+    await bram.updateEntry(id("aldric-draught"), { notes: "Keep me" });
+    await bram.updateEntry(id("aldric-draught"), { name: "Greater Draught", quantity: undefined, notes: undefined });
+    expect(await bram.entry(id("aldric-draught")), "the draught after an edit leaving fields undefined").toMatchObject({
+      name: "Greater Draught",
+      quantity: 3,
+      notes: "Keep me",
+    });
+    await bram.updateEntry(id("aldric-draught"), { notes: "" });
+    expect((await bram.entry(id("aldric-draught"))).notes, "the notes after clearing them").toBeUndefined();
+  },
+);
+
+rule(
+  { req: ["IN-13", "HI-3"], m: "M2" },
+  "a restore sits next to the use it undoes, even when the use was dated earlier",
+  async () => {
+    const { w, bram, characterId, id } = await bramWithAldric();
+    w.clock.set("2026-06-15T02:30:00.000Z");
+    const used = await bram.markUsed(id("aldric-draught"), { date: "2026-06-13T19:00:00.000Z" });
+    w.clock.advanceSeconds(60);
+    await bram.markUsed(id("aldric-shard"));
+    const restored = await bram.restoreUsed(used.id);
+    expect(restored.date, "the restore's date").toBe("2026-06-13T19:00:00.000Z");
+    const order = (await bram.history(characterId)).map((r) => r.id);
+    expect(order.indexOf(used.id) - order.indexOf(restored.id), "places between the restore and the use").toBe(1);
+  },
+);
+
+rule({ req: ["IN-13", "NF-6"], m: "M2" }, "a restore can't take a quantity past its maximum", async () => {
+  const { bram, id } = await bramWithAldric();
+  const used = await bram.markUsed(id("aldric-draught"));
+  await bram.updateEntry(id("aldric-draught"), { quantity: 9999 });
+  await expect(bram.restoreUsed(used.id), "restoring a draught onto 9,999").rejects.toMatchObject({
+    field: "quantity",
+  });
+  expect((await bram.entry(id("aldric-draught"))).quantity, "Healing Draughts").toBe(9999);
+});
+
+rule({ req: ["IN-14"], m: "M2" }, "an active ally is made inactive when part of it is given away", async () => {
+  const { bram, characterId } = await bramWithAldric();
+  const hounds = await bram.addEntry(characterId, {
+    category: "allies",
+    name: "Ash Hounds",
+    active: true,
+    quantity: 2,
+  });
+  await bram.markTraded(hounds.id, { kind: "given-away", quantity: 1 });
+  const item = (await bram.listEntries(characterId, "allies")).find((a) => a.entry.id === hounds.id);
+  expect(item?.entry.quantity, "Ash Hounds left").toBe(1);
+  expect(item?.equipped, "Ash Hounds still active").toBe(false);
+});
+
 rule({ req: ["IN-9"], m: "M2" }, "a category lists its entries alphabetically, with active allies marked", async () => {
   const { bram, characterId } = await bramWithAldric();
   await bram.addEntry(characterId, { category: "allies", name: "Ash Hound", active: false });
@@ -400,6 +457,26 @@ rule({ req: ["IN-14"], m: "M2" }, "trading more than the quantity is refused", a
   await expect(attempt, "trading 4 of 3").rejects.toMatchObject({ field: "quantity" });
   expect((await bram.entry(id("aldric-draught"))).quantity, "Healing Draughts").toBe(3);
 });
+
+rule(
+  { req: ["IN-13", "IN-14"], m: "M2" },
+  "a draught marked used by mistake can be restored after the rest were given away",
+  async () => {
+    const { bram, characterId, id } = await bramWithAldric();
+    const used = await bram.markUsed(id("aldric-draught"));
+    await bram.markTraded(id("aldric-draught"), { kind: "given-away" });
+    await expect(bram.entry(id("aldric-draught")), "reading the draught once all are gone").rejects.toThrow(
+      NotFoundError,
+    );
+    await bram.restoreUsed(used.id);
+    expect((await bram.entry(id("aldric-draught"))).quantity, "Healing Draughts after restoring").toBe(1);
+    const consumables = (await bram.listEntries(characterId, "consumables")).map((e) => [
+      e.entry.category !== "skills" && e.entry.name,
+      e.entry.quantity,
+    ]);
+    expect(consumables, "Aldric's consumables").toEqual([["Healing Draught", 1]]);
+  },
+);
 
 rule({ req: ["IN-14", "EQ-4"], m: "M4" }, "trading an equipped entry unequips it first", async () => {
   const { bram, characterId, id } = await bramWithAldric({ full: true });

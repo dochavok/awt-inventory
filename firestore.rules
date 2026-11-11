@@ -1,11 +1,157 @@
 rules_version = '2';
 
-// Server-side access rules (PV-1, NF-7). Stub for M1: nothing is allowed.
-// M2 writes the real rules; tests/access/ says what they must do.
+// Server-side access rules (PV-1, NF-6, NF-7, NF-13). Tested against the
+// emulator in tests/access/. Every collection is listed: anything not matched
+// here is refused, so a later milestone's collection (e.g. reports, SP-1)
+// stays closed until its rules are written. Records may hold only their own
+// fields, with the app's maximum sizes (NF-6, src/data/validate.ts LIMITS).
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+    function signedIn() {
+      return request.auth != null;
     }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // A user's records can be written once their profile exists, which only an invited email can create (NF-13),
+    // and their email is verified, so the sign-in belongs to that email's owner (AC-1).
+    function canStore(uid) {
+      return isOwner(uid) && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/users/$(uid));
+    }
+
+    // NF-13: before 1.0, only an email on the invite list can create a profile.
+    function invited() {
+      return request.auth.token.email != null
+        && exists(/databases/$(database)/documents/invites/$(request.auth.token.email.lower()));
+    }
+
+    // An optional text field: absent, or text of at most `max` characters.
+    function text(data, field, max) {
+      return !(field in data) || (data[field] is string && data[field].size() <= max);
+    }
+
+    function wholeNumber(data, field) {
+      return !(field in data) || data[field] is int;
+    }
+
+    function shortList(data, field) {
+      return !(field in data) || (data[field] is list && data[field].size() <= 50);
+    }
+
+    // PV-2: a profile holds only the display name and the sign-in email.
+    function validProfile() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['displayName', 'email'])
+        && data.displayName is string && data.displayName.size() > 0 && data.displayName.size() <= 60
+        && (!('email' in data) || data.email == request.auth.token.email);
+    }
+
+    function validTitle() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['name', 'description', 'earned', 'scope', 'grants'])
+        && text(data, 'name', 100) && text(data, 'description', 10000) && text(data, 'earned', 10)
+        && (!('scope' in data) || (data.scope is map && data.scope.keys().hasOnly(['level', 'characterId'])
+            && text(data.scope, 'level', 20) && text(data.scope, 'characterId', 100)))
+        && shortList(data, 'grants');
+    }
+
+    function validCharacter() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['name', 'className', 'level', 'notes', 'retired'])
+        && text(data, 'name', 100) && text(data, 'className', 20) && wholeNumber(data, 'level')
+        && text(data, 'notes', 10000) && (!('retired' in data) || data.retired is bool);
+    }
+
+    function validEntry() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['category', 'name', 'quantity', 'description', 'notes', 'itemFamily', 'grants',
+          'rarity', 'hands', 'range', 'weaponGroup', 'extraDamage', 'slotKind', 'arcane', 'allyType', 'hearts',
+          'active', 'tier', 'skillId', 'howGained', 'levelGained'])
+        && text(data, 'category', 20) && text(data, 'name', 100) && wholeNumber(data, 'quantity')
+        && text(data, 'description', 10000) && text(data, 'notes', 10000) && text(data, 'itemFamily', 100)
+        && text(data, 'rarity', 100) && text(data, 'range', 20) && text(data, 'weaponGroup', 100)
+        && text(data, 'slotKind', 100) && text(data, 'allyType', 100) && text(data, 'tier', 100)
+        && text(data, 'skillId', 100) && text(data, 'howGained', 40) && shortList(data, 'grants');
+    }
+
+    function validSnapshot(data) {
+      return !('snapshot' in data) || (data.snapshot is map
+        && data.snapshot.keys().hasOnly(['name', 'category', 'description', 'notes', 'rarity', 'itemFamily', 'quantity'])
+        && text(data.snapshot, 'name', 100) && text(data.snapshot, 'category', 20)
+        && text(data.snapshot, 'description', 10000) && text(data.snapshot, 'notes', 10000)
+        && text(data.snapshot, 'rarity', 100) && text(data.snapshot, 'itemFamily', 100));
+    }
+
+    function validRecord() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['event', 'date', 'enteredAt', 'entryId', 'entryName', 'category', 'snapshot',
+          'quantity', 'note', 'source', 'link', 'restores', 'change', 'summary'])
+        && text(data, 'event', 40) && text(data, 'date', 40) && text(data, 'enteredAt', 40)
+        && text(data, 'entryId', 100) && text(data, 'entryName', 100) && text(data, 'category', 20)
+        && wholeNumber(data, 'quantity') && text(data, 'note', 10000) && text(data, 'source', 100)
+        && text(data, 'link', 2000) && text(data, 'restores', 100) && text(data, 'summary', 500)
+        && (!('change' in data) || (data.change is map && data.change.keys().hasOnly(['from', 'to'])))
+        && validSnapshot(data);
+    }
+
+    match /users/{uid} {
+      allow read, delete: if isOwner(uid);
+      allow create: if isOwner(uid) && invited() && validProfile();
+      allow update: if isOwner(uid) && validProfile();
+
+      match /titles/{titleId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if canStore(uid) && validTitle();
+      }
+
+      match /characters/{characterId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if canStore(uid) && validCharacter();
+
+        match /entries/{entryId} {
+          allow read, delete: if isOwner(uid);
+          allow create, update: if canStore(uid) && validEntry();
+        }
+
+        // HI-4: records are added, never edited. One goes only with its entry
+        // (IN-15) or its character (CH-6, AC-5), in the same batched write.
+        match /history/{recordId} {
+          allow read: if isOwner(uid);
+          allow create: if canStore(uid) && validRecord();
+          allow delete: if isOwner(uid) && (
+            !existsAfter(/databases/$(database)/documents/users/$(uid)/characters/$(characterId))
+            || (resource.data.get('entryId', null) is string
+                && !existsAfter(/databases/$(database)/documents/users/$(uid)/characters/$(characterId)/entries/$(resource.data.entryId)))
+          );
+        }
+      }
+    }
+
+    // Trade listings (PV-1, section 3.2): any signed-in user can read one; only
+    // its owner can create, change or remove it, and it carries only the
+    // fields section 3.2 allows, never notes or the character's name. The owner
+    // must be able to store records (invited profile, verified email), and the
+    // listing shows their own display name.
+    function validListing() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['ownerUid', 'ownerName', 'name', 'category', 'description', 'rarity', 'itemFamily', 'quantity'])
+        && data.ownerUid == request.auth.uid && canStore(request.auth.uid)
+        && data.ownerName == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.displayName
+        && text(data, 'ownerName', 60) && text(data, 'name', 100) && text(data, 'category', 20)
+        && text(data, 'description', 10000) && text(data, 'rarity', 100) && text(data, 'itemFamily', 100)
+        && wholeNumber(data, 'quantity');
+    }
+
+    match /listings/{listingId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && validListing();
+      allow update: if signedIn() && resource.data.ownerUid == request.auth.uid && validListing();
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // The invite list (NF-13) is kept by the maintainer in the console; no user can read or change it.
   }
 }
