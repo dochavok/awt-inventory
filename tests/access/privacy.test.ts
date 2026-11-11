@@ -232,6 +232,64 @@ rule({ req: ["PV-2", "TF-11"], m: "M2" }, "a profile holds only the display name
   await expectRefused(mine.doc(`users/${bram()}`).set({ displayName: "" }, { merge: true }), "a blank display name");
 });
 
+rule(
+  { req: ["NF-13", "TF-11"], m: "M2" },
+  "a signed-in user without a profile can't store characters or titles, even in their own account",
+  async () => {
+    const cass = signedIn("cass").firestore();
+    const mine = `users/${uid("cass")}`;
+    await expectRefused(
+      cass.doc(`${mine}/characters/c1`).set({ name: "Brin", className: "Rogue", level: 8 }),
+      "Cass, with no profile, creating a character",
+    );
+    await expectRefused(
+      cass.doc(`${mine}/titles/t1`).set({ name: "Made-up Title" }),
+      "Cass, with no profile, adding a title",
+    );
+    await seed({ [mine]: { displayName: "Cassia Vane" } });
+    await expectAllowed(
+      cass.doc(`${mine}/characters/c1`).set({ name: "Brin", className: "Rogue", level: 8 }),
+      "Cass, once she has a profile, creating a character",
+    );
+  },
+);
+
+rule(
+  { req: ["NF-6", "TF-11"], m: "M2" },
+  "records can't carry unknown fields or oversized text, so nobody can run up storage",
+  async () => {
+    await seedAldric();
+    const mine = signedIn("bram").firestore();
+    const huge = "x".repeat(20_000);
+    await expectRefused(
+      mine.doc(character()).set({ notes: huge }, { merge: true }),
+      "Aldric with 20,000-character notes",
+    );
+    await expectRefused(
+      mine.doc(`${character()}/entries/e2`).set({ category: "consumables", name: "Tonic", quantity: 1, junk: "x" }),
+      "an entry with a made-up field",
+    );
+    await expectRefused(
+      mine.doc(`${character()}/history/h9`).set({ event: "used", entryId: "aldric-sword", note: huge }),
+      "a history record with a 20,000-character note",
+    );
+    await expectRefused(
+      mine.doc(`users/${bram()}/titles/t2`).set({ name: "t".repeat(500) }),
+      "a title with a 500-character name",
+    );
+    await expectRefused(
+      mine.doc("listings/big").set({ ownerUid: bram(), ownerName: "Bramblewick", name: "Duskfang", description: huge }),
+      "a listing with a 20,000-character description",
+    );
+    await expectAllowed(
+      mine
+        .doc(`${character()}/entries/e3`)
+        .set({ category: "consumables", name: "Tonic", quantity: 1, notes: "short" }),
+      "an ordinary entry",
+    );
+  },
+);
+
 rule({ req: ["PV-1", "TF-11"], m: "M2" }, "a listing can't be handed to another user", async () => {
   await seed({
     "listings/l1": { ownerUid: bram(), ownerName: "Bramblewick", name: "Duskfang", category: "weapons", quantity: 1 },
