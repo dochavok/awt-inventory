@@ -78,14 +78,19 @@ rule({ req: ["HI-4"], m: "M2" }, "editing an entry never changes its earlier his
   expect(record?.entryName, "the name on the earlier used record").toBe("Healing Draught");
 });
 
-rule({ req: ["HI-4"], m: "M2" }, "the data layer offers no way to edit or remove a single history record", async () => {
-  const { bram } = await bramWithAldric();
-  const methods = Object.keys(bram);
-  const editing = methods.filter((m) => /history|record/i.test(m) && m !== "history");
-  expect(editing, "store methods that could change history records").toEqual([]);
-  expect(typeof bram.history, "reading the history").toBe("function");
-  await bram.history((await bram.listCharacters("main"))[0]!.id);
-});
+// A name check only. The server refusing an edit or a lone delete, even by the
+// owner, is tested in tests/access/privacy.test.ts.
+rule(
+  { req: ["HI-4"], m: "M2" },
+  "the data layer has no method named for editing or removing a history record",
+  async () => {
+    const { bram } = await bramWithAldric();
+    const methods = Object.keys(bram);
+    const editing = methods.filter((m) => /history|record/i.test(m) && m !== "history");
+    expect(editing, "store methods that could change history records").toEqual([]);
+    expect(typeof bram.history, "reading the history").toBe("function");
+  },
+);
 
 rule({ req: ["HI-5"], m: "M3" }, "the history can be filtered by event and by category", async () => {
   const { bram, characterId, id } = await bramWithAldric();
