@@ -9,6 +9,7 @@ import {
   createUserWithEmailAndPassword,
   deleteUser,
   inMemoryPersistence,
+  reload,
   sendEmailVerification,
   sendPasswordResetEmail,
   setPersistence,
@@ -20,6 +21,9 @@ import {
   type UserCredential,
 } from "firebase/auth";
 import type { AuthProvider, AuthUser, Persistence } from "./auth";
+
+/** Firebase asks for a sign-in within about 5 minutes before deleting one; a margin is left. */
+const RECENT_SIGN_IN_MS = 4 * 60 * 1000;
 
 const PERSISTENCE = {
   local: browserLocalPersistence,
@@ -65,5 +69,17 @@ export function createFirebaseAuth(auth: Auth, options: FirebaseAuthOptions = {}
     sendPasswordReset: (email) => sendPasswordResetEmail(auth, email),
     signOut: () => signOut(auth),
     deleteUser: () => deleteUser(signedIn()),
+    recentlySignedIn() {
+      const at = Date.parse(signedIn().metadata.lastSignInTime ?? "");
+      return Number.isFinite(at) && Date.now() - at < RECENT_SIGN_IN_MS;
+    },
+    async refresh() {
+      const user = auth.currentUser;
+      if (!user) return null;
+      await reload(user);
+      // A fresh token carries the newly verified email to the server's rules.
+      await user.getIdToken(true);
+      return toAuthUser(user);
+    },
   };
 }

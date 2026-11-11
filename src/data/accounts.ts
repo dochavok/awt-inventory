@@ -120,6 +120,14 @@ export function createAccounts(context: AccountsContext): Accounts {
     signOut: () => auth.signOut(),
 
     async deleteAccount(typedDisplayName) {
+      // The sign-in can only be deleted after a recent sign-in; check before any record goes,
+      // so a refusal never leaves the records gone and the sign-in still there.
+      if (auth.recentlySignedIn && !auth.recentlySignedIn()) {
+        throw new ValidationError(
+          "signIn",
+          "For your safety, sign out and sign in again, then delete your account within a few minutes.",
+        );
+      }
       await context.store().deleteAccount(typedDisplayName);
       await auth.deleteUser();
     },

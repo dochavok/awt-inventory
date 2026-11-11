@@ -12,9 +12,9 @@ Tests shows each file with the number of its tests that name the requirement.
 | AC-2 | Must | M2 | access/accounts.test.ts (2), data/accounts.test.ts (4) |
 | AC-3 | Must | M2 | access/accounts.test.ts (1), data/accounts.test.ts (1) |
 | AC-4 | Must | M2 | browser/phone.spec.ts (1), data/accounts.test.ts (1) |
-| AC-5 | Must | M2 | access/accounts.test.ts (1), data/accounts.test.ts (2), data/reports.test.ts (1) |
+| AC-5 | Must | M2 | access/accounts.test.ts (1), data/accounts.test.ts (3), data/reports.test.ts (1) |
 | PV-1 | Must | M2 | access/privacy.test.ts (10), data/inventory.test.ts (1), data/privacy.test.ts (4), data/reports.test.ts (1), data/search-export.test.ts (1), data/titles.test.ts (1) |
-| PV-2 | Must | M2 | access/accounts.test.ts (1), access/privacy.test.ts (1), data/accounts.test.ts (2), server/reports.test.ts (1) |
+| PV-2 | Must | M2 | access/accounts.test.ts (1), access/privacy.test.ts (2), data/accounts.test.ts (2), server/reports.test.ts (1) |
 | PV-3 | Must | M2 | data/privacy.test.ts (3) |
 | PV-4 | Must | M2 | browser/phone.spec.ts (1) |
 | CH-1 | Must | M2 | data/characters.test.ts (6) |
@@ -24,7 +24,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | CH-4 | Must | M2 | data/characters.test.ts (1) |
 | CH-5 | Must | M2 | data/characters.test.ts (2), data/search-export.test.ts (2) |
 | CH-6 | Must | M2 | access/privacy.test.ts (1), data/characters.test.ts (3) |
-| TI-1 | Must | M2 | data/titles.test.ts (2) |
+| TI-1 | Must | M2 | data/titles.test.ts (3) |
 | TI-2 | Must | M2 | data/characters.test.ts (2), data/grants.test.ts (1), data/titles.test.ts (3), rules/equipping.test.ts (1) |
 | TI-3 | Must | M2 | data/titles.test.ts (1) |
 | TI-4 | Must | M2 | data/grants.test.ts (1), data/titles.test.ts (1) |
@@ -36,7 +36,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | IN-5 | Must | M2 | data/inventory.test.ts (1), rules/equipping.test.ts (2) |
 | IN-6 | Must | M2 | data/inventory.test.ts (1), rules/totals.test.ts (1) |
 | IN-7 | Must | M2 | data/inventory.test.ts (1) |
-| IN-8 | Must | M2 | data/inventory.test.ts (1) |
+| IN-8 | Must | M2 | data/inventory.test.ts (2) |
 | IN-9 | Must | M2 | data/inventory.test.ts (2) |
 | IN-10 | Must | M2 | data/inventory.test.ts (2) |
 | IN-11 | Should | M3 | data/inventory.test.ts (1) |
@@ -50,7 +50,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | SK-2 | Must | M2 | data/search-export.test.ts (1), data/skills.test.ts (3) |
 | SK-3 | Must | M2 | data/skills.test.ts (1), docs/docs.test.ts (1), rules/skills.test.ts (8) |
 | SK-4 | Must | M2 | data/skills.test.ts (2) |
-| SK-5 | Must | M2 | data/skills.test.ts (2) |
+| SK-5 | Must | M2 | data/skills.test.ts (3) |
 | SK-6 | Should | M4 | rules/skills.test.ts (2) |
 | SK-7 | Should | M4 | rules/equipping.test.ts (5) |
 | SK-8 | Must | M2 | data/skills.test.ts (1) |
@@ -105,7 +105,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | AL-1 | Could | M6 | none |
 | RD-1 | Must | M2 | refdata/refdata.test.ts (1) |
 | RD-2 | Must | M2 | data/skills.test.ts (1), refdata/refdata.test.ts (2) |
-| RD-3 | Must | M2 | data/inventory.test.ts (1), data/skills.test.ts (2), refdata/refdata.test.ts (1), rules/equipping.test.ts (2), rules/skills.test.ts (1) |
+| RD-3 | Must | M2 | data/inventory.test.ts (1), data/skills.test.ts (3), refdata/refdata.test.ts (1), rules/equipping.test.ts (2), rules/skills.test.ts (1) |
 | RD-4 | Must | M2 | refdata/refdata.test.ts (9) |
 | RD-5 | Must | M2 | data/characters.test.ts (1), refdata/refdata.test.ts (2) |
 | RD-6 | Must | M2 | refdata/refdata.test.ts (1) |
@@ -134,7 +134,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | TF-8 | Must | M1 | meta/harness.test.ts (1) |
 | TF-9 | Must | M1 | meta/scenarios.test.ts (3), meta/test-change-check.test.ts (1) |
 | TF-10 | Must | M1 | properties/equipping.test.ts (3), properties/totals.test.ts (4) |
-| TF-11 | Must | M1 | access/privacy.test.ts (17) |
+| TF-11 | Must | M1 | access/privacy.test.ts (18) |
 | TF-12 | Must | M2+ | checked in review (TF-4) |
 | TF-13 | Should | M3 | none |
 | TF-14 | Must | M3 | checked in review (TF-4) |

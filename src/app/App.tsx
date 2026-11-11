@@ -18,13 +18,18 @@ export function App({ services }: { services: Services }) {
   const [holding, setHolding] = useState<"sign-in" | "sign-up" | null>(null);
   const hold = (screen: "sign-in" | "sign-up") => (busy: boolean) => setHolding(busy ? screen : null);
 
+  // Until a kept sign-in is restored, show nothing rather than a sign-in screen that's about to vanish.
+  const [ready, setReady] = useState(false);
+
   useEffect(() => {
     void services.accounts.start();
+    void services.ready.then(() => setReady(true));
     return services.onSignInChange(() => setSignedIn(services.auth.currentUser() !== null));
   }, [services]);
 
   let screen;
-  if (route === "privacy") screen = <Privacy signedIn={signedIn} />;
+  if (!ready) screen = <p className="center hint">Loading…</p>;
+  else if (route === "privacy") screen = <Privacy signedIn={signedIn} />;
   else if (holding === "sign-up" || (!signedIn && route === "sign-up")) {
     screen = <SignUp accounts={services.accounts} onBusy={hold("sign-up")} />;
   } else if (holding === "sign-in" || !signedIn) {

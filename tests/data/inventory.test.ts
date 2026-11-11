@@ -196,6 +196,23 @@ rule(
   },
 );
 
+rule(
+  { req: ["IN-8"], m: "M2" },
+  "a field left undefined in an edit is unchanged, and empty text clears an optional one",
+  async () => {
+    const { bram, id } = await bramWithAldric();
+    await bram.updateEntry(id("aldric-draught"), { notes: "Keep me" });
+    await bram.updateEntry(id("aldric-draught"), { name: "Greater Draught", quantity: undefined, notes: undefined });
+    expect(await bram.entry(id("aldric-draught")), "the draught after an edit leaving fields undefined").toMatchObject({
+      name: "Greater Draught",
+      quantity: 3,
+      notes: "Keep me",
+    });
+    await bram.updateEntry(id("aldric-draught"), { notes: "" });
+    expect((await bram.entry(id("aldric-draught"))).notes, "the notes after clearing them").toBeUndefined();
+  },
+);
+
 rule({ req: ["IN-9"], m: "M2" }, "a category lists its entries alphabetically, with active allies marked", async () => {
   const { bram, characterId } = await bramWithAldric();
   await bram.addEntry(characterId, { category: "allies", name: "Ash Hound", active: false });

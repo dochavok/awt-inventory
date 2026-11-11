@@ -22,6 +22,8 @@ export interface Services {
   auth: AuthProvider;
   /** Calls `listener` now and whenever someone signs in or out. */
   onSignInChange(listener: () => void): () => void;
+  /** Resolves once a sign-in kept from last time has been restored (AC-3), so the first screen is the right one. */
+  ready: Promise<void>;
   accounts: Accounts;
   store: InventoryStore;
 }
@@ -68,6 +70,7 @@ export function createServices(): Services {
   return {
     auth,
     onSignInChange: (listener) => firebaseAuth.onAuthStateChanged(() => listener()),
+    ready: firebaseAuth.authStateReady(),
     accounts,
     store,
   };

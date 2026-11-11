@@ -301,7 +301,7 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
         uniqueName(next.name, characterId);
       }
       if (patch.level !== undefined) next.level = check.level(patch.level, ref);
-      if ("notes" in patch) {
+      if (patch.notes !== undefined) {
         const notes = check.optionalText("notes", patch.notes, check.LIMITS.notes);
         if (notes === undefined) delete next.notes;
         else next.notes = notes;
@@ -401,12 +401,12 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
     async updateTitle(titleId, patch) {
       const title = { ...ownTitle(titleId) };
       if (patch.name !== undefined) title.name = check.requiredText("name", patch.name, check.LIMITS.name);
-      if ("description" in patch) {
+      if (patch.description !== undefined) {
         const description = check.optionalText("description", patch.description, check.LIMITS.description);
         if (description === undefined) delete title.description;
         else title.description = description;
       }
-      if ("earned" in patch) {
+      if (patch.earned !== undefined) {
         const earned = check.calendarDate("earned", patch.earned);
         if (earned === undefined) delete title.earned;
         else title.earned = earned;
@@ -468,8 +468,10 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
       }
       noGrants(patch.grants);
       const { id: _id, characterId: _c, ...current } = entry;
-      const merged: Record<string, unknown> = { ...current, ...patch, category: entry.category };
-      for (const key of Object.keys(merged)) if (merged[key] === undefined) delete merged[key];
+      // A field left undefined is unchanged; empty text clears an optional one.
+      const merged: Record<string, unknown> = { ...current };
+      for (const [key, value] of Object.entries(patch)) if (value !== undefined) merged[key] = value;
+      merged.category = entry.category;
       const fields = check.itemEntry(merged, ref);
       const next = { ...fields, id: entry.id, characterId: entry.characterId } as ItemEntry;
       const gained = next.quantity - entry.quantity;
@@ -568,7 +570,9 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
         summary: `${kind === "traded" ? "Traded" : "Gave away"} ${quantity} × ${entry.name}`,
       });
       // At zero it leaves the inventory, but stays so a mistaken "used" can still be restored (IN-13).
+      // An ally traded away is no longer active (IN-14).
       entry.quantity -= quantity;
+      if (entry.quantity === 0 && entry.category === "allies") entry.active = false;
       return traded;
     },
 
@@ -618,7 +622,10 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
       const character = ownCharacter(characterId);
       const skill = ref.skills.find((s) => s.id === input.skillId);
       if (!skill) throw new NotFoundError("skill", input.skillId);
-      if (skill.retired) throw new ValidationError("skillId", `${skill.name} has been retired and can't be added.`);
+      const tree = ref.trees.find((t) => t.id === skill.tree);
+      if (skill.retired || tree?.retired) {
+        throw new ValidationError("skillId", `${skill.name} has been retired and can't be added.`);
+      }
       const entry: SkillEntry = {
         id: db.newId("e"),
         characterId,

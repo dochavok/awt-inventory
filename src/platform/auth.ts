@@ -22,4 +22,11 @@ export interface AuthProvider {
   sendPasswordReset(email: string): Promise<void>;
   signOut(): Promise<void>;
   deleteUser(): Promise<void>;
+  /**
+   * Whether the user signed in recently enough to delete their sign-in. The
+   * provider refuses that otherwise. Absent means the provider doesn't ask (AC-5).
+   */
+  recentlySignedIn?(): boolean;
+  /** Fetches the user's latest state, e.g. once they've verified their email (AC-1). */
+  refresh?(): Promise<AuthUser | null>;
 }

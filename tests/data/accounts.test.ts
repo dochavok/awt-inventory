@@ -193,6 +193,35 @@ rule(
   },
 );
 
+/** A sign-in service that says the user last signed in long ago. */
+class StaleSignInAuth extends FakeAuth {
+  recentlySignedIn(): boolean {
+    return false;
+  }
+}
+
+rule(
+  { req: ["AC-5"], m: "M2" },
+  "without a recent sign-in, deleting the account is refused before anything is removed",
+  async () => {
+    const w = world();
+    const auth = new StaleSignInAuth();
+    const store = w.forAuth(auth);
+    const accounts = createAccounts({ auth, store: () => store, inviteList: async () => null });
+    await accounts.signUpWithEmail(signUp);
+    await store.createCharacter({ name: "Rook", className: "Warrior", level: 1 });
+    const attempt = accounts.deleteAccount("Wrenna");
+    await expect(attempt, "deleting after a stale sign-in").rejects.toThrow(ValidationError);
+    await expect(attempt, "deleting after a stale sign-in").rejects.toThrow(/sign in again/i);
+    expect((await store.profile()).displayName, "Wrenna's profile").toBe("Wrenna");
+    expect(
+      (await store.listCharacters("main")).map((c) => c.name),
+      "Wrenna's characters",
+    ).toEqual(["Rook"]);
+    expect(auth.account("wren@example.test"), "Wrenna's sign-in").toBeDefined();
+  },
+);
+
 /** A sign-in service whose verification emails can't be sent. */
 class NoEmailAuth extends FakeAuth {
   override async sendEmailVerification(): Promise<void> {

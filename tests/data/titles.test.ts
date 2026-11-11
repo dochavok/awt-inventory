@@ -138,3 +138,14 @@ rule({ req: ["TI-4"], m: "M2" }, "a title can be edited and removed", async () =
     "Aldric's titles",
   ).not.toContain("Hero of the Bridge");
 });
+
+rule({ req: ["TI-1"], m: "M2" }, "a date earned must be a real day", async () => {
+  const { bram } = await bramWithTwo();
+  for (const earned of ["2026-02-31", "2026-04-31", "2026-13-01", "June 13"]) {
+    const attempt = bram.addTitle({ name: `Title for ${earned}`, earned });
+    await expect(attempt, `a title earned on ${earned}`).rejects.toMatchObject({ field: "earned" });
+  }
+  expect((await bram.addTitle({ name: "Leap Day Title", earned: "2028-02-29" })).earned, "a leap day").toBe(
+    "2028-02-29",
+  );
+});

@@ -20,7 +20,17 @@ export function Account({ services }: { services: Services }) {
   const rename = useAction();
   const verify = useAction();
   const remove = useAction();
-  const user = auth.currentUser();
+  const [user, setUser] = useState(() => auth.currentUser());
+
+  // AC-1: once the email is verified (in another tab or app), pick it up when the app is back in view.
+  useEffect(() => {
+    if (!auth.refresh) return;
+    const recheck = () => {
+      if (document.visibilityState === "visible") void auth.refresh?.().then(setUser, () => undefined);
+    };
+    document.addEventListener("visibilitychange", recheck);
+    return () => document.removeEventListener("visibilitychange", recheck);
+  }, [auth]);
 
   useEffect(() => {
     void load.run(async () => {
@@ -74,6 +84,22 @@ export function Account({ services }: { services: Services }) {
           >
             Send the email again
           </button>
+          {auth.refresh && (
+            <button
+              type="button"
+              className="secondary"
+              disabled={verify.busy}
+              onClick={() =>
+                void verify.run(async () => {
+                  const latest = await auth.refresh!();
+                  setUser(latest);
+                  if (!latest?.emailVerified) return "Not verified yet. Check for the email, then try again.";
+                })
+              }
+            >
+              I&apos;ve verified it
+            </button>
+          )}
         </section>
       )}
       {profile && (

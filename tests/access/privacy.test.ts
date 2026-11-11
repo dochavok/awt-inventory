@@ -290,6 +290,19 @@ rule(
   },
 );
 
+rule({ req: ["PV-2", "TF-11"], m: "M2" }, "a profile's email is the sign-in's own email", async () => {
+  await seedAldric();
+  const mine = signedIn("bram").firestore();
+  await expectRefused(
+    mine.doc(`users/${bram()}`).set({ email: "someone.else@example.test" }, { merge: true }),
+    "Bram setting someone else's email on his profile",
+  );
+  await expectAllowed(
+    mine.doc(`users/${bram()}`).set({ email: "bram@example.test" }, { merge: true }),
+    "Bram keeping his own email on his profile",
+  );
+});
+
 rule({ req: ["PV-1", "TF-11"], m: "M2" }, "a listing can't be handed to another user", async () => {
   await seed({
     "listings/l1": { ownerUid: bram(), ownerName: "Bramblewick", name: "Duskfang", category: "weapons", quantity: 1 },

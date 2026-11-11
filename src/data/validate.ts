@@ -121,7 +121,14 @@ export function eventOptions(
 /** A date earned, as an ISO 8601 date (TI-1). */
 export function calendarDate(field: string, value: unknown): string | undefined {
   if (value === undefined || value === null || value === "") return undefined;
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(value))) {
+  // A real day: Date.parse rolls 2026-02-31 over to March, so the date must read back the same.
+  const parsed = typeof value === "string" ? Date.parse(value) : NaN;
+  if (
+    typeof value !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
+    Number.isNaN(parsed) ||
+    new Date(parsed).toISOString().slice(0, 10) !== value
+  ) {
     throw new ValidationError(field, `${String(value)} isn't a date like 2026-06-13.`);
   }
   return value;
