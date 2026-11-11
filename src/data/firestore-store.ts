@@ -15,8 +15,10 @@ import {
   doc,
   getDoc,
   getDocs,
+  query,
   setDoc,
   updateDoc,
+  where,
   writeBatch,
   type DocumentReference,
   type Firestore,
@@ -54,22 +56,28 @@ export function createFirestoreStore(firestore: unknown, context: StoreContext):
   }
 
   /**
-   * Deletes groups of documents in order, packed into batches; a group is never
-   * split between two batches. If a batch fails, a retry finds whatever is left.
+   * Deletes groups of documents in order, packed into batches; a group is kept
+   * in one batch where it fits. If a batch fails, a retry finds whatever is left.
+   * A group too big for one batch is split, its first document first: for a
+   * character, that's the character itself, after which its other records may go.
    */
   async function deleteInOrder(groups: DocumentReference[][]): Promise<void> {
     let batch = writeBatch(db);
     let size = 0;
+    const flush = async () => {
+      if (size > 0) await batch.commit();
+      batch = writeBatch(db);
+      size = 0;
+    };
     for (const group of groups) {
-      if (size > 0 && size + group.length > BATCH_LIMIT) {
-        await batch.commit();
-        batch = writeBatch(db);
-        size = 0;
+      if (size + group.length > BATCH_LIMIT) await flush();
+      for (const ref of group) {
+        if (size === BATCH_LIMIT) await flush();
+        batch.delete(ref);
+        size += 1;
       }
-      for (const ref of group) batch.delete(ref);
-      size += group.length;
     }
-    if (size > 0) await batch.commit();
+    await flush();
   }
 
   return {
@@ -111,7 +119,7 @@ export function createFirestoreStore(firestore: unknown, context: StoreContext):
       ]);
       // Each character goes last, so until it's gone a retry can find what's left in it. Entries
       // go first; then their history records (HI-4: allowed once their entry is gone); then the
-      // records about no entry (level changes), in the same batch as the character itself.
+      // character with the records about no entry (level changes), which may go only with it.
       const perCharacter = await Promise.all(
         characters.docs.map(async (character) => {
           const [entries, history] = await Promise.all([
@@ -123,11 +131,18 @@ export function createFirestoreStore(firestore: unknown, context: StoreContext):
           return [
             ...entries.docs.map((d) => [d.ref]),
             ...aboutEntry.map((d) => [d.ref]),
-            [...aboutCharacter.map((d) => d.ref), character.ref],
+            [character.ref, ...aboutCharacter.map((d) => d.ref)],
           ];
         }),
       );
-      await deleteInOrder([...perCharacter.flat(), ...titles.docs.map((d) => [d.ref]), [user]]);
+      // Listings for trade show the display name to everyone, so they go too (AC-5).
+      const listings = await getDocs(query(collection(db, "listings"), where("ownerUid", "==", profile.uid)));
+      await deleteInOrder([
+        ...perCharacter.flat(),
+        ...titles.docs.map((d) => [d.ref]),
+        ...listings.docs.map((d) => [d.ref]),
+        [user],
+      ]);
     },
 
     // ---------------------------------------------------------------- everything else: M3 (with NF-3) and later

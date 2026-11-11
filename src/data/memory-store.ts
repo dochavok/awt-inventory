@@ -180,6 +180,15 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
     if (Array.isArray(grants) && grants.length > 0) notYet("grants (GR-2)", "M4");
   }
 
+  /** The class a correction changes to (CH-2a): a class, and not the one the character has. */
+  function classCorrection(character: Character, to: unknown): ClassName {
+    const className = check.className(to);
+    if (className === character.className) {
+      throw new ValidationError("className", `${character.name} is already a ${className}.`);
+    }
+    return className;
+  }
+
   function correctionMessage(from: ClassName, to: ClassName): string {
     return (
       `A class can't change in the game, so only correct it if ${from} was a mistake when the character was created. ` +
@@ -322,20 +331,18 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
 
     async classCorrectionNotice(characterId, to) {
       const character = ownCharacter(characterId);
+      const className = classCorrection(character, to);
       return {
         from: character.className,
-        to: check.className(to),
-        message: correctionMessage(character.className, to),
+        to: className,
+        message: correctionMessage(character.className, className),
         affects: ["class bonus", "combat dice", "hearts", "arcane slots", "own skill trees"],
       };
     },
 
     async correctClass(characterId, to, options) {
       const character = ownCharacter(characterId);
-      const className = check.className(to);
-      if (className === character.className) {
-        throw new ValidationError("className", `${character.name} is already a ${className}.`);
-      }
+      const className = classCorrection(character, to);
       if (options.confirmed !== true) {
         throw new ConfirmationError("confirmed", correctionMessage(character.className, className));
       }
@@ -533,7 +540,13 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
       }
       const entry = used.entryId === undefined ? undefined : db.entries.get(used.entryId);
       if (!entry) throw new ValidationError("entryId", `${used.entryName} is no longer in the inventory.`);
-      const { date, note } = check.eventOptions(options, now());
+      // NF-6: a restore can't take the quantity, or the character's entries, past their maximums.
+      if (entry.quantity === 0) checkCount(entry.characterId);
+      if (entry.quantity + 1 > check.LIMITS.quantity) {
+        throw new ValidationError("quantity", `${used.entryName} is already at the most a quantity can be.`);
+      }
+      // Dated with the use it undoes, so the two sit together in the history (IN-13).
+      const { date, note } = check.eventOptions({ ...options, date: options.date ?? used.date }, now());
       entry.quantity += 1;
       return record(entry.characterId, {
         event: "restored",
@@ -570,9 +583,9 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
         summary: `${kind === "traded" ? "Traded" : "Gave away"} ${quantity} × ${entry.name}`,
       });
       // At zero it leaves the inventory, but stays so a mistaken "used" can still be restored (IN-13).
-      // An ally traded away is no longer active (IN-14).
+      // An active ally is made inactive before it's traded or given away (IN-14).
       entry.quantity -= quantity;
-      if (entry.quantity === 0 && entry.category === "allies") entry.active = false;
+      if (entry.category === "allies") entry.active = false;
       return traded;
     },
 

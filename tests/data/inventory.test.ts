@@ -213,6 +213,46 @@ rule(
   },
 );
 
+rule(
+  { req: ["IN-13", "HI-3"], m: "M2" },
+  "a restore sits next to the use it undoes, even when the use was dated earlier",
+  async () => {
+    const { w, bram, characterId, id } = await bramWithAldric();
+    w.clock.set("2026-06-15T02:30:00.000Z");
+    const used = await bram.markUsed(id("aldric-draught"), { date: "2026-06-13T19:00:00.000Z" });
+    w.clock.advanceSeconds(60);
+    await bram.markUsed(id("aldric-shard"));
+    const restored = await bram.restoreUsed(used.id);
+    expect(restored.date, "the restore's date").toBe("2026-06-13T19:00:00.000Z");
+    const order = (await bram.history(characterId)).map((r) => r.id);
+    expect(order.indexOf(used.id) - order.indexOf(restored.id), "places between the restore and the use").toBe(1);
+  },
+);
+
+rule({ req: ["IN-13", "NF-6"], m: "M2" }, "a restore can't take a quantity past its maximum", async () => {
+  const { bram, id } = await bramWithAldric();
+  const used = await bram.markUsed(id("aldric-draught"));
+  await bram.updateEntry(id("aldric-draught"), { quantity: 9999 });
+  await expect(bram.restoreUsed(used.id), "restoring a draught onto 9,999").rejects.toMatchObject({
+    field: "quantity",
+  });
+  expect((await bram.entry(id("aldric-draught"))).quantity, "Healing Draughts").toBe(9999);
+});
+
+rule({ req: ["IN-14"], m: "M2" }, "an active ally is made inactive when part of it is given away", async () => {
+  const { bram, characterId } = await bramWithAldric();
+  const hounds = await bram.addEntry(characterId, {
+    category: "allies",
+    name: "Ash Hounds",
+    active: true,
+    quantity: 2,
+  });
+  await bram.markTraded(hounds.id, { kind: "given-away", quantity: 1 });
+  const item = (await bram.listEntries(characterId, "allies")).find((a) => a.entry.id === hounds.id);
+  expect(item?.entry.quantity, "Ash Hounds left").toBe(1);
+  expect(item?.equipped, "Ash Hounds still active").toBe(false);
+});
+
 rule({ req: ["IN-9"], m: "M2" }, "a category lists its entries alphabetically, with active allies marked", async () => {
   const { bram, characterId } = await bramWithAldric();
   await bram.addEntry(characterId, { category: "allies", name: "Ash Hound", active: false });

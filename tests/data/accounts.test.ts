@@ -195,7 +195,7 @@ rule(
 
 /** A sign-in service that says the user last signed in long ago. */
 class StaleSignInAuth extends FakeAuth {
-  recentlySignedIn(): boolean {
+  async recentlySignedIn(): Promise<boolean> {
     return false;
   }
 }
@@ -219,6 +219,26 @@ rule(
       "Wrenna's characters",
     ).toEqual(["Rook"]);
     expect(auth.account("wren@example.test"), "Wrenna's sign-in").toBeDefined();
+  },
+);
+
+/** A sign-in service that loses its connection when asked to delete a sign-in. */
+class NoDeleteAuth extends FakeAuth {
+  override async deleteUser(): Promise<void> {
+    throw new Error("made-up network failure");
+  }
+}
+
+rule(
+  { req: ["NF-13"], m: "M2" },
+  "when the server refuses the profile, the user is told why, even if cleaning up fails",
+  async () => {
+    const w = world();
+    const auth = new NoDeleteAuth();
+    const store = w.forAuth(auth);
+    const refusing = { ...store, createProfile: () => Promise.reject(new AccessDeniedError("refused by the server")) };
+    const accounts = createAccounts({ auth, store: () => refusing, inviteList: async () => null });
+    await expect(accounts.signUpWithEmail(signUp), "a sign-up the server refuses").rejects.toThrow(/not open yet/i);
   },
 );
 

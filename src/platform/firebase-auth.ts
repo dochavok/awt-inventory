@@ -69,9 +69,12 @@ export function createFirebaseAuth(auth: Auth, options: FirebaseAuthOptions = {}
     sendPasswordReset: (email) => sendPasswordResetEmail(auth, email),
     signOut: () => signOut(auth),
     deleteUser: () => deleteUser(signedIn()),
-    recentlySignedIn() {
-      const at = Date.parse(signedIn().metadata.lastSignInTime ?? "");
-      return Number.isFinite(at) && Date.now() - at < RECENT_SIGN_IN_MS;
+    // Both times come from Firebase: a freshly issued token's time is the server's "now",
+    // so a phone with a wrong clock can't get this wrong.
+    async recentlySignedIn() {
+      const token = await signedIn().getIdTokenResult(true);
+      const elapsed = Date.parse(token.issuedAtTime) - Date.parse(token.authTime);
+      return Number.isFinite(elapsed) && elapsed < RECENT_SIGN_IN_MS;
     },
     async refresh() {
       const user = auth.currentUser;

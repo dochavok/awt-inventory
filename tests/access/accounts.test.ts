@@ -158,6 +158,54 @@ rule({ req: ["AC-1", "NF-13"], m: "M2" }, "an invited Google account can sign up
 });
 
 rule(
+  { req: ["AC-5", "PV-1"], m: "M2" },
+  "deleting the account removes its trade listings too, and leaves other users' alone",
+  async () => {
+    await invite(wren.email);
+    const { auth, accounts } = phone();
+    await accounts.signUpWithEmail(wren);
+    const uid = auth.currentUser!.uid;
+    await seed({
+      "listings/wrens": {
+        ownerUid: uid,
+        ownerName: "Wrenna",
+        name: "Ember Tonic",
+        category: "consumables",
+        quantity: 1,
+      },
+      "listings/other": {
+        ownerUid: "someone-else",
+        ownerName: "Cassia Vane",
+        name: "Rope",
+        category: "items",
+        quantity: 1,
+      },
+    });
+    await accounts.deleteAccount("Wrenna");
+    expect(await stored("listings/wrens"), "Wrenna's listing after deleting her account").toBeNull();
+    expect(await stored("listings/other"), "another user's listing").not.toBeNull();
+  },
+);
+
+rule(
+  { req: ["AC-5", "HI-4"], m: "M2" },
+  "an account whose character has over 500 level-change records can still be deleted",
+  async () => {
+    await invite(wren.email);
+    const { auth, accounts } = phone();
+    await accounts.signUpWithEmail(wren);
+    const rook = `users/${auth.currentUser!.uid}/characters/rook`;
+    const docs: Record<string, Record<string, unknown>> = { [rook]: { name: "Rook", className: "Warrior", level: 1 } };
+    for (let i = 0; i < 510; i++) docs[`${rook}/history/l${i}`] = { event: "level-changed" };
+    await seed(docs);
+    await accounts.deleteAccount("Wrenna");
+    expect(await stored(rook), "Rook after deleting the account").toBeNull();
+    expect(await stored(`${rook}/history/l509`), "Rook's last level-change record").toBeNull();
+  },
+  { timeout: 120_000 },
+);
+
+rule(
   { req: ["AC-1", "NF-13"], m: "M2" },
   "until the email is verified, the account can store no records and list nothing for trade",
   async () => {

@@ -64,7 +64,8 @@ export function createAccounts(context: AccountsContext): Accounts {
     try {
       return await context.store().createProfile({ displayName, email: user.email });
     } catch (error) {
-      await (isNew ? auth.deleteUser() : auth.signOut());
+      // Clean up as far as possible, but the reason shown is why the profile was refused.
+      await (isNew ? auth.deleteUser() : auth.signOut()).catch(() => undefined);
       // A server that refuses a new profile is enforcing the invite list (NF-13).
       throw error instanceof AccessDeniedError ? notOpen() : error;
     }
@@ -122,7 +123,7 @@ export function createAccounts(context: AccountsContext): Accounts {
     async deleteAccount(typedDisplayName) {
       // The sign-in can only be deleted after a recent sign-in; check before any record goes,
       // so a refusal never leaves the records gone and the sign-in still there.
-      if (auth.recentlySignedIn && !auth.recentlySignedIn()) {
+      if (auth.recentlySignedIn && !(await auth.recentlySignedIn())) {
         throw new ValidationError(
           "signIn",
           "For your safety, sign out and sign in again, then delete your account within a few minutes.",
