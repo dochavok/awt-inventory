@@ -80,6 +80,45 @@ rule({ req: ["SE-1"], m: "M3" }, "search ignores case and matches the start of a
 });
 
 rule(
+  { req: ["SE-1"], m: "M3" },
+  "search matches inside a word too, with matches at the start of a word first",
+  async () => {
+    const { bram, aldric } = await bramWithTwo();
+    const id = aldric.character.id;
+    await bram.addSkill(id, { skillId: "twin-fangs", howGained: "other", levelGained: 1 });
+    const names = (await bram.search("fang", { characterId: id })).map((r) => r.name);
+    expect(names, `Aldric's results for "fang", in order`).toEqual(["Grey Fang", "Twin Fangs", "Duskfang"]);
+  },
+);
+
+rule({ req: ["SE-1"], m: "M3" }, "with several words typed, each must be in the same field", async () => {
+  const { bram, aldric } = await bramWithTwo();
+  const id = aldric.character.id;
+  await bram.updateEntry(aldric.entries.get("aldric-shard")!.id, { notes: "Trade at dusk" });
+  const together = await bram.search("trade dusk", { characterId: id });
+  expect(
+    together.map((r) => [r.name, r.matched]),
+    `Aldric's results for "trade dusk"`,
+  ).toEqual([["Ember Shard", ["notes"]]]);
+  // "shard" is only in its name and "dusk" only in its notes.
+  expect(await bram.search("shard dusk", { characterId: id }), `Aldric's results for "shard dusk"`).toEqual([]);
+});
+
+rule(
+  { req: ["SE-1", "SE-2"], m: "M3" },
+  "searching all characters puts matches at the start of a word first, whichever character has them",
+  async () => {
+    const { bram, aldric } = await bramWithTwo();
+    await bram.addEntry(aldric.character.id, { category: "consumables", name: "Absorbing Salve" });
+    const results = await bram.search("orb", { allCharacters: true });
+    expect(
+      results.map((r) => `${r.characterName}: ${r.name}`),
+      `results for "orb" across Bram's characters, in order`,
+    ).toEqual(["Isolde: Glass Orb", "Aldric: Absorbing Salve"]);
+  },
+);
+
+rule(
   { req: ["SE-2", "CH-5"], m: "M3" },
   "searching all characters includes retired ones, and each result names its character",
   async () => {
