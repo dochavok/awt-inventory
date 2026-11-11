@@ -178,6 +178,8 @@ export function createFirestoreStore(
         batch = undefined;
         continue;
       }
+      // A record whose ID names no stored document has nothing to delete.
+      if (change.op === "delete" && !refFor(change.kind, change.id)) continue;
       const b = plain();
       size += 1;
       switch (change.op) {
@@ -202,12 +204,9 @@ export function createFirestoreStore(
         case "add-quantity":
           b.update(refFor("entry", change.entryId)!, { quantity: increment(change.by) });
           break;
-        case "delete": {
-          const ref = refFor(change.kind, change.id);
-          if (ref) b.delete(ref);
-          else size -= 1;
+        case "delete":
+          b.delete(refFor(change.kind, change.id)!);
           break;
-        }
       }
     }
     return out;

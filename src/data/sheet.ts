@@ -8,7 +8,10 @@ import type { PdfFile, PrintOptions, SheetDocument } from "./types";
 import { categoryName } from "./validate";
 
 /** The categories on the sheet, in the app's order; skills have their own section. */
-export const SHEET_CATEGORIES = ["weapons", "armor", "allies", "consumables", "items", "components"] as const;
+const SHEET_CATEGORIES = ["weapons", "armor", "allies", "consumables", "items", "components"] as const;
+
+/** Sorts by name, in the user's alphabetical order. */
+export const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name);
 
 export interface SheetInput {
   character: Character;
@@ -23,7 +26,7 @@ function localZone(): string {
 }
 
 /** A date as the user's calendar shows it, e.g. 2026-06-13. */
-export function localDate(iso: string): string {
+function localDate(iso: string): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: localZone() }).format(new Date(iso));
 }
 
@@ -32,7 +35,6 @@ export function buildSheet(
   ref: ReferenceData,
   options: { createdAt: string; includeSkillText: boolean; showSkillText: boolean },
 ): SheetDocument {
-  const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name);
   return {
     createdAt: options.createdAt,
     pageFooter: `Created ${formatLocal(options.createdAt, localZone())}`,

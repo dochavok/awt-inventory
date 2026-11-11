@@ -27,7 +27,7 @@ import type {
 } from "../rules/types";
 import type { Backend, Change, NotMine, StoredRecord } from "./backend";
 import { searchEntries } from "./search";
-import { buildSheet, renderPdf } from "./sheet";
+import { buildSheet, byName, renderPdf } from "./sheet";
 import { later as laterIn, requireUid, type InventoryStore, type StoreContext } from "./store";
 import type {
   EntryListItem,
@@ -47,18 +47,16 @@ import * as check from "./validate";
 const UNDO_SECONDS = 10;
 
 /** SP-1: reports a user can send in a day. */
-export const REPORTS_PER_DAY = 5;
+const REPORTS_PER_DAY = 5;
 
 /** EX-4: the JSON export's format version. */
-export const EXPORT_FORMAT_VERSION = 1;
+const EXPORT_FORMAT_VERSION = 1;
 
 const REPORT_KINDS: readonly ReportKind[] = ["missing-skill", "bug", "idea", "account-problem"];
 
 function notYet(what: string, milestone: string): never {
   throw NotImplementedError.stub(what, milestone);
 }
-
-const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name);
 
 /** Newest first; records made together keep the order they were made in (HI-1). */
 const newestFirst = (a: StoredRecord, b: StoredRecord) => b.record.date.localeCompare(a.record.date) || b.seq - a.seq;
@@ -198,8 +196,9 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     if (clash) throw new ValidationError("name", `You already have a character called ${clash.name}.`);
   }
 
-  async function checkCount(characterId: Id): Promise<void> {
-    if ((await entriesOf(characterId)).length >= check.LIMITS.entriesPerCharacter) {
+  /** NF-6: refuses another entry when a character already has the most it can (`entries` are its own). */
+  function checkCount(entries: Entry[]): void {
+    if (entries.length >= check.LIMITS.entriesPerCharacter) {
       throw new ValidationError(
         "entries",
         `A character can have at most ${check.LIMITS.entriesPerCharacter.toLocaleString("en-US")} entries.`,
@@ -254,21 +253,15 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
   }
 
   async function sheetOf(character: Character): Promise<CharacterSheet> {
-    return {
-      character,
-      entries: await entriesOf(character.id),
-      equipped: [],
-      titles: await titlesApplying(character.id),
-      manualGrants: [],
-    };
+    const [entries, titles] = await Promise.all([entriesOf(character.id), myTitles()]);
+    return { character, entries, equipped: [], titles: applying(titles, character.id), manualGrants: [] };
   }
 
   // ---------------------------------------------------------------- titles (TI)
 
-  async function titlesApplying(characterId: Id): Promise<Title[]> {
-    return (await myTitles())
-      .filter((t) => t.scope.level === "player" || t.scope.characterId === characterId)
-      .sort(byName);
+  /** The titles that apply to a character: player-level ones and its own, by name. */
+  function applying(titles: Title[], characterId: Id): Title[] {
+    return titles.filter((t) => t.scope.level === "player" || t.scope.characterId === characterId).sort(byName);
   }
 
   async function checkScope(scope: TitleScope | undefined): Promise<TitleScope> {
@@ -487,7 +480,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
 
     async titlesFor(characterId) {
       await ownCharacter(characterId);
-      return titlesApplying(characterId);
+      return applying(await myTitles(), characterId);
     },
 
     async charactersFor(titleId) {
@@ -504,7 +497,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       await ownCharacter(characterId);
       noGrants((input as { grants?: unknown }).grants);
       const fields = check.itemEntry(input as unknown as Record<string, unknown>, ref);
-      await checkCount(characterId);
+      checkCount(await entriesOf(characterId));
       const gain = gainOptions(options);
       const entry = { ...fields, id: backend.newId("entry", characterId), characterId } as ItemEntry;
       await write([{ op: "set-entry", value: entry }, acquired(entry, entry.quantity, gain).change]);
@@ -584,13 +577,12 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       if ((await backend.history(used.characterId)).some((h) => h.record.restores === historyId)) {
         throw new ValidationError("event", `That use of ${used.entryName} was restored already.`);
       }
-      const found = used.entryId === undefined ? undefined : await backend.entry(used.entryId);
-      if (found === undefined || found === "not-mine") {
+      const entry = used.entryId === undefined ? undefined : await backend.entry(used.entryId);
+      if (entry === undefined || entry === "not-mine") {
         throw new ValidationError("entryId", `${used.entryName} is no longer in the inventory.`);
       }
-      const entry = found;
       // NF-6: a restore can't take the quantity, or the character's entries, past their maximums.
-      if (entry.quantity === 0) await checkCount(entry.characterId);
+      if (entry.quantity === 0) checkCount(await entriesOf(entry.characterId));
       if (entry.quantity + 1 > check.LIMITS.quantity) {
         throw new ValidationError("quantity", `${used.entryName} is already at the most a quantity can be.`);
       }
@@ -713,8 +705,9 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       };
       const notes = check.optionalText("notes", input.notes, check.LIMITS.notes);
       if (notes !== undefined) entry.notes = notes;
-      await checkCount(characterId);
-      const warnings = skillWarnings(await sheetOf(character), ref, skill.id);
+      const sheet = await sheetOf(character);
+      checkCount(sheet.entries);
+      const warnings = skillWarnings(sheet, ref, skill.id);
       const gain = { date: now(), note: undefined, source: undefined, link: undefined };
       await write([{ op: "set-entry", value: entry }, acquired(entry, 1, gain).change]);
       return { entry, warnings };
@@ -771,11 +764,11 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     // ---------------------------------------------------------------- search and export (SE, EX)
     async search(query, options) {
       let characters: Character[];
-      if (options.characterId !== undefined && options.allCharacters !== true) {
-        characters = [await ownCharacter(options.characterId)];
-      } else if (options.allCharacters === true) {
+      if (options.allCharacters === true) {
         // SE-2: every character, retired ones included.
         characters = await myCharacters();
+      } else if (options.characterId !== undefined) {
+        characters = [await ownCharacter(options.characterId)];
       } else {
         throw new ValidationError("characterId", "Search one character, or all of them.");
       }
@@ -862,13 +855,12 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     } else {
       characters = await Promise.all(options.characterIds.map(ownCharacter));
     }
-    const pages = await Promise.all(
-      characters.map(async (character) => ({
-        character,
-        entries: await entriesOf(character.id),
-        titles: await titlesApplying(character.id),
-      })),
-    );
+    const [titles, entries] = await Promise.all([myTitles(), Promise.all(characters.map((c) => entriesOf(c.id)))]);
+    const pages = characters.map((character, i) => ({
+      character,
+      entries: entries[i]!,
+      titles: applying(titles, character.id),
+    }));
     return buildSheet(pages, ref, {
       createdAt: now(),
       includeSkillText: options.includeSkillText === true,

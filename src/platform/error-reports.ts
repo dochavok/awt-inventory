@@ -3,6 +3,8 @@
 // error (its type, message, stack trace and tags) and drops everything that
 // could hold game records or personal details.
 
+import { EMAIL_PATTERN, escapeRegExp } from "./text";
+
 /** The parts of an error event the app sends (a subset of Sentry's event). */
 export interface ErrorEvent {
   message?: string;
@@ -21,12 +23,6 @@ const KEPT = ["event_id", "timestamp", "platform", "level", "release", "environm
 /** Contexts that describe the phone and browser. Any other context (such as app state) is dropped. */
 const SAFE_CONTEXTS = ["browser", "os", "device", "runtime", "culture"];
 
-const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/g;
-
-function escape(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 /**
  * Removes game records, display names and email addresses (NF-12). `known`
  * holds the signed-in user's display name and email, to strip wherever they
@@ -35,9 +31,9 @@ function escape(text: string): string {
 export function scrubEvent(event: ErrorEvent, known: { displayName?: string; email?: string }): ErrorEvent {
   const text = (value: string): string => {
     let out = value;
-    if (known.email) out = out.replace(new RegExp(escape(known.email), "gi"), "[email]");
-    out = out.replace(EMAIL, "[email]");
-    if (known.displayName) out = out.replace(new RegExp(escape(known.displayName), "gi"), "[name]");
+    if (known.email) out = out.replace(new RegExp(escapeRegExp(known.email), "gi"), "[email]");
+    out = out.replace(EMAIL_PATTERN, "[email]");
+    if (known.displayName) out = out.replace(new RegExp(escapeRegExp(known.displayName), "gi"), "[name]");
     return out;
   };
   const source = event as ErrorEvent & Record<string, unknown>;

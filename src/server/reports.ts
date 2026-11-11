@@ -3,6 +3,7 @@
 // reports repository; both it and the mailer are ports, faked in tests.
 
 import type { Report, ReportKind } from "../data/types";
+import { EMAIL_PATTERN, escapeRegExp } from "../platform/text";
 
 export interface IssueTracker {
   createIssue(issue: { title: string; body: string; labels: string[] }): Promise<{ number: number }>;
@@ -32,11 +33,11 @@ const KIND_NAMES: Record<ReportKind, string> = {
  * case) with a marker, so the issue never holds them (SP-2, PV-2).
  */
 function scrubbed(text: string, displayName: string | undefined): string {
-  let out = text.replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, "[email removed]");
+  let out = text.replace(EMAIL_PATTERN, "[email removed]");
   const name = displayName?.trim();
   if (name) {
-    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    out = out.replace(new RegExp(`(?<![\\p{L}\\p{N}_])${escaped}(?![\\p{L}\\p{N}_])`, "giu"), "[name removed]");
+    const whole = `(?<![\\p{L}\\p{N}_])${escapeRegExp(name)}(?![\\p{L}\\p{N}_])`;
+    out = out.replace(new RegExp(whole, "giu"), "[name removed]");
   }
   return out;
 }
