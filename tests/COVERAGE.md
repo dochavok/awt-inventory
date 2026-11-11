@@ -14,7 +14,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | AC-4 | Must | M2 | browser/phone.spec.ts (1), data/accounts.test.ts (1) |
 | AC-5 | Must | M2 | access/accounts.test.ts (3), access/firestore-store.test.ts (1), data/accounts.test.ts (3), data/reports.test.ts (1) |
 | PV-1 | Must | M2 | access/accounts.test.ts (1), access/firestore-store.test.ts (1), access/privacy.test.ts (11), data/inventory.test.ts (1), data/privacy.test.ts (4), data/reports.test.ts (1), data/search-export.test.ts (1), data/titles.test.ts (1) |
-| PV-2 | Must | M2 | access/accounts.test.ts (1), access/privacy.test.ts (2), data/accounts.test.ts (2), server/reports.test.ts (1) |
+| PV-2 | Must | M2 | access/accounts.test.ts (1), access/privacy.test.ts (2), data/accounts.test.ts (2), server/reports.test.ts (3) |
 | PV-3 | Must | M2 | data/privacy.test.ts (3) |
 | PV-4 | Must | M2 | browser/phone.spec.ts (1) |
 | CH-1 | Must | M2 | access/firestore-store.test.ts (1), data/characters.test.ts (6) |
@@ -92,7 +92,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | EX-4 | Must | M3 | access/firestore-store.test.ts (1), data/search-export.test.ts (3) |
 | EX-5 | Should | M3 | docs/docs.test.ts (1) |
 | SP-1 | Must | M3 | access/firestore-store.test.ts (1), access/offline.test.ts (1), access/privacy.test.ts (1), data/reports.test.ts (7) |
-| SP-2 | Must | M3 | server/reports.test.ts (5) |
+| SP-2 | Must | M3 | server/reports.test.ts (7) |
 | SP-3 | Must | M3 | server/reports.test.ts (1) |
 | TD-1 | Must | M7 | tests wait for the section 11 review (TF-1) |
 | TD-2 | Must | M7 | tests wait for the section 11 review (TF-1) |

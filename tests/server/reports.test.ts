@@ -89,6 +89,38 @@ rule(
 );
 
 rule(
+  { req: ["SP-2", "PV-2"], m: "M3" },
+  "the sender's display name is removed from the issue's title too, however it's capitalised",
+  async () => {
+    const { issues, deps } = delivery();
+    const displayNameOf = async (uid: string) => (uid === "uid-bram" ? "Bramblewick" : undefined);
+    await deliverReport(report({ subject: "bramblewick: CM looks wrong", message: "Signed, BRAMBLEWICK." }), {
+      ...deps,
+      displayNameOf,
+    });
+    expect(issues.created.length, "issues created").toBe(1);
+    const issue = issues.created[0]!;
+    expect(issue.title.toLowerCase(), "the issue's title").not.toContain("bramblewick");
+    expect(issue.title, "the rest of the issue's title").toContain("CM looks wrong");
+    expect(issue.body.toLowerCase(), "the issue's body").not.toContain("bramblewick");
+  },
+);
+
+rule(
+  { req: ["SP-2", "PV-2"], m: "M3" },
+  "if the sender's display name can't be looked up, no issue is made and the report stays pending",
+  async () => {
+    const { issues, deps } = delivery();
+    const displayNameOf = async () => {
+      throw new Error("database unreachable (fake)");
+    };
+    const done = await deliverReport(report(), { ...deps, displayNameOf });
+    expect(issues.created, "issues created").toEqual([]);
+    expect(done.delivery, "the report after the failed lookup").toBe("pending");
+  },
+);
+
+rule(
   { req: ["SP-2"], m: "M3" },
   "if GitHub can't be reached, the report stays pending and is delivered later",
   async () => {
