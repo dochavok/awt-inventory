@@ -156,7 +156,7 @@ rule({ req: ["EX-1", "CH-5"], m: "M3" }, "the sheet for all characters leaves ou
 });
 
 rule(
-  { req: ["EX-1", "SK-2"], m: "M3" },
+  { req: ["EX-1", "SK-2"], q: ["Q10"], m: "M3" },
   "skill text is on the sheet only when ticked, and only once the owner has agreed",
   async () => {
     const shown = await bramWithTwo({ showSkillText: true });
