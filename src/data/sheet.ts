@@ -65,7 +65,9 @@ export function buildSheet(
             .map((e) => ({ name: e.name, quantity: e.quantity })),
         })),
         skills,
-        titles: [...titles].sort(byName).map((t) => (t.description ? { name: t.name, description: t.description } : { name: t.name })),
+        titles: [...titles]
+          .sort(byName)
+          .map((t) => (t.description ? { name: t.name, description: t.description } : { name: t.name })),
       };
       if (character.notes !== undefined) page.notes = character.notes;
       return page;

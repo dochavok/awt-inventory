@@ -4,10 +4,27 @@
 //
 // Methods for later milestones throw NotImplementedError naming the milestone.
 
-import { AccessDeniedError, ConfirmationError, NotFoundError, NotImplementedError, RateLimitError, ValidationError } from "../errors";
+import {
+  AccessDeniedError,
+  ConfirmationError,
+  NotFoundError,
+  NotImplementedError,
+  RateLimitError,
+  ValidationError,
+} from "../errors";
 import { toStoredTime } from "../platform/time";
 import { skillPicker as pickSkills, skillWarnings } from "../rules/skills";
-import type { CharacterSheet, Character, ClassName, Entry, Id, ItemEntry, SkillEntry, Title, TitleScope } from "../rules/types";
+import type {
+  CharacterSheet,
+  Character,
+  ClassName,
+  Entry,
+  Id,
+  ItemEntry,
+  SkillEntry,
+  Title,
+  TitleScope,
+} from "../rules/types";
 import type { Backend, Change, NotMine, StoredRecord } from "./backend";
 import { searchEntries } from "./search";
 import { buildSheet, renderPdf } from "./sheet";
@@ -142,7 +159,12 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     characterId: Id,
     fields: Omit<HistoryRecord, "id" | "characterId" | "enteredAt">,
   ): { record: HistoryRecord; change: Change } {
-    const r = tidy<HistoryRecord>({ id: backend.newId("history", characterId), characterId, enteredAt: now(), ...fields });
+    const r = tidy<HistoryRecord>({
+      id: backend.newId("history", characterId),
+      characterId,
+      enteredAt: now(),
+      ...fields,
+    });
     return { record: r, change: { op: "set-history", value: { seq: backend.nextSeq(), record: r } } };
   }
 

@@ -6,7 +6,10 @@ import type { SearchResult } from "./types";
 
 /** The words in a text, lower-cased: letters and digits, split at everything else. */
 function words(text: string): string[] {
-  return text.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  return text
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
 }
 
 /** True when every query word starts a word of `text`. */

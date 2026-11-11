@@ -2,8 +2,8 @@ rules_version = '2';
 
 // Server-side access rules (PV-1, NF-6, NF-7, NF-13). Tested against the
 // emulator in tests/access/. Every collection is listed: anything not matched
-// here is refused, so a later milestone's collection (e.g. reports, SP-1)
-// stays closed until its rules are written. Records may hold only their own
+// here is refused, so a later milestone's collection stays closed until its
+// rules are written. Records may hold only their own
 // fields, with the app's maximum sizes (NF-6, src/data/validate.ts LIMITS).
 service cloud.firestore {
   match /databases/{database}/documents {
