@@ -74,6 +74,34 @@ rule(
   },
 );
 
+rule(
+  { req: ["TF-5", "TF-8"], m: "M1" },
+  "a test that reaches a stub never counts as passing, even if it catches the error",
+  async () => {
+    const catchesStub = async () => {
+      await expect(Promise.reject(NotImplementedError.stub("search", "M3"))).rejects.toThrow();
+    };
+    // This test reaches stubs on purpose, inside the runs it checks; it puts the count back after.
+    const reached = NotImplementedError.reached;
+    try {
+      await expect(
+        runForMilestone({ req: ["TF-5"], m: "M7" }, catchesStub),
+        "an unfinished test that caught a stub",
+      ).resolves.toBe("NotImplementedError: reached search (M3) during the test");
+      await expect(
+        runForMilestone({ req: ["TF-5"], m: "M1" }, catchesStub),
+        "a finished test that caught a stub",
+      ).rejects.toThrow(/reached code a later milestone builds \(search \(M3\)\)/);
+      await expect(
+        runForMilestone({ req: ["TF-5"], m: "M7" }, () => undefined),
+        "an unfinished test that reached no stub",
+      ).resolves.toBeUndefined();
+    } finally {
+      NotImplementedError.reached = reached;
+    }
+  },
+);
+
 rule({ req: ["TF-5"], m: "M1" }, "a finished milestone's test must pass", async () => {
   await expect(runForMilestone({ req: ["TF-5"], m: "M1" }, () => undefined)).resolves.toBeUndefined();
   await expect(
@@ -118,6 +146,8 @@ rule(
       "probe-unfinished-assertion": "passed",
       "probe-unfinished-typeerror": "failed",
       "probe-unfinished-passes": "passed",
+      "probe-unfinished-catches-stub": "passed",
+      "probe-finished-catches-stub": "failed",
       "probe-finished-stub": "failed",
       "probe-finished-passes": "passed",
     });

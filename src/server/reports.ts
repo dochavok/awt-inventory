@@ -22,10 +22,10 @@ export interface ReportDelivery {
 
 /** Delivers one report: an issue, or for an account problem an email. Leaves it pending if delivery fails. */
 export function deliverReport(_report: Report, _delivery: ReportDelivery): Promise<Report> {
-  return Promise.reject(new NotImplementedError("deliverReport", "M3"));
+  return Promise.reject(NotImplementedError.stub("deliverReport", "M3"));
 }
 
 /** Retries every pending report (SP-2: never lost). */
 export function deliverPending(_reports: Report[], _delivery: ReportDelivery): Promise<Report[]> {
-  return Promise.reject(new NotImplementedError("deliverPending", "M3"));
+  return Promise.reject(NotImplementedError.stub("deliverPending", "M3"));
 }

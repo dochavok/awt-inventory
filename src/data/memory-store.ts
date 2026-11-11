@@ -54,7 +54,7 @@ const UNDO_SECONDS = 10;
 const copy = <T>(value: T): T => structuredClone(value);
 
 function notYet(what: string, milestone: string): never {
-  throw new NotImplementedError(`MemoryStore.${what}`, milestone);
+  throw NotImplementedError.stub(`MemoryStore.${what}`, milestone);
 }
 
 const later = (what: string, milestone: string) => laterIn(`MemoryStore.${what}`, milestone);

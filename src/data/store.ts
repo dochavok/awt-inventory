@@ -185,5 +185,5 @@ export function requireUid(context: Pick<StoreContext, "currentUid">): string {
 
 /** A store method a later milestone implements: it always rejects, naming the milestone. */
 export const later = (what: string, milestone: string) => async (): Promise<never> => {
-  throw new NotImplementedError(what, milestone);
+  throw NotImplementedError.stub(what, milestone);
 };

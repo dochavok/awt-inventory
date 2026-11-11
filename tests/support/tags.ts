@@ -3,6 +3,7 @@
 //   [EQ-2 EQ-3 · Q2 · M4] blocks a shield in the main hand
 // so test reports show them, and the coverage table is generated from the names.
 
+import { NotImplementedError } from "../../src/errors";
 import { MILESTONES, finishedMilestones, type Milestone } from "./milestones";
 
 export interface Tags {
@@ -84,11 +85,21 @@ export function isFinished(tags: Tags): boolean {
  * Runs a test body under its milestone's rule (TF-5). Finished: it must pass.
  * Unfinished: it fails as expected (a stub or an assertion), or passes early
  * because earlier code already does what it checks; any other error fails.
+ * A test that reached a stub never counts as passing, even if it caught the
+ * stub's error: unfinished, it failed as expected; finished, it fails.
  * Returns the expected failure, if any; undefined when the body passed.
  */
 export async function runForMilestone(tags: Tags, body: () => unknown): Promise<string | undefined> {
+  const stubsBefore = NotImplementedError.reached;
+  const reachedStub = () => NotImplementedError.reached > stubsBefore;
   if (isFinished(tags)) {
     await body();
+    if (reachedStub()) {
+      throw new Error(
+        `This test reached code a later milestone builds (${NotImplementedError.lastReached}), so it checks ` +
+          `nothing yet. A test for a finished milestone mustn't depend on a stub (TF-5).`,
+      );
+    }
     return undefined;
   }
   try {
@@ -97,5 +108,6 @@ export async function runForMilestone(tags: Tags, body: () => unknown): Promise<
     if (isExpectedFailure(error)) return describeError(error);
     throw error;
   }
+  if (reachedStub()) return `NotImplementedError: reached ${NotImplementedError.lastReached} during the test`;
   return undefined;
 }

@@ -511,7 +511,7 @@ Later milestones implement these interfaces without changing them. An interface 
 
 **TF-4 · Must · M1: Traceability.** Every test names the requirement IDs it checks, and any DM question it depends on (e.g. Q1). An untagged test fails. A generated coverage table lists every requirement and its tests, and every *Must* has at least one. Requirement IDs are permanent: never renumbered or reused. A removed requirement keeps its place, marked *removed*. Requirements about how the work is done rather than how the app behaves (TF-12, TF-14, DOC-3) are marked *checked in review* in the coverage table instead of needing a test; the pull request's Review section reports them.
 
-**TF-5 · Must · M1: Milestone markers.** Each test is marked with the milestone that implements it. Tests for unfinished milestones run as expected failures; one that passes because the code it checks already exists is reported as *passed early*, and doesn't fail the run. Every test for a finished milestone must pass.
+**TF-5 · Must · M1: Milestone markers.** Each test is marked with the milestone that implements it. Tests for unfinished milestones run as expected failures; one that passes because the code it checks already exists is reported as *passed early*, and doesn't fail the run. A test that reaches code a later milestone builds (a stub) never counts as passing: for an unfinished milestone it's reported as failed as expected, and for a finished one it fails. Every test for a finished milestone must pass.
 
 **TF-6 · Must · M1: The test-change rule.** A failing test means the **code** is wrong, unless Craig confirms the **test** is wrong. A test is never changed, deleted, skipped or weakened to make code pass. When a test seems wrong:
 

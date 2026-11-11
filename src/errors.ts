@@ -4,11 +4,23 @@
 /** Thrown by every stub until its milestone implements it (TF-2). */
 export class NotImplementedError extends Error {
   override readonly name = "NotImplementedError";
+
+  /** How many times a stub has been reached, and the last one, so the test harness can tell (TF-5). */
+  static reached = 0;
+  static lastReached: string | undefined;
+
   constructor(
     readonly what: string,
     readonly milestone: string,
   ) {
     super(`${what} is not implemented yet (${milestone})`);
+  }
+
+  /** The error a stub throws: every stub makes its error here, so reaching one is counted. */
+  static stub(what: string, milestone: string): NotImplementedError {
+    NotImplementedError.reached += 1;
+    NotImplementedError.lastReached = `${what} (${milestone})`;
+    return new NotImplementedError(what, milestone);
   }
 }
 

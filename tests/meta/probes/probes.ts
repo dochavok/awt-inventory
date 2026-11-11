@@ -28,6 +28,14 @@ rule({ req: ["TF-5"], m: "M7" }, "probe-unfinished-passes: should pass, as passe
   expect(1).toBe(1);
 });
 
+rule({ req: ["TF-5"], m: "M7" }, "probe-unfinished-catches-stub: should pass as an expected failure", async () => {
+  await expect(Promise.reject(NotImplementedError.stub("probe", "M7"))).rejects.toThrow();
+});
+
+rule({ req: ["TF-5"], m: "M1" }, "probe-finished-catches-stub: should fail", async () => {
+  await expect(Promise.reject(NotImplementedError.stub("probe", "M7"))).rejects.toThrow();
+});
+
 rule({ req: ["TF-5"], m: "M1" }, "probe-finished-stub: should fail", () => {
   throw new NotImplementedError("probe", "M1");
 });
