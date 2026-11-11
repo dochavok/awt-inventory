@@ -43,7 +43,8 @@ service cloud.firestore {
 
     // NF-3: each changed field records when it was changed (`edited`, in
     // milliseconds). The later change wins: a change older than the one already
-    // stored is refused, whichever phone syncs last.
+    // stored is refused, whichever phone syncs last, even one that sets the same
+    // value (else it would move the field's edit time back).
     function edits(data) {
       return !('edited' in data) || (data.edited is map && data.edited.size() <= 30);
     }
@@ -58,8 +59,12 @@ service cloud.firestore {
             && editedAt(request.resource.data, field) <= request.time.toMillis() + 300000);
     }
 
+    // The fields whose value or edit time this write changes.
     function changedKeys() {
-      return request.resource.data.diff(resource.data).affectedKeys();
+      let editedNow = request.resource.data.get('edited', {});
+      let editedBefore = resource.data.get('edited', {});
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .union(editedNow.diff(editedBefore).affectedKeys());
     }
 
     function freshCharacter() {
@@ -108,12 +113,14 @@ service cloud.firestore {
         && text(data, 'notes', 10000) && (!('retired' in data) || data.retired is bool);
     }
 
+    // A quantity is never below 0: if two offline phones each use the last one, the second to sync is refused.
     function validEntry() {
       let data = request.resource.data;
       return data.keys().hasOnly(['category', 'name', 'quantity', 'description', 'notes', 'itemFamily', 'grants',
           'rarity', 'hands', 'range', 'weaponGroup', 'extraDamage', 'slotKind', 'arcane', 'allyType', 'hearts',
           'active', 'tier', 'skillId', 'howGained', 'levelGained', 'edited']) && edits(data)
         && text(data, 'category', 20) && text(data, 'name', 100) && wholeNumber(data, 'quantity')
+        && (!('quantity' in data) || data.quantity >= 0)
         && text(data, 'description', 10000) && text(data, 'notes', 10000) && text(data, 'itemFamily', 100)
         && text(data, 'rarity', 100) && text(data, 'range', 20) && text(data, 'weaponGroup', 100)
         && text(data, 'slotKind', 100) && text(data, 'allyType', 100) && text(data, 'tier', 100)

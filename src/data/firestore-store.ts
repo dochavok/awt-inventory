@@ -29,7 +29,6 @@ import {
   onSnapshot,
   query,
   setDoc,
-  updateDoc,
   where,
   writeBatch,
   type DocumentData,
@@ -138,17 +137,20 @@ export function createFirestoreStore(
   // ---------------------------------------------------------------- writes and sync (NF-3)
 
   let pending = 0;
-  let seqCounter = 0;
+  let lastSeq = 0;
 
-  function send(batch: WriteBatch): void {
+  /**
+   * Sends one change (one user action), whatever number of batches it takes.
+   * Not awaited: the change is on the phone already, and is sent whenever there's signal.
+   */
+  function send(batches: WriteBatch[]): void {
+    if (batches.length === 0) return;
     pending += 1;
-    // Not awaited: the change is on the phone already, and is sent whenever there's signal.
-    batch
-      .commit()
-      .catch((error: unknown) => options.onWriteRefused?.(error))
-      .finally(() => {
-        pending -= 1;
-      });
+    void Promise.all(
+      batches.map((batch) => batch.commit().catch((error: unknown) => options.onWriteRefused?.(error))),
+    ).then(() => {
+      pending -= 1;
+    });
   }
 
   /** The batched writes for a list of changes: field edits each on their own, the rest together. */
@@ -253,8 +255,9 @@ export function createFirestoreStore(
       return id;
     },
     nextSeq() {
-      seqCounter += 1;
-      return context.clock.now().getTime() * 1000 + (seqCounter % 1000);
+      // From the clock, so phones roughly agree, and always above the last one made here (HI-1).
+      lastSeq = Math.max(lastSeq + 1, context.clock.now().getTime() * 1000);
+      return lastSeq;
     },
     reportNumber() {
       // Made on the phone, so a report written offline has its number straight away.
@@ -280,7 +283,11 @@ export function createFirestoreStore(
     },
 
     async setDisplayName(displayName) {
-      await updateDoc(user(), { displayName });
+      // Like every other change, it doesn't wait for signal (NF-3).
+      watch();
+      const batch = writeBatch(db);
+      batch.update(user(), { displayName });
+      send([batch]);
     },
 
     async deleteAccount() {
@@ -354,7 +361,7 @@ export function createFirestoreStore(
     async write(changes) {
       uid();
       watch();
-      for (const batch of batchesFor(changes)) send(batch);
+      send(batchesFor(changes));
     },
 
     async syncStatus() {

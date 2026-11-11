@@ -126,6 +126,66 @@ rule(
   },
 );
 
+rule(
+  { req: ["NF-3"], m: "M3" },
+  "a phone without signal can change the display name without waiting, and it's sent when signal returns",
+  async () => {
+    const { a, b } = await setUp();
+    await b.store.profile();
+    await b.db.disableNetwork();
+    const waited = await Promise.race([
+      b.store.setDisplayName("Bram the Bold").then(() => "done"),
+      new Promise((resolve) => setTimeout(() => resolve("still waiting"), 2000)),
+    ]);
+    expect(waited, "changing the display name offline").toBe("done");
+    expect(await b.store.syncStatus(), "phone B offline").toEqual({ online: false, pendingChanges: 1 });
+    await online(b);
+    expect((await a.store.profile()).displayName, "Bram's display name seen on phone A").toBe("Bram the Bold");
+  },
+);
+
+rule(
+  { req: ["NF-3", "IN-12"], m: "M3" },
+  "if two offline phones each trade away every Healing Draught, only the first to sync counts",
+  async () => {
+    const { a, b, characterId, draught } = await setUp();
+    await a.db.disableNetwork();
+    await b.db.disableNetwork();
+    await a.store.markTraded(draught, { kind: "traded", note: "phone A" });
+    await b.store.markTraded(draught, { kind: "traded", note: "phone B" });
+    await online(a);
+    await online(b);
+    const traded = (await a.store.history(characterId)).filter((r) => r.event === "traded");
+    expect(
+      traded.map((r) => [r.note, r.quantity]),
+      "Healing Draught trades recorded after both phones sync",
+    ).toEqual([["phone A", 3]]);
+  },
+);
+
+rule(
+  { req: ["NF-3"], m: "M3" },
+  "an older change that sets the same value can't turn back the time of a later one",
+  async () => {
+    const { a, b, draught, characterId } = await setUp();
+    const c = phone("bram");
+    await c.store.sheet(characterId);
+    await b.db.disableNetwork();
+    await c.db.disableNetwork();
+    await b.store.updateEntry(draught, { notes: "Kept for the gate" });
+    clock.advanceSeconds(30);
+    await c.store.updateEntry(draught, { notes: "older note, phone C" });
+    clock.advanceSeconds(30);
+    await a.store.updateEntry(draught, { notes: "Kept for the gate" });
+    await a.db.waitForPendingWrites();
+    await online(b);
+    await online(c);
+    expect((await a.store.entry(draught)).notes, "Healing Draught's notes after phones B and C sync").toBe(
+      "Kept for the gate",
+    );
+  },
+);
+
 rule({ req: ["NF-3", "SP-1"], m: "M3" }, "a report written offline is sent when signal returns", async () => {
   const { a, b } = await setUp();
   await b.db.disableNetwork();

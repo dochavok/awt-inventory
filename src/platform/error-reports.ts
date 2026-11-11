@@ -23,6 +23,18 @@ const KEPT = ["event_id", "timestamp", "platform", "level", "release", "environm
 /** Contexts that describe the phone and browser. Any other context (such as app state) is dropped. */
 const SAFE_CONTEXTS = ["browser", "os", "device", "runtime", "culture"];
 
+/** What a stack frame may keep: where the code is, never its variables or source lines. */
+const FRAME_FIELDS = ["filename", "abs_path", "function", "module", "lineno", "colno", "in_app"];
+
+function whereOnly(stacktrace: unknown): { frames: Record<string, unknown>[] } {
+  const frames = (stacktrace as { frames?: unknown } | null)?.frames;
+  return {
+    frames: (Array.isArray(frames) ? frames : []).map((frame: Record<string, unknown>) =>
+      Object.fromEntries(FRAME_FIELDS.filter((k) => frame[k] !== undefined).map((k) => [k, frame[k]])),
+    ),
+  };
+}
+
 /**
  * Removes game records, display names and email addresses (NF-12). `known`
  * holds the signed-in user's display name and email, to strip wherever they
@@ -46,7 +58,7 @@ export function scrubEvent(event: ErrorEvent, known: { displayName?: string; ema
         const value: { type?: string; value?: string; stacktrace?: unknown } = {};
         if (v.type !== undefined) value.type = v.type;
         if (v.value !== undefined) value.value = text(v.value);
-        if (v.stacktrace !== undefined) value.stacktrace = v.stacktrace;
+        if (v.stacktrace !== undefined) value.stacktrace = whereOnly(v.stacktrace);
         return value;
       }),
     };
