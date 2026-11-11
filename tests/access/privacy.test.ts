@@ -300,6 +300,36 @@ rule(
   },
 );
 
+rule(
+  { req: ["IN-11", "TF-11"], m: "M3" },
+  "a history record's link must be a web address starting http:// or https://",
+  async () => {
+    await seedAldric();
+    const mine = signedIn("bram").firestore();
+    const record = (link: string) => ({ event: "acquired", entryId: "aldric-sword", quantity: 1, link });
+    for (const [i, link] of [
+      "mailto:bram@example.test",
+      "ftp://files.example.test/sword",
+      "javascript:void(0)",
+      "discord.example.test/channels/1/2/3",
+      "https://",
+    ].entries()) {
+      await expectRefused(
+        mine.doc(`${character()}/history/bad${i}`).set(record(link)),
+        `a history record with the link ${link}`,
+      );
+    }
+    await expectAllowed(
+      mine.doc(`${character()}/history/web`).set(record("https://discord.example.test/channels/1/2/3")),
+      "a history record with an https link",
+    );
+    await expectAllowed(
+      mine.doc(`${character()}/history/web2`).set(record("HTTP://discord.example.test/channels/1/2/3")),
+      "a history record with a capitalised http link",
+    );
+  },
+);
+
 rule({ req: ["PV-2", "TF-11"], m: "M2" }, "a profile's email is the sign-in's own email", async () => {
   await seedAldric();
   const mine = signedIn("bram").firestore();

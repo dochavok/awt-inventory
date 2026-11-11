@@ -140,7 +140,8 @@ service cloud.firestore {
         && wholeNumber(data, 'seq') && text(data, 'event', 40) && text(data, 'date', 40) && text(data, 'enteredAt', 40)
         && text(data, 'entryId', 100) && text(data, 'entryName', 100) && text(data, 'category', 20)
         && wholeNumber(data, 'quantity') && text(data, 'note', 10000) && text(data, 'source', 100)
-        && text(data, 'link', 2000) && text(data, 'restores', 100) && text(data, 'summary', 500)
+        && text(data, 'link', 2000) && (!('link' in data) || data.link.matches('(?i)https?://\\S+'))
+        && text(data, 'restores', 100) && text(data, 'summary', 500)
         && (!('change' in data) || (data.change is map && data.change.keys().hasOnly(['from', 'to'])))
         && validSnapshot(data);
     }

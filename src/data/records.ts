@@ -175,7 +175,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     return {
       ...check.eventOptions(options, now()),
       source: check.optionalText("source", options.source, check.LIMITS.shortText, "source")?.trim(),
-      link: check.optionalText("link", options.link, check.LIMITS.link)?.trim(),
+      link: check.webLink("link", options.link),
     };
   }
 

@@ -162,7 +162,7 @@ A character's inventory has seven categories. This section covers every category
 
 **IN-10 · Must · M2: Gaining.** Adding an entry, or raising its quantity (such as buying another from a vendor), is recorded in the history as *acquired*, with the quantity.
 
-**IN-11 · Should · M3: Acquisition source.** When gaining an entry, the user can optionally give a source (free text, with suggestions such as vendor, quest, DM award and trade, from the reference data) and a link, such as to the post in Discord's rewards channel. Both are kept with the history record.
+**IN-11 · Should · M3: Acquisition source.** When gaining an entry, the user can optionally give a source (free text, with suggestions such as vendor, quest, DM award and trade, from the reference data) and a link, such as to the post in Discord's rewards channel. The link must be a web address starting with `http://` or `https://`; anything else is refused. Both are kept with the history record.
 
 **IN-12 · Must · M2: Used.** A consumable or component can be marked *used*. Its quantity drops by one, and the history records it with an optional note. At zero, the entry leaves the list but stays in the history (IN-16).
 
