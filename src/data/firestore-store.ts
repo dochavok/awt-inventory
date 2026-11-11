@@ -12,7 +12,6 @@
 
 import {
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -22,19 +21,15 @@ import {
   type DocumentReference,
   type Firestore,
 } from "firebase/firestore";
-import { AccessDeniedError, ConfirmationError, NotFoundError, NotImplementedError } from "../errors";
-import type { InventoryStore, StoreContext } from "./store";
+import { AccessDeniedError, ConfirmationError, NotFoundError } from "../errors";
+import { later as laterIn, requireUid, type InventoryStore, type StoreContext } from "./store";
 import type { Profile } from "./types";
 import * as check from "./validate";
 
 /** Firestore's limit on writes in one batch. */
 const BATCH_LIMIT = 500;
 
-const later =
-  (what: string, milestone = "M3") =>
-  async (): Promise<never> => {
-    throw new NotImplementedError(`FirestoreStore.${what}`, milestone);
-  };
+const later = (what: string, milestone = "M3") => laterIn(`FirestoreStore.${what}`, milestone);
 
 function isPermissionDenied(error: unknown): boolean {
   const code = (error as { code?: unknown }).code;
@@ -47,13 +42,7 @@ function isPermissionDenied(error: unknown): boolean {
  */
 export function createFirestoreStore(firestore: unknown, context: StoreContext): InventoryStore {
   const db = firestore as Firestore;
-
-  function uid(): string {
-    const current = context.currentUid();
-    if (current === null) throw new AccessDeniedError("Sign in first.");
-    return current;
-  }
-
+  const uid = () => requireUid(context);
   const profileRef = (): DocumentReference => doc(db, "users", uid());
 
   async function readProfile(): Promise<Profile> {
@@ -64,9 +53,12 @@ export function createFirestoreStore(firestore: unknown, context: StoreContext):
     return { uid: me, displayName: data.displayName, email: data.email ?? "" };
   }
 
-  /** Deletes documents in batches. The first batch also deletes `first`, so history records may go with it (HI-4). */
-  async function deleteAll(first: DocumentReference, others: DocumentReference[]): Promise<void> {
-    const refs = [first, ...others];
+  /**
+   * Deletes documents in batches, in the order given. A history record can go
+   * only in or after the batch that deletes its character (HI-4), so characters
+   * come first.
+   */
+  async function deleteAll(refs: DocumentReference[]): Promise<void> {
     for (let i = 0; i < refs.length; i += BATCH_LIMIT) {
       const batch = writeBatch(db);
       for (const ref of refs.slice(i, i + BATCH_LIMIT)) batch.delete(ref);
@@ -80,15 +72,13 @@ export function createFirestoreStore(firestore: unknown, context: StoreContext):
       const profile: Profile = {
         uid: uid(),
         displayName: check.displayName(input.displayName),
-        email: check.requiredText("email", input.email, 320, "email address"),
+        email: check.email(input.email),
       };
       try {
         await setDoc(profileRef(), { displayName: profile.displayName, email: profile.email });
       } catch (error) {
-        // The rules refuse a profile for an email that isn't invited (NF-13).
-        if (isPermissionDenied(error)) {
-          throw new AccessDeniedError("Sign-up is not open yet: the app is invite-only until its first full release.");
-        }
+        // The rules refuse a profile the user may not create, such as one for an email that isn't invited (NF-13).
+        if (isPermissionDenied(error)) throw new AccessDeniedError("The server refused to create the profile.");
         throw error;
       }
       return profile;
@@ -109,18 +99,19 @@ export function createFirestoreStore(firestore: unknown, context: StoreContext):
         throw new ConfirmationError(profile.displayName, `Type your display name, ${profile.displayName}, to confirm.`);
       }
       const user = profileRef();
-      for (const character of (await getDocs(collection(user, "characters"))).docs) {
-        const [entries, history] = await Promise.all([
-          getDocs(collection(character.ref, "entries")),
-          getDocs(collection(character.ref, "history")),
-        ]);
-        await deleteAll(
-          character.ref,
-          [...entries.docs, ...history.docs].map((d) => d.ref),
-        );
-      }
-      for (const title of (await getDocs(collection(user, "titles"))).docs) await deleteDoc(title.ref);
-      await deleteDoc(user);
+      const [characters, titles] = await Promise.all([
+        getDocs(collection(user, "characters")),
+        getDocs(collection(user, "titles")),
+      ]);
+      const contents = await Promise.all(
+        characters.docs.flatMap((c) => [getDocs(collection(c.ref, "entries")), getDocs(collection(c.ref, "history"))]),
+      );
+      await deleteAll([
+        ...characters.docs.map((d) => d.ref),
+        ...contents.flatMap((snap) => snap.docs.map((d) => d.ref)),
+        ...titles.docs.map((d) => d.ref),
+        user,
+      ]);
     },
 
     // ---------------------------------------------------------------- everything else: M3 (with NF-3) and later

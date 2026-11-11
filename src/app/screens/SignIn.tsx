@@ -3,13 +3,12 @@
 
 import { useState, type FormEvent } from "react";
 import type { Accounts } from "../../data/accounts";
-import type { InventoryStore } from "../../data/store";
-import { AccessDeniedError, NotFoundError } from "../../errors";
+import { ValidationError } from "../../errors";
 import { href } from "../router";
 import { Feedback, useAction } from "../useAction";
 import { HomeScreenHelp } from "./HomeScreenHelp";
 
-export function SignIn({ accounts, store }: { accounts: Accounts; store: InventoryStore }) {
+export function SignIn({ accounts }: { accounts: Accounts }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { busy, error, notice, run } = useAction();
@@ -21,22 +20,14 @@ export function SignIn({ accounts, store }: { accounts: Accounts; store: Invento
     });
   };
 
-  // A Google account that never signed up has no profile: sign it out and say so.
   const withGoogle = () =>
     run(async () => {
       await accounts.signInWithGoogle();
-      try {
-        await store.profile();
-      } catch (error) {
-        if (!(error instanceof NotFoundError)) throw error;
-        await accounts.signOut();
-        throw new AccessDeniedError("There's no account for that Google account yet. Create an account first.");
-      }
     });
 
   const reset = () =>
     run(async () => {
-      if (!email.trim()) throw Object.assign(new Error(), { code: "auth/invalid-email" });
+      if (!email.trim()) throw new ValidationError("email", "Enter your email address first.");
       await accounts.resetPassword(email.trim());
       return `If there's an account for ${email.trim()}, a reset email is on its way.`;
     });

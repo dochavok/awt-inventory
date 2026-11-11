@@ -2,7 +2,7 @@
 // provider's sign-in (AuthProvider) and the data layer. The app never handles
 // passwords itself (NF-7).
 
-import { AccessDeniedError, ValidationError } from "../errors";
+import { AccessDeniedError, NotFoundError, ValidationError } from "../errors";
 import type { AuthProvider, AuthUser } from "../platform/auth";
 import type { InventoryStore } from "./store";
 import type { Profile } from "./types";
@@ -65,7 +65,8 @@ export function createAccounts(context: AccountsContext): Accounts {
       return await context.store().createProfile({ displayName, email: user.email });
     } catch (error) {
       await (isNew ? auth.deleteUser() : auth.signOut());
-      throw error;
+      // A server that refuses a new profile is enforcing the invite list (NF-13).
+      throw error instanceof AccessDeniedError ? notOpen() : error;
     }
   }
 
@@ -93,7 +94,18 @@ export function createAccounts(context: AccountsContext): Accounts {
     },
 
     signInWithEmail: (email, password) => auth.signInWithPassword(email, password),
-    signInWithGoogle: () => auth.signInWithGoogle(),
+    // A Google account that never signed up has no profile: it's signed out again, with the reason.
+    async signInWithGoogle() {
+      const user = await auth.signInWithGoogle();
+      try {
+        await context.store().profile();
+      } catch (error) {
+        if (!(error instanceof NotFoundError)) throw error;
+        await auth.signOut();
+        throw new AccessDeniedError("There's no account for that Google account yet. Create an account first.");
+      }
+      return user;
+    },
     resetPassword: (email) => auth.sendPasswordReset(email),
     signOut: () => auth.signOut(),
 

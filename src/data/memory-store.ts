@@ -5,9 +5,10 @@
 // Methods for later milestones throw NotImplementedError naming the milestone.
 
 import { AccessDeniedError, ConfirmationError, NotFoundError, NotImplementedError, ValidationError } from "../errors";
+import { toStoredTime } from "../platform/time";
 import { skillPicker as pickSkills, skillWarnings } from "../rules/skills";
 import type { Character, ClassName, Entry, Id, ItemEntry, SkillEntry, Title, TitleScope } from "../rules/types";
-import type { InventoryStore, StoreContext } from "./store";
+import { later as laterIn, requireUid, type InventoryStore, type StoreContext } from "./store";
 import type { EntryListItem, EntrySnapshot, GainOptions, HistoryRecord, Profile, SkillView } from "./types";
 import * as check from "./validate";
 
@@ -56,19 +57,21 @@ function notYet(what: string, milestone: string): never {
   throw new NotImplementedError(`MemoryStore.${what}`, milestone);
 }
 
-/** A method a later milestone implements: it always rejects. */
-const later = (what: string, milestone: string) => async (): Promise<never> => notYet(what, milestone);
+const later = (what: string, milestone: string) => laterIn(`MemoryStore.${what}`, milestone);
 
 export function createMemoryStore(db: MemoryDatabase, context: StoreContext): InventoryStore {
   const { clock, ref, settings } = context;
-  const now = () => clock.now().toISOString();
+  const now = () => toStoredTime(clock.now());
 
   // ---------------------------------------------------------------- access (PV-1)
 
-  function uid(): string {
-    const current = context.currentUid();
-    if (current === null) throw new AccessDeniedError("Sign in first.");
-    return current;
+  const uid = () => requireUid(context);
+
+  function ownProfile(): Profile {
+    const me = uid();
+    const profile = db.profiles.get(me);
+    if (!profile) throw new NotFoundError("profile", me);
+    return profile;
   }
 
   function ownCharacter(characterId: Id): Character {
@@ -96,8 +99,16 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
     return found.value;
   }
 
-  const myCharacters = () => [...db.characters.values()].filter((c) => c.uid === uid()).map((c) => c.value);
-  const myTitles = () => [...db.titles.values()].filter((t) => t.uid === uid()).map((t) => t.value);
+  function myCharacters(): Character[] {
+    const me = uid();
+    return [...db.characters.values()].filter((c) => c.uid === me).map((c) => c.value);
+  }
+
+  function myTitles(): Title[] {
+    const me = uid();
+    return [...db.titles.values()].filter((t) => t.uid === me).map((t) => t.value);
+  }
+
   /** A character's entries still in the inventory (quantity above 0). */
   const entriesOf = (characterId: Id) =>
     [...db.entries.values()].filter((e) => e.characterId === characterId && e.quantity > 0);
@@ -136,10 +147,7 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
   /** A gain's date and note, checked before anything is stored (HI-3). */
   function gainOptions(options: GainOptions): { date: string; note: string | undefined } {
     if (options.source !== undefined || options.link !== undefined) notYet("acquisition sources (IN-11)", "M3");
-    return {
-      date: check.eventDate(options.date, now()),
-      note: check.optionalText("note", options.note, check.LIMITS.notes),
-    };
+    return check.eventOptions(options, now());
   }
 
   function acquired(entry: Entry, quantity: number, gain: { date: string; note: string | undefined }) {
@@ -241,29 +249,25 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
       const profile: Profile = {
         uid: uid(),
         displayName: check.displayName(input.displayName),
-        email: check.requiredText("email", input.email, 320, "email address"),
+        email: check.email(input.email),
       };
       db.profiles.set(profile.uid, profile);
       return copy(profile);
     },
 
     async profile() {
-      const profile = db.profiles.get(uid());
-      if (!profile) throw new NotFoundError("profile", uid());
-      return copy(profile);
+      return copy(ownProfile());
     },
 
     async setDisplayName(name) {
-      const profile = db.profiles.get(uid());
-      if (!profile) throw new NotFoundError("profile", uid());
+      const profile = ownProfile();
       profile.displayName = check.displayName(name);
       return copy(profile);
     },
 
     async deleteAccount(typed) {
-      const me = uid();
-      const profile = db.profiles.get(me);
-      if (!profile) throw new NotFoundError("profile", me);
+      const profile = ownProfile();
+      const me = profile.uid;
       if (typed.trim() !== profile.displayName) {
         throw new ConfirmationError(profile.displayName, `Type your display name, ${profile.displayName}, to confirm.`);
       }
@@ -302,8 +306,7 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
         if (notes === undefined) delete next.notes;
         else next.notes = notes;
       }
-      const date = check.eventDate(options.date, now());
-      const note = check.optionalText("note", options.note, check.LIMITS.notes);
+      const { date, note } = check.eventOptions(options, now());
       if (next.level !== character.level) {
         record(characterId, {
           event: "level-changed",
@@ -483,10 +486,8 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
     async listEntries(characterId, category, filter) {
       ownCharacter(characterId);
       if (filter && Object.values(filter).some((v) => v !== undefined)) {
-        notYet(
-          filter.equipped !== undefined ? "listEntries equipped filter (SE-3)" : "listEntries filters (SE-3)",
-          filter.equipped !== undefined ? "M4" : "M3",
-        );
+        const equipped = filter.equipped !== undefined;
+        notYet(equipped ? "listEntries equipped filter (SE-3)" : "listEntries filters (SE-3)", equipped ? "M4" : "M3");
       }
       const items: EntryListItem[] = entriesOf(characterId)
         .filter((e) => e.category === category)
@@ -502,8 +503,7 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
           `${entryName(entry)} can't be marked used: only consumables and components can.`,
         );
       }
-      const date = check.eventDate(options.date, now());
-      const note = check.optionalText("note", options.note, check.LIMITS.notes);
+      const { date, note } = check.eventOptions(options, now());
       const left = entry.quantity - 1;
       const used = record(entry.characterId, {
         event: "used",
@@ -531,8 +531,7 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
       }
       const entry = used.entryId === undefined ? undefined : db.entries.get(used.entryId);
       if (!entry) throw new ValidationError("entryId", `${used.entryName} is no longer in the inventory.`);
-      const date = check.eventDate(options.date, now());
-      const note = check.optionalText("note", options.note, check.LIMITS.notes);
+      const { date, note } = check.eventOptions(options, now());
       entry.quantity += 1;
       return record(entry.characterId, {
         event: "restored",
@@ -558,8 +557,7 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
         options.quantity === undefined
           ? entry.quantity
           : check.wholeNumber("quantity", options.quantity, 1, entry.quantity);
-      const date = check.eventDate(options.date, now());
-      const note = check.optionalText("note", options.note, check.LIMITS.notes);
+      const { date, note } = check.eventOptions(options, now());
       const traded = record(entry.characterId, {
         event: kind,
         date,
@@ -597,7 +595,8 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
 
     async suggestions(field) {
       if (field === "acquisitionSource") notYet("suggestions for acquisition sources (IN-11)", "M3");
-      const mine = myCharacters().flatMap((c) => entriesOf(c.id));
+      const mineIds = new Set(myCharacters().map((c) => c.id));
+      const mine = [...db.entries.values()].filter((e) => mineIds.has(e.characterId) && e.quantity > 0);
       const typed = mine.map(
         (e) => (e as unknown as Record<string, unknown>)[field === "componentTier" ? "tier" : field],
       );

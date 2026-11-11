@@ -25,7 +25,7 @@ export function App({ services }: { services: Services }) {
   else if (signingUp || (!signedIn && route === "sign-up")) {
     screen = <SignUp accounts={services.accounts} onSigningUp={setSigningUp} />;
   } else if (signedIn) screen = <Account services={services} />;
-  else screen = <SignIn accounts={services.accounts} store={services.store} />;
+  else screen = <SignIn accounts={services.accounts} />;
 
   return (
     <>

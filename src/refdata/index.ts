@@ -4,7 +4,9 @@
 
 import { parse } from "yaml";
 import type { z } from "zod";
-import { CLASS_NAMES, type Prerequisite, type ReferenceData } from "../rules/types";
+import { highestLevel, levelCap } from "../rules/levels";
+import { prerequisiteSkillIds } from "../rules/skills";
+import { CLASS_NAMES, type ReferenceData } from "../rules/types";
 import { FILES, type FileName, type Parsed } from "./schema";
 
 /** The reference data files' text, by file name (e.g. "level-chart.yaml"). */
@@ -87,15 +89,6 @@ function duplicates(file: string, list: Named[]): DataProblem[] {
   return problems;
 }
 
-function prerequisiteSkills(p: Prerequisite): string[] {
-  if ("skill" in p) return [p.skill];
-  return ("all" in p ? p.all : p.any).flatMap(prerequisiteSkills);
-}
-
-function highestLevel(chart: Parsed["level-chart.yaml"]): number {
-  return Math.max(...CLASS_NAMES.flatMap((c) => chart[c].levels.map((l) => l.level)));
-}
-
 function checkLevelChart(chart: Parsed["level-chart.yaml"]): DataProblem[] {
   const file = "level-chart.yaml";
   const problems: DataProblem[] = [];
@@ -121,10 +114,9 @@ function checkReferences(p: Partial<Parsed>): DataProblem[] {
     const file = "skills.yaml";
     const trees = new Set(skillsFile.trees.map((t) => t.id));
     const skills = new Set(skillsFile.skills.map((s) => s.id));
-    problems.push(...duplicates(file, skillsFile.trees), ...duplicates(file, skillsFile.skills));
     for (const skill of skillsFile.skills) {
       if (!trees.has(skill.tree)) problems.push(problem(file, `unknown tree ${skill.tree}`, skill.id));
-      for (const needed of skill.prerequisites ? prerequisiteSkills(skill.prerequisites) : []) {
+      for (const needed of skill.prerequisites ? prerequisiteSkillIds(skill.prerequisites) : []) {
         if (!skills.has(needed)) problems.push(problem(file, `unknown prerequisite ${needed}`, skill.id));
       }
       for (const replacement of skill.replacedBy ?? []) {
@@ -133,16 +125,9 @@ function checkReferences(p: Partial<Parsed>): DataProblem[] {
       }
     }
   }
+  for (const [file, , list] of namedLists(p)) problems.push(...duplicates(file, list));
   const slotKinds = p["slot-kinds.yaml"];
   const rarities = p["rarities.yaml"];
-  if (slotKinds) problems.push(...duplicates("slot-kinds.yaml", slotKinds));
-  if (rarities) problems.push(...duplicates("rarities.yaml", rarities));
-  const suggestions = p["suggestions.yaml"];
-  if (suggestions) {
-    for (const list of [suggestions.itemFamilies, suggestions.componentTiers, suggestions.acquisitionSources]) {
-      problems.push(...duplicates("suggestions.yaml", list));
-    }
-  }
   const skillGrants = p["skill-grants.yaml"];
   if (skillGrants) {
     const file = "skill-grants.yaml";
@@ -171,8 +156,11 @@ function checkReferences(p: Partial<Parsed>): DataProblem[] {
   return problems;
 }
 
-/** The lists whose entries, once released, must stay (retired if need be), by file. */
-function releasedLists(p: Partial<Parsed>): [string, string, Named[]][] {
+/**
+ * Every list of named entries, by file and kind: each has no duplicate IDs or
+ * names, and once released, its entries stay (retired if need be).
+ */
+function namedLists(p: Partial<Parsed>): [string, string, Named[]][] {
   const lists: [string, string, Named[]][] = [];
   if (p["slot-kinds.yaml"]) lists.push(["slot-kinds.yaml", "slot kind", p["slot-kinds.yaml"]]);
   if (p["rarities.yaml"]) lists.push(["rarities.yaml", "rarity", p["rarities.yaml"]]);
@@ -193,8 +181,8 @@ function releasedLists(p: Partial<Parsed>): [string, string, Named[]][] {
 /** RD-4 and RD-5: nothing released disappears, and the level cap never drops. */
 function checkReleased(current: Partial<Parsed>, released: Partial<Parsed>): DataProblem[] {
   const problems: DataProblem[] = [];
-  const now = new Map(releasedLists(current).map(([file, kind, list]) => [`${file} ${kind}`, list]));
-  for (const [file, kind, list] of releasedLists(released)) {
+  const now = new Map(namedLists(current).map(([file, kind, list]) => [`${file} ${kind}`, list]));
+  for (const [file, kind, list] of namedLists(released)) {
     const currentList = now.get(`${file} ${kind}`);
     if (!currentList) continue; // the file has a format problem, reported already
     const ids = new Set(currentList.map((e) => e.id));
@@ -206,7 +194,8 @@ function checkReleased(current: Partial<Parsed>, released: Partial<Parsed>): Dat
       }
     }
   }
-  const [before, after] = [released["level-chart.yaml"], current["level-chart.yaml"]];
+  const before = released["level-chart.yaml"];
+  const after = current["level-chart.yaml"];
   if (before && after && highestLevel(after) < highestLevel(before)) {
     problems.push(
       problem(
@@ -224,20 +213,26 @@ function checkReleased(current: Partial<Parsed>, released: Partial<Parsed>): Dat
  * files, any entry that disappeared instead of being retired.
  */
 export function validateReferenceData(files: ReferenceFiles, released?: ReferenceFiles): DataProblem[] {
-  const { parsed, problems } = readFiles(files);
-  problems.push(...checkReferences(parsed));
+  const { parsed, problems } = check(files);
   if (released) problems.push(...checkReleased(parsed, readFiles(released).parsed));
   return problems;
 }
 
+/** The files parsed, with every problem in them alone (no comparison with what was released). */
+function check(files: ReferenceFiles): { parsed: Partial<Parsed>; problems: DataProblem[] } {
+  const { parsed, problems } = readFiles(files);
+  problems.push(...checkReferences(parsed));
+  return { parsed, problems };
+}
+
 /** The files read, checked and turned into reference data. Throws if there are problems. */
 export function loadReferenceData(files: ReferenceFiles): ReferenceData {
-  const problems = validateReferenceData(files);
+  const { parsed, problems } = check(files);
   if (problems.length > 0) {
     const list = problems.map((p) => `${p.file}${p.id ? ` ${p.id}` : ""}: ${p.message}`).join("\n");
     throw new Error(`The reference data has problems (RD-4):\n${list}`);
   }
-  const p = readFiles(files).parsed as Parsed;
+  const p = parsed as Parsed;
   const suggestions = p["suggestions.yaml"];
   return {
     levelChart: p["level-chart.yaml"],
@@ -252,7 +247,4 @@ export function loadReferenceData(files: ReferenceFiles): ReferenceData {
   } as ReferenceData;
 }
 
-/** RD-5: the level cap is the highest level in the chart. */
-export function levelCap(ref: ReferenceData): number {
-  return Math.max(...CLASS_NAMES.flatMap((c) => ref.levelChart[c].levels.map((l) => l.level)));
-}
+export { levelCap };

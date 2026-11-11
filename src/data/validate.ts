@@ -3,7 +3,7 @@
 // from running up hosting costs (NF-6).
 
 import { ValidationError } from "../errors";
-import { levelCap } from "../refdata";
+import { levelCap } from "../rules/levels";
 import {
   CLASS_NAMES,
   type Category,
@@ -17,7 +17,9 @@ import { toStoredTime } from "../platform/time";
 /** NF-6: the maximums. */
 export const LIMITS = {
   name: 100,
+  /** Also in firestore.rules, which can't import it. */
   displayName: 60,
+  email: 320,
   shortText: 100,
   notes: 10_000,
   description: 10_000,
@@ -59,8 +61,17 @@ export function wholeNumber(field: string, value: unknown, min: number, max: num
   return value;
 }
 
+/** A short free-text field such as an item family or weapon group: trimmed, optional. */
+function shortText(field: string, value: unknown, label = field): string | undefined {
+  return optionalText(field, value, LIMITS.shortText, label)?.trim();
+}
+
 export function displayName(value: unknown): string {
   return requiredText("displayName", value, LIMITS.displayName, "display name");
+}
+
+export function email(value: unknown): string {
+  return requiredText("email", value, LIMITS.email, "email address");
 }
 
 export function className(value: unknown): ClassName {
@@ -91,6 +102,14 @@ export function eventDate(value: string | undefined, now: string): string {
     throw new ValidationError("date", `${String(value)} isn't a date and time.`);
   }
   return toStoredTime(date);
+}
+
+/** An event's date and note, as given when recording it (HI-1, HI-3). */
+export function eventOptions(
+  options: { date?: string; note?: string },
+  now: string,
+): { date: string; note: string | undefined } {
+  return { date: eventDate(options.date, now), note: optionalText("note", options.note, LIMITS.notes) };
 }
 
 /** A date earned, as an ISO 8601 date (TI-1). */
@@ -170,7 +189,7 @@ export function itemEntry(input: Record<string, unknown>, ref: ReferenceData): O
   };
   set("description", optionalText("description", input.description, LIMITS.description));
   set("notes", optionalText("notes", input.notes, LIMITS.notes));
-  set("itemFamily", optionalText("itemFamily", input.itemFamily, LIMITS.shortText, "item family")?.trim());
+  set("itemFamily", shortText("itemFamily", input.itemFamily, "item family"));
   if (input.rarity !== undefined && input.rarity !== null && input.rarity !== "") {
     set("rarity", referenceId("rarity", input.rarity, ref.rarities, "rarity"));
   }
@@ -178,7 +197,7 @@ export function itemEntry(input: Record<string, unknown>, ref: ReferenceData): O
     case "weapons":
       set("hands", choice("hands", input.hands, [1, 2], "number of hands"));
       set("range", choice("range", input.range, ["melee", "ranged"], "range"));
-      set("weaponGroup", optionalText("weaponGroup", input.weaponGroup, LIMITS.shortText, "weapon group")?.trim());
+      set("weaponGroup", shortText("weaponGroup", input.weaponGroup, "weapon group"));
       if (input.extraDamage !== undefined) {
         set("extraDamage", wholeNumber("extraDamage", input.extraDamage, 0, LIMITS.extraDamage, "extra damage"));
       }
@@ -190,12 +209,12 @@ export function itemEntry(input: Record<string, unknown>, ref: ReferenceData): O
       set("arcane", choice("arcane", input.arcane, [true, false], "arcane setting"));
       break;
     case "allies":
-      set("allyType", optionalText("allyType", input.allyType, LIMITS.shortText, "type")?.trim());
+      set("allyType", shortText("allyType", input.allyType, "type"));
       if (input.hearts !== undefined) set("hearts", wholeNumber("hearts", input.hearts, 0, LIMITS.hearts));
       set("active", choice("active", input.active, [true, false], "active setting"));
       break;
     case "components":
-      set("tier", optionalText("tier", input.tier, LIMITS.shortText)?.trim());
+      set("tier", shortText("tier", input.tier));
       break;
     case "consumables":
       break;

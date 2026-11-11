@@ -35,9 +35,10 @@ function unmet(p: Prerequisite, has: (id: Id) => boolean): Prerequisite | null {
   return missing.length === 1 ? missing[0]! : { all: missing };
 }
 
-function skillIdsIn(p: Prerequisite): Id[] {
+/** Every skill a prerequisite names. */
+export function prerequisiteSkillIds(p: Prerequisite): Id[] {
   if ("skill" in p) return [p.skill];
-  return ("all" in p ? p.all : p.any).flatMap(skillIdsIn);
+  return ("all" in p ? p.all : p.any).flatMap(prerequisiteSkillIds);
 }
 
 /** e.g. "Stoneskin, and Thick Hide or Broad Shoulders". */
@@ -53,20 +54,23 @@ interface Context {
   sheet: CharacterSheet;
   taken: Map<Id, number>;
   trees: Map<Id, SkillTree>;
+  skills: Map<Id, Skill>;
 }
 
 function context(sheet: CharacterSheet, ref: ReferenceData): Context {
-  return { ref, sheet, taken: takenCounts(sheet), trees: new Map(ref.trees.map((t) => [t.id, t])) };
+  return {
+    ref,
+    sheet,
+    taken: takenCounts(sheet),
+    trees: new Map(ref.trees.map((t) => [t.id, t])),
+    skills: new Map(ref.skills.map((s) => [s.id, s])),
+  };
 }
 
 function treeOf(c: Context, skill: Skill): SkillTree {
   const tree = c.trees.get(skill.tree);
   if (!tree) throw new NotFoundError("skill tree", skill.tree);
   return tree;
-}
-
-function skillName(ref: ReferenceData, id: Id): string {
-  return ref.skills.find((s) => s.id === id)?.name ?? id;
 }
 
 function warningsFor(c: Context, skill: Skill): SkillWarning[] {
@@ -77,8 +81,8 @@ function warningsFor(c: Context, skill: Skill): SkillWarning[] {
   if (missing) {
     warnings.push({
       reason: "missing-prerequisite",
-      skillIds: skillIdsIn(missing),
-      message: `${skill.name} needs ${describe(missing, (id) => skillName(c.ref, id))}.`,
+      skillIds: prerequisiteSkillIds(missing),
+      message: `${skill.name} needs ${describe(missing, (id) => c.skills.get(id)?.name ?? id)}.`,
     });
   }
   if (!tree.classes.includes(character.className)) {

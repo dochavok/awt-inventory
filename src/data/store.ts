@@ -3,6 +3,7 @@
 // what the functional tests use; the Firestore store (M2) implements the same
 // interface. Refusals throw the errors in ../errors.ts.
 
+import { AccessDeniedError, NotImplementedError } from "../errors";
 import type { Clock } from "../platform/clock";
 import type {
   Category,
@@ -172,3 +173,17 @@ export interface InventoryStore {
   // ---------------------------------------------------------------- offline (NF-3)
   syncStatus(): Promise<SyncStatus>;
 }
+
+// ---------------------------------------------------------------- shared by the stores
+
+/** The signed-in user's uid; refuses when no one is signed in (PV-1). */
+export function requireUid(context: Pick<StoreContext, "currentUid">): string {
+  const uid = context.currentUid();
+  if (uid === null) throw new AccessDeniedError("Sign in first.");
+  return uid;
+}
+
+/** A store method a later milestone implements: it always rejects, naming the milestone. */
+export const later = (what: string, milestone: string) => async (): Promise<never> => {
+  throw new NotImplementedError(what, milestone);
+};
