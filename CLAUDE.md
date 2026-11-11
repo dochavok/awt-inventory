@@ -77,7 +77,10 @@ Each is a CI job, and all five are required checks on `main`:
 - **Scenarios (TF-9):** YAML in `tests/scenarios/`, checked against a strict
   schema (`tests/support/scenarios.ts`); IDs are permanent.
 - **On this PC:** Norton quarantined Playwright's WebKit, so run browser tests
-  locally with `npx playwright test --project android`; CI runs both phones.
+  locally with `npx playwright test --project android --workers 2`; CI runs
+  both phones. Use 2 workers: Playwright's default here is 6, and on a fresh
+  build that overloads this PC and tests time out (2 of 3 runs failed at 6
+  workers, none at 2). CI's runners already use 2.
 
 ## Other conventions
 
