@@ -77,10 +77,14 @@ rule(
   "an issue never holds the sender's email address or display name, even if the user typed them",
   async () => {
     const { issues, deps } = delivery();
-    await deliverReport(report(), deps);
+    const displayNameOf = async (uid: string) => (uid === "uid-bram" ? "Bramblewick" : undefined);
+    await deliverReport(report(), { ...deps, displayNameOf });
+    expect(issues.created.length, "issues created").toBe(1);
     const issue = JSON.stringify(issues.created);
     expect(issue, "the issue").not.toContain("bram@example.test");
     expect(issue, "the issue").not.toContain("Bramblewick");
+    expect(issues.created[0]!.body, "the rest of the message").toContain("Aldric's CM showed 169.");
+    expect(issues.created[0]!.body, "the pointer to the full report").toMatch(/full report[^\n]*42/);
   },
 );
 
