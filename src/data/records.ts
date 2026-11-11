@@ -582,7 +582,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
         throw new ValidationError("entryId", `${used.entryName} is no longer in the inventory.`);
       }
       // NF-6: a restore can't take the quantity, or the character's entries, past their maximums.
-      if (entry.quantity === 0) checkCount(await entriesOf(entry.characterId));
+      if (entry.quantity <= 0) checkCount(await entriesOf(entry.characterId));
       if (entry.quantity + 1 > check.LIMITS.quantity) {
         throw new ValidationError("quantity", `${used.entryName} is already at the most a quantity can be.`);
       }
@@ -597,7 +597,9 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
         note,
         summary: `Restored 1 × ${entryName(entry)}`,
       });
-      await write([{ op: "add-quantity", entryId: entry.id, by: 1 }, restored.change]);
+      // NF-3: below 0 (two offline phones each used the last one), it comes back with 1.
+      const by = entry.quantity < 0 ? 1 - entry.quantity : 1;
+      await write([{ op: "add-quantity", entryId: entry.id, by }, restored.change]);
       return restored.record;
     },
 

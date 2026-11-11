@@ -4,6 +4,7 @@
 
 import { expect } from "vitest";
 import { createFirestoreStore } from "../../src/data/firestore-store";
+import { NotFoundError } from "../../src/errors";
 import type { InventoryStore } from "../../src/data/store";
 import { device, seed, uid, useEmulator } from "../support/emulator";
 import { FakeClock } from "../support/fake-clock";
@@ -152,21 +153,29 @@ rule(
 );
 
 rule(
-  { req: ["NF-3", "IN-12"], m: "M3" },
-  "if two offline phones each trade away every Healing Draught, only the first to sync counts",
+  { req: ["NF-3", "IN-12", "IN-13"], m: "M3" },
+  "if two offline phones each use the last Healing Draught, both uses are kept, it's gone, and a restore brings back 1",
   async () => {
     const { a, b, characterId, draught } = await setUp();
+    // Two of the three used with signal, so one is left.
+    await a.store.markUsed(draught);
+    await a.store.markUsed(draught);
+    await a.db.waitForPendingWrites();
+    await b.store.sheet(characterId);
     await a.db.disableNetwork();
     await b.db.disableNetwork();
-    await a.store.markTraded(draught, { kind: "traded", note: "phone A" });
-    await b.store.markTraded(draught, { kind: "traded", note: "phone B" });
+    await a.store.markUsed(draught, { note: "phone A" });
+    await b.store.markUsed(draught, { note: "phone B" });
     await online(a);
     await online(b);
-    const traded = (await a.store.history(characterId)).filter((r) => r.event === "traded");
-    expect(
-      traded.map((r) => [r.note, r.quantity]),
-      "Healing Draught trades recorded after both phones sync",
-    ).toEqual([["phone A", 3]]);
+    const offlineUses = (await a.store.history(characterId)).filter((r) => r.event === "used" && r.note);
+    expect(offlineUses.map((r) => r.note).sort(), "the offline uses kept after both phones sync").toEqual([
+      "phone A",
+      "phone B",
+    ]);
+    await expect(a.store.entry(draught), "the Healing Draught after both phones sync").rejects.toThrow(NotFoundError);
+    await a.store.restoreUsed(offlineUses.find((r) => r.note === "phone B")!.id);
+    expect((await a.store.entry(draught)).quantity, "Healing Draughts after restoring phone B's use").toBe(1);
   },
 );
 
