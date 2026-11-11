@@ -2,8 +2,8 @@ rules_version = '2';
 
 // Server-side access rules (PV-1, NF-6, NF-7, NF-13). Tested against the
 // emulator in tests/access/. Every collection is listed: anything not matched
-// here is refused, so a later milestone's collection (e.g. reports, SP-1)
-// stays closed until its rules are written. Records may hold only their own
+// here is refused, so a later milestone's collection stays closed until its
+// rules are written. Records may hold only their own
 // fields, with the app's maximum sizes (NF-6, src/data/validate.ts LIMITS).
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -41,6 +41,54 @@ service cloud.firestore {
       return !(field in data) || (data[field] is list && data[field].size() <= 50);
     }
 
+    // NF-3: each changed field records when it was changed (`edited`, in
+    // milliseconds). The later change wins: a change older than the one already
+    // stored is refused, whichever phone syncs last, even one that sets the same
+    // value (else it would move the field's edit time back).
+    function edits(data) {
+      return !('edited' in data) || (data.edited is map && data.edited.size() <= 30);
+    }
+
+    function editedAt(data, field) {
+      return data.get('edited', {}).get(field, 0);
+    }
+
+    function fresh(changed, field) {
+      return !changed.hasAny([field])
+        || (editedAt(request.resource.data, field) >= editedAt(resource.data, field)
+            && editedAt(request.resource.data, field) <= request.time.toMillis() + 300000);
+    }
+
+    // The fields whose value or edit time this write changes.
+    function changedKeys() {
+      let editedNow = request.resource.data.get('edited', {});
+      let editedBefore = resource.data.get('edited', {});
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .union(editedNow.diff(editedBefore).affectedKeys());
+    }
+
+    function freshCharacter() {
+      let changed = changedKeys();
+      return fresh(changed, 'name') && fresh(changed, 'className') && fresh(changed, 'level')
+        && fresh(changed, 'notes') && fresh(changed, 'retired');
+    }
+
+    function freshTitle() {
+      let changed = changedKeys();
+      return fresh(changed, 'name') && fresh(changed, 'description') && fresh(changed, 'earned')
+        && fresh(changed, 'scope') && fresh(changed, 'grants');
+    }
+
+    function freshEntry() {
+      let changed = changedKeys();
+      return fresh(changed, 'name') && fresh(changed, 'description') && fresh(changed, 'notes')
+        && fresh(changed, 'itemFamily') && fresh(changed, 'rarity') && fresh(changed, 'hands')
+        && fresh(changed, 'range') && fresh(changed, 'weaponGroup') && fresh(changed, 'extraDamage')
+        && fresh(changed, 'slotKind') && fresh(changed, 'arcane') && fresh(changed, 'allyType')
+        && fresh(changed, 'hearts') && fresh(changed, 'active') && fresh(changed, 'tier')
+        && fresh(changed, 'howGained') && fresh(changed, 'levelGained') && fresh(changed, 'grants');
+    }
+
     // PV-2: a profile holds only the display name and the sign-in email.
     function validProfile() {
       let data = request.resource.data;
@@ -51,7 +99,7 @@ service cloud.firestore {
 
     function validTitle() {
       let data = request.resource.data;
-      return data.keys().hasOnly(['name', 'description', 'earned', 'scope', 'grants'])
+      return data.keys().hasOnly(['name', 'description', 'earned', 'scope', 'grants', 'edited']) && edits(data)
         && text(data, 'name', 100) && text(data, 'description', 10000) && text(data, 'earned', 10)
         && (!('scope' in data) || (data.scope is map && data.scope.keys().hasOnly(['level', 'characterId'])
             && text(data.scope, 'level', 20) && text(data.scope, 'characterId', 100)))
@@ -60,7 +108,7 @@ service cloud.firestore {
 
     function validCharacter() {
       let data = request.resource.data;
-      return data.keys().hasOnly(['name', 'className', 'level', 'notes', 'retired'])
+      return data.keys().hasOnly(['name', 'className', 'level', 'notes', 'retired', 'edited']) && edits(data)
         && text(data, 'name', 100) && text(data, 'className', 20) && wholeNumber(data, 'level')
         && text(data, 'notes', 10000) && (!('retired' in data) || data.retired is bool);
     }
@@ -69,7 +117,7 @@ service cloud.firestore {
       let data = request.resource.data;
       return data.keys().hasOnly(['category', 'name', 'quantity', 'description', 'notes', 'itemFamily', 'grants',
           'rarity', 'hands', 'range', 'weaponGroup', 'extraDamage', 'slotKind', 'arcane', 'allyType', 'hearts',
-          'active', 'tier', 'skillId', 'howGained', 'levelGained'])
+          'active', 'tier', 'skillId', 'howGained', 'levelGained', 'edited']) && edits(data)
         && text(data, 'category', 20) && text(data, 'name', 100) && wholeNumber(data, 'quantity')
         && text(data, 'description', 10000) && text(data, 'notes', 10000) && text(data, 'itemFamily', 100)
         && text(data, 'rarity', 100) && text(data, 'range', 20) && text(data, 'weaponGroup', 100)
@@ -88,13 +136,24 @@ service cloud.firestore {
     function validRecord() {
       let data = request.resource.data;
       return data.keys().hasOnly(['event', 'date', 'enteredAt', 'entryId', 'entryName', 'category', 'snapshot',
-          'quantity', 'note', 'source', 'link', 'restores', 'change', 'summary'])
-        && text(data, 'event', 40) && text(data, 'date', 40) && text(data, 'enteredAt', 40)
+          'quantity', 'note', 'source', 'link', 'restores', 'change', 'summary', 'seq'])
+        && wholeNumber(data, 'seq') && text(data, 'event', 40) && text(data, 'date', 40) && text(data, 'enteredAt', 40)
         && text(data, 'entryId', 100) && text(data, 'entryName', 100) && text(data, 'category', 20)
         && wholeNumber(data, 'quantity') && text(data, 'note', 10000) && text(data, 'source', 100)
         && text(data, 'link', 2000) && text(data, 'restores', 100) && text(data, 'summary', 500)
         && (!('change' in data) || (data.change is map && data.change.keys().hasOnly(['from', 'to'])))
         && validSnapshot(data);
+    }
+
+    function validReport() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['number', 'kind', 'subject', 'message', 'characterId', 'sentAt', 'appVersion',
+          'delivery'])
+        && data.kind in ['missing-skill', 'bug', 'idea', 'account-problem']
+        && data.subject is string && data.subject.size() > 0 && data.subject.size() <= 200
+        && data.message is string && data.message.size() > 0 && data.message.size() <= 10000
+        && wholeNumber(data, 'number') && text(data, 'characterId', 100) && text(data, 'sentAt', 40)
+        && text(data, 'appVersion', 40) && (!('delivery' in data) || data.delivery == 'pending');
     }
 
     match /users/{uid} {
@@ -104,16 +163,26 @@ service cloud.firestore {
 
       match /titles/{titleId} {
         allow read, delete: if isOwner(uid);
-        allow create, update: if canStore(uid) && validTitle();
+        allow create: if canStore(uid) && validTitle();
+        allow update: if canStore(uid) && validTitle() && freshTitle();
+      }
+
+      // SP-1: reports to the maintainer. The sender writes one and can read it;
+      // only the server (which isn't bound by these rules) marks it delivered.
+      match /reports/{reportId} {
+        allow read, delete: if isOwner(uid);
+        allow create: if canStore(uid) && validReport();
       }
 
       match /characters/{characterId} {
         allow read, delete: if isOwner(uid);
-        allow create, update: if canStore(uid) && validCharacter();
+        allow create: if canStore(uid) && validCharacter();
+        allow update: if canStore(uid) && validCharacter() && freshCharacter();
 
         match /entries/{entryId} {
           allow read, delete: if isOwner(uid);
-          allow create, update: if canStore(uid) && validEntry();
+          allow create: if canStore(uid) && validEntry();
+          allow update: if canStore(uid) && validEntry() && freshEntry();
         }
 
         // HI-4: records are added, never edited. One goes only with its entry

@@ -4,6 +4,7 @@
 
 import { expect } from "vitest";
 import { createFirestoreStore } from "../../src/data/firestore-store";
+import { NotFoundError } from "../../src/errors";
 import type { InventoryStore } from "../../src/data/store";
 import { device, seed, uid, useEmulator } from "../support/emulator";
 import { FakeClock } from "../support/fake-clock";
@@ -123,6 +124,81 @@ rule(
         "later note, phone B",
       );
     }
+  },
+);
+
+rule({ req: ["NF-3"], m: "M3" }, "one change to several fields of an entry counts as one change waiting", async () => {
+  const { b, draught } = await setUp();
+  await b.db.disableNetwork();
+  await b.store.updateEntry(draught, { notes: "Kept for the gate", description: "Changed offline on phone B" });
+  expect(await b.store.syncStatus(), "phone B offline").toEqual({ online: false, pendingChanges: 1 });
+});
+
+rule(
+  { req: ["NF-3"], m: "M3" },
+  "a phone without signal can change the display name without waiting, and it's sent when signal returns",
+  async () => {
+    const { a, b } = await setUp();
+    await b.store.profile();
+    await b.db.disableNetwork();
+    const waited = await Promise.race([
+      b.store.setDisplayName("Bram the Bold").then(() => "done"),
+      new Promise((resolve) => setTimeout(() => resolve("still waiting"), 2000)),
+    ]);
+    expect(waited, "changing the display name offline").toBe("done");
+    expect(await b.store.syncStatus(), "phone B offline").toEqual({ online: false, pendingChanges: 1 });
+    await online(b);
+    expect((await a.store.profile()).displayName, "Bram's display name seen on phone A").toBe("Bram the Bold");
+  },
+);
+
+rule(
+  { req: ["NF-3", "IN-12", "IN-13"], m: "M3" },
+  "if two offline phones each use the last Healing Draught, both uses are kept, it's gone, and a restore brings back 1",
+  async () => {
+    const { a, b, characterId, draught } = await setUp();
+    // Two of the three used with signal, so one is left.
+    await a.store.markUsed(draught);
+    await a.store.markUsed(draught);
+    await a.db.waitForPendingWrites();
+    await b.store.sheet(characterId);
+    await a.db.disableNetwork();
+    await b.db.disableNetwork();
+    await a.store.markUsed(draught, { note: "phone A" });
+    await b.store.markUsed(draught, { note: "phone B" });
+    await online(a);
+    await online(b);
+    const offlineUses = (await a.store.history(characterId)).filter((r) => r.event === "used" && r.note);
+    expect(offlineUses.map((r) => r.note).sort(), "the offline uses kept after both phones sync").toEqual([
+      "phone A",
+      "phone B",
+    ]);
+    await expect(a.store.entry(draught), "the Healing Draught after both phones sync").rejects.toThrow(NotFoundError);
+    await a.store.restoreUsed(offlineUses.find((r) => r.note === "phone B")!.id);
+    expect((await a.store.entry(draught)).quantity, "Healing Draughts after restoring phone B's use").toBe(1);
+  },
+);
+
+rule(
+  { req: ["NF-3"], m: "M3" },
+  "an older change that sets the same value can't turn back the time of a later one",
+  async () => {
+    const { a, b, draught, characterId } = await setUp();
+    const c = phone("bram");
+    await c.store.sheet(characterId);
+    await b.db.disableNetwork();
+    await c.db.disableNetwork();
+    await b.store.updateEntry(draught, { notes: "Kept for the gate" });
+    clock.advanceSeconds(30);
+    await c.store.updateEntry(draught, { notes: "older note, phone C" });
+    clock.advanceSeconds(30);
+    await a.store.updateEntry(draught, { notes: "Kept for the gate" });
+    await a.db.waitForPendingWrites();
+    await online(b);
+    await online(c);
+    expect((await a.store.entry(draught)).notes, "Healing Draught's notes after phones B and C sync").toBe(
+      "Kept for the gate",
+    );
   },
 );
 

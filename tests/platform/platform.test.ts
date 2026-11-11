@@ -58,3 +58,120 @@ rule({ req: ["NF-12"], m: "M3" }, "the error itself is kept, so the maintainer c
   expect(scrubbed.exception?.values?.[0]?.value, "the error message").toContain("x is undefined");
   expect(scrubbed.tags, "the tags").toEqual({ screen: "inventory" });
 });
+
+rule(
+  { req: ["NF-12"], m: "M3" },
+  "an error report never includes an email address, even one that isn't the signed-in user's",
+  () => {
+    const report: ErrorEvent = {
+      message: "Lookup failed for wren.g@example.test",
+      exception: { values: [{ type: "Error", value: "no account for cass@example.test" }] },
+      tags: { screen: "account", typed: "someone@example.test" },
+    };
+    const scrubbed = JSON.stringify(scrubEvent(report, known));
+    expect(scrubbed, "the scrubbed report").not.toMatch(/[\w.+-]+@[\w-]+\.[\w.]+/);
+    expect(scrubbed, "the scrubbed report").toContain("Lookup failed for");
+  },
+);
+
+rule(
+  { req: ["NF-12"], m: "M3" },
+  "an error report's stack trace keeps where the error happened, never variables or source lines",
+  () => {
+    const report: ErrorEvent = {
+      exception: {
+        values: [
+          {
+            type: "TypeError",
+            stacktrace: {
+              frames: [
+                {
+                  filename: "https://app.example.test/assets/index.js",
+                  function: "saveEntry",
+                  lineno: 12,
+                  colno: 34,
+                  vars: { entry: { name: "Duskfang", notes: "secret note" } },
+                  context_line: 'save({ name: "Ironclad Plate" })',
+                  pre_context: ["// Aldric"],
+                  post_context: ["// Bramblewick"],
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+    const scrubbed = scrubEvent(report, known);
+    const text = JSON.stringify(scrubbed);
+    for (const record of ["Duskfang", "secret note", "Ironclad Plate", "Aldric", "Bramblewick"]) {
+      expect(text, `the scrubbed stack trace mentioning ${record}`).not.toContain(record);
+    }
+    expect(scrubbed.exception?.values?.[0]?.stacktrace, "where the error happened").toEqual({
+      frames: [{ filename: "https://app.example.test/assets/index.js", function: "saveEntry", lineno: 12, colno: 34 }],
+    });
+  },
+);
+
+rule(
+  { req: ["NF-12"], m: "M3" },
+  "a stack frame's file is the code file without its query, or only the app's address for code on the page",
+  () => {
+    const report: ErrorEvent = {
+      exception: {
+        values: [
+          {
+            type: "TypeError",
+            stacktrace: {
+              frames: [
+                null,
+                { filename: "https://app.example.test/assets/index.js?v=3#x", function: "save", lineno: 1 },
+                { filename: "https://app.example.test/#/characters/c123/entries/e456?q=Duskfang", lineno: 2 },
+              ],
+            },
+          },
+        ],
+      },
+    };
+    expect(scrubEvent(report, known).exception?.values?.[0]?.stacktrace, "the scrubbed frames").toEqual({
+      frames: [
+        { filename: "https://app.example.test/assets/index.js", function: "save", lineno: 1 },
+        { filename: "https://app.example.test", lineno: 2 },
+      ],
+    });
+  },
+);
+
+rule(
+  { req: ["NF-12"], m: "M3" },
+  "a stack frame's file keeps its path for code files of any scheme, and drops a page path with no address",
+  () => {
+    const report: ErrorEvent = {
+      exception: {
+        values: [
+          {
+            type: "TypeError",
+            stacktrace: {
+              frames: [
+                { filename: "app:///assets/index.js", lineno: 1 },
+                { filename: "/src/data/records.ts?t=1", lineno: 2 },
+                { filename: "/#/characters/c123/entries/e456?q=Duskfang", lineno: 3 },
+              ],
+            },
+          },
+        ],
+      },
+    };
+    expect(scrubEvent(report, known).exception?.values?.[0]?.stacktrace, "the scrubbed frames").toEqual({
+      frames: [
+        { filename: "app:///assets/index.js", lineno: 1 },
+        { filename: "/src/data/records.ts", lineno: 2 },
+        { lineno: 3 },
+      ],
+    });
+  },
+);
+
+rule({ req: ["NF-12"], m: "M3" }, "an error report's address is only the app's, never the screen it was on", () => {
+  const report: ErrorEvent = { request: { url: "https://app.example.test/#/characters/c123/entries/e456?q=Duskfang" } };
+  expect(scrubEvent(report, known).request, "the scrubbed address").toEqual({ url: "https://app.example.test" });
+});

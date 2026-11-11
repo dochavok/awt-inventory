@@ -25,6 +25,8 @@ export const LIMITS = {
   description: 10_000,
   reportSubject: 200,
   reportMessage: 10_000,
+  /** A link with a gain, e.g. to a post in Discord's rewards channel (IN-11). */
+  link: 2_000,
   quantity: 9_999,
   extraDamage: 999,
   hearts: 999,
