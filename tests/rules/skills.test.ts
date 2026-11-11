@@ -53,6 +53,13 @@ rule({ req: ["SK-1a"], m: "M2" }, "a new level 1 Warrior is offered his trees' s
   expect(names(picker.others), "the other skills in his trees, prestige tree included").toContain("Warden's Oath");
 });
 
+rule({ req: ["SK-1a"], m: "M2" }, "a starting skill of his own trees is available even with a prerequisite", () => {
+  const withPrerequisite = testReferenceData();
+  withPrerequisite.skills.find((s) => s.id === "iron-guard")!.prerequisites = { skill: "blade-basics" };
+  const picker = skillPicker(newWarrior(1), withPrerequisite, { allTrees: false });
+  expect(names(picker.available), "skills a new Warrior can take").toContain("Iron Guard");
+});
+
 rule({ req: ["SK-1"], m: "M2" }, "switching to all trees adds other classes' skills, below the available ones", () => {
   const picker = skillPicker(fixtureSheet("aldric"), ref, { allTrees: true });
   expect(names(picker.available), "skills Aldric can take now, with all trees shown").toEqual([

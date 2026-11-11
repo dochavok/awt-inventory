@@ -46,7 +46,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | IN-15 | Must | M2 | access/privacy.test.ts (1), data/inventory.test.ts (3), data/skills.test.ts (1) |
 | IN-16 | Must | M2 | data/inventory.test.ts (3) |
 | SK-1 | Must | M2 | data/skills.test.ts (1), rules/skills.test.ts (4) |
-| SK-1a | Must | M2 | rules/skills.test.ts (3) |
+| SK-1a | Must | M2 | rules/skills.test.ts (4) |
 | SK-2 | Must | M2 | data/search-export.test.ts (1), data/skills.test.ts (3) |
 | SK-3 | Must | M2 | data/skills.test.ts (1), docs/docs.test.ts (1), rules/skills.test.ts (8) |
 | SK-4 | Must | M2 | data/skills.test.ts (2) |
