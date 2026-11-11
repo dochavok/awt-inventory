@@ -347,6 +347,7 @@ rule(
       "data:text/plain,charm",
       "discord.example.test/channels/1/2/3",
       "https://",
+      "http://[",
     ]) {
       const attempt = bram.addEntry(characterId, { category: "items", name: "Owl Charm", arcane: true }, { link });
       await expect(attempt, `a gain with the link ${link}`).rejects.toThrow(ValidationError);
