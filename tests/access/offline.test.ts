@@ -7,7 +7,7 @@ import { createFirestoreStore } from "../../src/data/firestore-store";
 import type { InventoryStore } from "../../src/data/store";
 import { device, seed, uid, useEmulator } from "../support/emulator";
 import { FakeClock } from "../support/fake-clock";
-import { testReferenceData } from "../support/fixtures";
+import { fixtureUser, testReferenceData } from "../support/fixtures";
 import { rule } from "../support/rule";
 import { seedCharacter, seedProfile } from "../support/world";
 
@@ -32,14 +32,19 @@ async function online(p: ReturnType<typeof phone>) {
   await p.db.waitForPendingWrites();
 }
 
-async function setUp() {
-  // Sign-up is invite-only before 1.0 (NF-13), so Bram is on the invite list.
-  await seed({ "invites/bram@example.test": { addedBy: "maintainer" } });
-  const a = phone("bram");
-  await seedProfile(a.store, "bram");
+/**
+ * Two phones signed in as `user` (Bram unless a test needs a second setup),
+ * with Aldric made on phone A. A second setup in the same test uses another
+ * user, so the first setup's data stays in the database, as it would in use (TF-3).
+ */
+async function setUp(user = "bram") {
+  // Sign-up is invite-only before 1.0 (NF-13), so the user is on the invite list.
+  await seed({ [`invites/${fixtureUser(user).email}`]: { addedBy: "maintainer" } });
+  const a = phone(user);
+  await seedProfile(a.store, user);
   const aldric = await seedCharacter(a.store, "aldric");
   const draught = aldric.entries.get("aldric-draught")!.id;
-  const b = phone("bram");
+  const b = phone(user);
   // Phone B opens Aldric with signal first, so his records are on it.
   await b.store.sheet(aldric.character.id);
   await b.store.history(aldric.character.id);
@@ -106,7 +111,7 @@ rule(
   "when two offline phones change the same field, the later change wins, whichever syncs last",
   async () => {
     for (const order of ["a-first", "b-first"] as const) {
-      const { a, b, draught } = await setUp();
+      const { a, b, draught } = await setUp(order === "a-first" ? "bram" : "cass");
       await a.db.disableNetwork();
       await b.db.disableNetwork();
       await a.store.updateEntry(draught, { notes: "earlier note, phone A" });
