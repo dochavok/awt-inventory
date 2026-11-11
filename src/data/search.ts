@@ -6,15 +6,16 @@ import type { Character, Entry, ReferenceData } from "../rules/types";
 import type { SearchResult } from "./types";
 
 /**
- * The words in a text, lower-cased: letters (with their accent marks) and
- * digits, split at everything else. An accented letter typed as one character
- * or as a letter plus a mark is made the same first (NFC).
+ * The words in a text, lower-cased and without accents (SE-1): letters and
+ * digits, split at everything else. Accent marks are split off their letters
+ * (NFD) and dropped, however the text was typed.
  */
 function words(text: string): string[] {
   return text
-    .normalize("NFC")
     .toLowerCase()
-    .split(/[^\p{L}\p{M}\p{N}]+/u)
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .split(/[^\p{L}\p{N}]+/u)
     .filter(Boolean);
 }
 
