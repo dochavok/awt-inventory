@@ -583,7 +583,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       }
       // NF-6: a restore can't take the quantity, or the character's entries, past their maximums.
       if (entry.quantity <= 0) checkCount(await entriesOf(entry.characterId));
-      if (entry.quantity + 1 > check.LIMITS.quantity) {
+      if (Math.max(entry.quantity, 0) + 1 > check.LIMITS.quantity) {
         throw new ValidationError("quantity", `${used.entryName} is already at the most a quantity can be.`);
       }
       // Dated with the use it undoes, so the two sit together in the history (IN-13).

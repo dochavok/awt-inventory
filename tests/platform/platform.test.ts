@@ -141,6 +141,36 @@ rule(
   },
 );
 
+rule(
+  { req: ["NF-12"], m: "M3" },
+  "a stack frame's file keeps its path for code files of any scheme, and drops a page path with no address",
+  () => {
+    const report: ErrorEvent = {
+      exception: {
+        values: [
+          {
+            type: "TypeError",
+            stacktrace: {
+              frames: [
+                { filename: "app:///assets/index.js", lineno: 1 },
+                { filename: "/src/data/records.ts?t=1", lineno: 2 },
+                { filename: "/#/characters/c123/entries/e456?q=Duskfang", lineno: 3 },
+              ],
+            },
+          },
+        ],
+      },
+    };
+    expect(scrubEvent(report, known).exception?.values?.[0]?.stacktrace, "the scrubbed frames").toEqual({
+      frames: [
+        { filename: "app:///assets/index.js", lineno: 1 },
+        { filename: "/src/data/records.ts", lineno: 2 },
+        { lineno: 3 },
+      ],
+    });
+  },
+);
+
 rule({ req: ["NF-12"], m: "M3" }, "an error report's address is only the app's, never the screen it was on", () => {
   const report: ErrorEvent = { request: { url: "https://app.example.test/#/characters/c123/entries/e456?q=Duskfang" } };
   expect(scrubEvent(report, known).request, "the scrubbed address").toEqual({ url: "https://app.example.test" });

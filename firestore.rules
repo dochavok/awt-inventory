@@ -118,7 +118,8 @@ service cloud.firestore {
       return data.keys().hasOnly(['category', 'name', 'quantity', 'description', 'notes', 'itemFamily', 'grants',
           'rarity', 'hands', 'range', 'weaponGroup', 'extraDamage', 'slotKind', 'arcane', 'allyType', 'hearts',
           'active', 'tier', 'skillId', 'howGained', 'levelGained', 'edited']) && edits(data)
-        && text(data, 'category', 20) && text(data, 'name', 100) && wholeNumber(data, 'quantity')        && text(data, 'description', 10000) && text(data, 'notes', 10000) && text(data, 'itemFamily', 100)
+        && text(data, 'category', 20) && text(data, 'name', 100) && wholeNumber(data, 'quantity')
+        && text(data, 'description', 10000) && text(data, 'notes', 10000) && text(data, 'itemFamily', 100)
         && text(data, 'rarity', 100) && text(data, 'range', 20) && text(data, 'weaponGroup', 100)
         && text(data, 'slotKind', 100) && text(data, 'allyType', 100) && text(data, 'tier', 100)
         && text(data, 'skillId', 100) && text(data, 'howGained', 40) && shortList(data, 'grants');

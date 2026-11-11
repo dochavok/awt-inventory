@@ -27,18 +27,15 @@ const SAFE_CONTEXTS = ["browser", "os", "device", "runtime", "culture"];
 const FRAME_FIELDS = ["filename", "abs_path", "function", "module", "lineno", "colno", "in_app"];
 
 /**
- * A code file's address without its query or fragment, or only the app's address
- * when it isn't a code file (code run inline has the page's address, which can
- * name a character or an entry).
+ * A code file's address without its query or fragment. Anything else (code run
+ * inline has the page's address, which can name a character or an entry) keeps
+ * only the app's address, or nothing if it has none.
  */
-function codeFile(value: unknown): unknown {
-  if (typeof value !== "string") return value;
-  try {
-    const url = new URL(value);
-    return /\.[cm]?js$/.test(url.pathname) ? url.origin + url.pathname : url.origin;
-  } catch {
-    return value;
-  }
+function codeFile(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const bare = value.split(/[?#]/)[0]!;
+  if (/\.[cm]?[jt]sx?$/.test(bare)) return bare;
+  return /^[a-z][\w+.-]*:\/\/[^/?#]*/i.exec(value)?.[0];
 }
 
 function whereOnly(stacktrace: unknown): { frames: Record<string, unknown>[] } {
@@ -48,10 +45,9 @@ function whereOnly(stacktrace: unknown): { frames: Record<string, unknown>[] } {
       .filter((frame): frame is Record<string, unknown> => typeof frame === "object" && frame !== null)
       .map((frame) =>
         Object.fromEntries(
-          FRAME_FIELDS.filter((k) => frame[k] !== undefined).map((k) => [
-            k,
-            k === "filename" || k === "abs_path" ? codeFile(frame[k]) : frame[k],
-          ]),
+          FRAME_FIELDS.map((k) => [k, k === "filename" || k === "abs_path" ? codeFile(frame[k]) : frame[k]]).filter(
+            ([, v]) => v !== undefined,
+          ),
         ),
       ),
   };
