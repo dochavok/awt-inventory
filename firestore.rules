@@ -33,6 +33,12 @@ service cloud.firestore {
       return !(field in data) || (data[field] is string && data[field].size() <= max);
     }
 
+    // An optional link (IN-11): at most 2,000 characters, starting http:// or
+    // https://. The app (src/data/validate.ts webLink) also checks it parses.
+    function webLink(data, field) {
+      return !(field in data) || (text(data, field, 2000) && data[field].matches('(?i)https?://\\S+'));
+    }
+
     function wholeNumber(data, field) {
       return !(field in data) || data[field] is int;
     }
@@ -140,7 +146,7 @@ service cloud.firestore {
         && wholeNumber(data, 'seq') && text(data, 'event', 40) && text(data, 'date', 40) && text(data, 'enteredAt', 40)
         && text(data, 'entryId', 100) && text(data, 'entryName', 100) && text(data, 'category', 20)
         && wholeNumber(data, 'quantity') && text(data, 'note', 10000) && text(data, 'source', 100)
-        && text(data, 'link', 2000) && text(data, 'restores', 100) && text(data, 'summary', 500)
+        && webLink(data, 'link') && text(data, 'restores', 100) && text(data, 'summary', 500)
         && (!('change' in data) || (data.change is map && data.change.keys().hasOnly(['from', 'to'])))
         && validSnapshot(data);
     }

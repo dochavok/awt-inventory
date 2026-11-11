@@ -41,6 +41,36 @@ rule(
   },
 );
 
+rule(
+  { req: ["SE-1", "SE-2"], m: "M3" },
+  "searching one character finds nothing from the user's other characters; searching all of them does",
+  async () => {
+    const { bram, aldric } = await bramWithTwo();
+    expect(await bram.search("orb", { characterId: aldric.character.id }), "Aldric's results for orb").toEqual([]);
+    const everywhere = await bram.search("orb", { allCharacters: true });
+    expect(
+      everywhere.map((r) => `${r.characterName}: ${r.name}`),
+      "results for orb across Bram's characters",
+    ).toEqual(["Isolde: Glass Orb"]);
+  },
+);
+
+rule({ req: ["SE-1"], m: "M3" }, "searching a character finds a skill by its notes", async () => {
+  const { bram, aldric } = await bramWithTwo();
+  const id = aldric.character.id;
+  await bram.addSkill(id, {
+    skillId: "twin-fangs",
+    howGained: "other",
+    levelGained: 1,
+    notes: "Practised at moonrise",
+  });
+  const results = await bram.search("moonrise", { characterId: id });
+  expect(
+    results.map((r) => [r.name, r.category, r.matched]),
+    "Aldric's results for moonrise",
+  ).toEqual([["Twin Fangs", "skills", ["notes"]]]);
+});
+
 rule({ req: ["SE-1"], m: "M3" }, "search ignores case and matches the start of a word as it's typed", async () => {
   const { bram, aldric } = await bramWithTwo();
   for (const query of ["D", "Du", "DUSKF"]) {
@@ -262,6 +292,118 @@ rule(
       out.manualGrants.map((m) => m.reason),
       "Aldric's manual grants",
     ).toEqual(["DM ruling, Faire 2026"]);
+  },
+);
+
+rule(
+  { req: ["EX-4"], m: "M3" },
+  "the JSON export's field names are fixed for every kind of record, so a rename can't slip through",
+  async () => {
+    const w = world();
+    const bram = w.as("bram");
+    await seedProfile(bram, "bram");
+    const wren = await bram.createCharacter({ name: "Wren", className: "Rogue", level: 3, notes: "Made-up notes." });
+    const id = wren.id;
+    const common = { description: "Made-up text.", notes: "Made-up notes.", itemFamily: "Made-up Family" };
+    const gain = { note: "From a made-up quest", source: "Quest", link: "https://discord.example.test/channels/1/2/3" };
+    await bram.addEntry(
+      id,
+      {
+        category: "weapons",
+        name: "Wren's Blade",
+        ...common,
+        rarity: "epic",
+        hands: 1,
+        range: "melee",
+        weaponGroup: "Sword",
+        extraDamage: 1,
+      },
+      gain,
+    );
+    await bram.addEntry(id, { category: "armor", name: "Wren's Coat", ...common, rarity: "epic", slotKind: "chest" });
+    await bram.addEntry(id, { category: "items", name: "Wren's Charm", ...common, rarity: "epic", arcane: true });
+    await bram.addEntry(id, {
+      category: "allies",
+      name: "Wren's Cat",
+      ...common,
+      allyType: "familiar",
+      hearts: 2,
+      active: true,
+    });
+    const tonic = await bram.addEntry(id, { category: "consumables", name: "Wren's Tonic", ...common, quantity: 3 });
+    const pebble = await bram.addEntry(id, {
+      category: "components",
+      name: "Wren's Pebble",
+      ...common,
+      quantity: 2,
+      tier: "Dull",
+    });
+    await bram.addSkill(id, { skillId: "shadow-step", howGained: "starting", levelGained: 1, notes: "Made-up notes." });
+    await bram.addTitle({ name: "Made-up Title", description: "Made-up text.", earned: "2026-06-01" });
+    await bram.updateCharacter(id, { level: 4 });
+    const used = await bram.markUsed(pebble.id, { note: "Made-up use" });
+    await bram.restoreUsed(used.id);
+    await bram.markTraded(tonic.id, { kind: "traded", quantity: 3, note: "To a made-up friend" });
+    await bram.retireCharacter(id);
+
+    const file = await bram.exportJson();
+    const keys = (value: object | undefined) => Object.keys(value ?? {}).sort();
+    const out = file.characters.find((c) => c.character.name === "Wren")!;
+    expect(keys(out), "the fields of a character in the export").toEqual([
+      "character",
+      "entries",
+      "equipped",
+      "history",
+      "manualGrants",
+    ]);
+    expect(keys(out.character), "Wren's fields").toEqual(["className", "id", "level", "name", "notes", "retired"]);
+    expect(keys(file.profile), "the profile's fields").toEqual(["displayName"]);
+    const base = ["category", "characterId", "description", "id", "itemFamily", "name", "notes", "quantity"];
+    const entryFields: Record<string, string[]> = {
+      weapons: [...base, "extraDamage", "hands", "range", "rarity", "weaponGroup"],
+      armor: [...base, "rarity", "slotKind"],
+      items: [...base, "arcane", "rarity"],
+      allies: [...base, "active", "allyType", "hearts"],
+      components: [...base, "tier"],
+      skills: ["category", "characterId", "howGained", "id", "levelGained", "notes", "quantity", "skillId"],
+    };
+    for (const [category, fields] of Object.entries(entryFields)) {
+      const entry = out.entries.find((e) => e.category === category);
+      expect(keys(entry), `the fields of Wren's ${category} entry`).toEqual(fields.sort());
+    }
+    expect(keys(file.titles.find((t) => t.name === "Made-up Title")), "a title's fields").toEqual([
+      "description",
+      "earned",
+      "id",
+      "name",
+      "scope",
+    ]);
+    const record = (event: string, entryName?: string) =>
+      out.history.find((r) => r.event === event && (entryName === undefined || r.entryName === entryName));
+    const about = ["category", "entryId", "entryName"];
+    const recordBase = ["characterId", "date", "enteredAt", "event", "id", "summary"];
+    expect(keys(record("acquired", "Wren's Blade")), "an acquired record's fields").toEqual(
+      [...recordBase, ...about, "link", "note", "quantity", "source"].sort(),
+    );
+    expect(keys(record("used")), "a used record's fields").toEqual(
+      [...recordBase, ...about, "note", "quantity"].sort(),
+    );
+    expect(keys(record("restored")), "a restored record's fields").toEqual(
+      [...recordBase, ...about, "quantity", "restores"].sort(),
+    );
+    expect(keys(record("traded")), "a traded record's fields").toEqual(
+      [...recordBase, ...about, "note", "quantity", "snapshot"].sort(),
+    );
+    expect(keys(record("traded")?.snapshot), "a traded record's snapshot fields").toEqual([
+      "category",
+      "description",
+      "itemFamily",
+      "name",
+      "notes",
+      "quantity",
+    ]);
+    expect(keys(record("level-changed")), "a level change's fields").toEqual([...recordBase, "change"].sort());
+    expect(keys(record("level-changed")?.change), "a level change's change fields").toEqual(["from", "to"]);
   },
 );
 

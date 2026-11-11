@@ -335,6 +335,44 @@ rule(
   },
 );
 
+rule(
+  { req: ["IN-11"], m: "M3" },
+  "a gain's link must be a web address starting http:// or https://; anything else is refused, naming the link",
+  async () => {
+    const { bram, characterId } = await bramWithAldric();
+    for (const link of [
+      "mailto:bram@example.test",
+      "ftp://files.example.test/charm",
+      "javascript:void(0)",
+      "data:text/plain,charm",
+      "discord.example.test/channels/1/2/3",
+      "https://",
+      "http://[",
+    ]) {
+      const attempt = bram.addEntry(characterId, { category: "items", name: "Owl Charm", arcane: true }, { link });
+      await expect(attempt, `a gain with the link ${link}`).rejects.toThrow(ValidationError);
+      await expect(attempt, `a gain with the link ${link}`).rejects.toMatchObject({ field: "link" });
+    }
+    expect(
+      (await bram.listEntries(characterId, "items")).filter(
+        (e) => e.entry.category === "items" && e.entry.name === "Owl Charm",
+      ),
+      "Aldric's Owl Charms after the refused gains",
+    ).toEqual([]);
+    await bram.addEntry(
+      characterId,
+      { category: "items", name: "Owl Charm", arcane: true },
+      { link: "HTTPS://discord.example.test/channels/1/2/3" },
+    );
+    const [latest] = await bram.history(characterId);
+    expect(latest, "the acquired record with a capitalised https link").toMatchObject({
+      event: "acquired",
+      entryName: "Owl Charm",
+      link: "HTTPS://discord.example.test/channels/1/2/3",
+    });
+  },
+);
+
 // ---------------------------------------------------------------- used and restored (IN-12, IN-13)
 
 rule(

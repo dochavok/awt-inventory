@@ -106,6 +106,53 @@ rule({ req: ["PV-1", "PV-3", "SE-2"], m: "M3" }, "searching all characters finds
   ).toEqual(["Brin"]);
 });
 
+rule(
+  { req: ["PV-1", "SE-1", "SE-3", "EX-1", "HI-5"], m: "M3" },
+  "Cass and a signed-out visitor are refused the sheet, PDF, search, filters, title scopes, class corrections and the rest",
+  async () => {
+    const x = await setUp();
+    const wren = await x.bram.createCharacter({ name: "Wren", className: "Rogue", level: 3 });
+    await x.bram.retireCharacter(wren.id);
+    const wolfId = (await x.bram.listEntries(x.characterId, "allies")).find(
+      (e) => e.entry.category === "allies" && e.entry.name === "Grey Fang",
+    )!.entry.id;
+    const print = { characterIds: [x.characterId], includeSkillText: false, paper: "letter" as const };
+    const more: [string, (s: InventoryStore) => Promise<unknown>][] = [
+      ["print Aldric's sheet", (s) => s.printableSheet(print)],
+      ["make Aldric's PDF", (s) => s.printablePdf(print)],
+      ["search Aldric", (s) => s.search("Draught", { characterId: x.characterId })],
+      ["list Aldric's Epic armor", (s) => s.listEntries(x.characterId, "armor", { rarity: "epic" })],
+      ["list Aldric's Emberforged armor", (s) => s.listEntries(x.characterId, "armor", { itemFamily: "Emberforged" })],
+      ["filter Aldric's history", (s) => s.history(x.characterId, { categories: ["consumables"] })],
+      ["list Aldric's titles", (s) => s.titlesFor(x.characterId)],
+      [
+        "make Bram's title Aldric's own",
+        (s) => s.setTitleScope(x.titleId, { level: "character", characterId: x.characterId }),
+      ],
+      ["read the notice for correcting Aldric's class", (s) => s.classCorrectionNotice(x.characterId, "Mage")],
+      ["correct Aldric's class", (s) => s.correctClass(x.characterId, "Mage", { confirmed: true })],
+      ["bring Wren back from retirement", (s) => s.restoreCharacter(wren.id)],
+      ["make Grey Fang inactive", (s) => s.setActive(wolfId, false)],
+    ];
+    for (const [who, store] of [
+      ["Cass", x.cass],
+      ["a signed-out visitor", x.nobody],
+    ] as const) {
+      for (const [what, attempt] of more) {
+        await expect(attempt(store), `${who} trying to ${what}`).rejects.toThrow(AccessDeniedError);
+      }
+    }
+    expect((await x.bram.character(x.characterId)).className, "Aldric's class").toBe("Warrior");
+    expect(
+      (await x.bram.listCharacters("retired")).map((c) => c.name),
+      "Bram's retired characters",
+    ).toEqual(["Wren"]);
+    expect((await x.bram.listTitles())[0]?.scope, "the scope of Friend of the Forest").toEqual({ level: "player" });
+    const wolf = await x.bram.entry(wolfId);
+    expect(wolf.category === "allies" && wolf.active, "Grey Fang active").toBe(true);
+  },
+);
+
 rule({ req: ["PV-3"], m: "M2" }, "the data layer has no way to browse other users", async () => {
   const x = await setUp();
   const browsing = Object.keys(x.bram).filter((m) => /users|accounts|everyone|admin/i.test(m));

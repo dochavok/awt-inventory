@@ -53,6 +53,25 @@ function maxLength(field: string, value: string, max: number, label: string): st
   return value;
 }
 
+/** An optional link (IN-11): a web address, starting http:// or https://. */
+export function webLink(field: string, value: unknown): string | undefined {
+  const link = optionalText(field, value, LIMITS.link)?.trim();
+  if (link === undefined) return undefined;
+  if (!/^https?:\/\/\S+$/i.test(link) || !parses(link)) {
+    throw new ValidationError(field, "A link must be a web address starting with http:// or https://.");
+  }
+  return link;
+}
+
+function parses(url: string): boolean {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function wholeNumber(field: string, value: unknown, min: number, max: number, label = field): number {
   if (typeof value !== "number" || !Number.isInteger(value) || value < min || value > max) {
     throw new ValidationError(

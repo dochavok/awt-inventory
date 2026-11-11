@@ -7,7 +7,12 @@
 
 import { initializeApp } from "firebase/app";
 import { connectAuthEmulator, getAuth } from "firebase/auth";
-import { connectFirestoreEmulator, getFirestore } from "firebase/firestore";
+import {
+  connectFirestoreEmulator,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
 import { createAccounts, type Accounts } from "../data/accounts";
 import { createFirestoreStore } from "../data/firestore-store";
 import type { InventoryStore } from "../data/store";
@@ -52,7 +57,11 @@ export function createServices(): Services {
   const { config, emulators } = firebaseConfig();
   const app = initializeApp(config);
   const firebaseAuth = getAuth(app);
-  const firestore = getFirestore(app);
+  // NF-3: what the phone has read stays in its own storage, so it's still there
+  // when the app is reopened without signal. Several open tabs share it.
+  const firestore = initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+  });
   if (emulators) {
     const host = window.location.hostname;
     connectAuthEmulator(firebaseAuth, `http://${host}:9099`, { disableWarnings: true });

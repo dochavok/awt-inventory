@@ -14,6 +14,7 @@
 // Each test checks the owner is allowed AND the other user (Cass) and a
 // signed-out visitor are refused (TF-8).
 
+import { LIMITS } from "../../src/data/validate";
 import { rule } from "../support/rule";
 import { expectAllowed, expectRefused, seed, signedIn, signedOut, uid, useEmulator } from "../support/emulator";
 
@@ -300,6 +301,37 @@ rule(
   },
 );
 
+rule(
+  { req: ["IN-11", "TF-11"], m: "M3" },
+  "a history record's link must be a web address starting http:// or https://",
+  async () => {
+    await seedAldric();
+    const mine = signedIn("bram").firestore();
+    const record = (link: string) => ({ event: "acquired", entryId: "aldric-sword", quantity: 1, link });
+    for (const [i, link] of [
+      "mailto:bram@example.test",
+      "ftp://files.example.test/sword",
+      "javascript:void(0)",
+      "discord.example.test/channels/1/2/3",
+      "https://",
+    ].entries()) {
+      await expectRefused(
+        mine.doc(`${character()}/history/bad${i}`).set(record(link)),
+        `a history record with the link ${link}`,
+      );
+    }
+    for (const [i, link] of [
+      "https://discord.example.test/channels/1/2/3",
+      "HTTP://discord.example.test/channels/1/2/3",
+    ].entries()) {
+      await expectAllowed(
+        mine.doc(`${character()}/history/web${i}`).set(record(link)),
+        `a history record with the link ${link}`,
+      );
+    }
+  },
+);
+
 rule({ req: ["PV-2", "TF-11"], m: "M2" }, "a profile's email is the sign-in's own email", async () => {
   await seedAldric();
   const mine = signedIn("bram").firestore();
@@ -347,3 +379,196 @@ rule({ req: ["PV-1", "TF-11"], m: "M2" }, "a listing can't be handed to another 
     "Bram giving his listing to Cass",
   );
 });
+
+// ---------------------------------------------------------------- writes nobody else may make (TF-11)
+
+rule(
+  { req: ["PV-1", "HI-4", "TF-11"], m: "M2" },
+  "only Bram can add a record to Aldric's history; Cass and a signed-out visitor can't",
+  async () => {
+    await seedAldric();
+    const record = { event: "used", entryId: "aldric-sword", quantity: 1 };
+    await expectRefused(
+      signedIn("cass").firestore().doc(`${character()}/history/planted`).set(record),
+      "Cass adding a record to Aldric's history",
+    );
+    await expectRefused(
+      signedOut().firestore().doc(`${character()}/history/planted`).set(record),
+      "a signed-out visitor adding a record to Aldric's history",
+    );
+    await expectAllowed(
+      signedIn("bram").firestore().doc(`${character()}/history/mine`).set(record),
+      "Bram adding a record to Aldric's history",
+    );
+  },
+);
+
+rule(
+  { req: ["SP-1", "SP-2", "TF-11"], m: "M3" },
+  "nobody else can send, change or delete Bram's reports, and once sent Bram can't change one either",
+  async () => {
+    await seedAldric();
+    const reports = `users/${bram()}/reports`;
+    const report = {
+      number: 12345678,
+      kind: "bug",
+      subject: "Totals",
+      message: "The CM looked wrong.",
+      delivery: "pending",
+    };
+    await seed({ [`${reports}/r1`]: report });
+    for (const [who, db] of [
+      ["Cass", signedIn("cass").firestore()],
+      ["a signed-out visitor", signedOut().firestore()],
+    ] as const) {
+      await expectRefused(db.doc(`${reports}/r2`).set(report), `${who} sending a report in Bram's name`);
+      await expectRefused(db.doc(`${reports}/r1`).update({ message: "Changed." }), `${who} changing Bram's report`);
+      await expectRefused(db.doc(`${reports}/r1`).delete(), `${who} deleting Bram's report`);
+    }
+    const mine = signedIn("bram").firestore();
+    await expectRefused(
+      mine.doc(`${reports}/r1`).update({ delivery: "issue-created" }),
+      "Bram marking his own report delivered",
+    );
+    await expectRefused(
+      mine.doc(`${reports}/r1`).update({ message: "A new message after sending." }),
+      "Bram changing his report's message after sending it",
+    );
+    await expectAllowed(mine.doc(`${reports}/r3`).set(report), "Bram sending another report");
+  },
+);
+
+rule(
+  { req: ["NF-13", "TF-11"], m: "M2" },
+  "no signed-in user can add to, change or remove the invite list, not even their own email",
+  async () => {
+    await seed({ "invites/bram@example.test": { addedBy: "maintainer" } });
+    const cass = signedIn("cass").firestore();
+    await expectRefused(cass.doc("invites/cass@example.test").set({ addedBy: "cass" }), "Cass inviting herself");
+    await expectRefused(
+      cass.doc(`users/${uid("cass")}`).set({ displayName: "Cassia Vane" }),
+      "Cass, still not invited, creating her profile",
+    );
+    const mine = signedIn("bram").firestore();
+    await expectRefused(mine.doc("invites/bram@example.test").set({ addedBy: "bram" }), "Bram changing his own invite");
+    await expectRefused(mine.doc("invites/bram@example.test").delete(), "Bram removing his own invite");
+    await expectRefused(mine.doc("invites/wren@example.test").set({ addedBy: "bram" }), "Bram inviting someone else");
+    await expectAllowed(
+      mine.doc(`users/${bram()}`).set({ displayName: "Bramblewick" }),
+      "Bram, who is invited, creating his profile",
+    );
+  },
+);
+
+rule(
+  { req: ["PV-1", "PV-3", "TF-11"], m: "M2" },
+  "nobody can query a kind of record across every user's account",
+  async () => {
+    await seedAldric();
+    await seed({ [`users/${bram()}/reports/r1`]: { kind: "bug", subject: "Totals", message: "The CM looked wrong." } });
+    for (const [who, db] of [
+      ["Cass", signedIn("cass").firestore()],
+      ["Bram", signedIn("bram").firestore()],
+    ] as const) {
+      for (const group of ["characters", "entries", "history", "titles", "reports"]) {
+        await expectRefused(db.collectionGroup(group).get(), `${who} querying every account's ${group}`);
+      }
+    }
+    await expectAllowed(
+      signedIn("bram").firestore().collection(`${character()}/entries`).get(),
+      "Bram listing Aldric's entries",
+    );
+  },
+);
+
+rule(
+  { req: ["PV-1", "TF-11"], m: "M2" },
+  "Bram can't change his listing to carry notes or the character's name",
+  async () => {
+    await seedListingOwner();
+    await seed({
+      "listings/l1": { ownerUid: bram(), ownerName: "Bramblewick", name: "Duskfang", category: "weapons", quantity: 1 },
+    });
+    const mine = signedIn("bram").firestore();
+    await expectRefused(mine.doc("listings/l1").update({ notes: "Private note" }), "Bram adding notes to his listing");
+    await expectRefused(
+      mine.doc("listings/l1").update({ characterName: "Aldric" }),
+      "Bram adding Aldric's name to his listing",
+    );
+    await expectAllowed(mine.doc("listings/l1").update({ quantity: 2 }), "Bram changing his listing's quantity");
+  },
+);
+
+// ---------------------------------------------------------------- the app's limits are the server's (NF-6)
+
+/** A value of exactly `max` characters is allowed and one more is refused. */
+async function atTheLimit(what: string, max: number, write: (value: string, attempt: string) => Promise<unknown>) {
+  await expectAllowed(write("x".repeat(max), "ok"), `${what} of ${max} characters`);
+  await expectRefused(write("x".repeat(max + 1), "over"), `${what} of ${max + 1} characters`);
+}
+
+rule(
+  { req: ["NF-6", "TF-11"], m: "M2" },
+  "the server's size limits on profiles, characters, entries and titles are the app's",
+  async () => {
+    await seedAldric();
+    const mine = signedIn("bram").firestore();
+    await atTheLimit("Bram's display name", LIMITS.displayName, (displayName) =>
+      mine.doc(`users/${bram()}`).set({ displayName }, { merge: true }),
+    );
+    for (const field of ["name", "notes"] as const) {
+      await atTheLimit(`a character's ${field}`, LIMITS[field], (value, n) =>
+        mine
+          .doc(`users/${bram()}/characters/${field}-${n}`)
+          .set({ name: "Wren", className: "Rogue", level: 1, [field]: value }),
+      );
+    }
+    for (const [field, max] of [
+      ["name", LIMITS.name],
+      ["description", LIMITS.description],
+      ["notes", LIMITS.notes],
+      ["itemFamily", LIMITS.shortText],
+      ["weaponGroup", LIMITS.shortText],
+      ["allyType", LIMITS.shortText],
+      ["tier", LIMITS.shortText],
+    ] as const) {
+      await atTheLimit(`an entry's ${field}`, max, (value, n) =>
+        mine
+          .doc(`${character()}/entries/${field}-${n}`)
+          .set({ category: "consumables", name: "Tonic", quantity: 1, [field]: value }),
+      );
+    }
+    for (const field of ["name", "description"] as const) {
+      await atTheLimit(`a title's ${field}`, LIMITS[field], (value, n) =>
+        mine.doc(`users/${bram()}/titles/${field}-${n}`).set({ name: "Made-up Title", [field]: value }),
+      );
+    }
+  },
+);
+
+rule(
+  { req: ["NF-6", "IN-11", "SP-1", "TF-11"], m: "M3" },
+  "the server's size limits on history notes, sources, links and reports are the app's",
+  async () => {
+    await seedAldric();
+    const mine = signedIn("bram").firestore();
+    const record = { event: "acquired", entryId: "aldric-sword", quantity: 1 };
+    await atTheLimit("a history note", LIMITS.notes, (note, n) =>
+      mine.doc(`${character()}/history/note-${n}`).set({ ...record, note }),
+    );
+    await atTheLimit("a history source", LIMITS.shortText, (source, n) =>
+      mine.doc(`${character()}/history/source-${n}`).set({ ...record, source }),
+    );
+    const site = "https://example.test/";
+    await atTheLimit("a history link", LIMITS.link, (padding, n) =>
+      mine.doc(`${character()}/history/link-${n}`).set({ ...record, link: site + padding.slice(site.length) }),
+    );
+    const report = { kind: "bug", subject: "Totals", message: "The CM looked wrong." };
+    await atTheLimit("a report subject", LIMITS.reportSubject, (subject, n) =>
+      mine.doc(`users/${bram()}/reports/subject-${n}`).set({ ...report, subject }),
+    );
+    await atTheLimit("a report message", LIMITS.reportMessage, (message, n) =>
+      mine.doc(`users/${bram()}/reports/message-${n}`).set({ ...report, message }),
+    );
+  },
+);
