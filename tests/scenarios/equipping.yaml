@@ -130,6 +130,7 @@
 
 - id: not-equippable
   req: [EQ-2, EQ-7]
+  q: [Q4]
   milestone: M4
   title: A consumable can't be equipped anywhere
   given: { character: aldric }
