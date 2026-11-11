@@ -210,10 +210,7 @@ rule(
   { req: ["RD-8"], q: ["Q10"], m: "M2" },
   "until the owner agrees, data/'s level chart holds no numbers: every bonus and heart is 0 and every die 1d1",
   () => {
-    const chart = parse(readFileSync(new URL("level-chart.yaml", DATA), "utf8")) as Record<
-      string,
-      { levels: { level: number; classBonus: unknown; dice: unknown; hearts: unknown }[] }
-    >;
+    const chart = loadReferenceData(readFiles(DATA)).levelChart;
     expect(Object.keys(chart).sort(), "the classes in data/level-chart.yaml").toEqual(["Mage", "Rogue", "Warrior"]);
     for (const [className, { levels }] of Object.entries(chart)) {
       expect(levels.length, `${className}'s levels in data/`).toBeGreaterThan(0);

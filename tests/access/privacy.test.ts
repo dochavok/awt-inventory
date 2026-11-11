@@ -320,14 +320,15 @@ rule(
         `a history record with the link ${link}`,
       );
     }
-    await expectAllowed(
-      mine.doc(`${character()}/history/web`).set(record("https://discord.example.test/channels/1/2/3")),
-      "a history record with an https link",
-    );
-    await expectAllowed(
-      mine.doc(`${character()}/history/web2`).set(record("HTTP://discord.example.test/channels/1/2/3")),
-      "a history record with a capitalised http link",
-    );
+    for (const [i, link] of [
+      "https://discord.example.test/channels/1/2/3",
+      "HTTP://discord.example.test/channels/1/2/3",
+    ].entries()) {
+      await expectAllowed(
+        mine.doc(`${character()}/history/web${i}`).set(record(link)),
+        `a history record with the link ${link}`,
+      );
+    }
   },
 );
 
@@ -537,11 +538,8 @@ rule(
           .set({ category: "consumables", name: "Tonic", quantity: 1, [field]: value }),
       );
     }
-    for (const [field, max] of [
-      ["name", LIMITS.name],
-      ["description", LIMITS.description],
-    ] as const) {
-      await atTheLimit(`a title's ${field}`, max, (value, n) =>
+    for (const field of ["name", "description"] as const) {
+      await atTheLimit(`a title's ${field}`, LIMITS[field], (value, n) =>
         mine.doc(`users/${bram()}/titles/${field}-${n}`).set({ name: "Made-up Title", [field]: value }),
       );
     }
