@@ -119,20 +119,33 @@ rule(
     await seedProfile(cass, "cass");
     await seedCharacter(cass, "brin");
     await accounts.signUpWithEmail(signUp);
+    const oldUid = auth.currentUser()!.uid;
     const rook = await store.createCharacter({ name: "Rook", className: "Warrior", level: 1 });
-    await store.addEntry(rook.id, { category: "consumables", name: "Ember Tonic" });
+    const retired = await store.createCharacter({ name: "Old Rook", className: "Warrior", level: 1 });
+    await store.retireCharacter(retired.id);
+    const tonic = await store.addEntry(rook.id, { category: "consumables", name: "Ember Tonic" });
     await store.addTitle({ name: "Hero of the Bridge" });
+    const rookHistory = () => [...w.db.history.values()].filter((h) => h.record.characterId === rook.id);
+    expect(rookHistory().length, "Rook's history records before deleting").toBeGreaterThan(0);
 
     await accounts.deleteAccount("Wrenna");
     expect(auth.account("wren@example.test"), "Wrenna's sign-in").toBeUndefined();
     expect(auth.currentUser(), "signed in after deleting").toBeNull();
 
-    // Signing up again with the same email starts empty.
-    await accounts.signUpWithEmail(signUp);
-    expect(await store.listCharacters("main"), "characters after signing up again").toEqual([]);
-    expect(await store.listCharacters("retired"), "retired characters after signing up again").toEqual([]);
-    expect(await store.listTitles(), "titles after signing up again").toEqual([]);
-    await expect(store.character(rook.id), "reading the old Rook").rejects.toThrow(NotFoundError);
+    // TF-3: read as the deleted account's own user, and look in the database for
+    // what no store can reach once Rook is gone.
+    const old = w.forAuth({ currentUser: () => ({ uid: oldUid }) });
+    expect(await old.listCharacters("main"), "the deleted account's characters").toEqual([]);
+    expect(await old.listCharacters("retired"), "the deleted account's retired characters").toEqual([]);
+    expect(await old.listTitles(), "the deleted account's titles").toEqual([]);
+    await expect(old.character(rook.id), "reading the old Rook").rejects.toThrow(NotFoundError);
+    await expect(old.entry(tonic.id), "reading the old Ember Tonic").rejects.toThrow(NotFoundError);
+    expect(
+      [...w.db.entries.values()].filter((e) => e.characterId === rook.id),
+      "Rook's entries left in the database",
+    ).toEqual([]);
+    expect(rookHistory(), "Rook's history records left in the database").toEqual([]);
+    expect(w.db.profiles.has(oldUid), "Wrenna's profile left in the database").toBe(false);
     expect(
       (await cass.listCharacters("main")).map((c) => c.name),
       "Cass's characters",
