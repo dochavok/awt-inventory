@@ -401,6 +401,26 @@ rule({ req: ["IN-14"], m: "M2" }, "trading more than the quantity is refused", a
   expect((await bram.entry(id("aldric-draught"))).quantity, "Healing Draughts").toBe(3);
 });
 
+rule(
+  { req: ["IN-13", "IN-14"], m: "M2" },
+  "a draught marked used by mistake can be restored after the rest were given away",
+  async () => {
+    const { bram, characterId, id } = await bramWithAldric();
+    const used = await bram.markUsed(id("aldric-draught"));
+    await bram.markTraded(id("aldric-draught"), { kind: "given-away" });
+    await expect(bram.entry(id("aldric-draught")), "reading the draught once all are gone").rejects.toThrow(
+      NotFoundError,
+    );
+    await bram.restoreUsed(used.id);
+    expect((await bram.entry(id("aldric-draught"))).quantity, "Healing Draughts after restoring").toBe(1);
+    const consumables = (await bram.listEntries(characterId, "consumables")).map((e) => [
+      e.entry.category !== "skills" && e.entry.name,
+      e.entry.quantity,
+    ]);
+    expect(consumables, "Aldric's consumables").toEqual([["Healing Draught", 1]]);
+  },
+);
+
 rule({ req: ["IN-14", "EQ-4"], m: "M4" }, "trading an equipped entry unequips it first", async () => {
   const { bram, characterId, id } = await bramWithAldric({ full: true });
   await bram.markTraded(id("aldric-helm"), { kind: "traded" });

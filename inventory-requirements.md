@@ -166,7 +166,7 @@ A character's inventory has seven categories. This section covers every category
 
 **IN-12 · Must · M2: Used.** A consumable or component can be marked *used*. Its quantity drops by one, and the history records it with an optional note. At zero, the entry leaves the list but stays in the history (IN-16).
 
-**IN-13 · Must · M2: Restoring.** A *used* history record can be restored, for example if it was marked used by mistake. The quantity goes back up by one (bringing the entry back if it was at zero), and the history records the restore next to the original.
+**IN-13 · Must · M2: Restoring.** A *used* history record can be restored, for example if it was marked used by mistake. The quantity goes back up by one (bringing the entry back if it was at zero, whether it was used up or the rest was traded or given away), and the history records the restore next to the original.
 
 **IN-14 · Must · M2: Traded or given away.** An entry in any category except Skills can be marked *traded* or *given away*, for all or part of its quantity, with an optional note of who to. If it was equipped or active, it's unequipped first. The history records it with a snapshot of the entry (IN-16). The recipient isn't affected: a transfer between accounts is part of trading (section 18).
 

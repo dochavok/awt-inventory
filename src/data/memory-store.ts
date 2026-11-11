@@ -26,7 +26,11 @@ interface StoredRecord {
 export class MemoryDatabase {
   readonly profiles = new Map<string, Profile>();
   readonly characters = new Map<Id, Owned<Character>>();
-  /** Entries, including used-up ones kept at quantity 0 so a restore can bring them back (IN-13). */
+  /**
+   * Entries, including ones used up or traded away, kept at quantity 0 so a
+   * restore can bring them back (IN-13). At 0 they're out of the inventory:
+   * not listed, and reading one says it's not found.
+   */
   readonly entries = new Map<Id, Entry>();
   readonly history = new Map<Id, StoredRecord>();
   readonly titles = new Map<Id, Owned<Title>>();
@@ -565,8 +569,8 @@ export function createMemoryStore(db: MemoryDatabase, context: StoreContext): In
         snapshot: snapshot(entry, quantity),
         summary: `${kind === "traded" ? "Traded" : "Gave away"} ${quantity} × ${entry.name}`,
       });
-      if (quantity === entry.quantity) db.entries.delete(entryId);
-      else entry.quantity -= quantity;
+      // At zero it leaves the inventory, but stays so a mistaken "used" can still be restored (IN-13).
+      entry.quantity -= quantity;
       return traded;
     },
 

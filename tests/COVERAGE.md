@@ -41,8 +41,8 @@ Tests shows each file with the number of its tests that name the requirement.
 | IN-10 | Must | M2 | data/inventory.test.ts (2) |
 | IN-11 | Should | M3 | data/inventory.test.ts (1) |
 | IN-12 | Must | M2 | access/offline.test.ts (1), data/inventory.test.ts (3) |
-| IN-13 | Must | M2 | data/inventory.test.ts (3) |
-| IN-14 | Must | M2 | data/grants.test.ts (1), data/inventory.test.ts (4) |
+| IN-13 | Must | M2 | data/inventory.test.ts (4) |
+| IN-14 | Must | M2 | data/grants.test.ts (1), data/inventory.test.ts (5) |
 | IN-15 | Must | M2 | access/privacy.test.ts (1), data/inventory.test.ts (3), data/skills.test.ts (1) |
 | IN-16 | Must | M2 | data/inventory.test.ts (3) |
 | SK-1 | Must | M2 | data/skills.test.ts (1), rules/skills.test.ts (4) |
