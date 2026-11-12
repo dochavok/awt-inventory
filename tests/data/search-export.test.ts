@@ -80,6 +80,80 @@ rule({ req: ["SE-1"], m: "M3" }, "search ignores case and matches the start of a
 });
 
 rule(
+  { req: ["SE-1"], m: "M3" },
+  "search matches inside a word too, with matches at the start of a word first",
+  async () => {
+    const { bram, aldric } = await bramWithTwo();
+    const id = aldric.character.id;
+    await bram.addSkill(id, { skillId: "twin-fangs", howGained: "other", levelGained: 1 });
+    const names = (await bram.search("fang", { characterId: id })).map((r) => r.name);
+    expect(names, `Aldric's results for "fang", in order`).toEqual(["Grey Fang", "Twin Fangs", "Duskfang"]);
+  },
+);
+
+rule(
+  { req: ["SE-1"], m: "M3" },
+  "with several words typed, a result comes first only if every word starts a word",
+  async () => {
+    const { bram, aldric } = await bramWithTwo();
+    const id = aldric.character.id;
+    await bram.addEntry(id, { category: "consumables", name: "Rune Fang" });
+    const names = (await bram.search("fang r", { characterId: id })).map((r) => r.name);
+    // In Grey Fang, "r" is only inside "grey".
+    expect(names, `Aldric's results for "fang r", in order`).toEqual(["Rune Fang", "Grey Fang"]);
+  },
+);
+
+rule({ req: ["SE-1"], m: "M3" }, "search ignores accents, however the phone wrote them", async () => {
+  const { bram, aldric } = await bramWithTwo();
+  const id = aldric.character.id;
+  // é written as e plus an accent mark, as some keyboards and pasted text do.
+  await bram.addEntry(id, { category: "consumables", name: "Cafe\u0301 Tonic" });
+  for (const query of ["caf\u00e9", "cafe\u0301", "af\u00e9", "cafe", "CAFE", "cafe tonic"]) {
+    const names = (await bram.search(query, { characterId: id })).map((r) => r.name);
+    expect(names, `Aldric's results for "${query}"`).toEqual(["Cafe\u0301 Tonic"]);
+  }
+  // An accent in the middle of a word doesn't split it.
+  await bram.addEntry(id, { category: "consumables", name: "Re\u0301sine Salve" });
+  const resine = (await bram.search("resine", { characterId: id })).map((r) => r.name);
+  expect(resine, `Aldric's results for "resine"`).toEqual(["Re\u0301sine Salve"]);
+  // The usual way: é stored as one character.
+  await bram.addEntry(id, { category: "consumables", name: "Cr\u00e8me Draught" });
+  const creme = (await bram.search("creme", { characterId: id })).map((r) => r.name);
+  expect(creme, `Aldric's results for "creme"`).toEqual(["Cr\u00e8me Draught"]);
+  // A mark that makes a different letter (Japanese が is not か) still counts.
+  await bram.addEntry(id, { category: "consumables", name: "\u304c\u304d Charm" });
+  expect(await bram.search("\u304b\u304d", { characterId: id }), `Aldric's results for "\u304b\u304d"`).toEqual([]);
+});
+
+rule({ req: ["SE-1"], m: "M3" }, "with several words typed, each must be in the same field", async () => {
+  const { bram, aldric } = await bramWithTwo();
+  const id = aldric.character.id;
+  await bram.updateEntry(aldric.entries.get("aldric-shard")!.id, { notes: "Trade at dusk" });
+  const together = await bram.search("trade dusk", { characterId: id });
+  expect(
+    together.map((r) => [r.name, r.matched]),
+    `Aldric's results for "trade dusk"`,
+  ).toEqual([["Ember Shard", ["notes"]]]);
+  // "shard" is only in its name and "dusk" only in its notes.
+  expect(await bram.search("shard dusk", { characterId: id }), `Aldric's results for "shard dusk"`).toEqual([]);
+});
+
+rule(
+  { req: ["SE-1", "SE-2"], m: "M3" },
+  "searching all characters puts matches at the start of a word first, whichever character has them",
+  async () => {
+    const { bram, aldric } = await bramWithTwo();
+    await bram.addEntry(aldric.character.id, { category: "consumables", name: "Absorbing Salve" });
+    const results = await bram.search("orb", { allCharacters: true });
+    expect(
+      results.map((r) => `${r.characterName}: ${r.name}`),
+      `results for "orb" across Bram's characters, in order`,
+    ).toEqual(["Isolde: Glass Orb", "Aldric: Absorbing Salve"]);
+  },
+);
+
+rule(
   { req: ["SE-2", "CH-5"], m: "M3" },
   "searching all characters includes retired ones, and each result names its character",
   async () => {

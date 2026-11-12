@@ -336,7 +336,7 @@ A two-handed weapon gives no Dual Wielding warning until Q1 is answered.
 
 ### 10.1 Search
 
-**SE-1 · Must · M3: Search a character.** A search box finds a character's entries in every category, skills included, by name, description and notes. Results update as the user types, and each one shows its category.
+**SE-1 · Must · M3: Search a character.** A search box finds a character's entries in every category, skills included, by name, description and notes. Results update as the user types, and each one shows its category. A search ignores case and accents and matches anywhere in a word: "fang" finds both Twin Fangs and Duskfang, and "cafe" finds Café. With several words typed, each must appear in the same name, description or notes. Results where every word typed starts a word come first, so Twin Fangs comes before Duskfang. Within those, and then among the rest, results are in order of character name, then entry name.
 
 **SE-2 · Must · M3: Search all characters.** The user can widen the search to all of their characters, retired ones included. Each result then also shows its character.
 
