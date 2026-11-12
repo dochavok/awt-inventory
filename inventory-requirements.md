@@ -487,7 +487,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 - Deploy credentials live only in a GitHub environment that only `main` can use.
 - Dependabot keeps dependencies up to date.
 
-**NF-12 · Must · M3: Error reports.** Errors in the app are reported to the maintainer automatically. Reports never include game records, display names or email addresses. Refusals the app shows the user, such as a name already in use or a full slot, aren't errors and aren't reported.
+**NF-12 · Must · M3: Error reports.** Errors in the app are reported to the maintainer automatically. Reports never include game records, display names or email addresses. Refusals the app shows the user, such as a name already in use or a full slot, aren't errors and aren't reported. A change the server refuses when it syncs is still reported, so the maintainer sees the app and the server disagreeing.
 
 **NF-13 · Must · M2: Invite-only before 1.0.** Until release 1.0, only accounts on an allow list kept by the maintainer can sign up. Anyone else sees "not open yet". The list is removed at 1.0.
 
