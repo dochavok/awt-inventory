@@ -455,13 +455,13 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 **NF-3 · Must · M3: Working offline.**
 
 - After a user has opened the app with signal on a phone, everything in their account stays on that phone. Without signal they can view, search and export it, and make any change. Changes sync when signal returns.
-- If two devices change the same field while offline, the change made later wins, whichever phone gets signal first. Quantity changes are combined (one *used* on each of two phones means two fewer). History records from both are kept. If that takes a quantity below 0 (two phones each use the last one), the entry counts as gone, as at 0, and restoring a use brings it back with 1. A clash that leaves too much equipped shows the over-limit alert (EQ-8).
+- If two devices change the same field while offline, the change made later wins, whichever phone gets signal first. Quantity changes are combined (one *used* on each of two phones means two fewer). History records from both are kept. If that takes a quantity below 0 (two phones each use the last one), the entry counts as gone, as at 0, and restoring a use brings it back with 1. If two phones each create a character with the same name while offline, or rename one to the same name, the one that reaches the server first is kept. The other is refused when its phone gets signal, together with anything added to it on that phone, and the app tells the user which character was refused. A clash that leaves too much equipped shows the over-limit alert (EQ-8).
 - These need signal: signing in on a new device, creating an account, and browsing trade listings (later). Reports written offline are sent when signal returns.
 - The app shows when it's offline and how many changes are waiting to sync.
 
 **NF-4 · Must · M2+: Speed.**
 
-- On a phone with ordinary mobile signal, a character's page opens within 2 seconds.
+- On a phone with ordinary mobile signal (tested as 1.6 Mbps with a 150 ms delay), a character's page opens within 2 seconds, once the app has been opened on that phone before.
 - After a change, totals and slot counts update in under 0.2 seconds.
 
 **NF-5 · Must · M2+: Scale and cost.** The app is built for up to about 500 users, each with a few characters of a few hundred entries. At that size it runs on a free or low-cost hosting plan, and its costs are recorded in the brain's `services.md`.
@@ -487,7 +487,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 - Deploy credentials live only in a GitHub environment that only `main` can use.
 - Dependabot keeps dependencies up to date.
 
-**NF-12 · Must · M3: Error reports.** Errors in the app are reported to the maintainer automatically. Reports never include game records, display names or email addresses.
+**NF-12 · Must · M3: Error reports.** Errors in the app are reported to the maintainer automatically. Reports never include game records, display names or email addresses. Refusals the app shows the user, such as a name already in use or a full slot, aren't errors and aren't reported.
 
 **NF-13 · Must · M2: Invite-only before 1.0.** Until release 1.0, only accounts on an allow list kept by the maintainer can sign up. Anyone else sees "not open yet". The list is removed at 1.0.
 
