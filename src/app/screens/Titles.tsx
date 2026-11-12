@@ -10,69 +10,63 @@ import { Feedback, useAction } from "../useAction";
 
 const PLAYER = "player";
 
-/** The "Applies to" choice: every character, or one. */
-function scopeValue(scope: TitleScope): string {
-  return scope.level === "player" ? PLAYER : scope.characterId;
+/** What the add and edit forms hold. `appliesTo` is PLAYER (every character) or a character's ID. */
+interface Fields {
+  name: string;
+  description: string;
+  earned: string;
+  appliesTo: string;
 }
+
+const EMPTY: Fields = { name: "", description: "", earned: "", appliesTo: PLAYER };
+
+const fieldsOf = (title: Title): Fields => ({
+  name: title.name,
+  description: title.description ?? "",
+  earned: title.earned ?? "",
+  appliesTo: title.scope.level === "player" ? PLAYER : title.scope.characterId,
+});
 
 function toScope(value: string): TitleScope {
   return value === PLAYER ? { level: "player" } : { level: "character", characterId: value };
 }
 
-function AppliesTo({
+function TitleFields({
   characters,
   value,
   onChange,
 }: {
   characters: Character[];
-  value: string;
-  onChange: (value: string) => void;
+  value: Fields;
+  onChange: (value: Fields) => void;
 }) {
-  return (
-    <label>
-      Applies to
-      <select value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value={PLAYER}>All characters</option>
-        {characters.map((c) => (
-          <option key={c.id} value={c.id}>
-            Only {c.name}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-/** The fields a title is added or edited with. */
-function TitleFields({
-  name,
-  description,
-  earned,
-  onName,
-  onDescription,
-  onEarned,
-}: {
-  name: string;
-  description: string;
-  earned: string;
-  onName: (v: string) => void;
-  onDescription: (v: string) => void;
-  onEarned: (v: string) => void;
-}) {
+  const set = (field: keyof Fields) => (e: { target: { value: string } }) =>
+    onChange({ ...value, [field]: e.target.value });
   return (
     <>
       <label>
         Name
-        <input required maxLength={LIMITS.name} value={name} onChange={(e) => onName(e.target.value)} />
+        <input required maxLength={LIMITS.name} value={value.name} onChange={set("name")} />
       </label>
       <label>
         Description
-        <textarea maxLength={LIMITS.description} value={description} onChange={(e) => onDescription(e.target.value)} />
+        <textarea maxLength={LIMITS.description} value={value.description} onChange={set("description")} />
         <span className="hint">Optional, but worth adding: it&apos;s shown with the title.</span>
       </label>
       <label>
         Date earned
-        <input type="date" value={earned} onChange={(e) => onEarned(e.target.value)} />
+        <input type="date" value={value.earned} onChange={set("earned")} />
+      </label>
+      <label>
+        Applies to
+        <select value={value.appliesTo} onChange={set("appliesTo")}>
+          <option value={PLAYER}>All characters</option>
+          {characters.map((c) => (
+            <option key={c.id} value={c.id}>
+              Only {c.name}
+            </option>
+          ))}
+        </select>
       </label>
     </>
   );
@@ -177,25 +171,19 @@ function AddTitle({
   characters: Character[];
   onAdded: () => void;
 }) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [earned, setEarned] = useState("");
-  const [appliesTo, setAppliesTo] = useState(PLAYER);
+  const [fields, setFields] = useState(EMPTY);
   const add = useAction();
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     void add.run(async () => {
       await services.store.addTitle({
-        name,
-        ...(description.trim() ? { description } : {}),
-        ...(earned ? { earned } : {}),
-        scope: toScope(appliesTo),
+        name: fields.name,
+        ...(fields.description.trim() ? { description: fields.description } : {}),
+        ...(fields.earned ? { earned: fields.earned } : {}),
+        scope: toScope(fields.appliesTo),
       });
-      setName("");
-      setDescription("");
-      setEarned("");
-      setAppliesTo(PLAYER);
+      setFields(EMPTY);
       onAdded();
     });
   };
@@ -203,15 +191,7 @@ function AddTitle({
   return (
     <form className="card" aria-label="Add a title" onSubmit={submit}>
       <h2>Add a title</h2>
-      <TitleFields
-        name={name}
-        description={description}
-        earned={earned}
-        onName={setName}
-        onDescription={setDescription}
-        onEarned={setEarned}
-      />
-      <AppliesTo characters={characters} value={appliesTo} onChange={setAppliesTo} />
+      <TitleFields characters={characters} value={fields} onChange={setFields} />
       <Feedback error={add.error} notice={null} />
       <button type="submit" disabled={add.busy}>
         Add title
@@ -234,36 +214,26 @@ function EditTitle({
   onCancel: () => void;
 }) {
   const { store } = services;
-  const [name, setName] = useState(title.name);
-  const [description, setDescription] = useState(title.description ?? "");
-  const [earned, setEarned] = useState(title.earned ?? "");
-  const [appliesTo, setAppliesTo] = useState(scopeValue(title.scope));
+  const [fields, setFields] = useState(() => fieldsOf(title));
   const save = useAction();
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     void save.run(async () => {
+      const before = fieldsOf(title);
       const patch: Partial<Pick<Title, "name" | "description" | "earned">> = {};
-      if (name.trim() !== title.name) patch.name = name;
-      if (description !== (title.description ?? "")) patch.description = description;
-      if (earned !== (title.earned ?? "")) patch.earned = earned;
+      if (fields.name.trim() !== before.name) patch.name = fields.name;
+      if (fields.description !== before.description) patch.description = fields.description;
+      if (fields.earned !== before.earned) patch.earned = fields.earned;
       if (Object.keys(patch).length > 0) await store.updateTitle(title.id, patch);
-      if (appliesTo !== scopeValue(title.scope)) await store.setTitleScope(title.id, toScope(appliesTo));
+      if (fields.appliesTo !== before.appliesTo) await store.setTitleScope(title.id, toScope(fields.appliesTo));
       onDone();
     });
   };
 
   return (
     <form aria-label={`Edit ${title.name}`} onSubmit={submit}>
-      <TitleFields
-        name={name}
-        description={description}
-        earned={earned}
-        onName={setName}
-        onDescription={setDescription}
-        onEarned={setEarned}
-      />
-      <AppliesTo characters={characters} value={appliesTo} onChange={setAppliesTo} />
+      <TitleFields characters={characters} value={fields} onChange={setFields} />
       <Feedback error={save.error} notice={null} />
       <div className="actions">
         <button type="submit" disabled={save.busy}>

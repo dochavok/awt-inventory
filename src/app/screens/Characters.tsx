@@ -152,9 +152,6 @@ export function CharacterPage({ services, id }: { services: Services; id: string
   };
 
   useEffect(() => {
-    setCharacter(null);
-    setMissing(false);
-    setPanel(null);
     void load.run(async () => {
       try {
         await refresh();
@@ -163,8 +160,8 @@ export function CharacterPage({ services, id }: { services: Services; id: string
         setMissing(true);
       }
     });
-    // Load when the page opens, and again for another character.
-  }, [id]);
+    // Load once when the page opens; App gives each character's page its own key.
+  }, []);
 
   if (missing) {
     return (

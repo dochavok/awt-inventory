@@ -62,10 +62,7 @@ export function App({ services }: { services: Services }) {
 
   return (
     <>
-      <Header
-        signedIn={inApp}
-        help={helpFor(inApp || route?.screen === "help" || route?.screen === "privacy" ? route : null)}
-      />
+      <Header signedIn={inApp} help={helpFor(route, inApp)} />
       {inApp && <ConnectionBar store={services.store} />}
       {inApp && <RefusedNotices subscribe={services.onWriteRefused} />}
       <main className="page">{screen}</main>

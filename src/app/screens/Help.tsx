@@ -25,9 +25,14 @@ const ordered = [...pages].sort((a, b) => rank(a.slug) - rank(b.slug) || a.title
 
 export const helpPage = (slug: string) => pages.find((p) => p.slug === slug);
 
-/** The help page for each screen (DOC-1). */
-export function helpFor(route: Route | null): string {
-  switch (route?.screen) {
+/**
+ * The help page for the screen showing (DOC-1). Signed out, every screen but
+ * Help and Privacy is the sign-in or sign-up screen, whose page is Getting started.
+ */
+export function helpFor(route: Route | null, signedIn: boolean): string {
+  const screen = route?.screen;
+  if (!signedIn && screen !== "help" && screen !== "privacy") return "help/getting-started";
+  switch (screen) {
     case "characters":
     case "new-character":
     case "character":

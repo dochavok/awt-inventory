@@ -52,8 +52,20 @@ function linkPages(html: string): string {
   return html.replace(/href="([a-z0-9-]+)\.md(#[^"]*)?"/g, 'href="#/help/$1"');
 }
 
+/** Pages other screens show (Terms at sign-up, the Privacy screen): the build fails without them. */
+const REQUIRED = ["terms-of-use", "privacy", "getting-started", "characters-and-titles"];
+
 export function readHelpPages(root: string): HelpPage[] {
-  const dir = join(root, "docs");
+  const pages = readPages(root);
+  const missing = REQUIRED.filter((slug) => !pages.some((p) => p.slug === slug));
+  if (missing.length > 0) throw new Error(`docs/ has no ${missing.map((s) => `${s}.md`).join(", ")}`);
+  return pages;
+}
+
+const docsDir = (root: string) => join(root, "docs");
+
+function readPages(root: string): HelpPage[] {
+  const dir = docsDir(root);
   return readdirSync(dir)
     .filter((f) => f.endsWith(".md") && !NOT_HELP.includes(f))
     .sort()
@@ -80,7 +92,7 @@ export function helpPages(root: string): Plugin {
     },
     load(id) {
       if (id !== RESOLVED) return undefined;
-      const dir = join(root, "docs");
+      const dir = docsDir(root);
       for (const file of readdirSync(dir)) this.addWatchFile(join(dir, file));
       return `export default ${JSON.stringify(readHelpPages(root))};`;
     },

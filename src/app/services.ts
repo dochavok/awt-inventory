@@ -65,9 +65,13 @@ function referenceData(): ReferenceData {
   );
 }
 
+/** How long after reading the whole account it's read again when signal returns. */
+const RELOAD_MS = 15 * 60_000;
+
 export function createServices(): Services {
   const ref = referenceData();
   const refusedListeners = new Set<(change: RefusedChange) => void>();
+  let lastLoad: { uid: string; at: number } | undefined;
   const { config, emulators } = firebaseConfig();
   const app = initializeApp(config);
   const firebaseAuth = getAuth(app);
@@ -112,7 +116,11 @@ export function createServices(): Services {
     },
     async loadWholeAccount() {
       const uid = firebaseAuth.currentUser?.uid;
-      if (uid) await loadWholeAccount(firestore, uid);
+      // Every document read is billed (NF-5): signal coming and going on a patchy connection
+      // doesn't read everything again each time.
+      if (!uid || (lastLoad?.uid === uid && Date.now() - lastLoad.at < RELOAD_MS)) return;
+      await loadWholeAccount(firestore, uid);
+      lastLoad = { uid, at: Date.now() };
     },
   };
 }

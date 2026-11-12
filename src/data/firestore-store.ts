@@ -91,6 +91,19 @@ function fields(snap: DocumentSnapshot): DocumentData {
 
 const characterOf = (id: Id): Id | undefined => (id.includes(SEP) ? id.split(SEP)[0] : undefined);
 
+/** Where a user's records live (the layout above). */
+function accountRefs(db: Firestore, uid: string) {
+  const user = doc(db, "users", uid);
+  return {
+    user,
+    characters: collection(user, "characters"),
+    titles: collection(user, "titles"),
+    reports: collection(user, "reports"),
+    /** Claims on names, one per name ignoring case; the "name-" prefix keeps every ID valid. */
+    names: collection(user, "characterNames"),
+  };
+}
+
 /**
  * `firestore` is a Firestore instance for the signed-in user: the app's, or in
  * tests one from the emulator (the modular functions accept either API's).
@@ -102,15 +115,14 @@ export function createFirestoreStore(
 ): InventoryStore {
   const db = firestore as Firestore;
   const uid = () => requireUid(context);
-  const user = (): DocumentReference => doc(db, "users", uid());
-  const characters = () => collection(user(), "characters");
+  const user = (): DocumentReference => accountRefs(db, uid()).user;
+  const characters = () => accountRefs(db, uid()).characters;
   const characterRef = (id: Id) => doc(characters(), id);
   const entries = (characterId: Id) => collection(characterRef(characterId), "entries");
   const historyOf = (characterId: Id) => collection(characterRef(characterId), "history");
-  const titles = () => collection(user(), "titles");
-  const reports = () => collection(user(), "reports");
-  /** Claims on names, one per name ignoring case; the "name-" prefix keeps every ID valid. */
-  const names = () => collection(user(), "characterNames");
+  const titles = () => accountRefs(db, uid()).titles;
+  const reports = () => accountRefs(db, uid()).reports;
+  const names = () => accountRefs(db, uid()).names;
 
   /** The document a record lives in, or undefined for an ID no record of that kind can have. */
   function refFor(kind: RecordKind, id: Id): DocumentReference | undefined {
@@ -156,9 +168,11 @@ export function createFirestoreStore(
   /** One batched write, and what it's about, to tell the user if the server refuses it. */
   interface Sent {
     batch: WriteBatch;
-    about: RefusedChange;
-    /** Tidying the user didn't ask for (a deleted character's name claims): a refusal isn't news to them. */
-    quiet?: boolean;
+    /**
+     * Absent for tidying the user didn't ask for (a deleted character's name claims):
+     * a refusal of that isn't news to them.
+     */
+    about?: RefusedChange;
   }
 
   /**
@@ -175,9 +189,7 @@ export function createFirestoreStore(
         console.error("The write-refused handler failed", handlerError);
       }
     };
-    const commits = batches.map(({ batch, about, quiet }) =>
-      batch.commit().catch(quiet ? () => undefined : refused(about)),
-    );
+    const commits = batches.map(({ batch, about }) => batch.commit().catch(about ? refused(about) : () => undefined));
     void Promise.all(commits).then(() => {
       pending -= 1;
     });
@@ -284,9 +296,10 @@ export function createFirestoreStore(
 
   /**
    * Claims a name for a character, with the name as the character has it. Every rename
-   * claims again, a change of case too. Claims are never released: the rules let a claim
-   * be taken over once its character is gone or has another name, so a claim left from a
-   * rename or delete (on any phone, offline too) never blocks.
+   * claims again, a change of case too. A rename never releases the old name's claim (only
+   * deleting the character does, claimDeletes): the rules let a claim be taken over once its
+   * character is gone or has another name, so a claim left behind (on any phone, offline
+   * too) never blocks.
    */
   function claimName(batch: WriteBatch, name: string, characterId: Id): void {
     batch.set(doc(names(), `name-${encodeURIComponent(characterNameKey(name))}`), { characterId, name });
@@ -306,7 +319,7 @@ export function createFirestoreStore(
     return claims.map((claim) => {
       const batch = writeBatch(db);
       batch.delete(claim.ref);
-      return { batch, about: { kind: "character", id: claim.get("characterId") as Id }, quiet: true };
+      return { batch };
     });
   }
 
@@ -513,13 +526,13 @@ export function createFirestoreStore(
  * claims on their names.
  */
 export async function loadWholeAccount(firestore: unknown, uid: string): Promise<void> {
-  const user = doc(firestore as Firestore, "users", uid);
+  const refs = accountRefs(firestore as Firestore, uid);
   const [, characterDocs] = await Promise.all([
-    getDoc(user),
-    getDocs(collection(user, "characters")),
-    getDocs(collection(user, "titles")),
-    getDocs(collection(user, "reports")),
-    getDocs(collection(user, "characterNames")),
+    getDoc(refs.user),
+    getDocs(refs.characters),
+    getDocs(refs.titles),
+    getDocs(refs.reports),
+    getDocs(refs.names),
   ]);
   await Promise.all(
     characterDocs.docs.flatMap((character) => [

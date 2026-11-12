@@ -249,14 +249,9 @@ rule(
   },
 );
 
-/** The IDs of the documents in a collection, read past the rules. */
+/** The IDs of the documents in one of Bram's collections, read from the server by a new phone of his. */
 async function storedIds(path: string): Promise<string[]> {
-  const host = process.env.FIRESTORE_EMULATOR_HOST;
-  const response = await fetch(`http://${host}/v1/projects/${PROJECT_ID}/databases/(default)/documents/${path}`, {
-    headers: { Authorization: "Bearer owner" },
-  });
-  const body = (await response.json()) as { documents?: { name: string }[] };
-  return (body.documents ?? []).map((d) => d.name.split("/").pop()!).sort();
+  return (await device("bram").collection(path).get()).docs.map((d) => d.id).sort();
 }
 
 rule(

@@ -4,15 +4,16 @@
 
 import { useEffect, useState } from "react";
 
+/** Screens whose address is just their name, e.g. #/titles. */
+const SIMPLE = ["sign-in", "sign-up", "privacy", "account", "characters", "titles"] as const;
+
 export type Route =
-  | { screen: "sign-in" | "sign-up" | "privacy" | "account" | "characters" | "new-character" | "titles" }
+  | { screen: (typeof SIMPLE)[number] | "new-character" }
   | { screen: "character"; id: string }
   | { screen: "help"; page?: string };
 
 /** The address of a screen: href("characters/abc") is "#/characters/abc". */
 export const href = (path: string): string => `#/${path}`;
-
-const SIMPLE = ["sign-in", "sign-up", "privacy", "account", "characters", "titles"] as const;
 
 /** The screen an address names, or null for the start screen. */
 export function parseRoute(hash: string): Route | null {
