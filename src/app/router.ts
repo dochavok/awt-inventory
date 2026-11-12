@@ -1,25 +1,38 @@
-// A small hash router: each screen has an address like #/sign-up, so links,
-// the back button and home-screen launches all work without a server.
+// A small hash router: each screen has an address like #/sign-up or
+// #/characters/{id}, so links, the back button and home-screen launches all
+// work without a server, offline too.
 
 import { useEffect, useState } from "react";
 
-export type Route = "sign-in" | "sign-up" | "privacy" | "account";
+export type Route =
+  | { screen: "sign-in" | "sign-up" | "privacy" | "account" | "characters" | "new-character" | "titles" }
+  | { screen: "character"; id: string }
+  | { screen: "help"; page?: string };
 
-const ROUTES: readonly Route[] = ["sign-in", "sign-up", "privacy", "account"];
+/** The address of a screen: href("characters/abc") is "#/characters/abc". */
+export const href = (path: string): string => `#/${path}`;
 
-export const href = (route: Route): string => `#/${route}`;
+const SIMPLE = ["sign-in", "sign-up", "privacy", "account", "characters", "titles"] as const;
 
-function current(): Route | null {
-  const path = window.location.hash.replace(/^#\/?/, "");
-  return ROUTES.includes(path as Route) ? (path as Route) : null;
+/** The screen an address names, or null for the start screen. */
+export function parseRoute(hash: string): Route | null {
+  const parts = hash.replace(/^#\/?/, "").split("/").map(decodeURIComponent);
+  const [first, second, ...rest] = parts;
+  if (rest.length > 0) return null;
+  if (first === "characters" && second === "new") return { screen: "new-character" };
+  if (first === "characters" && second) return { screen: "character", id: second };
+  if (first === "help") return second ? { screen: "help", page: second } : { screen: "help" };
+  if (second === undefined && (SIMPLE as readonly string[]).includes(first ?? "")) {
+    return { screen: first as (typeof SIMPLE)[number] };
+  }
+  return null;
 }
 
-/** The screen the address names, or null for the start screen. */
 export function useRoute(): Route | null {
-  const [route, setRoute] = useState(current);
+  const [route, setRoute] = useState(() => parseRoute(window.location.hash));
   useEffect(() => {
     const update = () => {
-      setRoute(current());
+      setRoute(parseRoute(window.location.hash));
       window.scrollTo(0, 0);
     };
     window.addEventListener("hashchange", update);
@@ -28,6 +41,6 @@ export function useRoute(): Route | null {
   return route;
 }
 
-export function go(route: Route): void {
-  window.location.hash = href(route);
+export function go(path: string): void {
+  window.location.hash = href(path);
 }

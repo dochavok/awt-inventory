@@ -7,6 +7,7 @@ import { NotFoundError } from "../../errors";
 import { LIMITS } from "../../data/validate";
 import { href } from "../router";
 import type { Services } from "../services";
+import { VerifyEmail } from "../Shell";
 import { Feedback, useAction } from "../useAction";
 
 export function Account({ services }: { services: Services }) {
@@ -18,19 +19,7 @@ export function Account({ services }: { services: Services }) {
   const [missing, setMissing] = useState(false);
   const load = useAction();
   const rename = useAction();
-  const verify = useAction();
   const remove = useAction();
-  const [user, setUser] = useState(() => auth.currentUser());
-
-  // AC-1: once the email is verified (in another tab or app), pick it up when the app is back in view.
-  useEffect(() => {
-    if (!auth.refresh) return;
-    const recheck = () => {
-      if (document.visibilityState === "visible") void auth.refresh?.().then(setUser, () => undefined);
-    };
-    document.addEventListener("visibilitychange", recheck);
-    return () => document.removeEventListener("visibilitychange", recheck);
-  }, [auth]);
 
   useEffect(() => {
     void load.run(async () => {
@@ -66,60 +55,19 @@ export function Account({ services }: { services: Services }) {
     <>
       <h1>Your account</h1>
       <Feedback error={load.error} notice={null} />
-      {user && user.provider === "password" && !user.emailVerified && (
-        <section className="card note" aria-labelledby="verify-title">
-          <h2 id="verify-title">Check your email</h2>
-          <p>We sent a link to {user.email} to confirm it&apos;s yours.</p>
-          <Feedback error={verify.error} notice={verify.notice} />
-          <button
-            type="button"
-            className="secondary"
-            disabled={verify.busy}
-            onClick={() =>
-              void verify.run(async () => {
-                await auth.sendEmailVerification();
-                return "Sent. Check your inbox.";
-              })
-            }
-          >
-            Send the email again
-          </button>
-          {auth.refresh && (
-            <button
-              type="button"
-              className="secondary"
-              disabled={verify.busy}
-              onClick={() =>
-                void verify.run(async () => {
-                  const latest = await auth.refresh!();
-                  setUser(latest);
-                  if (!latest?.emailVerified) return "Not verified yet. Check for the email, then try again.";
-                })
-              }
-            >
-              I&apos;ve verified it
-            </button>
-          )}
-        </section>
-      )}
+      <VerifyEmail auth={auth} />
       {profile && (
-        <>
-          <form className="card" onSubmit={saveName}>
-            <label>
-              Display name
-              <input required maxLength={LIMITS.displayName} value={name} onChange={(e) => setName(e.target.value)} />
-            </label>
-            <p className="hint">Signed in as {profile.email}</p>
-            <Feedback error={rename.error} notice={rename.notice} />
-            <button type="submit" disabled={rename.busy || name.trim() === profile.displayName}>
-              Save display name
-            </button>
-          </form>
-          <section className="card">
-            <h2>Your characters</h2>
-            <p>Characters, inventory and skills come in the next version of the app.</p>
-          </section>
-        </>
+        <form className="card" onSubmit={saveName}>
+          <label>
+            Display name
+            <input required maxLength={LIMITS.displayName} value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <p className="hint">Signed in as {profile.email}</p>
+          <Feedback error={rename.error} notice={rename.notice} />
+          <button type="submit" disabled={rename.busy || name.trim() === profile.displayName}>
+            Save display name
+          </button>
+        </form>
       )}
       {missing && (
         <section className="card note" aria-labelledby="missing-title">

@@ -58,6 +58,137 @@ body {
   color: #f7e7c0;
   padding: calc(0.75rem + env(safe-area-inset-top)) 1rem 0.75rem;
   font-weight: 700;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.app-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+}
+
+.app-nav a {
+  display: inline-block;
+  padding: 0.35rem 0;
+}
+
+/* NF-3: offline, or changes still being sent. */
+.connection {
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  text-align: center;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.connection.offline {
+  background: var(--accent);
+  color: #15101f;
+}
+
+/* Names and notes are the player's own: long words wrap rather than widen the page (NF-1). */
+.name,
+.notes,
+.doc,
+li,
+p {
+  overflow-wrap: anywhere;
+}
+
+.notes {
+  white-space: pre-wrap;
+}
+
+.tag {
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.card .actions {
+  margin-bottom: 0;
+}
+
+ul.link-list,
+ul.cards {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+}
+
+ul.link-list li + li {
+  border-top: 1px solid var(--border);
+}
+
+ul.link-list a {
+  display: flex;
+  flex-direction: column;
+  padding: 0.6rem 0.25rem;
+  text-decoration: none;
+}
+
+a.button {
+  display: inline-block;
+  min-height: 2.75rem;
+  padding: 0.6rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--brand);
+  color: #f7e7c0;
+  text-decoration: none;
+}
+
+select,
+textarea {
+  font: inherit;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--bg);
+  color: var(--text);
+}
+
+textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.error-card {
+  border-color: var(--danger);
+  margin: 1rem;
+}
+
+.doc ul,
+.doc ol {
+  padding-left: 1.25rem;
+}
+
+.doc table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.doc th,
+.doc td {
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.5rem;
+  text-align: left;
 }
 
 .page {

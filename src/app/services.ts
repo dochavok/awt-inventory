@@ -1,9 +1,9 @@
 // The app's connection to Firebase (section 20): sign-in, the data layer and
 // accounts, made once when the app starts.
 //
-// M2 runs only in a test environment. With no Firebase project configured (the
-// VITE_FIREBASE_* settings), the app uses the local emulators under the demo
-// project, as `npm run emulators` starts them. The real project comes in M3.
+// With no Firebase project configured (the VITE_FIREBASE_* settings), the app
+// uses the local emulators under the demo project, as `npm run emulators` starts
+// them. The real project comes with M3's first release.
 
 import { initializeApp } from "firebase/app";
 import { connectAuthEmulator, getAuth } from "firebase/auth";
@@ -14,7 +14,8 @@ import {
   persistentMultipleTabManager,
 } from "firebase/firestore";
 import { createAccounts, type Accounts } from "../data/accounts";
-import { createFirestoreStore } from "../data/firestore-store";
+import { createFirestoreStore, loadWholeAccount, type RefusedChange } from "../data/firestore-store";
+import { loadReferenceData } from "../refdata";
 import type { InventoryStore } from "../data/store";
 import { systemClock } from "../platform/clock";
 import { createFirebaseAuth } from "../platform/firebase-auth";
@@ -31,6 +32,12 @@ export interface Services {
   ready: Promise<void>;
   accounts: Accounts;
   store: InventoryStore;
+  /** The reference data from data/ (level chart, slot kinds, rarities, skills…). */
+  ref: ReferenceData;
+  /** Calls `listener` whenever the server refuses a change made earlier on this phone (NF-3). */
+  onWriteRefused(listener: (change: RefusedChange) => void): () => void;
+  /** NF-3: reads the whole account, so all of it stays on the phone for use without signal. */
+  loadWholeAccount(): Promise<void>;
 }
 
 const env = import.meta.env;
@@ -50,10 +57,17 @@ function firebaseConfig() {
   return { config: { apiKey: "demo-api-key", projectId: "demo-awt-inventory" }, emulators: true };
 }
 
-/** The account screens need no reference data yet; the character screens (M3) load data/. */
-const NO_REFERENCE_DATA = {} as ReferenceData;
+/** The reference data files in data/, built into the app (section 13); checked as they load. */
+function referenceData(): ReferenceData {
+  const files = import.meta.glob<string>("../../data/*.yaml", { query: "?raw", import: "default", eager: true });
+  return loadReferenceData(
+    Object.fromEntries(Object.entries(files).map(([path, text]) => [path.slice(path.lastIndexOf("/") + 1), text])),
+  );
+}
 
 export function createServices(): Services {
+  const ref = referenceData();
+  const refusedListeners = new Set<(change: RefusedChange) => void>();
   const { config, emulators } = firebaseConfig();
   const app = initializeApp(config);
   const firebaseAuth = getAuth(app);
@@ -68,12 +82,21 @@ export function createServices(): Services {
     connectFirestoreEmulator(firestore, host, 8080);
   }
   const auth = createFirebaseAuth(firebaseAuth);
-  const store = createFirestoreStore(firestore, {
-    currentUid: () => firebaseAuth.currentUser?.uid ?? null,
-    clock: systemClock,
-    ref: NO_REFERENCE_DATA,
-    settings: { showSkillText: false, appVersion: APP_VERSION },
-  });
+  const store = createFirestoreStore(
+    firestore,
+    {
+      currentUid: () => firebaseAuth.currentUser?.uid ?? null,
+      clock: systemClock,
+      ref,
+      settings: { showSkillText: false, appVersion: APP_VERSION },
+    },
+    {
+      // NF-3: a change the server refused once it was sent is undone on the phone; the app says which.
+      onWriteRefused: (_error, change) => {
+        for (const listener of refusedListeners) listener(change);
+      },
+    },
+  );
   // The invite list (NF-13) is enforced by the server's rules, which no user can read past.
   const accounts = createAccounts({ auth, store: () => store, inviteList: async () => null });
   return {
@@ -82,5 +105,14 @@ export function createServices(): Services {
     ready: firebaseAuth.authStateReady(),
     accounts,
     store,
+    ref,
+    onWriteRefused(listener) {
+      refusedListeners.add(listener);
+      return () => refusedListeners.delete(listener);
+    },
+    async loadWholeAccount() {
+      const uid = firebaseAuth.currentUser?.uid;
+      if (uid) await loadWholeAccount(firestore, uid);
+    },
   };
 }
