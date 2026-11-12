@@ -111,9 +111,9 @@ Tests shows each file with the number of its tests that name the requirement.
 | RD-6 | Must | M2 | refdata/refdata.test.ts (1) |
 | RD-7 | Must | M2 | data/skills.test.ts (1), refdata/refdata.test.ts (1) |
 | RD-8 | Must | M2 | data/skills.test.ts (1), refdata/refdata.test.ts (2) |
-| NF-1 | Must | M2+ | browser/phone.spec.ts (1), browser/screens.spec.ts (1) |
+| NF-1 | Must | M2+ | browser/phone.spec.ts (1), browser/screens.spec.ts (2) |
 | NF-2 | Must | M2 | browser/phone.spec.ts (2) |
-| NF-3 | Must | M3 | access/firestore-store.test.ts (2), access/offline.test.ts (14), access/privacy.test.ts (4), browser/screens.spec.ts (3), rules/equipping.test.ts (1) |
+| NF-3 | Must | M3 | access/firestore-store.test.ts (2), access/offline.test.ts (15), access/privacy.test.ts (4), browser/screens.spec.ts (3), rules/equipping.test.ts (1) |
 | NF-4 | Must | M2+ | browser/screens.spec.ts (1), rules/speed.test.ts (1) |
 | NF-5 | Must | M2+ | ops/operations.test.ts (1) |
 | NF-6 | Must | M2+ | access/privacy.test.ts (3), data/inventory.test.ts (1), data/limits.test.ts (6) |
@@ -146,7 +146,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | LB-2 | Could | later | none |
 | BB-1 | Could | later | none |
 | IM-1 | Could | later | none |
-| DOC-1 | Must | M3 | browser/phone.spec.ts (1), browser/screens.spec.ts (2) |
+| DOC-1 | Must | M3 | browser/phone.spec.ts (1), browser/screens.spec.ts (3) |
 | DOC-2 | Must | M3+ | docs/docs.test.ts (8) |
 | DOC-3 | Must | M3+ | checked in review (TF-4) |
 | DOC-4 | Must | M3 | docs/docs.test.ts (2) |

@@ -61,6 +61,9 @@ function TitleFields({
         Applies to
         <select value={value.appliesTo} onChange={set("appliesTo")}>
           <option value={PLAYER}>All characters</option>
+          {value.appliesTo !== PLAYER && !characters.some((c) => c.id === value.appliesTo) && (
+            <option value={value.appliesTo}>Only a character that&apos;s gone</option>
+          )}
           {characters.map((c) => (
             <option key={c.id} value={c.id}>
               Only {c.name}

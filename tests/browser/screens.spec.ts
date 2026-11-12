@@ -130,6 +130,16 @@ browserRule(
       const told = other.page.getByRole("alert");
       await expect(told, "what phone B is told").toContainText(/refused/i, { timeout: 20_000 });
       await expect(told, "the refused character, named").toContainText("wren");
+      // Undone on the phone: the screen showing it no longer does.
+      await expect(
+        other.page.getByRole("heading", { level: 1 }),
+        "phone B's page for its refused wren, once undone",
+      ).toHaveText("Character not found");
+      await other.page.goto("/#/characters");
+      await expect(
+        other.page.getByRole("list", { name: "Main characters" }).getByRole("link"),
+        "phone B's characters once its wren is undone",
+      ).toHaveText([/Wren.*Rogue · level 3/s]);
     } finally {
       await other.context.close();
     }
@@ -209,4 +219,16 @@ browserRule(
     expect(took, "milliseconds for Aldric's page to open").toBeLessThanOrEqual(2_000);
   },
   { project: "android" },
+);
+
+browserRule(
+  { req: ["DOC-1", "NF-1"], m: "M3" },
+  "an address that isn't a page, even a broken one, shows a page saying so",
+  async ({ page }) => {
+    await page.goto("/#/help/100%");
+    await expect(page.getByRole("heading", { level: 1 }), "the page for a broken help address").toHaveText(
+      "Page not found",
+    );
+    await expect(page.getByRole("link", { name: /help/i }), "the help link, still there").toBeVisible();
+  },
 );

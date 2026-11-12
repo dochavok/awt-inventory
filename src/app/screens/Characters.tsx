@@ -54,7 +54,9 @@ export function Characters({ services }: { services: Services }) {
           Add a character
         </a>
       </p>
-      {lists && lists.main.length === 0 && <p className="hint">No characters yet.</p>}
+      {lists && lists.main.length === 0 && (
+        <p className="hint">{lists.retired.length === 0 ? "No characters yet." : "No characters in your main list."}</p>
+      )}
       {lists && lists.main.length > 0 && <CharacterList label="Main characters" characters={lists.main} />}
       {lists && lists.retired.length > 0 && (
         <>

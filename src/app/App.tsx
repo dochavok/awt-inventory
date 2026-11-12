@@ -14,6 +14,9 @@ import { SignIn } from "./screens/SignIn";
 import { SignUp } from "./screens/SignUp";
 import { Titles } from "./screens/Titles";
 
+/** How long after the app opens the whole account is read (NF-3, NF-4). */
+const LOAD_DELAY_MS = 2_000;
+
 export function App({ services }: { services: Services }) {
   const route = useRoute();
   const [signedIn, setSignedIn] = useState(() => services.auth.currentUser() !== null);
@@ -32,7 +35,12 @@ export function App({ services }: { services: Services }) {
     return services.onSignInChange(() => setSignedIn(services.auth.currentUser() !== null));
   }, [services]);
 
+  // NF-3: a change the server refused is undone on the phone; the screen showing it reloads.
+  const [refusals, setRefusals] = useState(0);
+  useEffect(() => services.onWriteRefused(() => setRefusals((n) => n + 1)), [services]);
+
   // NF-3: once signed in with signal, read everything in the account, and again whenever signal returns.
+  // It waits a moment first, so on slow signal the screen the player opened comes first (NF-4).
   useEffect(() => {
     if (!ready || !signedIn || holding) return;
     const load = () => {
@@ -40,9 +48,12 @@ export function App({ services }: { services: Services }) {
         services.loadWholeAccount().catch((error: unknown) => console.warn("Couldn't read the whole account", error));
       }
     };
-    load();
+    const timer = setTimeout(load, LOAD_DELAY_MS);
     window.addEventListener("online", load);
-    return () => window.removeEventListener("online", load);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("online", load);
+    };
   }, [services, ready, signedIn, holding]);
 
   const inApp = ready && signedIn && holding === null;
@@ -65,7 +76,9 @@ export function App({ services }: { services: Services }) {
       <Header signedIn={inApp} help={helpFor(route, inApp)} />
       {inApp && <ConnectionBar store={services.store} />}
       {inApp && <RefusedNotices subscribe={services.onWriteRefused} />}
-      <main className="page">{screen}</main>
+      <main className="page" key={refusals}>
+        {screen}
+      </main>
     </>
   );
 }

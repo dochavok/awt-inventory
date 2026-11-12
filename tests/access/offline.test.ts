@@ -400,3 +400,14 @@ rule(
     expect(await storedOnServer("bram", `${names}/name-aldric`), "the claim on Aldric, who wasn't deleted").toBe(true);
   },
 );
+
+rule(
+  { req: ["NF-3"], m: "M3" },
+  "reading the whole account without signal fails, rather than counting what the phone already had",
+  async () => {
+    const { clock } = await setUp();
+    const e = phone("bram", clock);
+    await e.db.disableNetwork();
+    await expect(loadWholeAccount(e.db, uid("bram")), "reading the whole account offline").rejects.toThrow();
+  },
+);

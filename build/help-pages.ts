@@ -30,9 +30,14 @@ export const NOT_HELP = ["maintainer.md", "restore-runbook.md"];
 const REVIEWED = /^reviewed: (\d{4}-\d{2}-\d{2})$/m;
 const TITLE = /^# (.+)$/m;
 
-function git(args: string[], cwd: string): string {
+function git(args: string[], cwd: string, env: Record<string, string> = {}): string {
   try {
-    return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    return execFileSync("git", args, {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      env: { ...process.env, ...env },
+    }).trim();
   } catch {
     return "";
   }
@@ -44,7 +49,8 @@ function git(args: string[], cwd: string): string {
  */
 function updated(file: string, root: string): string | null {
   if (git(["status", "--porcelain", "--", file], root) !== "") return new Date().toISOString().slice(0, 10);
-  return git(["log", "-1", "--format=%cs", "--", file], root) || null;
+  // The commit's date in UTC, like every other date the app keeps.
+  return git(["log", "-1", "--date=format-local:%Y-%m-%d", "--format=%cd", "--", file], root, { TZ: "UTC" }) || null;
 }
 
 /** Links between pages ("privacy.md") become the pages' addresses in the app. */

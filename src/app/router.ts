@@ -15,9 +15,18 @@ export type Route =
 /** The address of a screen: href("characters/abc") is "#/characters/abc". */
 export const href = (path: string): string => `#/${path}`;
 
+/** A part of an address as written; one with a broken "%" escape is kept as it is. */
+function decodePart(part: string): string {
+  try {
+    return decodeURIComponent(part);
+  } catch {
+    return part;
+  }
+}
+
 /** The screen an address names, or null for the start screen. */
 export function parseRoute(hash: string): Route | null {
-  const parts = hash.replace(/^#\/?/, "").split("/").map(decodeURIComponent);
+  const parts = hash.replace(/^#\/?/, "").split("/").map(decodePart);
   const [first, second, ...rest] = parts;
   if (rest.length > 0) return null;
   if (first === "characters" && second === "new") return { screen: "new-character" };

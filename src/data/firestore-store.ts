@@ -27,6 +27,7 @@ import {
   getDocFromServer,
   getDocs,
   getDocsFromCache,
+  getDocsFromServer,
   increment,
   onSnapshot,
   query,
@@ -307,12 +308,15 @@ export function createFirestoreStore(
 
   /**
    * Deletes for the claims that still point to characters being deleted (CH-6), current
-   * and past names, from what the phone has: the whole-account load puts every claim on
-   * it, and its own changes are there too, so this works offline. Each is its own batch,
-   * sent after the character's, so a failed claim delete never undoes the character's.
+   * and past names. With signal they're read from the server, so a claim another phone has
+   * taken over is left alone; without, from what the phone has (the whole-account load puts
+   * every claim on it, and its own changes are there too). Each is its own batch, sent after
+   * the character's, so a failed claim delete never undoes the character's.
    */
   async function claimDeletes(deleted: Set<Id>): Promise<Sent[]> {
-    const claims = await getDocsFromCache(names()).then(
+    const fromCache = () => getDocsFromCache(names());
+    const read = listening?.online ? getDocsFromServer(names()).catch(fromCache) : fromCache();
+    const claims = await read.then(
       (snap) => snap.docs.filter((d) => deleted.has(d.get("characterId") as string)),
       () => [],
     );
@@ -337,7 +341,10 @@ export function createFirestoreStore(
         state.online = !snap.metadata.fromCache;
       },
       () => {
+        // A listener that fails stops for good: forget it, so the next check starts a new one
+        // instead of asking the server directly every time.
         state.online = false;
+        if (listening === state) listening = undefined;
       },
     );
     listening = state;
@@ -526,18 +533,20 @@ export function createFirestoreStore(
  * claims on their names.
  */
 export async function loadWholeAccount(firestore: unknown, uid: string): Promise<void> {
+  // From the server only: without a real connection this fails, rather than counting what the
+  // phone already had as read.
   const refs = accountRefs(firestore as Firestore, uid);
   const [, characterDocs] = await Promise.all([
-    getDoc(refs.user),
-    getDocs(refs.characters),
-    getDocs(refs.titles),
-    getDocs(refs.reports),
-    getDocs(refs.names),
+    getDocFromServer(refs.user),
+    getDocsFromServer(refs.characters),
+    getDocsFromServer(refs.titles),
+    getDocsFromServer(refs.reports),
+    getDocsFromServer(refs.names),
   ]);
   await Promise.all(
     characterDocs.docs.flatMap((character) => [
-      getDocs(collection(character.ref, "entries")),
-      getDocs(collection(character.ref, "history")),
+      getDocsFromServer(collection(character.ref, "entries")),
+      getDocsFromServer(collection(character.ref, "history")),
     ]),
   );
 }
