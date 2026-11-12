@@ -181,15 +181,35 @@ service cloud.firestore {
       }
 
       // NF-3, CH-1: which character has a name, ignoring case. The app writes a
-      // claim with the character, or with its new name, in one batch. A claim is
-      // never updated, so a second claim on a taken name is refused, and with it
-      // the character or the rename it came with (two phones offline).
+      // claim with the character, or with its new name, in one batch, and the
+      // claim's character must have that name once the batch is applied. A claim
+      // whose character still has the name can't be taken by another character,
+      // so the second of two phones that used a name offline is refused, with the
+      // character or rename the claim came with. Claims aren't released; one
+      // whose character is gone or renamed can be taken over.
+      function characterAfter(id) {
+        return /databases/$(database)/documents/users/$(uid)/characters/$(id);
+      }
+
+      function validClaim() {
+        let data = request.resource.data;
+        return data.keys().hasOnly(['characterId', 'name'])
+          && data.characterId is string && data.characterId.size() <= 100
+          && data.name is string && data.name.size() <= 100
+          && existsAfter(characterAfter(data.characterId))
+          && getAfter(characterAfter(data.characterId)).data.name.lower() == data.name;
+      }
+
+      function claimStale() {
+        return resource.data.characterId == request.resource.data.characterId
+          || !existsAfter(characterAfter(resource.data.characterId))
+          || getAfter(characterAfter(resource.data.characterId)).data.name.lower() != resource.data.name;
+      }
+
       match /characterNames/{nameId} {
         allow read, delete: if isOwner(uid);
-        allow create: if canStore(uid)
-          && request.resource.data.keys().hasOnly(['characterId'])
-          && request.resource.data.characterId is string
-          && existsAfter(/databases/$(database)/documents/users/$(uid)/characters/$(request.resource.data.characterId));
+        allow create: if canStore(uid) && validClaim();
+        allow update: if canStore(uid) && validClaim() && claimStale();
       }
 
       match /characters/{characterId} {

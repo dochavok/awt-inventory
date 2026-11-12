@@ -106,9 +106,8 @@ export function createFirestoreStore(
   const historyOf = (characterId: Id) => collection(characterRef(characterId), "history");
   const titles = () => collection(user(), "titles");
   const reports = () => collection(user(), "reports");
+  /** Claims on names, one per name ignoring case; the "name-" prefix keeps every ID valid. */
   const names = () => collection(user(), "characterNames");
-  /** A name's claim, the same for any capitalisation; the prefix keeps every ID valid. */
-  const nameRef = (name: string) => doc(names(), `name-${encodeURIComponent(characterNameKey(name))}`);
 
   /** The document a record lives in, or undefined for an ID no record of that kind can have. */
   function refFor(kind: RecordKind, id: Id): DocumentReference | undefined {
@@ -200,20 +199,19 @@ export function createFirestoreStore(
   /**
    * The batched writes for a list of changes: field edits each on their own, the rest together.
    * A character's name is claimed in the same batch as the character, or as its new name, so
-   * the server refuses both together when the name is already taken (NF-3, CH-1). `names`
-   * holds the names of characters being deleted, whose claims go with them.
+   * the server refuses both together when another character has the name (NF-3, CH-1).
    */
-  function batchesFor(changes: Change[], names: Map<Id, string>): Sent[] {
+  function batchesFor(changes: Change[]): Sent[] {
     const out: Sent[] = [];
     let current: Sent | undefined;
     let size = 0;
-    const plain = (change: Change): WriteBatch => {
-      if (current === undefined || size === BATCH_LIMIT) {
+    const plain = (change: Change, writes: number): WriteBatch => {
+      if (current === undefined || size + writes > BATCH_LIMIT) {
         current = { batch: writeBatch(db), about: aboutChange(change) };
         size = 0;
         out.push(current);
       }
-      size += 1;
+      size += writes;
       return current.batch;
     };
     for (const change of changes) {
@@ -227,9 +225,9 @@ export function createFirestoreStore(
           const own = writeBatch(db);
           own.update(ref, { [key]: value === undefined ? deleteField() : value, [`edited.${key}`]: at });
           let about = aboutChange(change);
-          if (change.kind === "character" && key === "name") {
-            moveClaim(own, change.before.name, value, change.id);
-            about = { kind: "character", name: String(value) };
+          if (change.kind === "character" && key === "name" && typeof value === "string") {
+            claimName(own, value, change.id);
+            about = { kind: "character", name: value };
           }
           out.push({ batch: own, about });
         }
@@ -238,11 +236,11 @@ export function createFirestoreStore(
       }
       // A record whose ID names no stored document has nothing to delete.
       if (change.op === "delete" && !refFor(change.kind, change.id)) continue;
-      const b = plain(change);
+      const b = plain(change, change.op === "set-character" ? 2 : 1);
       switch (change.op) {
         case "set-character":
           b.set(characterRef(change.value.id), stored(change.value, ["id"]));
-          moveClaim(b, undefined, change.value.name, change.value.id);
+          claimName(b, change.value.name, change.value.id);
           break;
         case "set-entry":
           b.set(refFor("entry", change.value.id)!, stored(change.value, ["id", "characterId"]));
@@ -264,27 +262,20 @@ export function createFirestoreStore(
           break;
         case "delete":
           b.delete(refFor(change.kind, change.id)!);
-          if (change.kind === "character") moveClaim(b, names.get(change.id), undefined, change.id);
           break;
       }
     }
     return out;
   }
 
-  /** Releases a character's old name and claims its new one, unless they're the same name. */
-  function moveClaim(batch: WriteBatch, from: unknown, to: unknown, characterId: Id): void {
-    const old = typeof from === "string" ? nameRef(from) : undefined;
-    const next = typeof to === "string" ? nameRef(to) : undefined;
-    if (old?.path === next?.path) return;
-    if (old) batch.delete(old);
-    if (next) batch.set(next, { characterId });
-  }
-
-  /** The names of the characters `changes` deletes, from the phone's copy, to release their claims. */
-  async function deletedNames(changes: Change[]): Promise<Map<Id, string>> {
-    const ids = changes.flatMap((c) => (c.op === "delete" && c.kind === "character" ? [c.id] : []));
-    const found = await Promise.all(ids.map(async (id) => [id, (await read("character", id))?.get("name")] as const));
-    return new Map(found.filter((pair): pair is readonly [Id, string] => typeof pair[1] === "string"));
+  /**
+   * Claims a name for a character. Claims are never released: the rules let a
+   * claim be taken over once its character is gone or has another name, so a
+   * claim left from a rename or delete (on any phone, offline too) never blocks.
+   */
+  function claimName(batch: WriteBatch, name: string, characterId: Id): void {
+    const key = characterNameKey(name);
+    batch.set(doc(names(), `name-${encodeURIComponent(key)}`), { characterId, name: key });
   }
 
   // Whether the phone has signal, from a listener on the profile that Firestore keeps up to date.
@@ -442,7 +433,7 @@ export function createFirestoreStore(
     async write(changes) {
       uid();
       watch();
-      send(batchesFor(changes, await deletedNames(changes)));
+      send(batchesFor(changes));
     },
 
     async syncStatus() {

@@ -228,16 +228,8 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     );
   }
 
-  /** A change to some fields of `record`, with what they were before; nothing if no field changes. */
-  function update(
-    kind: "character" | "entry" | "title",
-    record: { id: Id },
-    fields: Record<string, unknown>,
-  ): Change[] {
-    if (Object.keys(fields).length === 0) return [];
-    const old = record as unknown as Record<string, unknown>;
-    const before = Object.fromEntries(Object.keys(fields).map((key) => [key, old[key]]));
-    return [{ op: "update", kind, id: record.id, fields, before, at: now() }];
+  function update(kind: "character" | "entry" | "title", id: Id, fields: Record<string, unknown>): Change[] {
+    return Object.keys(fields).length === 0 ? [] : [{ op: "update", kind, id, fields, at: now() }];
   }
 
   // ---------------------------------------------------------------- skills (SK)
@@ -368,7 +360,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
         else next.notes = notes;
       }
       const { date, note } = check.eventOptions(options, now());
-      const changes = update("character", character, changedFields(character, next, ["id"]));
+      const changes = update("character", characterId, changedFields(character, next, ["id"]));
       if (next.level !== character.level) {
         changes.push(
           record(characterId, {
@@ -407,17 +399,18 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
         change: { from: character.className, to: className },
         summary: `Class corrected: ${character.className} → ${className}`,
       });
-      await write([corrected.change, ...update("character", character, { className })]);
+      await write([corrected.change, ...update("character", characterId, { className })]);
       return { ...character, className };
     },
 
     async retireCharacter(characterId) {
-      await write(update("character", await ownCharacter(characterId), { retired: true }));
+      await ownCharacter(characterId);
+      await write(update("character", characterId, { retired: true }));
     },
 
     async restoreCharacter(characterId) {
       const character = await ownCharacter(characterId);
-      if (character.retired !== undefined) await write(update("character", character, { retired: undefined }));
+      if (character.retired !== undefined) await write(update("character", characterId, { retired: undefined }));
     },
 
     async deleteCharacter(characterId, typedName) {
@@ -466,14 +459,14 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
         if (earned === undefined) delete title.earned;
         else title.earned = earned;
       }
-      await write(update("title", before, changedFields(before, title, ["id"])));
+      await write(update("title", titleId, changedFields(before, title, ["id"])));
       return title;
     },
 
     async setTitleScope(titleId, scope) {
       const title = await ownTitle(titleId);
       const checked = await checkScope(scope);
-      await write(update("title", title, { scope: checked }));
+      await write(update("title", titleId, { scope: checked }));
       return { ...title, scope: checked };
     },
 
@@ -530,7 +523,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       const next = { ...fields, id: entry.id, characterId: entry.characterId } as ItemEntry;
       const gained = next.quantity - entry.quantity;
       const gain = gainOptions(options);
-      const changes = update("entry", entry, changedFields(entry, next, ["id", "characterId", "quantity"]));
+      const changes = update("entry", entryId, changedFields(entry, next, ["id", "characterId", "quantity"]));
       // Quantities are added to, not set, so changes made on two phones add up (NF-3).
       if (gained !== 0) changes.push({ op: "add-quantity", entryId, by: gained });
       if (gained > 0) changes.push(acquired(next, gained, gain).change);
@@ -639,7 +632,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       await write([
         traded.change,
         { op: "add-quantity", entryId, by: -quantity },
-        ...(entry.category === "allies" && entry.active ? update("entry", entry, { active: false }) : []),
+        ...(entry.category === "allies" && entry.active ? update("entry", entryId, { active: false }) : []),
       ]);
       return traded.record;
     },
@@ -747,7 +740,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
         throw new ValidationError("category", `${entryName(entry)} isn't a familiar or ally, so it can't be active.`);
       }
       if (typeof active !== "boolean") throw new ValidationError("active", "Active is either on or off.");
-      if (entry.active !== active) await write(update("entry", entry, { active }));
+      if (entry.active !== active) await write(update("entry", entryId, { active }));
     },
 
     totals: later("totals", "M4"),

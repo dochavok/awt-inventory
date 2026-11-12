@@ -575,7 +575,7 @@ rule(
 );
 
 // ---------------------------------------------------------------- one character per name, offline too (NF-3, CH-1)
-//   users/{uid}/characterNames/name-{name in lower case}   { characterId }: the character that has the name
+//   users/{uid}/characterNames/name-{name in lower case}   { characterId, name }: the character with the name
 
 rule(
   { req: ["NF-3", "CH-1", "PV-1", "TF-11"], m: "M3" },
@@ -583,29 +583,36 @@ rule(
   async () => {
     await seedAldric();
     const names = `users/${bram()}/characterNames`;
-    await seed({ [`${names}/name-aldric`]: { characterId: "aldric" } });
+    await seed({ [`${names}/name-aldric`]: { characterId: "aldric", name: "aldric" } });
     const mine = signedIn("bram").firestore();
     const characters = `users/${bram()}/characters`;
     const wren = { name: "Wren", className: "Rogue", level: 1 };
 
     const first = mine.batch();
     first.set(mine.doc(`${characters}/wren`), wren);
-    first.set(mine.doc(`${names}/name-wren`), { characterId: "wren" });
+    first.set(mine.doc(`${names}/name-wren`), { characterId: "wren", name: "wren" });
     await expectAllowed(first.commit(), "Bram creating Wren with the name's claim");
 
     const second = mine.batch();
-    second.set(mine.doc(`${characters}/wren-2`), { ...wren, className: "Mage" });
-    second.set(mine.doc(`${names}/name-wren`), { characterId: "wren-2" });
+    second.set(mine.doc(`${characters}/wren-2`), { ...wren, name: "WREN", className: "Mage" });
+    second.set(mine.doc(`${names}/name-wren`), { characterId: "wren-2", name: "wren" });
     await expectRefused(second.commit(), "Bram creating a second Wren with the name's claim");
     expect((await mine.doc(`${characters}/wren-2`).get()).exists, "the second Wren stored").toBe(false);
-    expect((await mine.doc(`${names}/name-wren`).get()).data(), "the claim on Wren").toEqual({ characterId: "wren" });
+    expect((await mine.doc(`${names}/name-wren`).get()).data(), "the claim on Wren").toEqual({
+      characterId: "wren",
+      name: "wren",
+    });
 
     await expectRefused(
-      mine.doc(`${names}/name-brin`).set({ characterId: "brin" }),
+      mine.doc(`${names}/name-brin`).set({ characterId: "brin", name: "brin" }),
       "Bram claiming a name for a character that doesn't exist",
     );
     await expectRefused(
-      mine.doc(`${names}/name-isolde`).set({ characterId: "aldric", note: "extra" }),
+      mine.doc(`${names}/name-isolde`).set({ characterId: "aldric", name: "isolde" }),
+      "Bram claiming a name his character doesn't have",
+    );
+    await expectRefused(
+      mine.doc(`${names}/name-aldric`).set({ characterId: "aldric", name: "aldric", note: "extra" }),
       "Bram claiming a name with a field a claim doesn't have",
     );
     await expectAllowed(mine.doc(`${names}/name-aldric`).get(), "Bram reading his claim on Aldric");
@@ -616,12 +623,42 @@ rule(
       await expectRefused(db.doc(`${names}/name-aldric`).get(), `${who} reading Bram's claim on Aldric`);
       await expectRefused(db.collection(names).get(), `${who} listing Bram's claimed names`);
       await expectRefused(
-        db.doc(`${names}/name-brin`).set({ characterId: "aldric" }),
+        db.doc(`${names}/name-wren`).set({ characterId: "aldric", name: "aldric" }),
         `${who} claiming a name for Bram`,
       );
       await expectRefused(db.doc(`${names}/name-aldric`).delete(), `${who} releasing Bram's claim on Aldric`);
     }
     await expectAllowed(mine.doc(`${names}/name-aldric`).delete(), "Bram releasing his claim on Aldric");
+  },
+);
+
+rule(
+  { req: ["NF-3", "CH-1", "CH-2", "CH-6"], m: "M3" },
+  "a claim left by a rename or a deleted character can be taken by another character, never one still in use",
+  async () => {
+    await seedAldric();
+    const names = `users/${bram()}/characterNames`;
+    const characters = `users/${bram()}/characters`;
+    await seed({
+      [`${characters}/wren`]: { name: "Brin", className: "Rogue", level: 1 },
+      [`${names}/name-wren`]: { characterId: "wren", name: "wren" },
+      [`${names}/name-brin`]: { characterId: "wren", name: "brin" },
+      [`${names}/name-ghost`]: { characterId: "ghost", name: "ghost" },
+    });
+    const mine = signedIn("bram").firestore();
+    const claimWith = (id: string, name: string) => {
+      const batch = mine.batch();
+      batch.set(mine.doc(`${characters}/${id}`), { name, className: "Mage", level: 2 });
+      batch.set(mine.doc(`${names}/name-${name.toLowerCase()}`), { characterId: id, name: name.toLowerCase() });
+      return batch.commit();
+    };
+    await expectAllowed(claimWith("new-wren", "Wren"), "a new Wren taking the claim of the character now named Brin");
+    await expectAllowed(claimWith("new-ghost", "Ghost"), "a new Ghost taking the claim of a deleted character");
+    await expectRefused(claimWith("new-brin", "Brin"), "a new Brin taking the claim of the character named Brin");
+    await expectAllowed(
+      mine.doc(`${names}/name-brin`).set({ characterId: "wren", name: "brin" }),
+      "the character named Brin claiming its own name again",
+    );
   },
 );
 

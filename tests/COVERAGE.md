@@ -17,13 +17,13 @@ Tests shows each file with the number of its tests that name the requirement.
 | PV-2 | Must | M2 | access/accounts.test.ts (1), access/privacy.test.ts (2), data/accounts.test.ts (2), server/reports.test.ts (3) |
 | PV-3 | Must | M2 | access/privacy.test.ts (1), data/privacy.test.ts (3) |
 | PV-4 | Must | M2 | browser/phone.spec.ts (1) |
-| CH-1 | Must | M2 | access/firestore-store.test.ts (1), access/offline.test.ts (2), access/privacy.test.ts (1), data/characters.test.ts (6) |
-| CH-2 | Must | M2 | access/firestore-store.test.ts (1), access/offline.test.ts (1), data/characters.test.ts (2) |
+| CH-1 | Must | M2 | access/firestore-store.test.ts (1), access/offline.test.ts (2), access/privacy.test.ts (2), data/characters.test.ts (6) |
+| CH-2 | Must | M2 | access/firestore-store.test.ts (1), access/offline.test.ts (1), access/privacy.test.ts (1), data/characters.test.ts (2) |
 | CH-2a | Must | M2 | data/characters.test.ts (4), rules/equipping.test.ts (1) |
 | CH-3 | Must | M2 | access/firestore-store.test.ts (1), data/characters.test.ts (3) |
 | CH-4 | Must | M2 | data/characters.test.ts (1) |
 | CH-5 | Must | M2 | access/firestore-store.test.ts (1), data/characters.test.ts (2), data/search-export.test.ts (2) |
-| CH-6 | Must | M2 | access/firestore-store.test.ts (1), access/privacy.test.ts (1), data/characters.test.ts (3) |
+| CH-6 | Must | M2 | access/firestore-store.test.ts (1), access/privacy.test.ts (2), data/characters.test.ts (3) |
 | TI-1 | Must | M2 | access/firestore-store.test.ts (1), data/titles.test.ts (3) |
 | TI-2 | Must | M2 | access/firestore-store.test.ts (1), data/characters.test.ts (2), data/grants.test.ts (1), data/titles.test.ts (3), rules/equipping.test.ts (1) |
 | TI-3 | Must | M2 | data/titles.test.ts (1) |
@@ -113,7 +113,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | RD-8 | Must | M2 | data/skills.test.ts (1), refdata/refdata.test.ts (2) |
 | NF-1 | Must | M2+ | browser/phone.spec.ts (1) |
 | NF-2 | Must | M2 | browser/phone.spec.ts (2) |
-| NF-3 | Must | M3 | access/firestore-store.test.ts (1), access/offline.test.ts (11), access/privacy.test.ts (2), rules/equipping.test.ts (1) |
+| NF-3 | Must | M3 | access/firestore-store.test.ts (1), access/offline.test.ts (11), access/privacy.test.ts (3), rules/equipping.test.ts (1) |
 | NF-4 | Must | M2+ | rules/speed.test.ts (1) |
 | NF-5 | Must | M2+ | ops/operations.test.ts (1) |
 | NF-6 | Must | M2+ | access/privacy.test.ts (3), data/inventory.test.ts (1), data/limits.test.ts (6) |
