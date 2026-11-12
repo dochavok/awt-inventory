@@ -3,7 +3,17 @@
 // error (its type, message, stack trace and tags) and drops everything that
 // could hold game records or personal details.
 
+import { AppError } from "../errors";
 import { EMAIL_PATTERN, escapeRegExp } from "./text";
+
+/**
+ * Whether an error is reported at all (NF-12). Refusals the app shows the user
+ * (AppError: a name in use, a full slot…) aren't errors, and their messages
+ * name the user's records, so they're never sent.
+ */
+export function shouldReport(error: unknown): boolean {
+  return !(error instanceof AppError);
+}
 
 /** The parts of an error event the app sends (a subset of Sentry's event). */
 export interface ErrorEvent {

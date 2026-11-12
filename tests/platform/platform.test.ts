@@ -1,7 +1,8 @@
 // Times (NF-8) and error reports (NF-12).
 
 import { expect } from "vitest";
-import { scrubEvent, type ErrorEvent } from "../../src/platform/error-reports";
+import { AccessDeniedError, ConfirmationError, NotFoundError, RateLimitError, ValidationError } from "../../src/errors";
+import { scrubEvent, shouldReport, type ErrorEvent } from "../../src/platform/error-reports";
 import { formatLocal, toStoredTime } from "../../src/platform/time";
 import { rule } from "../support/rule";
 
@@ -168,6 +169,29 @@ rule(
         { lineno: 3 },
       ],
     });
+  },
+);
+
+rule(
+  { req: ["NF-12"], m: "M3" },
+  "refusals the app shows the user aren't reported; real errors, and changes the server refused, are",
+  () => {
+    const refusals: [string, Error][] = [
+      ["a refused value naming Duskfang", new ValidationError("quantity", "Duskfang can't be marked used.")],
+      ["a name already in use", new ValidationError("name", "You already have a character named Aldric.")],
+      ["a confirmation that didn't match", new ConfirmationError("Aldric", "Type Aldric to confirm.")],
+      ["another user's record", new AccessDeniedError("That isn't yours.")],
+      ["a record that's gone", new NotFoundError("entry", "e456")],
+      ["the reports-a-day limit", new RateLimitError(5, "At most 5 reports a day.")],
+    ];
+    for (const [what, error] of refusals) expect(shouldReport(error), `reporting ${what}`).toBe(false);
+    const sync = Object.assign(new Error("Missing or insufficient permissions."), { code: "permission-denied" });
+    const errors: [string, unknown][] = [
+      ["a TypeError", new TypeError("x is undefined")],
+      ["a change the server refused at sync", sync],
+      ["something thrown that isn't an Error", "boom"],
+    ];
+    for (const [what, error] of errors) expect(shouldReport(error), `reporting ${what}`).toBe(true);
   },
 );
 

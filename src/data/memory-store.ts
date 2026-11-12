@@ -103,6 +103,10 @@ function memoryBackend(db: MemoryDatabase, context: Pick<StoreContext, "currentU
         maps[change.kind].delete(change.id);
         return;
       }
+      // One device: the names are already checked against every character (CH-1).
+      case "claim-name":
+      case "release-name":
+        return;
     }
   }
 

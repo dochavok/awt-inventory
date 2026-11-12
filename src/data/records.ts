@@ -276,7 +276,8 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
    * entries, their records, the character, its other records, then its
    * character-level titles.
    */
-  async function removeCharacterData(characterId: Id): Promise<Change[]> {
+  async function removeCharacterData(character: Character): Promise<Change[]> {
+    const characterId = character.id;
     const [entries, history, titles] = await Promise.all([
       backend.entries(characterId),
       backend.history(characterId),
@@ -287,6 +288,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       ...entries.map((e) => del("entry", e.id)),
       ...history.filter((h) => h.record.entryId !== undefined).map((h) => del("history", h.record.id)),
       del("character", characterId),
+      { op: "release-name", name: character.name },
       ...history.filter((h) => h.record.entryId === undefined).map((h) => del("history", h.record.id)),
       ...titles
         .filter((t) => t.scope.level === "character" && t.scope.characterId === characterId)
@@ -341,7 +343,10 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       const notes = check.optionalText("notes", input.notes, check.LIMITS.notes);
       if (notes !== undefined) character.notes = notes;
       await uniqueName(name);
-      await write([{ op: "set-character", value: character }]);
+      await write([
+        { op: "set-character", value: character },
+        { op: "claim-name", name, characterId: character.id },
+      ]);
       return character;
     },
 
@@ -360,6 +365,9 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       }
       const { date, note } = check.eventOptions(options, now());
       const changes = update("character", characterId, changedFields(character, next, ["id"]));
+      if (next.name.toLowerCase() !== character.name.toLowerCase()) {
+        changes.push({ op: "release-name", name: character.name }, { op: "claim-name", name: next.name, characterId });
+      }
       if (next.level !== character.level) {
         changes.push(
           record(characterId, {
@@ -417,7 +425,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       if (typedName.trim() !== character.name) {
         throw new ConfirmationError(character.name, `Type the character's name, ${character.name}, to confirm.`);
       }
-      await write(await removeCharacterData(characterId));
+      await write(await removeCharacterData(character));
     },
 
     async listCharacters(list) {

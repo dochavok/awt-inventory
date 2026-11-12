@@ -6,6 +6,7 @@
 //   users/{uid}/characters/{characterId}/entries/{entryId}
 //   users/{uid}/characters/{characterId}/history/{recordId}
 //   users/{uid}/reports/{reportId}
+//   users/{uid}/characterNames/name-{name}        which character has a name (NF-3, CH-1)
 // firestore.rules enforces who may read and change what (PV-1, NF-13).
 //
 // The logic is the shared one in records.ts. Working offline (NF-3):
@@ -52,13 +53,20 @@ const PROBE_MS = 3_000;
 
 const SEP = "~";
 
+/** What a refused change was about, for telling the user (NF-3). */
+export interface RefusedChange {
+  kind: RecordKind | "profile";
+  /** The record's name, where the change knows it (e.g. the character "Wren"). */
+  name?: string;
+}
+
 export interface FirestoreStoreOptions {
   /**
    * Called when the server refuses a change the phone had already saved (for
    * example one made offline that the rules refuse once it's sent). The change
    * is undone on the phone; the app tells the user.
    */
-  onWriteRefused?: (error: unknown) => void;
+  onWriteRefused?: (error: unknown, change: RefusedChange) => void;
 }
 
 function isPermissionDenied(error: unknown): boolean {
@@ -97,6 +105,9 @@ export function createFirestoreStore(
   const historyOf = (characterId: Id) => collection(characterRef(characterId), "history");
   const titles = () => collection(user(), "titles");
   const reports = () => collection(user(), "reports");
+  const names = () => collection(user(), "characterNames");
+  /** A name's claim, the same for any capitalisation; the prefix keeps every ID valid. */
+  const nameRef = (name: string) => doc(names(), `name-${encodeURIComponent(name.toLowerCase())}`);
 
   /** The document a record lives in, or undefined for an ID no record of that kind can have. */
   function refFor(kind: RecordKind, id: Id): DocumentReference | undefined {
@@ -139,37 +150,74 @@ export function createFirestoreStore(
   let pending = 0;
   let lastSeq = 0;
 
+  /** One batched write, and what it's about, to tell the user if the server refuses it. */
+  interface Sent {
+    batch: WriteBatch;
+    about: RefusedChange;
+  }
+
   /**
    * Sends one change (one user action), whatever number of batches it takes.
    * Not awaited: the change is on the phone already, and is sent whenever there's signal.
    */
-  function send(batches: WriteBatch[]): void {
+  function send(batches: Sent[]): void {
     if (batches.length === 0) return;
     pending += 1;
-    const refused = (error: unknown) => {
+    const refused = (about: RefusedChange) => (error: unknown) => {
       try {
-        options.onWriteRefused?.(error);
+        options.onWriteRefused?.(error, about);
       } catch (handlerError) {
         console.error("The write-refused handler failed", handlerError);
       }
     };
-    void Promise.all(batches.map((batch) => batch.commit().catch(refused))).then(() => {
+    void Promise.all(batches.map(({ batch, about }) => batch.commit().catch(refused(about)))).then(() => {
       pending -= 1;
     });
   }
 
-  /** The batched writes for a list of changes: field edits each on their own, the rest together. */
-  function batchesFor(changes: Change[]): WriteBatch[] {
-    const out: WriteBatch[] = [];
-    let batch: WriteBatch | undefined;
+  /** What a change is about: its kind of record and, where it has one, its name. */
+  function aboutChange(change: Change): RefusedChange {
+    switch (change.op) {
+      case "set-character":
+      case "set-title":
+        return { kind: change.op === "set-title" ? "title" : "character", name: change.value.name };
+      case "set-entry":
+        return "name" in change.value ? { kind: "entry", name: change.value.name } : { kind: "entry" };
+      case "set-history":
+        return { kind: "history" };
+      case "set-report":
+        return { kind: "report" };
+      case "add-quantity":
+        return { kind: "entry" };
+      case "update":
+      case "delete":
+        return { kind: change.kind };
+      case "claim-name":
+      case "release-name":
+        return { kind: "character", name: change.name };
+    }
+  }
+
+  /**
+   * The batched writes for a list of changes: field edits each on their own, the rest together.
+   * A name's claims go in the same batch as the character's new name, or with the new character,
+   * so the server refuses both together when the name is already taken (NF-3, CH-1).
+   */
+  function batchesFor(changes: Change[]): Sent[] {
+    const claims = changes.filter((c) => c.op === "claim-name" || c.op === "release-name");
+    const renamed = changes.some((c) => c.op === "update" && c.kind === "character" && "name" in c.fields);
+    const out: Sent[] = [];
+    let current: Sent | undefined;
     let size = 0;
-    const next = () => {
-      batch = writeBatch(db);
-      size = 0;
-      out.push(batch);
-      return batch;
+    const plain = (change: Change): WriteBatch => {
+      if (current === undefined || size === BATCH_LIMIT) {
+        current = { batch: writeBatch(db), about: aboutChange(change) };
+        size = 0;
+        out.push(current);
+      }
+      size += 1;
+      return current.batch;
     };
-    const plain = () => (batch === undefined || size === BATCH_LIMIT ? next() : batch);
     for (const change of changes) {
       if (change.op === "update") {
         // Each field on its own: if the rules refuse one as older than a change already on the
@@ -180,15 +228,20 @@ export function createFirestoreStore(
         for (const [key, value] of Object.entries(change.fields)) {
           const own = writeBatch(db);
           own.update(ref, { [key]: value === undefined ? deleteField() : value, [`edited.${key}`]: at });
-          out.push(own);
+          const isName = change.kind === "character" && key === "name";
+          if (isName) claims.forEach((claim) => applyClaim(own, claim));
+          out.push({ batch: own, about: isName ? { kind: "character", name: String(value) } : aboutChange(change) });
         }
-        batch = undefined;
+        current = undefined;
+        continue;
+      }
+      if (change.op === "claim-name" || change.op === "release-name") {
+        if (!renamed) applyClaim(plain(change), change);
         continue;
       }
       // A record whose ID names no stored document has nothing to delete.
       if (change.op === "delete" && !refFor(change.kind, change.id)) continue;
-      const b = plain();
-      size += 1;
+      const b = plain(change);
       switch (change.op) {
         case "set-character":
           b.set(characterRef(change.value.id), stored(change.value, ["id"]));
@@ -217,6 +270,11 @@ export function createFirestoreStore(
       }
     }
     return out;
+  }
+
+  function applyClaim(batch: WriteBatch, claim: Change): void {
+    if (claim.op === "claim-name") batch.set(nameRef(claim.name), { characterId: claim.characterId });
+    else if (claim.op === "release-name") batch.delete(nameRef(claim.name));
   }
 
   // Whether the phone has signal, from a listener on the profile that Firestore keeps up to date.
@@ -292,7 +350,7 @@ export function createFirestoreStore(
       batch.update(user(), { displayName });
       // With signal, wait for the server, so the account screen can show a refusal (AC-2).
       // Without, don't wait: it's sent when signal returns, like every other change (NF-3).
-      if (!(await online())) return send([batch]);
+      if (!(await online())) return send([{ batch, about: { kind: "profile", name: displayName } }]);
       try {
         await batch.commit();
       } catch (error) {
@@ -303,10 +361,11 @@ export function createFirestoreStore(
 
     async deleteAccount() {
       const me = user();
-      const [characterDocs, titleDocs, reportDocs] = await Promise.all([
+      const [characterDocs, titleDocs, reportDocs, nameDocs] = await Promise.all([
         getDocs(characters()),
         getDocs(titles()),
         getDocs(reports()),
+        getDocs(names()),
       ]);
       // Each character goes last, so until it's gone a retry can find what's left in it. Entries
       // go first; then their history records (HI-4: allowed once their entry is gone); then the
@@ -332,6 +391,7 @@ export function createFirestoreStore(
         ...perCharacter.flat(),
         ...titleDocs.docs.map((d) => [d.ref]),
         ...reportDocs.docs.map((d) => [d.ref]),
+        ...nameDocs.docs.map((d) => [d.ref]),
         ...listings.docs.map((d) => [d.ref]),
         [me],
       ]);
