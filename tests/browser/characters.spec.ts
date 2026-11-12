@@ -13,7 +13,7 @@ browserRule(
     const player = await signUp(page);
     await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
     await page.getByRole("link", { name: "Account" }).click();
-    await expect(page.getByRole("heading", { name: "Your account" }), "the account page").toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Your account" }), "the account page").toBeVisible();
     await page.getByRole("button", { name: "Sign out" }).click();
     await expect(page.getByRole("heading", { name: /sign in/i }), "the sign-in screen after signing out").toBeVisible();
     await signIn(page, player);

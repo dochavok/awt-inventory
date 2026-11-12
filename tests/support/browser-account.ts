@@ -61,7 +61,10 @@ export async function expectSignedIn(page: Page): Promise<void> {
 export async function signUp(page: Page, player = madeUpPlayer()): Promise<Player> {
   await invite(player);
   await page.goto("/#/sign-up");
-  await expect(page.getByRole("heading", { name: /create an account/i }), "the sign-up screen").toBeVisible();
+  // The first test of a run waits for the emulators and the fresh build to warm up.
+  await expect(page.getByRole("heading", { name: /create an account/i }), "the sign-up screen").toBeVisible({
+    timeout: 15_000,
+  });
   await page.getByLabel("Display name").fill(player.displayName);
   await page.getByLabel("Email").fill(player.email);
   await page.getByLabel("Password").fill(player.password);
@@ -79,7 +82,7 @@ export async function signUp(page: Page, player = madeUpPlayer()): Promise<Playe
 /** Signs an existing player in through the sign-in screen. */
 export async function signIn(page: Page, player: Player): Promise<void> {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /sign in/i }), "the sign-in screen").toBeVisible();
+  await expect(page.getByRole("heading", { name: /sign in/i }), "the sign-in screen").toBeVisible({ timeout: 15_000 });
   await page.getByLabel("Email").fill(player.email);
   await page.getByLabel("Password").fill(player.password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();

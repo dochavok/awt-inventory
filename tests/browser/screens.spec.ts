@@ -15,15 +15,15 @@ const overflow = (page: Page) => page.evaluate(() => document.documentElement.sc
 /** The connection bar (NF-3). */
 const connection = (page: Page) => page.getByRole("status", { name: "Connection" });
 
-/** A name as long as names may be (60 characters), with no spaces to break it. */
-const LONG_NAME = "Aldricthewanderingswordbearerofthenorthernmarchesandbeyond12";
+/** A name as long as names may be (100 characters), with no spaces to break it. */
+const LONG_NAME = "Aldric".padEnd(100, "thewanderer");
 
 browserRule(
   { req: ["NF-1"], m: "M3" },
   "every signed-in screen fits a phone held upright, with no sideways scrolling",
   async ({ page }) => {
     await signUp(page);
-    expect(LONG_NAME.length, "the long name's length").toBe(60);
+    expect(LONG_NAME.length, "the long name's length").toBe(100);
     const id = await addCharacter(page, { name: LONG_NAME, className: "Warrior", level: 26, notes: LONG_NAME });
     const screens: [string, string, RegExp][] = [
       ["the characters screen", "/#/characters", /your characters/i],
@@ -82,7 +82,7 @@ browserRule({ req: ["PV-4"], m: "M3" }, "the privacy note opens from the account
   await signUp(page);
   await expect(page.getByRole("link", { name: "Account" }), "the link to the account page").toBeVisible();
   await page.getByRole("link", { name: "Account" }).click();
-  await expect(page.getByRole("heading", { name: "Your account" }), "the account page").toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Your account" }), "the account page").toBeVisible();
   await page.getByRole("link", { name: /privacy/i }).click();
   const note = page.getByRole("main");
   await expect(note.getByRole("heading", { level: 1, name: /privacy/i }), "the privacy heading").toBeVisible();
