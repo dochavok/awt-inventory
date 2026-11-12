@@ -205,7 +205,7 @@ service cloud.firestore {
 
         match /entries/{entryId} {
           allow read, delete: if isOwner(uid);
-          allow create: if canStore(uid) && characterExists() && validEntry();
+          allow create: if canStore(uid) && validEntry() && characterExists();
           allow update: if canStore(uid) && validEntry() && freshEntry();
         }
 
@@ -213,7 +213,7 @@ service cloud.firestore {
         // (IN-15) or its character (CH-6, AC-5), in the same batched write.
         match /history/{recordId} {
           allow read: if isOwner(uid);
-          allow create: if canStore(uid) && characterExists() && validRecord();
+          allow create: if canStore(uid) && validRecord() && characterExists();
           allow delete: if isOwner(uid) && (
             !existsAfter(/databases/$(database)/documents/users/$(uid)/characters/$(characterId))
             || (resource.data.get('entryId', null) is string

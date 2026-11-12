@@ -34,17 +34,18 @@ export type Change =
    * when the change was made: if two devices change the same field, the later
    * change wins, whichever reaches the server last (NF-3).
    */
-  | { op: "update"; kind: "character" | "entry" | "title"; id: Id; fields: Record<string, unknown>; at: string }
+  | {
+      op: "update";
+      kind: "character" | "entry" | "title";
+      id: Id;
+      fields: Record<string, unknown>;
+      /** The same fields' values before the change. */
+      before: Record<string, unknown>;
+      at: string;
+    }
   /** Adds to (or with a negative `by`, takes from) an entry's quantity, so changes on two devices add up (NF-3). */
   | { op: "add-quantity"; entryId: Id; by: number }
-  | { op: "delete"; kind: RecordKind; id: Id }
-  /**
-   * A character's name, ignoring case, taken by that character: written with
-   * the character or its new name, so that two phones that each give a
-   * character the same name offline can't both keep it (NF-3, CH-1).
-   */
-  | { op: "claim-name"; name: string; characterId: Id }
-  | { op: "release-name"; name: string };
+  | { op: "delete"; kind: RecordKind; id: Id };
 
 export interface Backend {
   /** A new, unique ID for a record. Entries and history records belong to `characterId`. */
