@@ -239,7 +239,7 @@ rule(
     await online(d);
     await vi.waitFor(() => expect(d.refused.length, "changes phone D was told were refused").toBeGreaterThan(0));
     expect(d.refused, "what phone D was told").toContainEqual(
-      expect.objectContaining({ kind: "character", name: "wren" }),
+      expect.objectContaining({ kind: "character", id: wrenD.id, name: "wren" }),
     );
     expect(c.refused, "what phone C was told").toEqual([]);
     const characters = await a.store.listCharacters("main");
@@ -285,7 +285,7 @@ rule(
     await online(d);
     await vi.waitFor(() => expect(d.refused.length, "changes phone D was told were refused").toBeGreaterThan(0));
     expect(d.refused, "what phone D was told").toContainEqual(
-      expect.objectContaining({ kind: "character", name: "WREN" }),
+      expect.objectContaining({ kind: "character", id: brin.id, name: "WREN" }),
     );
     expect(c.refused, "what phone C was told").toEqual([]);
     expect(
@@ -295,6 +295,28 @@ rule(
       [brin.id, "Brin"],
       [characterId, "Wren"],
     ]);
+  },
+);
+
+rule(
+  { req: ["NF-3", "CH-1", "CH-2"], m: "M3" },
+  "a name changed only in case stays claimed, so a phone that never saw it can't add a second Aldric",
+  async () => {
+    const { a, clock, characterId } = await setUp();
+    await a.store.updateCharacter(characterId, { name: "ALDRIC" });
+    await a.db.waitForPendingWrites();
+    const d = phoneTold("bram", clock);
+    await d.db.disableNetwork();
+    const second = await d.store.createCharacter({ name: "aldric", className: "Mage", level: 2 });
+    await online(d);
+    await vi.waitFor(() => expect(d.refused.length, "changes phone D was told were refused").toBeGreaterThan(0));
+    expect(d.refused, "what phone D was told").toContainEqual(
+      expect.objectContaining({ kind: "character", id: second.id, name: "aldric" }),
+    );
+    expect(
+      (await a.store.listCharacters("main")).map((ch) => [ch.id, ch.name]),
+      "Bram's characters after phone D syncs",
+    ).toEqual([[characterId, "ALDRIC"]]);
   },
 );
 

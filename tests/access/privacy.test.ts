@@ -684,6 +684,11 @@ rule(
       mine.doc(`${titles}/t-aldric`).set({ ...forGhost, scope: { level: "character", characterId: "aldric" } }),
       "Bram adding a title to Aldric",
     );
+    await seed({ [`${titles}/t-left`]: forGhost });
+    await expectAllowed(
+      mine.doc(`${titles}/t-left`).update({ description: "Kept after Ghost was deleted." }),
+      "Bram editing a title whose character is gone, without moving it",
+    );
     const ghost = `users/${bram()}/characters/ghost`;
     const tonic = { category: "consumables", name: "Tonic", quantity: 1 };
     const record = { event: "acquired", entryId: "tonic", quantity: 1 };

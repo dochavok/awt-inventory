@@ -57,7 +57,9 @@ const SEP = "~";
 /** What a refused change was about, for telling the user (NF-3). */
 export interface RefusedChange {
   kind: RecordKind | "profile";
-  /** The record's name, where the change knows it (e.g. the character "Wren"). */
+  /** The record's ID, where the change has one. */
+  id?: Id;
+  /** The record's name, where the change knows it: e.g. the character "Wren", or a rename's new name. */
   name?: string;
 }
 
@@ -175,24 +177,32 @@ export function createFirestoreStore(
     });
   }
 
-  /** What a change is about: its kind of record and, where it has one, its name. */
-  function aboutChange(change: Change): RefusedChange {
+  /** What a change (or one field of an update) is about: its kind of record, its ID and, where it has one, its name. */
+  function aboutChange(change: Change, field?: string): RefusedChange {
     switch (change.op) {
       case "set-character":
-        return { kind: "character", name: change.value.name };
+        return { kind: "character", id: change.value.id, name: change.value.name };
       case "set-title":
-        return { kind: "title", name: change.value.name };
-      case "set-entry":
-        return "name" in change.value ? { kind: "entry", name: change.value.name } : { kind: "entry" };
+        return { kind: "title", id: change.value.id, name: change.value.name };
+      case "set-entry": {
+        const about: RefusedChange = { kind: "entry", id: change.value.id };
+        if ("name" in change.value) about.name = change.value.name;
+        return about;
+      }
       case "set-history":
-        return { kind: "history" };
+        return { kind: "history", id: change.value.record.id };
       case "set-report":
-        return { kind: "report" };
+        return { kind: "report", id: change.value.id };
       case "add-quantity":
-        return { kind: "entry" };
-      case "update":
+        return { kind: "entry", id: change.entryId };
+      case "update": {
+        const about: RefusedChange = { kind: change.kind, id: change.id };
+        const value = field === undefined ? undefined : change.fields[field];
+        if (field === "name" && typeof value === "string") about.name = value;
+        return about;
+      }
       case "delete":
-        return { kind: change.kind };
+        return { kind: change.kind, id: change.id };
     }
   }
 
@@ -224,12 +234,10 @@ export function createFirestoreStore(
         for (const [key, value] of Object.entries(change.fields)) {
           const own = writeBatch(db);
           own.update(ref, { [key]: value === undefined ? deleteField() : value, [`edited.${key}`]: at });
-          let about = aboutChange(change);
           if (change.kind === "character" && key === "name" && typeof value === "string") {
             claimName(own, value, change.id);
-            about = { kind: "character", name: value };
           }
-          out.push({ batch: own, about });
+          out.push({ batch: own, about: aboutChange(change, key) });
         }
         current = undefined;
         continue;
@@ -269,9 +277,10 @@ export function createFirestoreStore(
   }
 
   /**
-   * Claims a name for a character. Claims are never released: the rules let a
-   * claim be taken over once its character is gone or has another name, so a
-   * claim left from a rename or delete (on any phone, offline too) never blocks.
+   * Claims a name for a character, with the name as the character has it. Every rename
+   * claims again, a change of case too. Claims are never released: the rules let a claim
+   * be taken over once its character is gone or has another name, so a claim left from a
+   * rename or delete (on any phone, offline too) never blocks.
    */
   function claimName(batch: WriteBatch, name: string, characterId: Id): void {
     batch.set(doc(names(), `name-${encodeURIComponent(characterNameKey(name))}`), { characterId, name });

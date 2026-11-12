@@ -183,7 +183,8 @@ service cloud.firestore {
       match /titles/{titleId} {
         allow read, delete: if isOwner(uid);
         allow create: if canStore(uid) && validTitle() && titleCharacterExists();
-        allow update: if canStore(uid) && validTitle() && freshTitle() && titleCharacterExists();
+        allow update: if canStore(uid) && validTitle() && freshTitle()
+          && (request.resource.data.get('scope', {}) == resource.data.get('scope', {}) || titleCharacterExists());
       }
 
       // SP-1: reports to the maintainer. The sender writes one and can read it;
@@ -195,9 +196,9 @@ service cloud.firestore {
 
       // NF-3, CH-1: which character has a name, ignoring case. The app writes a
       // claim with the character, or with its new name, in one batch, and the
-      // claim's character must have that name (as written) once the batch is
-      // applied; names are compared in lower case only here, on both sides. A claim
-      // whose character still has the name can't be taken by another character,
+      // claim's character must have that name, exactly as written, once the batch
+      // is applied (the app claims again on every rename, a change of case too).
+      // A claim whose character still has the name can't be taken by another character,
       // so the second of two phones that used a name offline is refused, with the
       // character or rename the claim came with. Claims aren't released; one
       // whose character is gone or renamed can be taken over.
@@ -213,7 +214,7 @@ service cloud.firestore {
       function claimStale() {
         return resource.data.characterId == request.resource.data.characterId
           || !existsAfter(characterAfter(resource.data.characterId))
-          || getAfter(characterAfter(resource.data.characterId)).data.name.lower() != resource.data.name.lower();
+          || getAfter(characterAfter(resource.data.characterId)).data.name != resource.data.name;
       }
 
       match /characterNames/{nameId} {
