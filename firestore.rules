@@ -167,10 +167,23 @@ service cloud.firestore {
       allow create: if isOwner(uid) && invited() && validProfile();
       allow update: if isOwner(uid) && validProfile();
 
+      // One of the user's characters, as it is once a batched write is applied.
+      function characterAfter(id) {
+        return /databases/$(database)/documents/users/$(uid)/characters/$(id);
+      }
+
+      // A character-level title belongs to a character that exists, so none is
+      // stored for a character the server refused (NF-3).
+      function titleCharacterExists() {
+        let scope = request.resource.data.get('scope', {});
+        return scope.get('level', 'player') != 'character'
+          || existsAfter(characterAfter(scope.get('characterId', '')));
+      }
+
       match /titles/{titleId} {
         allow read, delete: if isOwner(uid);
-        allow create: if canStore(uid) && validTitle();
-        allow update: if canStore(uid) && validTitle() && freshTitle();
+        allow create: if canStore(uid) && validTitle() && titleCharacterExists();
+        allow update: if canStore(uid) && validTitle() && freshTitle() && titleCharacterExists();
       }
 
       // SP-1: reports to the maintainer. The sender writes one and can read it;
@@ -182,28 +195,25 @@ service cloud.firestore {
 
       // NF-3, CH-1: which character has a name, ignoring case. The app writes a
       // claim with the character, or with its new name, in one batch, and the
-      // claim's character must have that name once the batch is applied. A claim
+      // claim's character must have that name (as written) once the batch is
+      // applied; names are compared in lower case only here, on both sides. A claim
       // whose character still has the name can't be taken by another character,
       // so the second of two phones that used a name offline is refused, with the
       // character or rename the claim came with. Claims aren't released; one
       // whose character is gone or renamed can be taken over.
-      function characterAfter(id) {
-        return /databases/$(database)/documents/users/$(uid)/characters/$(id);
-      }
-
       function validClaim() {
         let data = request.resource.data;
         return data.keys().hasOnly(['characterId', 'name'])
           && data.characterId is string && data.characterId.size() <= 100
           && data.name is string && data.name.size() <= 100
           && existsAfter(characterAfter(data.characterId))
-          && getAfter(characterAfter(data.characterId)).data.name.lower() == data.name;
+          && getAfter(characterAfter(data.characterId)).data.name == data.name;
       }
 
       function claimStale() {
         return resource.data.characterId == request.resource.data.characterId
           || !existsAfter(characterAfter(resource.data.characterId))
-          || getAfter(characterAfter(resource.data.characterId)).data.name.lower() != resource.data.name;
+          || getAfter(characterAfter(resource.data.characterId)).data.name.lower() != resource.data.name.lower();
       }
 
       match /characterNames/{nameId} {
@@ -220,7 +230,7 @@ service cloud.firestore {
         // Entries and history records are added only to a character that exists, so
         // nothing is stored under a character the server refused (NF-3).
         function characterExists() {
-          return existsAfter(/databases/$(database)/documents/users/$(uid)/characters/$(characterId));
+          return existsAfter(characterAfter(characterId));
         }
 
         match /entries/{entryId} {
@@ -235,7 +245,7 @@ service cloud.firestore {
           allow read: if isOwner(uid);
           allow create: if canStore(uid) && validRecord() && characterExists();
           allow delete: if isOwner(uid) && (
-            !existsAfter(/databases/$(database)/documents/users/$(uid)/characters/$(characterId))
+            !characterExists()
             || (resource.data.get('entryId', null) is string
                 && !existsAfter(/databases/$(database)/documents/users/$(uid)/characters/$(characterId)/entries/$(resource.data.entryId)))
           );

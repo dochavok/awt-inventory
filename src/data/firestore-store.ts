@@ -274,8 +274,7 @@ export function createFirestoreStore(
    * claim left from a rename or delete (on any phone, offline too) never blocks.
    */
   function claimName(batch: WriteBatch, name: string, characterId: Id): void {
-    const key = characterNameKey(name);
-    batch.set(doc(names(), `name-${encodeURIComponent(key)}`), { characterId, name: key });
+    batch.set(doc(names(), `name-${encodeURIComponent(characterNameKey(name))}`), { characterId, name });
   }
 
   // Whether the phone has signal, from a listener on the profile that Firestore keeps up to date.
