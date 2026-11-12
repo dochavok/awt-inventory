@@ -3,7 +3,7 @@
 // offline is disableNetwork(), and signal returning is enableNetwork().
 
 import { expect, vi } from "vitest";
-import { createFirestoreStore, type RefusedChange } from "../../src/data/firestore-store";
+import { createFirestoreStore, loadWholeAccount, type RefusedChange } from "../../src/data/firestore-store";
 import { NotFoundError } from "../../src/errors";
 import type { InventoryStore } from "../../src/data/store";
 import { device, seed, uid, useEmulator } from "../support/emulator";
@@ -330,3 +330,73 @@ rule({ req: ["NF-3", "SP-1"], m: "M3" }, "a report written offline is sent when 
     "reports seen on phone A",
   ).toEqual([report.id]);
 });
+
+rule(
+  { req: ["NF-3"], m: "M3" },
+  "after the whole account is read on start, a phone has a character it never opened, offline",
+  async () => {
+    const { a, clock, characterId } = await setUp();
+    const isolde = await seedCharacter(a.store, "isolde");
+    const isoldeId = isolde.character.id;
+    await a.store.updateCharacter(isoldeId, { level: 14 });
+    await a.db.waitForPendingWrites();
+    const isoldeHistory = (await a.store.history(isoldeId)).map((r) => [r.id, r.event]);
+    expect(
+      isoldeHistory.map(([, event]) => event),
+      "Isolde's history events on phone A",
+    ).toContain("level-changed");
+    const titles = (await a.store.listTitles()).map((t) => t.name).sort();
+    expect(titles.length, "Bram's titles on phone A").toBeGreaterThan(0);
+
+    // Phone E opens the app with signal and does only what the app does on start.
+    const e = phone("bram", clock);
+    await loadWholeAccount(e.db, uid("bram"));
+    await e.db.disableNetwork();
+
+    expect(
+      (await e.store.listCharacters("main")).map((c) => c.name),
+      "Bram's characters on phone E offline",
+    ).toEqual(["Aldric", "Isolde"]);
+    expect((await e.store.character(isoldeId)).level, "Isolde's level on phone E offline").toBe(14);
+    expect(
+      (await e.store.listEntries(isoldeId, "items")).map((i) => ("name" in i.entry ? i.entry.name : i.entry.id)),
+      "Isolde's items on phone E offline",
+    ).toEqual(["Glass Orb"]);
+    expect((await e.store.sheet(isoldeId)).entries.length, "Isolde's entries on phone E offline").toBe(3);
+    expect(
+      (await e.store.history(isoldeId)).map((r) => [r.id, r.event]),
+      "Isolde's history on phone E offline",
+    ).toEqual(isoldeHistory);
+    expect((await e.store.sheet(characterId)).entries.length, "Aldric's entries on phone E offline").toBe(18);
+    expect((await e.store.listTitles()).map((t) => t.name).sort(), "Bram's titles on phone E offline").toEqual(titles);
+    expect(
+      (await e.store.search("orb", { allCharacters: true })).map((r) => `${r.characterName}: ${r.name}`),
+      "searching every character on phone E offline",
+    ).toEqual(["Isolde: Glass Orb"]);
+  },
+);
+
+rule(
+  { req: ["CH-6", "NF-3", "CH-1"], m: "M3" },
+  "a phone that only read the account on start deletes a character offline, and the claims on its names go too",
+  async () => {
+    const { a, clock } = await setUp();
+    const wren = await a.store.createCharacter({ name: "Wren", className: "Rogue", level: 3 });
+    await a.store.updateCharacter(wren.id, { name: "Brin" });
+    await a.db.waitForPendingWrites();
+    const names = `users/${uid("bram")}/characterNames`;
+    for (const name of ["aldric", "wren", "brin"]) {
+      expect(await storedOnServer("bram", `${names}/name-${name}`), `the claim on ${name} before`).toBe(true);
+    }
+
+    const e = phone("bram", clock);
+    await loadWholeAccount(e.db, uid("bram"));
+    await e.db.disableNetwork();
+    await e.store.deleteCharacter(wren.id, "Brin");
+    await online(e);
+
+    expect(await storedOnServer("bram", `${names}/name-wren`), "the claim on Wren, Brin's old name").toBe(false);
+    expect(await storedOnServer("bram", `${names}/name-brin`), "the claim on Brin").toBe(false);
+    expect(await storedOnServer("bram", `${names}/name-aldric`), "the claim on Aldric, who wasn't deleted").toBe(true);
+  },
+);

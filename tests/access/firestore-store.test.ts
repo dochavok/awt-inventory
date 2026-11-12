@@ -248,3 +248,32 @@ rule(
     }
   },
 );
+
+/** The IDs of the documents in a collection, read past the rules. */
+async function storedIds(path: string): Promise<string[]> {
+  const host = process.env.FIRESTORE_EMULATOR_HOST;
+  const response = await fetch(`http://${host}/v1/projects/${PROJECT_ID}/databases/(default)/documents/${path}`, {
+    headers: { Authorization: "Bearer owner" },
+  });
+  const body = (await response.json()) as { documents?: { name: string }[] };
+  return (body.documents ?? []).map((d) => d.name.split("/").pop()!).sort();
+}
+
+rule(
+  { req: ["CH-6", "CH-1"], m: "M3" },
+  "through Firestore, deleting a character removes the claims that still point to it, and no other",
+  async () => {
+    const bram = await signedUp("bram");
+    const first = await bram.store.createCharacter({ name: "Wren", className: "Rogue", level: 3 });
+    await bram.store.updateCharacter(first.id, { name: "Brin" });
+    // A new Wren takes over the old claim on "wren", so it no longer points to the first character.
+    await bram.store.createCharacter({ name: "Wren", className: "Mage", level: 1 });
+    await bram.store.createCharacter({ name: "Aldric", className: "Warrior", level: 26 });
+    await synced(bram);
+    const names = `users/${uid("bram")}/characterNames`;
+    expect(await storedIds(names), "Bram's claimed names before").toEqual(["name-aldric", "name-brin", "name-wren"]);
+    await bram.store.deleteCharacter(first.id, "Brin");
+    await synced(bram);
+    expect(await storedIds(names), "Bram's claimed names after deleting Brin").toEqual(["name-aldric", "name-wren"]);
+  },
+);

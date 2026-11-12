@@ -38,7 +38,7 @@ import {
   type Firestore,
   type WriteBatch,
 } from "firebase/firestore";
-import { AccessDeniedError } from "../errors";
+import { AccessDeniedError, NotImplementedError } from "../errors";
 import type { Character, Entry, Id, Title } from "../rules/types";
 import type { Backend, Change, RecordKind, StoredRecord } from "./backend";
 import { createRecordsStore } from "./records";
@@ -478,4 +478,13 @@ export function createFirestoreStore(
   }
 
   return createRecordsStore(backend, context, "FirestoreStore");
+}
+
+/**
+ * NF-3: with signal, reads everything in the account once, so the phone's offline
+ * cache holds every character, including ones this phone never opened, and the
+ * claims on their names.
+ */
+export async function loadWholeAccount(_firestore: unknown, _uid: string): Promise<void> {
+  throw NotImplementedError.stub("loadWholeAccount", "M3");
 }
