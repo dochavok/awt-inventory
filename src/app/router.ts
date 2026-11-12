@@ -15,10 +15,14 @@ export type Route =
 /** The address of a screen: href("characters/abc") is "#/characters/abc". */
 export const href = (path: string): string => `#/${path}`;
 
-/** A part of an address as written; one with a broken "%" escape is kept as it is. */
+/**
+ * A part of an address, decoded. One with a broken "%" escape, or that would
+ * decode to a "/" (which would split an ID), is kept as written.
+ */
 function decodePart(part: string): string {
   try {
-    return decodeURIComponent(part);
+    const decoded = decodeURIComponent(part);
+    return decoded.includes("/") ? part : decoded;
   } catch {
     return part;
   }

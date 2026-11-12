@@ -2,8 +2,9 @@
 // signed in. Sign-ins last until the user signs out (AC-3). With signal, the
 // whole account is read once signed in, so all of it stays on the phone (NF-3).
 
-import { useEffect, useState } from "react";
-import { useRoute } from "./router";
+import { useEffect, useRef, useState } from "react";
+import type { RefusedChange } from "../data/firestore-store";
+import { useRoute, type Route } from "./router";
 import type { Services } from "./services";
 import { ConnectionBar, Header, RefusedNotices } from "./Shell";
 import { Account } from "./screens/Account";
@@ -13,6 +14,25 @@ import { Privacy } from "./screens/Privacy";
 import { SignIn } from "./screens/SignIn";
 import { SignUp } from "./screens/SignUp";
 import { Titles } from "./screens/Titles";
+
+/** Whether a screen shows records of a kind, so a refused change to one must leave it (NF-3). */
+function shows(route: Route | null, kind: RefusedChange["kind"]): boolean {
+  switch (route?.screen) {
+    case "character":
+      return kind !== "profile" && kind !== "report";
+    case "titles":
+      return kind === "title" || kind === "character";
+    case "account":
+      return kind === "profile";
+    case "help":
+    case "privacy":
+    case "new-character":
+      return false;
+    default:
+      // The characters list, at its own address or the start one.
+      return kind === "character";
+  }
+}
 
 /** How long after the app opens the whole account is read (NF-3, NF-4). */
 const LOAD_DELAY_MS = 2_000;
@@ -35,9 +55,18 @@ export function App({ services }: { services: Services }) {
     return services.onSignInChange(() => setSignedIn(services.auth.currentUser() !== null));
   }, [services]);
 
-  // NF-3: a change the server refused is undone on the phone; the screen showing it reloads.
+  // NF-3: a change the server refused is undone on the phone; a screen showing that kind of
+  // record reloads. Other screens are left alone, so nothing typed into them is lost.
   const [refusals, setRefusals] = useState(0);
-  useEffect(() => services.onWriteRefused(() => setRefusals((n) => n + 1)), [services]);
+  const shown = useRef(route);
+  shown.current = route;
+  useEffect(
+    () =>
+      services.onWriteRefused((change) => {
+        if (shows(shown.current, change.kind)) setRefusals((n) => n + 1);
+      }),
+    [services],
+  );
 
   // NF-3: once signed in with signal, read everything in the account, and again whenever signal returns.
   // It waits a moment first, so on slow signal the screen the player opened comes first (NF-4).

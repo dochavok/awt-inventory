@@ -45,6 +45,7 @@ browserRule({ req: ["DOC-1"], m: "M3" }, "each main screen has a help link to it
   await signUp(page);
   const id = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
   const screens: [string, string, string][] = [
+    ["the start screen, signed in", "/#/", "Characters and titles"],
     ["the characters screen", "/#/characters", "Characters and titles"],
     ["the new character form", "/#/characters/new", "Characters and titles"],
     ["a character's page", `/#/characters/${id}`, "Characters and titles"],
@@ -230,5 +231,20 @@ browserRule(
       "Page not found",
     );
     await expect(page.getByRole("link", { name: /help/i }), "the help link, still there").toBeVisible();
+  },
+);
+
+browserRule(
+  { req: ["CH-1", "NF-1"], m: "M3" },
+  "an address for a character that doesn't exist, even a broken one, says it isn't there",
+  async ({ page }) => {
+    await signUp(page);
+    for (const address of ["/#/characters/no-such-character", "/#/characters/a%2Fb", "/#/characters/%E0"]) {
+      await page.goto("/#/titles");
+      await page.goto(address);
+      await expect(page.getByRole("heading", { level: 1 }), `the page for ${address}`).toHaveText(
+        "Character not found",
+      );
+    }
   },
 );

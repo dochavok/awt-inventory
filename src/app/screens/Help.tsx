@@ -27,23 +27,20 @@ export const helpPage = (slug: string) => pages.find((p) => p.slug === slug);
 
 /**
  * The help page for the screen showing (DOC-1). Signed out, every screen but
- * Help and Privacy is the sign-in or sign-up screen, whose page is Getting started.
+ * Help and Privacy is the sign-in or sign-up screen, whose page is Getting
+ * started; signed in, any address without a screen of its own shows the
+ * characters, as App does.
  */
 export function helpFor(route: Route | null, signedIn: boolean): string {
-  const screen = route?.screen;
-  if (!signedIn && screen !== "help" && screen !== "privacy") return "help/getting-started";
-  switch (screen) {
-    case "characters":
-    case "new-character":
-    case "character":
-    case "titles":
-      return "help/characters-and-titles";
+  switch (route?.screen) {
     case "privacy":
       return "help/privacy";
     case "help":
       return "help";
-    default:
+    case "account":
       return "help/getting-started";
+    default:
+      return signedIn ? "help/characters-and-titles" : "help/getting-started";
   }
 }
 

@@ -37,7 +37,15 @@ export function ConnectionBar({ store }: { store: InventoryStore }) {
   useEffect(() => {
     let stopped = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    // One check at a time: signal coming or going during a check asks for another straight after.
+    let running = false;
+    let again = false;
     const check = async () => {
+      if (running) {
+        again = true;
+        return;
+      }
+      running = true;
       clearTimeout(timer);
       const browserOnline = navigator.onLine;
       try {
@@ -46,7 +54,12 @@ export function ConnectionBar({ store }: { store: InventoryStore }) {
       } catch {
         if (!stopped) setStatus((old) => ({ ...old, online: browserOnline }));
       }
-      if (!stopped) timer = setTimeout(() => void check(), CHECK_MS);
+      running = false;
+      if (stopped) return;
+      if (again) {
+        again = false;
+        void check();
+      } else timer = setTimeout(() => void check(), CHECK_MS);
     };
     const now = () => void check();
     window.addEventListener("online", now);

@@ -72,6 +72,7 @@ export function createServices(): Services {
   const ref = referenceData();
   const refusedListeners = new Set<(change: RefusedChange) => void>();
   let lastLoad: { uid: string; at: number } | undefined;
+  let loading: { uid: string; done: Promise<void> } | undefined;
   const { config, emulators } = firebaseConfig();
   const app = initializeApp(config);
   const firebaseAuth = getAuth(app);
@@ -114,13 +115,21 @@ export function createServices(): Services {
       refusedListeners.add(listener);
       return () => refusedListeners.delete(listener);
     },
-    async loadWholeAccount() {
+    loadWholeAccount() {
       const uid = firebaseAuth.currentUser?.uid;
       // Every document read is billed (NF-5): signal coming and going on a patchy connection
-      // doesn't read everything again each time.
-      if (!uid || (lastLoad?.uid === uid && Date.now() - lastLoad.at < RELOAD_MS)) return;
-      await loadWholeAccount(firestore, uid);
-      lastLoad = { uid, at: Date.now() };
+      // doesn't read everything again each time, and a read already under way is shared.
+      if (!uid || (lastLoad?.uid === uid && Date.now() - lastLoad.at < RELOAD_MS)) return Promise.resolve();
+      if (loading?.uid === uid) return loading.done;
+      const done = loadWholeAccount(firestore, uid)
+        .then(() => {
+          lastLoad = { uid, at: Date.now() };
+        })
+        .finally(() => {
+          if (loading?.done === done) loading = undefined;
+        });
+      loading = { uid, done };
+      return done;
     },
   };
 }

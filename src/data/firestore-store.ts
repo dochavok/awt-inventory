@@ -165,7 +165,6 @@ export function createFirestoreStore(
 
   let pending = 0;
   let lastSeq = 0;
-
   /** One batched write, and what it's about, to tell the user if the server refuses it. */
   interface Sent {
     batch: WriteBatch;
@@ -315,7 +314,13 @@ export function createFirestoreStore(
    */
   async function claimDeletes(deleted: Set<Id>): Promise<Sent[]> {
     const fromCache = () => getDocsFromCache(names());
-    const read = listening?.online ? getDocsFromServer(names()).catch(fromCache) : fromCache();
+    // Slow signal never holds up the delete: after PROBE_MS, the phone's own copy is used.
+    const fromServer = () =>
+      Promise.race([
+        getDocsFromServer(names()),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timed out")), PROBE_MS)),
+      ]).catch(fromCache);
+    const read = listening?.online ? fromServer() : fromCache();
     const claims = await read.then(
       (snap) => snap.docs.filter((d) => deleted.has(d.get("characterId") as string)),
       () => [],

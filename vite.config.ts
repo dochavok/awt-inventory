@@ -21,6 +21,8 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,png,webmanifest}"],
         navigateFallback: "index.html",
+        // Firebase's own pages (Google sign-in's /__/auth/handler) must reach Hosting, never the app.
+        navigateFallbackDenylist: [/^\/__\//],
         clientsClaim: true,
         skipWaiting: true,
       },
