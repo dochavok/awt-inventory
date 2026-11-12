@@ -26,6 +26,7 @@ import {
   getDoc,
   getDocFromServer,
   getDocs,
+  getDocsFromCache,
   increment,
   onSnapshot,
   query,
@@ -38,7 +39,7 @@ import {
   type Firestore,
   type WriteBatch,
 } from "firebase/firestore";
-import { AccessDeniedError, NotImplementedError } from "../errors";
+import { AccessDeniedError } from "../errors";
 import type { Character, Entry, Id, Title } from "../rules/types";
 import type { Backend, Change, RecordKind, StoredRecord } from "./backend";
 import { createRecordsStore } from "./records";
@@ -156,6 +157,8 @@ export function createFirestoreStore(
   interface Sent {
     batch: WriteBatch;
     about: RefusedChange;
+    /** Tidying the user didn't ask for (a deleted character's name claims): a refusal isn't news to them. */
+    quiet?: boolean;
   }
 
   /**
@@ -172,7 +175,10 @@ export function createFirestoreStore(
         console.error("The write-refused handler failed", handlerError);
       }
     };
-    void Promise.all(batches.map(({ batch, about }) => batch.commit().catch(refused(about)))).then(() => {
+    const commits = batches.map(({ batch, about, quiet }) =>
+      batch.commit().catch(quiet ? () => undefined : refused(about)),
+    );
+    void Promise.all(commits).then(() => {
       pending -= 1;
     });
   }
@@ -284,6 +290,24 @@ export function createFirestoreStore(
    */
   function claimName(batch: WriteBatch, name: string, characterId: Id): void {
     batch.set(doc(names(), `name-${encodeURIComponent(characterNameKey(name))}`), { characterId, name });
+  }
+
+  /**
+   * Deletes for the claims that still point to characters being deleted (CH-6), current
+   * and past names, from what the phone has: the whole-account load puts every claim on
+   * it, and its own changes are there too, so this works offline. Each is its own batch,
+   * sent after the character's, so a failed claim delete never undoes the character's.
+   */
+  async function claimDeletes(deleted: Set<Id>): Promise<Sent[]> {
+    const claims = await getDocsFromCache(names()).then(
+      (snap) => snap.docs.filter((d) => deleted.has(d.get("characterId") as string)),
+      () => [],
+    );
+    return claims.map((claim) => {
+      const batch = writeBatch(db);
+      batch.delete(claim.ref);
+      return { batch, about: { kind: "character", id: claim.get("characterId") as Id }, quiet: true };
+    });
   }
 
   // Whether the phone has signal, from a listener on the profile that Firestore keeps up to date.
@@ -441,7 +465,10 @@ export function createFirestoreStore(
     async write(changes) {
       uid();
       watch();
-      send(batchesFor(changes));
+      const deleted = new Set(changes.flatMap((c) => (c.op === "delete" && c.kind === "character" ? [c.id] : [])));
+      // Only a character's deletion waits to find its claims; every other change is sent straight away.
+      const claims = deleted.size > 0 ? await claimDeletes(deleted) : [];
+      send([...batchesFor(changes), ...claims]);
     },
 
     async syncStatus() {
@@ -485,6 +512,19 @@ export function createFirestoreStore(
  * cache holds every character, including ones this phone never opened, and the
  * claims on their names.
  */
-export async function loadWholeAccount(_firestore: unknown, _uid: string): Promise<void> {
-  throw NotImplementedError.stub("loadWholeAccount", "M3");
+export async function loadWholeAccount(firestore: unknown, uid: string): Promise<void> {
+  const user = doc(firestore as Firestore, "users", uid);
+  const [, characterDocs] = await Promise.all([
+    getDoc(user),
+    getDocs(collection(user, "characters")),
+    getDocs(collection(user, "titles")),
+    getDocs(collection(user, "reports")),
+    getDocs(collection(user, "characterNames")),
+  ]);
+  await Promise.all(
+    characterDocs.docs.flatMap((character) => [
+      getDocs(collection(character.ref, "entries")),
+      getDocs(collection(character.ref, "history")),
+    ]),
+  );
 }
