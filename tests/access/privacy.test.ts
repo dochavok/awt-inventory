@@ -668,6 +668,28 @@ rule(
 );
 
 rule(
+  { req: ["NF-3", "CH-1", "CH-2"], m: "M3" },
+  "the claim İsolde left when renamed Isolde, under its own ID, can be taken by a new İsolde",
+  async () => {
+    await seedAldric();
+    const names = `users/${bram()}/characterNames`;
+    const characters = `users/${bram()}/characters`;
+    // The phone's lower case of "İsolde" is "i̇solde", so its claim has its own ID; the
+    // character was then renamed "Isolde", which the phone claims under "isolde".
+    const key = `name-${encodeURIComponent("\u0130solde".toLowerCase())}`;
+    await seed({
+      [`${characters}/x`]: { name: "Isolde", className: "Mage", level: 4 },
+      [`${names}/${key}`]: { characterId: "x", name: "\u0130solde" },
+    });
+    const mine = signedIn("bram").firestore();
+    const batch = mine.batch();
+    batch.set(mine.doc(`${characters}/y`), { name: "\u0130solde", className: "Rogue", level: 1 });
+    batch.set(mine.doc(`${names}/${key}`), { characterId: "y", name: "\u0130solde" });
+    await expectAllowed(batch.commit(), "a new İsolde taking the claim the character now named Isolde left");
+  },
+);
+
+rule(
   { req: ["NF-3", "PV-1", "TF-11"], m: "M3" },
   "entries, history records and character-level titles can be added only to a character that exists",
   async () => {

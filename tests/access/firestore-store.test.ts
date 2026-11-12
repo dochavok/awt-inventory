@@ -205,6 +205,21 @@ rule(
 );
 
 rule(
+  { req: ["AC-5", "NF-3", "CH-1"], m: "M3" },
+  "through Firestore, deleting the account removes the claims on its characters' names, past names included",
+  async () => {
+    const bram = await signedUp("bram");
+    const wren = await bram.store.createCharacter({ name: "Wren", className: "Rogue", level: 3 });
+    await bram.store.updateCharacter(wren.id, { name: "Brin" });
+    await synced(bram);
+    const names = `users/${uid("bram")}/characterNames`;
+    expect(await storedCount(names), "Bram's claimed names before (Wren, then Brin)").toBe(2);
+    await bram.store.deleteAccount("Bramblewick");
+    expect(await storedCount(names), "Bram's claimed names after deleting").toBe(0);
+  },
+);
+
+rule(
   { req: ["NF-3"], m: "M3" },
   "when two offline phones change different fields of one entry, both changes are kept",
   async () => {
