@@ -167,10 +167,24 @@ service cloud.firestore {
       allow create: if isOwner(uid) && invited() && validProfile();
       allow update: if isOwner(uid) && validProfile();
 
+      // One of the user's characters, as it is once a batched write is applied.
+      function characterAfter(id) {
+        return /databases/$(database)/documents/users/$(uid)/characters/$(id);
+      }
+
+      // A character-level title belongs to a character that exists, so none is
+      // stored for a character the server refused (NF-3).
+      function titleCharacterExists() {
+        let scope = request.resource.data.get('scope', {});
+        return scope.get('level', 'player') != 'character'
+          || existsAfter(characterAfter(scope.get('characterId', '')));
+      }
+
       match /titles/{titleId} {
         allow read, delete: if isOwner(uid);
-        allow create: if canStore(uid) && validTitle();
-        allow update: if canStore(uid) && validTitle() && freshTitle();
+        allow create: if canStore(uid) && validTitle() && titleCharacterExists();
+        allow update: if canStore(uid) && validTitle() && freshTitle()
+          && (request.resource.data.get('scope', {}) == resource.data.get('scope', {}) || titleCharacterExists());
       }
 
       // SP-1: reports to the maintainer. The sender writes one and can read it;
@@ -180,14 +194,49 @@ service cloud.firestore {
         allow create: if canStore(uid) && validReport();
       }
 
+      // NF-3, CH-1: which character has a name, ignoring case. The app writes a
+      // claim with the character, or with its new name, in one batch, and the
+      // claim's character must have that name, exactly as written, once the batch
+      // is applied (the app claims again on every rename, a change of case too).
+      // A claim whose character still has the name can't be taken by another character,
+      // so the second of two phones that used a name offline is refused, with the
+      // character or rename the claim came with. Claims aren't released; one
+      // whose character is gone or renamed can be taken over.
+      function validClaim() {
+        let data = request.resource.data;
+        return data.keys().hasOnly(['characterId', 'name'])
+          && data.characterId is string && data.characterId.size() <= 100
+          && data.name is string && data.name.size() <= 100
+          && existsAfter(characterAfter(data.characterId))
+          && getAfter(characterAfter(data.characterId)).data.name == data.name;
+      }
+
+      function claimStale() {
+        return resource.data.characterId == request.resource.data.characterId
+          || !existsAfter(characterAfter(resource.data.characterId))
+          || getAfter(characterAfter(resource.data.characterId)).data.name != resource.data.name;
+      }
+
+      match /characterNames/{nameId} {
+        allow read, delete: if isOwner(uid);
+        allow create: if canStore(uid) && validClaim();
+        allow update: if canStore(uid) && validClaim() && claimStale();
+      }
+
       match /characters/{characterId} {
         allow read, delete: if isOwner(uid);
         allow create: if canStore(uid) && validCharacter();
         allow update: if canStore(uid) && validCharacter() && freshCharacter();
 
+        // Entries and history records are added only to a character that exists, so
+        // nothing is stored under a character the server refused (NF-3).
+        function characterExists() {
+          return existsAfter(characterAfter(characterId));
+        }
+
         match /entries/{entryId} {
           allow read, delete: if isOwner(uid);
-          allow create: if canStore(uid) && validEntry();
+          allow create: if canStore(uid) && validEntry() && characterExists();
           allow update: if canStore(uid) && validEntry() && freshEntry();
         }
 
@@ -195,9 +244,9 @@ service cloud.firestore {
         // (IN-15) or its character (CH-6, AC-5), in the same batched write.
         match /history/{recordId} {
           allow read: if isOwner(uid);
-          allow create: if canStore(uid) && validRecord();
+          allow create: if canStore(uid) && validRecord() && characterExists();
           allow delete: if isOwner(uid) && (
-            !existsAfter(/databases/$(database)/documents/users/$(uid)/characters/$(characterId))
+            !characterExists()
             || (resource.data.get('entryId', null) is string
                 && !existsAfter(/databases/$(database)/documents/users/$(uid)/characters/$(characterId)/entries/$(resource.data.entryId)))
           );

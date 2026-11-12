@@ -87,6 +87,11 @@ function shortText(field: string, value: unknown, label = field): string | undef
   return optionalText(field, value, LIMITS.shortText, label)?.trim();
 }
 
+/** A character's name as compared with the user's other characters' names: case is ignored (CH-1). */
+export function characterNameKey(name: string): string {
+  return name.toLowerCase();
+}
+
 export function displayName(value: unknown): string {
   return requiredText("displayName", value, LIMITS.displayName, "display name");
 }

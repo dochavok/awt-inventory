@@ -192,7 +192,8 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
   // ---------------------------------------------------------------- characters (CH)
 
   async function uniqueName(name: string, except?: Id): Promise<void> {
-    const clash = (await myCharacters()).find((c) => c.id !== except && c.name.toLowerCase() === name.toLowerCase());
+    const key = check.characterNameKey(name);
+    const clash = (await myCharacters()).find((c) => c.id !== except && check.characterNameKey(c.name) === key);
     if (clash) throw new ValidationError("name", `You already have a character called ${clash.name}.`);
   }
 

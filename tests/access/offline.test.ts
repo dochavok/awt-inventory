@@ -2,8 +2,8 @@
 // "phone" is its own Firestore instance with its own offline cache; taking it
 // offline is disableNetwork(), and signal returning is enableNetwork().
 
-import { expect } from "vitest";
-import { createFirestoreStore } from "../../src/data/firestore-store";
+import { expect, vi } from "vitest";
+import { createFirestoreStore, type RefusedChange } from "../../src/data/firestore-store";
 import { NotFoundError } from "../../src/errors";
 import type { InventoryStore } from "../../src/data/store";
 import { device, seed, uid, useEmulator } from "../support/emulator";
@@ -200,6 +200,123 @@ rule(
     expect((await a.store.entry(draught)).notes, "Healing Draught's notes after phones B and C sync").toBe(
       "Kept for the gate",
     );
+  },
+);
+
+/** A phone that keeps what the server refused, as the app tells the user (NF-3). */
+function phoneTold(user: string, clock: FakeClock) {
+  const db = device(user);
+  const refused: RefusedChange[] = [];
+  const store = createFirestoreStore(
+    db,
+    { currentUid: () => uid(user), clock, ref, settings: { showSkillText: false, appVersion: "0.1.0-test" } },
+    { onWriteRefused: (_error, change) => refused.push(change) },
+  );
+  return { db, store, refused };
+}
+
+/** Reads a document as its owner, straight from the server. */
+async function storedOnServer(user: string, path: string): Promise<boolean> {
+  return (await device(user).doc(path).get()).exists;
+}
+
+rule(
+  { req: ["NF-3", "CH-1"], m: "M3" },
+  "two offline phones each create Wren: the first to sync keeps it, the other is refused with what was added to it",
+  async () => {
+    const { a, clock, characterId } = await setUp();
+    const c = phoneTold("bram", clock);
+    const d = phoneTold("bram", clock);
+    await c.store.listCharacters("main");
+    await d.store.listCharacters("main");
+    await c.db.disableNetwork();
+    await d.db.disableNetwork();
+    const wrenC = await c.store.createCharacter({ name: "Wren", className: "Rogue", level: 3 });
+    await c.store.addEntry(wrenC.id, { category: "consumables", name: "Smoke Pellet" });
+    const wrenD = await d.store.createCharacter({ name: "wren", className: "Mage", level: 5 });
+    const rope = await d.store.addEntry(wrenD.id, { category: "items", name: "Silk Rope", arcane: false });
+    await online(c);
+    await online(d);
+    await vi.waitFor(() => expect(d.refused.length, "changes phone D was told were refused").toBeGreaterThan(0));
+    expect(d.refused, "what phone D was told").toContainEqual(
+      expect.objectContaining({ kind: "character", id: wrenD.id, name: "wren" }),
+    );
+    expect(c.refused, "what phone C was told").toEqual([]);
+    const characters = await a.store.listCharacters("main");
+    expect(
+      characters.map((ch) => [ch.id, ch.name]),
+      "Bram's characters after both phones sync",
+    ).toEqual([
+      [characterId, "Aldric"],
+      [wrenC.id, "Wren"],
+    ]);
+    expect(
+      (await a.store.listEntries(wrenC.id, "consumables")).map((e) => ("name" in e.entry ? e.entry.name : e.entry.id)),
+      "phone C's Wren's consumables",
+    ).toEqual(["Smoke Pellet"]);
+    const user = `users/${uid("bram")}/characters`;
+    expect(await storedOnServer("bram", `${user}/${wrenD.id}`), "phone D's wren stored").toBe(false);
+    expect(await storedOnServer("bram", `${user}/${wrenD.id}/entries/${rope.id}`), "phone D's Silk Rope stored").toBe(
+      false,
+    );
+    expect(
+      (await d.store.listCharacters("main")).map((ch) => ch.id),
+      "Bram's characters on phone D after it syncs",
+    ).toEqual([characterId, wrenC.id]);
+  },
+);
+
+rule(
+  { req: ["NF-3", "CH-1", "CH-2"], m: "M3" },
+  "two offline phones each rename a character to Wren: the first to sync keeps the name, the other keeps its old one",
+  async () => {
+    const { a, clock, characterId } = await setUp();
+    const brin = await a.store.createCharacter({ name: "Brin", className: "Rogue", level: 8 });
+    await a.db.waitForPendingWrites();
+    const c = phoneTold("bram", clock);
+    const d = phoneTold("bram", clock);
+    await c.store.listCharacters("main");
+    await d.store.listCharacters("main");
+    await c.db.disableNetwork();
+    await d.db.disableNetwork();
+    await c.store.updateCharacter(characterId, { name: "Wren" });
+    await d.store.updateCharacter(brin.id, { name: "WREN" });
+    await online(c);
+    await online(d);
+    await vi.waitFor(() => expect(d.refused.length, "changes phone D was told were refused").toBeGreaterThan(0));
+    expect(d.refused, "what phone D was told").toContainEqual(
+      expect.objectContaining({ kind: "character", id: brin.id, name: "WREN" }),
+    );
+    expect(c.refused, "what phone C was told").toEqual([]);
+    expect(
+      (await a.store.listCharacters("main")).map((ch) => [ch.id, ch.name]),
+      "Bram's characters after both phones sync",
+    ).toEqual([
+      [brin.id, "Brin"],
+      [characterId, "Wren"],
+    ]);
+  },
+);
+
+rule(
+  { req: ["NF-3", "CH-1", "CH-2"], m: "M3" },
+  "a name changed only in case stays claimed, so a phone that never saw it can't add a second Aldric",
+  async () => {
+    const { a, clock, characterId } = await setUp();
+    await a.store.updateCharacter(characterId, { name: "ALDRIC" });
+    await a.db.waitForPendingWrites();
+    const d = phoneTold("bram", clock);
+    await d.db.disableNetwork();
+    const second = await d.store.createCharacter({ name: "aldric", className: "Mage", level: 2 });
+    await online(d);
+    await vi.waitFor(() => expect(d.refused.length, "changes phone D was told were refused").toBeGreaterThan(0));
+    expect(d.refused, "what phone D was told").toContainEqual(
+      expect.objectContaining({ kind: "character", id: second.id, name: "aldric" }),
+    );
+    expect(
+      (await a.store.listCharacters("main")).map((ch) => [ch.id, ch.name]),
+      "Bram's characters after phone D syncs",
+    ).toEqual([[characterId, "ALDRIC"]]);
   },
 );
 
