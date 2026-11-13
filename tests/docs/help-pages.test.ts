@@ -18,12 +18,14 @@ const REQUIRED = {
   "characters-and-titles.md": "# Characters and titles\n",
 };
 
-/** Builds the help pages from a made-up docs/ folder holding `pages` as well as the required ones. */
-function build(pages: Record<string, string>) {
+/** Builds the help pages from a made-up docs/ folder holding `pages` as well as the required ones, but not `without`. */
+function build(pages: Record<string, string>, without: string[] = []) {
   const root = mkdtempSync(join(tmpdir(), "awt-help-"));
   try {
     mkdirSync(join(root, "docs"));
-    for (const [file, text] of Object.entries({ ...REQUIRED, ...pages })) writeFileSync(join(root, "docs", file), text);
+    for (const [file, text] of Object.entries({ ...REQUIRED, ...pages })) {
+      if (!without.includes(file)) writeFileSync(join(root, "docs", file), text);
+    }
     return readHelpPages(root);
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -44,6 +46,30 @@ rule(
     );
   },
 );
+
+rule(
+  { req: ["DOC-1", "PV-4", "AC-4"], m: "M3" },
+  "docs/ without a page another screen shows (privacy, terms of use) fails the build, naming it",
+  () => {
+    for (const page of ["privacy.md", "terms-of-use.md"]) {
+      expect(() => build({}, [page]), `building without ${page}`).toThrow(page);
+    }
+    expect(build({}).length, "pages built with all of them").toBe(4);
+  },
+);
+
+rule({ req: ["DOC-1"], m: "M3" }, "the maintainer's guide isn't a help page, and a page needs a title", () => {
+  const pages = build({ "maintainer.md": "# Maintainer guide\n", "restore-runbook.md": "# Restoring\n" });
+  expect(pages.map((p) => p.slug).sort(), "the help pages built").toEqual([
+    "characters-and-titles",
+    "getting-started",
+    "privacy",
+    "terms-of-use",
+  ]);
+  expect(() => build({ "skills.md": "Skills, with no title\n" }), "building a page with no title").toThrow(
+    /skills\.md/,
+  );
+});
 
 rule({ req: ["DOC-1"], m: "M3" }, "a link to a help page that doesn't exist fails the build, naming it", () => {
   expect(
