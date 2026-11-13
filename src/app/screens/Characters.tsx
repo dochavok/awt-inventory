@@ -1,18 +1,19 @@
 // Characters (section 4.1): the list, main and retired (CH-5); adding one
 // (CH-1); and a character's page, where it's edited (CH-2, CH-3), its class
 // corrected (CH-2a), retired or brought back (CH-5), or deleted (CH-6), with
-// the titles that apply to it (TI-2).
+// the titles that apply to it (TI-2) and links to its inventory, skills and
+// history.
 
 import { useEffect, useState, type FormEvent } from "react";
 import type { ClassCorrectionNotice } from "../../data/types";
-import { LIMITS } from "../../data/validate";
-import { NotFoundError } from "../../errors";
+import { categoryName, LIMITS } from "../../data/validate";
 import { levelCap } from "../../rules/levels";
-import { CLASS_NAMES, type Character, type ClassName, type Title } from "../../rules/types";
+import { CATEGORIES, CLASS_NAMES, type Category, type Character, type ClassName, type Entry } from "../../rules/types";
 import { go, href } from "../router";
 import type { Services } from "../services";
 import { VerifyEmail } from "../Shell";
 import { Feedback, useAction } from "../useAction";
+import { CharacterNotFound, LevelInput, Loading, useScreenData } from "./common";
 
 const describe = (c: Pick<Character, "className" | "level">) => `${c.className} · level ${c.level}`;
 
@@ -119,74 +120,41 @@ export function NewCharacter({ services }: { services: Services }) {
   );
 }
 
-function LevelInput({ value, onChange, max }: { value: string; onChange: (v: string) => void; max: number }) {
+/** The links to a character's inventory, skills and history, in the glossary's order, with how many of each. */
+function InventoryLinks({ id, entries }: { id: string; entries: Entry[] }) {
+  // The sheet's entries are those still in the inventory.
+  const count = (category: Category) => entries.filter((e) => e.category === category).length;
   return (
-    <label>
-      Level
-      <input
-        type="number"
-        inputMode="numeric"
-        required
-        min={1}
-        max={max}
-        step={1}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      <span className="hint">From 1 to {max}.</span>
-    </label>
+    <nav aria-label="Inventory" className="inventory-links">
+      <ul className="link-list">
+        {CATEGORIES.map((category) => (
+          <li key={category}>
+            <a href={href(`characters/${id}/${category}`)}>
+              {categoryName(category)} <span className="count">{count(category)}</span>
+            </a>
+          </li>
+        ))}
+        <li>
+          <a href={href(`characters/${id}/history`)}>History</a>
+        </li>
+      </ul>
+    </nav>
   );
 }
 
 export function CharacterPage({ services, id }: { services: Services; id: string }) {
   const { store } = services;
-  const [character, setCharacter] = useState<Character | null>(null);
-  const [titles, setTitles] = useState<Title[]>([]);
-  const [missing, setMissing] = useState(false);
+  // One read for the character, its entries (for the counts) and its titles (TI-2).
+  const screen = useScreenData(() => store.sheet(id));
   const [panel, setPanel] = useState<"edit" | "class" | null>(null);
-  const load = useAction();
   const action = useAction();
 
-  const refresh = async () => {
-    const [c, t] = await Promise.all([store.character(id), store.titlesFor(id)]);
-    setCharacter(c);
-    setTitles(t);
-  };
-
-  useEffect(() => {
-    void load.run(async () => {
-      try {
-        await refresh();
-      } catch (error) {
-        if (!(error instanceof NotFoundError)) throw error;
-        setMissing(true);
-      }
-    });
-    // Load once when the page opens; App gives each character's page its own key.
-  }, []);
-
-  if (missing) {
-    return (
-      <>
-        <h1>Character not found</h1>
-        <p>
-          This character isn&apos;t in your account. It may have been deleted on another phone.{" "}
-          <a href={href("characters")}>See your characters</a>.
-        </p>
-      </>
-    );
-  }
-  if (!character) {
-    return (
-      <>
-        <Feedback error={load.error} notice={null} />
-        {!load.error && <p className="hint">Loading…</p>}
-      </>
-    );
-  }
+  if (screen.missing) return <CharacterNotFound />;
+  if (!screen.data) return <Loading error={screen.error} />;
+  const { character, entries, titles } = screen.data;
 
   const done = async (message: string) => {
-    await refresh();
+    await screen.refresh();
     setPanel(null);
     return message;
   };
@@ -199,6 +167,7 @@ export function CharacterPage({ services, id }: { services: Services; id: string
         {character.retired && <span className="tag">Retired</span>}
       </p>
       {character.notes && <p className="notes">{character.notes}</p>}
+      <InventoryLinks id={character.id} entries={entries} />
       <Feedback error={action.error} notice={action.notice} />
       <div className="actions">
         <button type="button" className="secondary" onClick={() => setPanel(panel === "edit" ? null : "edit")}>

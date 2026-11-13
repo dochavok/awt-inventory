@@ -588,3 +588,75 @@ rule({ req: ["IN-15"], m: "M2" }, "after about 10 seconds, Undo no longer works"
   await expect(undo(), "Undo after 15 seconds").rejects.toThrow(ValidationError);
   await expect(bram.entry(id("aldric-draught")), "reading the deleted draught").rejects.toThrow(NotFoundError);
 });
+
+rule(
+  { req: ["IN-8", "IN-3", "IN-6"], m: "M3" },
+  "a weapon's extra damage and an ally's hearts can be cleared when editing, with null",
+  async () => {
+    const { bram, characterId } = await bramWithAldric();
+    const axe = await bram.addEntry(characterId, {
+      category: "weapons",
+      name: "Hand Axe",
+      hands: 1,
+      range: "melee",
+      extraDamage: 2,
+    });
+    const pip = await bram.addEntry(characterId, { category: "allies", name: "Pip", hearts: 3, active: false });
+    await bram.updateEntry(axe.id, { extraDamage: null });
+    await bram.updateEntry(pip.id, { hearts: null });
+    expect(await bram.entry(axe.id), "Hand Axe after clearing its extra damage").not.toHaveProperty("extraDamage");
+    expect(await bram.entry(pip.id), "Pip after clearing his hearts").not.toHaveProperty("hearts");
+    expect(await bram.entry(axe.id), "Hand Axe's other fields, unchanged").toMatchObject({
+      name: "Hand Axe",
+      hands: 1,
+      range: "melee",
+    });
+  },
+);
+
+rule(
+  { req: ["IN-8", "RD-3"], m: "M3" },
+  "an entry whose rarity or slot has since been retired can still be edited, and keeps it",
+  async () => {
+    const { w, bram, characterId } = await bramWithAldric();
+    const charm = await bram.addEntry(characterId, {
+      category: "items",
+      name: "Sun Charm",
+      arcane: true,
+      rarity: "cursed",
+    });
+    const cloak = await bram.addEntry(characterId, { category: "armor", name: "Tail Guard", slotKind: "tail" });
+    // The maintainer retires both after the entries were added (RD-3).
+    w.ref.rarities.find((r) => r.id === "cursed")!.retired = true;
+    w.ref.slotKinds.find((s) => s.id === "tail")!.retired = true;
+    await bram.updateEntry(charm.id, { notes: "Edited after Cursed was retired" });
+    await bram.updateEntry(cloak.id, { notes: "Edited after Tail was retired" });
+    expect(await bram.entry(charm.id), "Sun Charm after editing its notes").toMatchObject({
+      rarity: "cursed",
+      notes: "Edited after Cursed was retired",
+    });
+    expect(await bram.entry(cloak.id), "Tail Guard after editing its notes").toMatchObject({
+      slotKind: "tail",
+      notes: "Edited after Tail was retired",
+    });
+    const toRetired = bram.updateEntry(cloak.id, { slotKind: "cape" });
+    await expect(toRetired, "moving Tail Guard to the retired Cape slot").rejects.toMatchObject({ field: "slotKind" });
+  },
+);
+
+rule(
+  { req: ["IN-11", "IN-8"], m: "M3" },
+  "an edit that doesn't raise the quantity isn't refused for a source or link it wouldn't record",
+  async () => {
+    const { bram, characterId, id } = await bramWithAldric();
+    const before = await bram.history(characterId);
+    await bram.updateEntry(id("aldric-draught"), { notes: "Renamed at the faire" }, { link: "not a web address" });
+    expect(await bram.entry(id("aldric-draught")), "Healing Draught after the edit").toMatchObject({
+      notes: "Renamed at the faire",
+      quantity: 3,
+    });
+    expect(await bram.history(characterId), "Aldric's history after an edit with no gain").toEqual(before);
+    const raised = bram.updateEntry(id("aldric-draught"), { quantity: 4 }, { link: "not a web address" });
+    await expect(raised, "raising the quantity with that link").rejects.toMatchObject({ field: "link" });
+  },
+);

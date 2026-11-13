@@ -1,5 +1,6 @@
 // The account page: the display name (AC-2), email verification (AC-1), the
-// privacy note (PV-4), signing out, and deleting the account (AC-5).
+// privacy note (PV-4), reports to the maintainer (SP-1), signing out, and
+// deleting the account (AC-5).
 
 import { useEffect, useState, type FormEvent } from "react";
 import type { Profile } from "../../data/types";
@@ -90,6 +91,10 @@ export function Account({ services }: { services: Services }) {
       <section className="card">
         <p>
           <a href={href("privacy")}>Privacy note</a>: what the app stores and who can see it.
+        </p>
+        <p>
+          <a href={href("report")}>Send a report</a> to the maintainer: a missing skill, a bug, an idea or an account
+          problem.
         </p>
         <button type="button" className="secondary" onClick={() => void accounts.signOut()}>
           Sign out

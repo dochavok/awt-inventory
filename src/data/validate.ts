@@ -6,6 +6,7 @@ import { ValidationError } from "../errors";
 import { levelCap } from "../rules/levels";
 import {
   CLASS_NAMES,
+  HOW_GAINED_NAMES,
   type Category,
   type ClassName,
   type HowGained,
@@ -57,10 +58,15 @@ function maxLength(field: string, value: string, max: number, label: string): st
 export function webLink(field: string, value: unknown): string | undefined {
   const link = optionalText(field, value, LIMITS.link)?.trim();
   if (link === undefined) return undefined;
-  if (!/^https?:\/\/\S+$/i.test(link) || !parses(link)) {
+  if (!isWebLink(link)) {
     throw new ValidationError(field, "A link must be a web address starting with http:// or https://.");
   }
   return link;
+}
+
+/** Whether a link is a web address the app may show as a link (IN-11). */
+export function isWebLink(link: string): boolean {
+  return /^https?:\/\/\S+$/i.test(link) && parses(link);
 }
 
 function parses(url: string): boolean {
@@ -111,7 +117,7 @@ export function level(value: unknown, ref: ReferenceData, field = "level"): numb
   return wholeNumber(field, value, 1, levelCap(ref), "level");
 }
 
-const HOW_GAINED: readonly HowGained[] = ["starting", "level-up", "quest", "trained-old-system", "other"];
+const HOW_GAINED = Object.keys(HOW_GAINED_NAMES) as HowGained[];
 
 export function howGained(value: unknown): HowGained {
   if (!HOW_GAINED.includes(value as HowGained)) {
@@ -195,9 +201,16 @@ function choice<T>(field: string, value: unknown, allowed: readonly T[], label: 
   return value as T;
 }
 
-function referenceId(field: string, value: unknown, list: { id: string; retired?: boolean }[], label: string) {
+/** A choice from the reference data: not a retired one, unless the entry has it already (RD-3). */
+function referenceId(
+  field: string,
+  value: unknown,
+  list: { id: string; retired?: boolean }[],
+  label: string,
+  kept: unknown,
+) {
   const found = list.find((x) => x.id === value);
-  if (!found || found.retired)
+  if (!found || (found.retired && value !== kept))
     throw new ValidationError(field, `${String(value)} isn't a ${label} that can be chosen.`);
   return found.id;
 }
@@ -206,8 +219,14 @@ function referenceId(field: string, value: unknown, list: { id: string; retired?
  * An entry outside Skills, checked and tidied: required fields present, fields
  * only where its category has them, choices from the reference data. Grants are
  * left to the caller. Returns the entry's fields without id and characterId.
+ * When editing, `before` is the entry as it was: a choice it has already stays allowed
+ * after the maintainer retires it (RD-3). A number given as null is cleared (IN-8).
  */
-export function itemEntry(input: Record<string, unknown>, ref: ReferenceData): Omit<ItemEntry, "id" | "characterId"> {
+export function itemEntry(
+  input: Record<string, unknown>,
+  ref: ReferenceData,
+  before: Record<string, unknown> = {},
+): Omit<ItemEntry, "id" | "characterId"> {
   const category = input.category as ItemEntry["category"];
   if (!(category in CATEGORY_FIELDS)) {
     throw new ValidationError("category", `${String(input.category)} isn't a category entries can be added to.`);
@@ -230,26 +249,28 @@ export function itemEntry(input: Record<string, unknown>, ref: ReferenceData): O
   set("notes", optionalText("notes", input.notes, LIMITS.notes));
   set("itemFamily", shortText("itemFamily", input.itemFamily, "item family"));
   if (input.rarity !== undefined && input.rarity !== null && input.rarity !== "") {
-    set("rarity", referenceId("rarity", input.rarity, ref.rarities, "rarity"));
+    set("rarity", referenceId("rarity", input.rarity, ref.rarities, "rarity", before.rarity));
   }
   switch (category) {
     case "weapons":
       set("hands", choice("hands", input.hands, [1, 2], "number of hands"));
       set("range", choice("range", input.range, ["melee", "ranged"], "range"));
       set("weaponGroup", shortText("weaponGroup", input.weaponGroup, "weapon group"));
-      if (input.extraDamage !== undefined) {
+      if (input.extraDamage !== undefined && input.extraDamage !== null) {
         set("extraDamage", wholeNumber("extraDamage", input.extraDamage, 0, LIMITS.extraDamage, "extra damage"));
       }
       break;
     case "armor":
-      set("slotKind", referenceId("slotKind", input.slotKind, ref.slotKinds, "paper-doll slot"));
+      set("slotKind", referenceId("slotKind", input.slotKind, ref.slotKinds, "paper-doll slot", before.slotKind));
       break;
     case "items":
       set("arcane", choice("arcane", input.arcane, [true, false], "arcane setting"));
       break;
     case "allies":
       set("allyType", shortText("allyType", input.allyType, "type"));
-      if (input.hearts !== undefined) set("hearts", wholeNumber("hearts", input.hearts, 0, LIMITS.hearts));
+      if (input.hearts !== undefined && input.hearts !== null) {
+        set("hearts", wholeNumber("hearts", input.hearts, 0, LIMITS.hearts));
+      }
       set("active", choice("active", input.active, [true, false], "active setting"));
       break;
     case "components":

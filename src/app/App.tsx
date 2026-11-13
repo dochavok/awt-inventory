@@ -9,17 +9,29 @@ import type { Services } from "./services";
 import { ConnectionBar, Header, RefusedNotices } from "./Shell";
 import { Account } from "./screens/Account";
 import { CharacterPage, Characters, NewCharacter } from "./screens/Characters";
+import { Category, EntryPage } from "./screens/Entries";
 import { Help, helpFor } from "./screens/Help";
+import { History } from "./screens/History";
+import { ReportForm } from "./screens/Report";
+import { Skills } from "./screens/Skills";
 import { Privacy } from "./screens/Privacy";
 import { SignIn } from "./screens/SignIn";
 import { SignUp } from "./screens/SignUp";
 import { Titles } from "./screens/Titles";
 
-/** Whether a screen shows the record a refused change was to, so the change must leave it (NF-3). */
+/**
+ * Whether a screen shows the record a refused change was to, so the change must leave it (NF-3).
+ * Every screen is listed, so a new one must say.
+ */
 function shows(route: Route | null, { kind, id }: RefusedChange): boolean {
-  switch (route?.screen) {
+  if (route === null) return kind === "character";
+  switch (route.screen) {
     case "character":
-      // A character's page shows that character, its entries and history, and titles.
+    case "category":
+    case "entry":
+    case "skills":
+    case "history":
+      // A character's screens show that character, its entries and history, and titles.
       if (kind === "profile" || kind === "report") return false;
       if (kind === "title" || id === undefined) return true;
       return (kind === "character" ? id : characterOf(id)) === route.id;
@@ -30,9 +42,12 @@ function shows(route: Route | null, { kind, id }: RefusedChange): boolean {
     case "help":
     case "privacy":
     case "new-character":
+    case "report":
       return false;
-    default:
-      // The characters list, at its own address or the start one.
+    case "characters":
+    case "sign-in":
+    case "sign-up":
+      // The characters list: signed in, the sign-in addresses show it too.
       return kind === "character";
   }
 }
@@ -100,7 +115,14 @@ export function App({ services }: { services: Services }) {
   } else if (route?.screen === "account") screen = <Account services={services} />;
   else if (route?.screen === "titles") screen = <Titles services={services} />;
   else if (route?.screen === "new-character") screen = <NewCharacter services={services} />;
-  else if (route?.screen === "character") screen = <CharacterPage key={route.id} services={services} id={route.id} />;
+  else if (route?.screen === "character") screen = <CharacterPage services={services} id={route.id} />;
+  else if (route?.screen === "category") {
+    screen = <Category services={services} id={route.id} category={route.category} />;
+  } else if (route?.screen === "entry") {
+    screen = <EntryPage services={services} id={route.id} entryId={route.entryId} />;
+  } else if (route?.screen === "skills") screen = <Skills services={services} id={route.id} />;
+  else if (route?.screen === "history") screen = <History services={services} id={route.id} />;
+  else if (route?.screen === "report") screen = <ReportForm services={services} kind={route.kind} />;
   else screen = <Characters services={services} />;
 
   return (
@@ -108,7 +130,8 @@ export function App({ services }: { services: Services }) {
       <Header signedIn={inApp} help={helpFor(route, inApp)} />
       {inApp && <ConnectionBar store={services.store} />}
       {inApp && <RefusedNotices subscribe={services.onWriteRefused} />}
-      <main className="page" key={refusals}>
+      {/* Each address, and each refusal that touches what's shown, starts the screen afresh. */}
+      <main className="page" key={`${refusals}:${JSON.stringify(route)}`}>
         {screen}
       </main>
     </>

@@ -100,6 +100,18 @@ export interface EntryListItem {
 export type HistoryEvent =
   "acquired" | "used" | "restored" | "traded" | "given-away" | "level-changed" | "class-corrected" | "received";
 
+/** The history's events (HI-2), as the app names them. */
+export const HISTORY_EVENT_NAMES: Record<HistoryEvent, string> = {
+  acquired: "Acquired",
+  used: "Used",
+  restored: "Restored",
+  traded: "Traded",
+  "given-away": "Given away",
+  "level-changed": "Level changed",
+  "class-corrected": "Class corrected",
+  received: "Received",
+};
+
 /** An entry's details when it left the inventory (IN-16). */
 export interface EntrySnapshot {
   name: string;
@@ -220,6 +232,16 @@ export interface ExportFile {
 // ---------------------------------------------------------------- reports (SP-1 to SP-3)
 
 export type ReportKind = "missing-skill" | "bug" | "idea" | "account-problem";
+
+/** SP-1's kinds of report, as the app and the issues (SP-2) name them. */
+export const REPORT_KIND_NAMES: Record<ReportKind, string> = {
+  "missing-skill": "Missing or wrong skill",
+  bug: "Bug",
+  idea: "Idea",
+  "account-problem": "Account problem",
+};
+
+export const REPORT_KINDS = Object.keys(REPORT_KIND_NAMES) as ReportKind[];
 
 export interface NewReport {
   kind: ReportKind;

@@ -3,14 +3,19 @@
 // work without a server, offline too.
 
 import { useEffect, useState } from "react";
+import { REPORT_KINDS, type ReportKind } from "../data/types";
+import { ITEM_CATEGORIES, type ItemCategory } from "../rules/types";
 
 /** Screens whose address is just their name, e.g. #/titles. */
 const SIMPLE = ["sign-in", "sign-up", "privacy", "account", "characters", "titles"] as const;
 
 export type Route =
   | { screen: (typeof SIMPLE)[number] | "new-character" }
-  | { screen: "character"; id: string }
-  | { screen: "help"; page?: string };
+  | { screen: "character" | "skills" | "history"; id: string }
+  | { screen: "category"; id: string; category: ItemCategory }
+  | { screen: "entry"; id: string; entryId: string }
+  | { screen: "help"; page?: string }
+  | { screen: "report"; kind?: ReportKind };
 
 /** The address of a screen: href("characters/abc") is "#/characters/abc". */
 export const href = (path: string): string => `#/${path}`;
@@ -31,13 +36,32 @@ function decodePart(part: string): string {
 /** The screen an address names, or null for the start screen. */
 export function parseRoute(hash: string): Route | null {
   const parts = hash.replace(/^#\/?/, "").split("/").map(decodePart);
-  const [first, second, ...rest] = parts;
+  const [first, second, third, fourth, ...rest] = parts;
   if (rest.length > 0) return null;
-  if (first === "characters" && second === "new") return { screen: "new-character" };
-  if (first === "characters" && second) return { screen: "character", id: second };
+  if (first === "characters" && second) return characterRoute(second, third, fourth);
+  if (third !== undefined) return null;
   if (first === "help") return second ? { screen: "help", page: second } : { screen: "help" };
+  if (first === "report") {
+    if (second === undefined) return { screen: "report" };
+    return (REPORT_KINDS as readonly string[]).includes(second)
+      ? { screen: "report", kind: second as ReportKind }
+      : null;
+  }
   if (second === undefined && (SIMPLE as readonly string[]).includes(first ?? "")) {
     return { screen: first as (typeof SIMPLE)[number] };
+  }
+  return null;
+}
+
+/** #/characters/{id}, and a character's own screens under it. */
+function characterRoute(id: string, part?: string, entryId?: string): Route | null {
+  if (part === undefined) return id === "new" ? { screen: "new-character" } : { screen: "character", id };
+  if (id === "new") return null;
+  if (part === "entries") return entryId ? { screen: "entry", id, entryId } : null;
+  if (entryId !== undefined) return null;
+  if (part === "skills" || part === "history") return { screen: part, id };
+  if ((ITEM_CATEGORIES as readonly string[]).includes(part)) {
+    return { screen: "category", id, category: part as ItemCategory };
   }
   return null;
 }

@@ -38,21 +38,19 @@ import type {
   PrintOptions,
   Profile,
   Report,
-  ReportKind,
   SkillView,
 } from "./types";
+import { REPORT_KINDS } from "./types";
 import * as check from "./validate";
 
 /** IN-15: how long Undo works after a hard delete. */
-const UNDO_SECONDS = 10;
+export const UNDO_SECONDS = 10;
 
 /** SP-1: reports a user can send in a day. */
 const REPORTS_PER_DAY = 5;
 
 /** EX-4: the JSON export's format version. */
 const EXPORT_FORMAT_VERSION = 1;
-
-const REPORT_KINDS: readonly ReportKind[] = ["missing-skill", "bug", "idea", "account-problem"];
 
 function notYet(what: string, milestone: string): never {
   throw NotImplementedError.stub(what, milestone);
@@ -515,18 +513,18 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       }
       noGrants(patch.grants);
       const { id: _id, characterId: _c, ...current } = entry;
-      // A field left undefined is unchanged; empty text clears an optional one.
+      // A field left undefined is unchanged; empty text, or null for a number, clears an optional one.
       const merged: Record<string, unknown> = { ...current };
       for (const [key, value] of Object.entries(patch)) if (value !== undefined) merged[key] = value;
       merged.category = entry.category;
-      const fields = check.itemEntry(merged, ref);
+      const fields = check.itemEntry(merged, ref, entry as unknown as Record<string, unknown>);
       const next = { ...fields, id: entry.id, characterId: entry.characterId } as ItemEntry;
       const gained = next.quantity - entry.quantity;
-      const gain = gainOptions(options);
       const changes = update("entry", entryId, changedFields(entry, next, ["id", "characterId", "quantity"]));
       // Quantities are added to, not set, so changes made on two phones add up (NF-3).
       if (gained !== 0) changes.push({ op: "add-quantity", entryId, by: gained });
-      if (gained > 0) changes.push(acquired(next, gained, gain).change);
+      // Where it came from is checked, and kept, only with a gain (IN-11).
+      if (gained > 0) changes.push(acquired(next, gained, gainOptions(options)).change);
       await write(changes);
       return next;
     },
