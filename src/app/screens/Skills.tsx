@@ -36,12 +36,14 @@ export function Skills({ services, id }: { services: Services; id: string }) {
   if (!screen.data) return <Loading error={screen.error} />;
   const { character, skills } = screen.data;
   const reload = () => void action.run(screen.refresh);
+  // This screen's address: where a removed skill's Undo is offered.
+  const here = `characters/${character.id}/skills`;
 
   return (
     <>
       <BackTo character={character} />
       <h1>Skills</h1>
-      <UndoBar at={`characters/${character.id}/skills`} onUndone={reload} />
+      <UndoBar at={here} onUndone={reload} />
       <Feedback error={action.error} notice={action.notice} />
       {skills.length === 0 ? (
         <p className="hint">No skills yet.</p>
@@ -73,7 +75,7 @@ export function Skills({ services, id }: { services: Services; id: string }) {
                       onClick={() =>
                         void action.run(async () => {
                           const { undo } = await store.deleteEntry(s.entryId);
-                          offerUndo(`${s.name} removed.`, undo, `characters/${character.id}/skills`);
+                          offerUndo(`${s.name} removed.`, undo, here);
                           setRemoving(null);
                           await screen.refresh();
                         })
@@ -81,7 +83,12 @@ export function Skills({ services, id }: { services: Services; id: string }) {
                     >
                       Remove for good
                     </button>
-                    <button type="button" className="secondary" onClick={() => setRemoving(null)}>
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={action.busy}
+                      onClick={() => setRemoving(null)}
+                    >
                       Cancel
                     </button>
                   </div>

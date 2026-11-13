@@ -414,11 +414,11 @@ function EntryForm({
       const date = pickedDate(f.gained);
       if (date) gain.date = date;
       const fields = entryFrom(category, f);
-      let message = "Saved.";
-      if (entry) await store.updateEntry(entry.id, fields as EntryPatch, gain);
-      else message = `${(await store.addEntry(character.id, fields as unknown as NewEntry, gain)).name} added.`;
       // A source is recorded only with a gain: an entry added, or its quantity raised (IN-11).
-      const gained = !entry || Number(f.quantity) > entry.quantity;
+      let message = "Saved.";
+      let gained = true;
+      if (entry) gained = (await store.updateEntry(entry.id, fields as EntryPatch, gain)).quantity > entry.quantity;
+      else message = `${(await store.addEntry(character.id, fields as unknown as NewEntry, gain)).name} added.`;
       for (const [list, field] of SUGGESTION_FIELDS) {
         if (list !== "acquisitionSource" || gained) remember(services, list, String(f[field]));
       }
@@ -710,7 +710,7 @@ export function EntryPage({ services, id, entryId }: { services: Services; id: s
               >
                 Delete for good
               </button>
-              <button type="button" className="secondary" onClick={() => setPanel(null)}>
+              <button type="button" className="secondary" disabled={action.busy} onClick={() => setPanel(null)}>
                 Cancel
               </button>
             </div>
