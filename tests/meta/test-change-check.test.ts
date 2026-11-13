@@ -4,6 +4,7 @@
 import { expect } from "vitest";
 import {
   appCodeProblems,
+  isAppFile,
   packageProblems,
   sameApartFromActionVersions,
   testChangeProblems,
@@ -219,3 +220,57 @@ rule({ req: ["TF-7"], m: "M1" }, "app code may not import the tests or test tool
     'data/skills.yaml: names "Bramblewick", from the test fixtures',
   ]);
 });
+
+rule(
+  { req: ["TF-7"], m: "M1" },
+  "the server code in functions/ may not import the tests or test tools, however it imports them, or name a test character",
+  () => {
+    const app = new Map([
+      ["functions/src/index.ts", `import { users } from "../../tests/fixtures/users.yaml";\nexport const x = users;`],
+      ["functions/src/dynamic.ts", `export const load = () => import("../../tests/support/fake-auth");`],
+      ["functions/src/folder.ts", `export * from "../../tests";`],
+      ["functions/src/tool.js", `const fc = require("fast-check");\nmodule.exports = fc;`],
+      ["functions/src/sdk.ts", `import functionsTest from "firebase-functions-test";\nexport default functionsTest;`],
+      ["functions/src/greet.ts", `export const greeting = "Hello, Aldric";`],
+      [
+        "functions/src/fine.ts",
+        `import { deliverReport } from "../../src/server/reports";\n` +
+          `import { onSchedule } from "firebase-functions/v2/scheduler";\nexport const run = [deliverReport, onSchedule];`,
+      ],
+    ]);
+    expect(appCodeProblems(app, ["Aldric"])).toEqual([
+      "functions/src/index.ts: imports ../../tests/fixtures/users.yaml, from the tests",
+      "functions/src/dynamic.ts: imports ../../tests/support/fake-auth, from the tests",
+      "functions/src/folder.ts: imports ../../tests, from the tests",
+      "functions/src/tool.js: imports fast-check, a test tool",
+      "functions/src/sdk.ts: imports firebase-functions-test, a test tool",
+      'functions/src/greet.ts: names "Aldric", from the test fixtures',
+    ]);
+  },
+);
+
+rule(
+  { req: ["TF-7"], m: "M1" },
+  "the app code checked is src/, data/ and functions/, without functions/' packages, lockfile or build output",
+  () => {
+    const paths = [
+      "src/app/App.tsx",
+      "data/skills.yaml",
+      "functions/src/index.ts",
+      "functions/package.json",
+      "functions/package-lock.json",
+      "functions/node_modules/vitest/index.js",
+      "functions/tools/node_modules/vitest/index.js",
+      "functions/lib/index.js",
+      "tests/support/rule.ts",
+      "scripts/coverage.ts",
+      "build/help-pages.ts",
+    ];
+    expect(paths.filter((p) => isAppFile(p))).toEqual([
+      "src/app/App.tsx",
+      "data/skills.yaml",
+      "functions/src/index.ts",
+      "functions/package.json",
+    ]);
+  },
+);

@@ -28,8 +28,9 @@
 //     actions it uses (as Dependabot does).
 // Adding new files is always allowed.
 //
-// Part 2, always: fails if app code (src/) imports the tests, test tools or
-// test data, or if src/ or data/ names a made-up test character or user.
+// Part 2, always: fails if app code (src/) or the server code (functions/)
+// imports the tests, test tools or test data, or if src/, data/ or functions/
+// names a made-up test character or user.
 
 import { isDeepStrictEqual } from "node:util";
 import ts from "typescript";
@@ -78,7 +79,13 @@ const NPM_LIFECYCLE = new Set([
   "dependencies",
 ]);
 
-const TEST_TOOLS = ["vitest", "fast-check", "@firebase/rules-unit-testing", "@playwright/test"];
+const TEST_TOOLS = [
+  "vitest",
+  "fast-check",
+  "@firebase/rules-unit-testing",
+  "@playwright/test",
+  "firebase-functions-test",
+];
 const IDENTITY_KEYS = ["id", "skill", "level"] as const;
 
 export const RULE = `\
@@ -496,7 +503,21 @@ function moduleSpecifiers(path: string, source: string): string[] {
 }
 
 /**
- * Part 2: `files` maps repository paths under src/ and data/ to their contents;
+ * Whether part 2 reads a repository path: the app (src/), its reference data
+ * (data/) and the server code (functions/), but not functions/' packages,
+ * lockfile or build output.
+ */
+export function isAppFile(path: string): boolean {
+  if (/^(src|data)\//.test(path)) return true;
+  if (!path.startsWith("functions/") || path.includes("/node_modules/")) return false;
+  return !SKIPPED_IN_FUNCTIONS.includes(path.split("/")[1]!);
+}
+
+/** The entries directly in functions/ that part 2 never reads. */
+const SKIPPED_IN_FUNCTIONS = ["node_modules", "lib", "package-lock.json"];
+
+/**
+ * Part 2: `files` maps the paths `isAppFile` accepts to their contents;
  * `testNames` are the made-up characters' and users' names from the fixtures.
  */
 export function appCodeProblems(files: Map<string, string>, testNames: string[]): string[] {
@@ -506,7 +527,7 @@ export function appCodeProblems(files: Map<string, string>, testNames: string[])
     pattern: new RegExp(`\\b${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`),
   }));
   for (const [path, source] of files) {
-    if (path.startsWith("src/") && /\.[cm]?[jt]sx?$/.test(path)) {
+    if (/^(src|functions)\//.test(path) && /\.[cm]?[jt]sx?$/.test(path)) {
       for (const spec of moduleSpecifiers(path, source)) {
         const tool = TEST_TOOLS.find((t) => spec === t || spec.startsWith(`${t}/`));
         if (tool) problems.push(`${path}: imports ${spec}, a test tool`);

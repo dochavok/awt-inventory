@@ -19,7 +19,9 @@ const untaggedTests = {
 };
 
 export default tseslint.config(
-  { ignores: ["node_modules/", "dist/", "coverage/", "var/", "playwright-report/", "test-results/"] },
+  {
+    ignores: ["node_modules/", "dist/", "coverage/", "var/", "playwright-report/", "test-results/", "functions/lib/"],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

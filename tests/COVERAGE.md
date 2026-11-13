@@ -121,7 +121,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | NF-8 | Must | M2+ | data/history.test.ts (2), platform/platform.test.ts (2) |
 | NF-9 | Should | M2+ | none |
 | NF-10 | Must | M3 | ops/operations.test.ts (2) |
-| NF-11 | Must | M3 | ops/operations.test.ts (3) |
+| NF-11 | Must | M3 | ops/operations.test.ts (5) |
 | NF-12 | Must | M3 | platform/platform.test.ts (9) |
 | NF-13 | Must | M2 | access/accounts.test.ts (4), access/privacy.test.ts (4), data/accounts.test.ts (3) |
 | TF-1 | Must | M1 | meta/requirements.test.ts (1) |
@@ -130,7 +130,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | TF-4 | Must | M1 | meta/coverage.test.ts (8), meta/harness.test.ts (4), meta/requirements.test.ts (1) |
 | TF-5 | Must | M1 | meta/coverage.test.ts (1), meta/harness.test.ts (5), meta/test-change-check.test.ts (1) |
 | TF-6 | Must | M1 | meta/test-change-check.test.ts (3) |
-| TF-7 | Must | M1 | meta/restore.test.ts (4), meta/test-change-check-more.test.ts (8), meta/test-change-check.test.ts (13) |
+| TF-7 | Must | M1 | meta/restore.test.ts (4), meta/test-change-check-more.test.ts (8), meta/test-change-check.test.ts (15) |
 | TF-8 | Must | M1 | meta/harness.test.ts (2) |
 | TF-9 | Must | M1 | meta/scenarios.test.ts (3), meta/test-change-check.test.ts (1) |
 | TF-10 | Must | M1 | properties/equipping.test.ts (3), properties/totals.test.ts (4) |

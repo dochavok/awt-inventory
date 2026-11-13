@@ -2,7 +2,7 @@
 // documents, so these tests check those. Files that don't exist yet fail as
 // expected (an assertion), never with a crash.
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { expect } from "vitest";
 import { parse } from "yaml";
 import { backupPlan } from "../../src/server/backup";
@@ -96,3 +96,51 @@ rule(
     expect(guide, "the maintainer guide on the budget alert").toMatch(/budget alert[^\n]*\$5/i);
   },
 );
+
+rule({ req: ["NF-11"], m: "M3" }, "every CI job has a time limit of 30 minutes or less", () => {
+  const workflows = readdirSync(new URL(".github/workflows/", ROOT)).filter((f) => /\.ya?ml$/.test(f));
+  expect(workflows, "the workflows checked").toEqual(expect.arrayContaining(["ci.yml", "test-change-rule.yml"]));
+  for (const file of workflows) {
+    const workflow = parse(read(`.github/workflows/${file}`)) as {
+      jobs?: Record<string, { "timeout-minutes"?: unknown }>;
+    } | null;
+    const jobs = Object.entries(workflow?.jobs ?? {});
+    expect(jobs.length, `${file}'s jobs`).toBeGreaterThan(0);
+    for (const [name, job] of jobs) {
+      const limit = job["timeout-minutes"];
+      expect(typeof limit, `${file} ${name}'s time limit`).toBe("number");
+      expect(limit as number, `${file} ${name}'s time limit`).toBeGreaterThanOrEqual(1);
+      expect(limit as number, `${file} ${name}'s time limit`).toBeLessThanOrEqual(30);
+    }
+  }
+});
+
+rule({ req: ["NF-11"], m: "M3" }, "CI builds the Cloud Functions with the same build the deploy runs", () => {
+  const firebase = JSON.parse(read("firebase.json")) as { functions?: { source?: string; predeploy?: string[] }[] };
+  const functions = firebase.functions ?? [];
+  expect(
+    functions.map((f) => f.source),
+    "the Cloud Functions folders the deploy uses",
+  ).toEqual(["functions"]);
+  expect(functions[0]?.predeploy, "the deploy's build of the Cloud Functions").toEqual([
+    "npm --prefix functions run build",
+  ]);
+  type Step = { run?: string; "working-directory"?: string; if?: string };
+  const ci = parse(read(".github/workflows/ci.yml")) as { jobs: Record<string, { steps?: Step[] }> };
+  const inFunctions = (steps: Step[], command: string) =>
+    steps.findIndex((s) => s["working-directory"] === "functions" && s.run?.trim() === command);
+  const building = Object.entries(ci.jobs).filter(([, job]) => inFunctions(job.steps ?? [], "npm run build") >= 0);
+  expect(
+    building.map(([name]) => name),
+    "CI jobs that build the Cloud Functions",
+  ).toHaveLength(1);
+  const steps = building[0]![1].steps!;
+  const install = inFunctions(steps, "npm ci");
+  const build = inFunctions(steps, "npm run build");
+  expect(install, "CI installs the Cloud Functions packages").toBeGreaterThanOrEqual(0);
+  expect(install, "CI installs the Cloud Functions packages before building").toBeLessThan(build);
+  // Skipped only while functions/ doesn't exist.
+  for (const step of [steps[install]!, steps[build]!]) {
+    expect([undefined, "hashFiles('functions/package.json') != ''"], `when CI runs "${step.run}"`).toContain(step.if);
+  }
+});

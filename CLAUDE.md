@@ -55,7 +55,7 @@ Each is a CI job, and all five are required checks on `main`:
 
 | CI job | Command | What it checks |
 |---|---|---|
-| `lint` | `npm run lint` | ESLint, Prettier and `tsc` |
+| `lint` | `npm run lint` | ESLint, Prettier and `tsc`; then, once `functions/` exists, the Cloud Functions build (`npm run build` there, the same one the deploy runs) |
 | `test` | `npm test` | Vitest: rule scenarios, property tests, data layer, harness (`tests/meta`), and the coverage table |
 | `access-rules` | `npm run test:access` | Firestore rules and offline sync in the emulator (needs Java 21) |
 | `browser` | `npm run test:browser` | Playwright on iPhone (WebKit) and Android (Chromium) profiles, against the emulators it starts itself (needs Java 21) |

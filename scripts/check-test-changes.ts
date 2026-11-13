@@ -8,12 +8,13 @@
 
 import { execFileSync } from "node:child_process";
 import { appendFileSync, readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { parse } from "yaml";
 import {
   RULE,
   appCodeProblems,
+  isAppFile,
   requirementsChanged,
   testChangeProblems,
   type Change,
@@ -46,15 +47,23 @@ function readerAt(ref: string): Reader {
   };
 }
 
-/** Repository paths of the files under `dir`; none if it doesn't exist. */
-function filesUnder(dir: string): string[] {
+/**
+ * Repository paths of the files under `dir` that part 2 reads (`isAppFile`);
+ * none if it doesn't exist. Folders it never reads, such as node_modules,
+ * aren't walked.
+ */
+function appFilesUnder(dir: string): string[] {
+  let entries;
   try {
-    return readdirSync(join(ROOT, dir), { recursive: true, withFileTypes: true })
-      .filter((e) => e.isFile())
-      .map((e) => relative(ROOT, join(e.parentPath, e.name)).replaceAll("\\", "/"));
+    entries = readdirSync(join(ROOT, dir), { withFileTypes: true });
   } catch {
     return [];
   }
+  return entries.flatMap((e) => {
+    const path = `${dir}/${e.name}`;
+    if (e.isDirectory()) return isAppFile(`${path}/`) ? appFilesUnder(path) : [];
+    return e.isFile() && isAppFile(path) ? [path] : [];
+  });
 }
 
 function fixtureNames(): string[] {
@@ -78,7 +87,7 @@ function main(argv: string[]): number {
   const changes = changedFiles(base);
   const part1 = testChangeProblems(changes, readerAt(base), readerAt("HEAD"));
   const appFiles = new Map(
-    [...filesUnder("src"), ...filesUnder("data")].map((p) => [p, readFileSync(join(ROOT, p), "utf8")] as const),
+    ["src", "data", "functions"].flatMap(appFilesUnder).map((p) => [p, readFileSync(join(ROOT, p), "utf8")] as const),
   );
   const part2 = appCodeProblems(appFiles, fixtureNames());
   const problems = [...part1, ...part2];

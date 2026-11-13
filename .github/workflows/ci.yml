@@ -1,7 +1,9 @@
 # CI for AWT Inventory (requirements TF-4, TF-5, TF-7, TF-11, TF-13, NF-11).
 #
 # Runs on every pull request and every push to main:
-#   lint               ESLint, Prettier and the TypeScript compiler
+#   lint               ESLint, Prettier and the TypeScript compiler; then, once
+#                      functions/ exists, the Cloud Functions build, the same
+#                      one the deploy runs (firebase.json predeploy, NF-11)
 #   test               rule scenarios, property tests, the data layer and the
 #                      harness's own tests (Vitest). One of them runs the coverage
 #                      check: every Must has a test, every tag is valid, and
@@ -13,6 +15,8 @@
 #                      the emulators (TF-13)
 # The test-change rule (TF-7) is in test-change-rule.yml, which always runs as
 # it is on main.
+# Every job has a time limit (NF-11), so a stuck job fails instead of waiting
+# for GitHub's 6-hour default.
 # Changing this workflow, except to update action versions, fails the
 # test-change check unless the requirements document changes too.
 
@@ -35,17 +39,29 @@ concurrency:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: 26
           cache: npm
+          # The root's lockfile, and functions/' once it exists.
+          cache-dependency-path: "**/package-lock.json"
       - run: npm ci
       - run: npm run lint
+      - name: Install the Cloud Functions packages
+        if: hashFiles('functions/package.json') != ''
+        working-directory: functions
+        run: npm ci
+      - name: Cloud Functions build
+        if: hashFiles('functions/package.json') != ''
+        working-directory: functions
+        run: npm run build
 
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -58,6 +74,7 @@ jobs:
 
   access-rules:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -79,6 +96,7 @@ jobs:
 
   browser:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
