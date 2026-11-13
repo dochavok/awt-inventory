@@ -79,7 +79,13 @@ const NPM_LIFECYCLE = new Set([
   "dependencies",
 ]);
 
-const TEST_TOOLS = ["vitest", "fast-check", "@firebase/rules-unit-testing", "@playwright/test"];
+const TEST_TOOLS = [
+  "vitest",
+  "fast-check",
+  "@firebase/rules-unit-testing",
+  "@playwright/test",
+  "firebase-functions-test",
+];
 const IDENTITY_KEYS = ["id", "skill", "level"] as const;
 
 export const RULE = `\
@@ -507,8 +513,8 @@ export function isAppFile(path: string): boolean {
   return !SKIPPED_IN_FUNCTIONS.includes(path.split("/")[1]!);
 }
 
-/** The entries directly in functions/ that part 2 never reads, so the check doesn't list them either. */
-export const SKIPPED_IN_FUNCTIONS = ["node_modules", "lib", "package-lock.json"];
+/** The entries directly in functions/ that part 2 never reads. */
+const SKIPPED_IN_FUNCTIONS = ["node_modules", "lib", "package-lock.json"];
 
 /**
  * Part 2: `files` maps the paths `isAppFile` accepts to their contents;
