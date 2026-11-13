@@ -8,7 +8,7 @@
 // user taps, which phones save reliably, where a download started after the
 // file is made might be blocked.
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { PrintOptions } from "../../data/types";
 import { localDay } from "../../platform/time";
 import type { Character } from "../../rules/types";
@@ -23,9 +23,19 @@ interface Made {
   url: string;
 }
 
-/** Keeps a made file's address while it's offered, and lets it go when replaced or left. */
+/**
+ * Keeps a made file's address while it's offered, and lets it go when replaced or left. A file
+ * finished after the screen was left is never given an address, so it can't be kept by mistake.
+ */
 function useMadeFile() {
   const [made, setMade] = useState<Made | null>(null);
+  const open = useRef(true);
+  useEffect(() => {
+    open.current = true;
+    return () => {
+      open.current = false;
+    };
+  }, []);
   useEffect(
     () => () => {
       if (made) URL.revokeObjectURL(made.url);
@@ -34,7 +44,9 @@ function useMadeFile() {
   );
   return {
     made,
-    offer: (name: string, blob: Blob) => setMade({ name, url: URL.createObjectURL(blob) }),
+    offer: (name: string, blob: Blob) => {
+      if (open.current) setMade({ name, url: URL.createObjectURL(blob) });
+    },
     clear: () => setMade(null),
   };
 }
@@ -82,8 +94,11 @@ function PrintableSheet({
   const [skillText, setSkillText] = useState(false);
   const file = useMadeFile();
   const make = useAction();
-  // Changing what's asked for takes away a file made for something else.
+  // Changing what's asked for takes away a file made for something else. While one is being
+  // made, the choices are locked, so the file offered is always for what the form shows.
   useEffect(file.clear, [which, paper, skillText]);
+  // The sheet has card text only where the app may show it (SK-2) and the skill list has it.
+  const textAvailable = settings.showSkillText && ref.skills.some((s) => s.text !== undefined);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -102,7 +117,7 @@ function PrintableSheet({
       <h2 id="sheet-title">Printable sheet</h2>
       <label>
         Characters
-        <select value={which} onChange={(e) => setWhich(e.target.value)}>
+        <select value={which} disabled={make.busy} onChange={(e) => setWhich(e.target.value)}>
           <option value="all">All characters (not retired)</option>
           {characters.map((c) => (
             <option key={c.id} value={c.id}>
@@ -114,17 +129,21 @@ function PrintableSheet({
       </label>
       <label>
         Paper
-        <select value={paper} onChange={(e) => setPaper(e.target.value as PrintOptions["paper"])}>
+        <select value={paper} disabled={make.busy} onChange={(e) => setPaper(e.target.value as PrintOptions["paper"])}>
           <option value="letter">Letter</option>
           <option value="a4">A4</option>
         </select>
       </label>
       <label className="check">
-        <input type="checkbox" checked={skillText} onChange={(e) => setSkillText(e.target.checked)} />
+        <input
+          type="checkbox"
+          checked={skillText}
+          disabled={make.busy || !textAvailable}
+          onChange={(e) => setSkillText(e.target.checked)}
+        />
         Include skill text
       </label>
-      {/* The sheet has card text only where the app may show it (SK-2) and the skill list has it. */}
-      {!(settings.showSkillText && ref.skills.some((s) => s.text !== undefined)) && (
+      {!textAvailable && (
         <p className="hint">The skill list has no card text yet, so the sheet shows skill names only.</p>
       )}
       <Feedback error={make.error} notice={null} />

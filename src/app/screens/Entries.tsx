@@ -36,12 +36,18 @@ export function Category({ services, id, category }: { services: Services; id: s
   if (screen.missing) return <CharacterNotFound />;
   if (!screen.data) return <Loading error={screen.error} />;
   const { character, items } = screen.data;
-  const shown = items.filter((item) =>
-    matchesFilter(item.entry, {
-      ...(filter.rarity ? { rarity: filter.rarity } : {}),
-      ...(filter.family ? { itemFamily: filter.family } : {}),
-    }),
-  );
+  const choices = filterChoices(items, services.ref.rarities);
+  // A choice the list no longer has (its last entry used up or deleted) stops filtering, so
+  // nothing stays hidden behind a filter that can't be seen or changed.
+  const active: Filter = {
+    rarity: choices.rarities.some((r) => r.id === filter.rarity) ? filter.rarity : "",
+    family: choices.families.includes(filter.family) ? filter.family : "",
+  };
+  const match = {
+    ...(active.rarity ? { rarity: active.rarity } : {}),
+    ...(active.family ? { itemFamily: active.family } : {}),
+  };
+  const shown = items.filter((item) => matchesFilter(item.entry, match));
   const reload = () => void action.run(screen.refresh);
 
   // The list changes in place: reading the category again after every tap would cost a read per entry (NF-5).
@@ -69,7 +75,7 @@ export function Category({ services, id, category }: { services: Services; id: s
       <h1>{categoryName(category)}</h1>
       <UndoBar at={categoryAddress(character.id, category)} onUndone={reload} />
       <Feedback error={action.error} notice={action.notice} />
-      <Filters allRarities={services.ref.rarities} items={items} filter={filter} onChange={setFilter} />
+      <Filters choices={choices} filter={active} onChange={setFilter} />
       {items.length === 0 ? (
         <p className="hint">Nothing here yet.</p>
       ) : shown.length === 0 ? (
@@ -113,29 +119,37 @@ interface Filter {
   family: string;
 }
 
-/**
- * The filters for the rarities and families the list has, the filtered list read from what's
- * already loaded (NF-5). None show when there's nothing to filter by.
- */
-function Filters({
-  allRarities,
-  items,
-  filter,
-  onChange,
-}: {
-  allRarities: ReferenceData["rarities"];
-  items: EntryListItem[];
-  filter: Filter;
-  onChange: (filter: Filter) => void;
-}) {
+/** What a list can be filtered by: the rarities and item families its entries have. */
+interface FilterChoices {
+  rarities: ReferenceData["rarities"];
+  /** One per family, however its entries spell it (the first spelling names it), in order. */
+  families: string[];
+}
+
+function filterChoices(items: EntryListItem[], allRarities: ReferenceData["rarities"]): FilterChoices {
   const rarities = allRarities.filter((r) => items.some(({ entry }) => "rarity" in entry && entry.rarity === r.id));
-  // One choice per family, however its entries spell it; the first spelling names it.
   const families = new Map<string, string>();
   for (const { entry } of items) {
     const family = "itemFamily" in entry ? entry.itemFamily : undefined;
     if (family && !families.has(family.toLowerCase())) families.set(family.toLowerCase(), family);
   }
-  if (rarities.length === 0 && families.size === 0) return null;
+  return { rarities, families: [...families.values()].sort((a, b) => a.localeCompare(b)) };
+}
+
+/**
+ * The filters for the rarities and families the list has, the filtered list read from what's
+ * already loaded (NF-5). None show when there's nothing to filter by.
+ */
+function Filters({
+  choices: { rarities, families },
+  filter,
+  onChange,
+}: {
+  choices: FilterChoices;
+  filter: Filter;
+  onChange: (filter: Filter) => void;
+}) {
+  if (rarities.length === 0 && families.length === 0) return null;
   return (
     <form className="filters" aria-label="Filters" onSubmit={(e) => e.preventDefault()}>
       {rarities.length > 0 && (
@@ -151,18 +165,16 @@ function Filters({
           </select>
         </label>
       )}
-      {families.size > 0 && (
+      {families.length > 0 && (
         <label>
           Item family
           <select value={filter.family} onChange={(e) => onChange({ ...filter, family: e.target.value })}>
             <option value="">Any family</option>
-            {[...families.values()]
-              .sort((a, b) => a.localeCompare(b))
-              .map((f) => (
-                <option key={f} value={f}>
-                  {f}
-                </option>
-              ))}
+            {families.map((f) => (
+              <option key={f} value={f}>
+                {f}
+              </option>
+            ))}
           </select>
         </label>
       )}

@@ -2,7 +2,7 @@
 // included (SE-1), or every character's, retired ones too, each result naming
 // its character (SE-2). Results update as the user types.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { SearchResult } from "../../data/types";
 import { categoryName } from "../../data/validate";
 import type { Character } from "../../rules/types";
@@ -39,14 +39,21 @@ function SearchBox({ services, character }: { services: Services; character: Cha
   const scope = character && !everyone ? character.id : ALL;
   const [searchers, setSearchers] = useState<Record<string, (query: string) => SearchResult[]>>({});
   const look = useAction();
+  // Scopes being read, so each is read once at a time; one that failed is tried again on the next key.
+  const reading = useRef(new Set<string>());
 
   useEffect(() => {
-    if (searchers[scope]) return;
+    if (searchers[scope] || reading.current.has(scope)) return;
+    reading.current.add(scope);
     void look.run(async () => {
-      const search = await store.searcher(scope === ALL ? { allCharacters: true } : { characterId: scope });
-      setSearchers((all) => ({ ...all, [scope]: search }));
+      try {
+        const search = await store.searcher(scope === ALL ? { allCharacters: true } : { characterId: scope });
+        setSearchers((all) => ({ ...all, [scope]: search }));
+      } finally {
+        reading.current.delete(scope);
+      }
     });
-  }, [scope]);
+  }, [scope, query]);
 
   const search = searchers[scope];
   const typed = query.trim() !== "";
@@ -77,7 +84,8 @@ function SearchBox({ services, character }: { services: Services; character: Cha
           </label>
         )}
       </form>
-      <Feedback error={look.error} notice={null} />
+      {/* A failed read shows only while the scope searched has nothing to search. */}
+      {!search && <Feedback error={look.error} notice={null} />}
       {typed && !search && !look.error && <p className="hint">Searching…</p>}
       {results?.length === 0 && <p className="hint">No results.</p>}
       {results && results.length > 0 && (
