@@ -249,13 +249,14 @@ rule(
 
 rule(
   { req: ["TF-7"], m: "M1" },
-  "the app code checked is src/, data/ and functions/, without functions/' packages or build output",
+  "the app code checked is src/, data/ and functions/, without functions/' packages, lockfile or build output",
   () => {
     const paths = [
       "src/app/App.tsx",
       "data/skills.yaml",
       "functions/src/index.ts",
       "functions/package.json",
+      "functions/package-lock.json",
       "functions/node_modules/vitest/index.js",
       "functions/lib/index.js",
       "tests/support/rule.ts",

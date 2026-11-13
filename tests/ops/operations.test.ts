@@ -123,7 +123,7 @@ rule({ req: ["NF-11"], m: "M3" }, "CI builds the Cloud Functions with the same b
     "the Cloud Functions folders the deploy uses",
   ).toEqual(["functions"]);
   expect(functions[0]?.predeploy, "the deploy's build of the Cloud Functions").toEqual([
-    'npm --prefix "$RESOURCE_DIR" run build',
+    "npm --prefix functions run build",
   ]);
   type Step = { run?: string; "working-directory"?: string; if?: string };
   const ci = parse(read(".github/workflows/ci.yml")) as { jobs: Record<string, { steps?: Step[] }> };
