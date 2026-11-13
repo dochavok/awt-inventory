@@ -31,6 +31,8 @@ export function Skills({ services, id }: { services: Services; id: string }) {
   });
   const [removing, setRemoving] = useState<string | null>(null);
   const action = useAction();
+  // A removal has its own action, so reloading or adding meanwhile can't end its busy state early.
+  const remove = useAction();
 
   if (screen.missing) return <CharacterNotFound />;
   if (!screen.data) return <Loading error={screen.error} />;
@@ -45,6 +47,7 @@ export function Skills({ services, id }: { services: Services; id: string }) {
       <h1>Skills</h1>
       <UndoBar at={here} onUndone={reload} />
       <Feedback error={action.error} notice={action.notice} />
+      <Feedback error={remove.error} notice={null} />
       {skills.length === 0 ? (
         <p className="hint">No skills yet.</p>
       ) : (
@@ -71,12 +74,13 @@ export function Skills({ services, id }: { services: Services; id: string }) {
                     <button
                       type="button"
                       className="danger"
-                      disabled={action.busy}
+                      disabled={remove.busy}
                       onClick={() =>
-                        void action.run(async () => {
+                        void remove.run(async () => {
                           const { undo } = await store.deleteEntry(s.entryId);
                           offerUndo(`${s.name} removed.`, undo, here);
-                          setRemoving(null);
+                          // Closes this skill's question only, not one opened since.
+                          setRemoving((open) => (open === s.entryId ? null : open));
                           await screen.refresh();
                         })
                       }
@@ -86,7 +90,7 @@ export function Skills({ services, id }: { services: Services; id: string }) {
                     <button
                       type="button"
                       className="secondary"
-                      disabled={action.busy}
+                      disabled={remove.busy}
                       onClick={() => setRemoving(null)}
                     >
                       Cancel
@@ -94,7 +98,12 @@ export function Skills({ services, id }: { services: Services; id: string }) {
                   </div>
                 </>
               ) : (
-                <button type="button" className="secondary" onClick={() => setRemoving(s.entryId)}>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={remove.busy}
+                  onClick={() => setRemoving(s.entryId)}
+                >
                   Remove
                 </button>
               )}

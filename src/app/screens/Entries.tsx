@@ -414,11 +414,13 @@ function EntryForm({
       const date = pickedDate(f.gained);
       if (date) gain.date = date;
       const fields = entryFrom(category, f);
-      // A source is recorded only with a gain: an entry added, or its quantity raised (IN-11).
       let message = "Saved.";
-      let gained = true;
-      if (entry) gained = (await store.updateEntry(entry.id, fields as EntryPatch, gain)).quantity > entry.quantity;
+      if (entry) await store.updateEntry(entry.id, fields as EntryPatch, gain);
       else message = `${(await store.addEntry(character.id, fields as unknown as NewEntry, gain)).name} added.`;
+      // A source is recorded only with a gain: an entry added, or its quantity raised (IN-11). This
+      // compares with the quantity the page read; the store compares with its own latest copy, so
+      // if another phone changed it meanwhile, this session's suggestions can differ from what's kept.
+      const gained = !entry || Number(f.quantity) > entry.quantity;
       for (const [list, field] of SUGGESTION_FIELDS) {
         if (list !== "acquisitionSource" || gained) remember(services, list, String(f[field]));
       }

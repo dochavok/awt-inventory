@@ -520,11 +520,11 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       const fields = check.itemEntry(merged, ref, entry as unknown as Record<string, unknown>);
       const next = { ...fields, id: entry.id, characterId: entry.characterId } as ItemEntry;
       const gained = next.quantity - entry.quantity;
-      const gain = gainOptions(options);
       const changes = update("entry", entryId, changedFields(entry, next, ["id", "characterId", "quantity"]));
       // Quantities are added to, not set, so changes made on two phones add up (NF-3).
       if (gained !== 0) changes.push({ op: "add-quantity", entryId, by: gained });
-      if (gained > 0) changes.push(acquired(next, gained, gain).change);
+      // Where it came from is checked, and kept, only with a gain (IN-11).
+      if (gained > 0) changes.push(acquired(next, gained, gainOptions(options)).change);
       await write(changes);
       return next;
     },
