@@ -51,6 +51,9 @@ export function helpFor(route: Route | null, signedIn: boolean): string {
       return "help/history";
     case "report":
       return "help/troubleshooting";
+    case "search":
+    case "export":
+      return "help/search-and-export";
     case "characters":
     case "new-character":
     case "character":

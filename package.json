@@ -19,6 +19,7 @@
     "format": "prettier --write .",
     "coverage:write": "tsx scripts/coverage.ts --write",
     "coverage:check": "tsx scripts/coverage.ts --check",
+    "docs:write": "tsx scripts/generate-docs.ts --write",
     "check:test-changes": "tsx scripts/check-test-changes.ts"
   },
   "awt": {

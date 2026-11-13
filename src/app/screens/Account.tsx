@@ -93,6 +93,10 @@ export function Account({ services }: { services: Services }) {
           <a href={href("privacy")}>Privacy note</a>: what the app stores and who can see it.
         </p>
         <p>
+          <a href={href("export")}>Print or export</a>: a printable sheet of your characters, or a JSON file with
+          everything in your account.
+        </p>
+        <p>
           <a href={href("report")}>Send a report</a> to the maintainer: a missing skill, a bug, an idea or an account
           problem.
         </p>

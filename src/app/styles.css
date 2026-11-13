@@ -148,6 +148,27 @@ a.button {
   background: var(--brand);
   color: #f7e7c0;
   text-decoration: none;
+  border: 1px solid var(--brand);
+  font-weight: 600;
+}
+
+a.button.secondary {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* A category's filters (SE-3): side by side when they fit, one under the other on a narrow phone. */
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* A long option (a 60-character family) mustn't widen the page (NF-1). */
+.filters select {
+  min-width: 0;
 }
 
 select,

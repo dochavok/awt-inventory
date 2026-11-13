@@ -1,7 +1,9 @@
 // The user guide and maintainer guide (section 19: DOC-2, DOC-4 to DOC-6).
 // DOC-1 (help inside the app, offline too) is in tests/browser/phone.spec.ts.
 
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "vitest";
 import { fixtureCharacters } from "../support/fixtures";
@@ -100,6 +102,44 @@ rule(
     expect(exitCode, `generate-docs --check (${output.trim()})`).toBe(0);
   },
 );
+
+/**
+ * Runs generate-docs --check on a copy of docs/ and data/ after `change` edits the copy's
+ * Search and export page, and returns the result. `alsoGood` adds a page with the example
+ * as it should be, so a problem on the edited page can't be noticed through the example
+ * going unused.
+ */
+function checkChangedCopy(change: (page: string) => string, alsoGood = false): { exitCode: number; output: string } {
+  const copy = mkdtempSync(join(tmpdir(), "awt-docs-"));
+  try {
+    for (const dir of ["docs", "data"]) cpSync(fileURLToPath(new URL(dir, ROOT)), join(copy, dir), { recursive: true });
+    const page = join(copy, "docs", "search-and-export.md");
+    const original = readFileSync(page, "utf8");
+    if (alsoGood) writeFileSync(join(copy, "docs", "another-page.md"), original);
+    writeFileSync(page, change(original));
+    return runScript("scripts/generate-docs.ts", "--check", "--root", copy);
+  } finally {
+    rmSync(copy, { recursive: true, force: true });
+  }
+}
+
+rule({ req: ["DOC-4", "EX-5"], m: "M3" }, "the docs check fails when a committed example was edited by hand", () => {
+  const { exitCode, output } = checkChangedCopy((page) =>
+    page.replace('"formatVersion": 1', '"formatVersion": 1, "typedByHand": true'),
+  );
+  expect(exitCode, `generate-docs --check on an edited example (${output.trim()})`).toBe(1);
+  expect(output, "the check naming the page").toContain("docs/search-and-export.md");
+});
+
+rule({ req: ["DOC-4"], m: "M3" }, "the docs check fails when an example's markers can't be read", () => {
+  // The example itself is still right; only its end marker is misspelt.
+  const { exitCode, output } = checkChangedCopy(
+    (page) => page.replace("<!-- end generated: json-example -->", "<!-- end generated: json-exampel -->"),
+    true,
+  );
+  expect(exitCode, `generate-docs --check with a broken marker (${output.trim()})`).toBe(1);
+  expect(output, "the check naming the page with the broken marker").toContain("docs/search-and-export.md");
+});
 
 rule({ req: ["DOC-4"], m: "M3" }, "the docs' sample character is kept with the docs and isn't a test fixture", () => {
   const sampleDir = new URL("docs/sample/", ROOT);

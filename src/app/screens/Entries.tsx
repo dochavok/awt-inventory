@@ -5,6 +5,7 @@
 // traded or given away (IN-14), or deleted with Undo (IN-15).
 
 import { useEffect, useId, useState, type FormEvent } from "react";
+import { matchesFilter } from "../../data/search";
 import type { EntryListItem, EntryPatch, GainOptions, NewEntry } from "../../data/types";
 import { categoryName, LIMITS } from "../../data/validate";
 import { NotFoundError } from "../../errors";
@@ -29,11 +30,26 @@ export function Category({ services, id, category }: { services: Services; id: s
     return { character, items };
   });
   const [adding, setAdding] = useState(false);
+  const [filter, setFilter] = useState<Filter>({ rarity: "", family: "" });
   const action = useAction();
 
   if (screen.missing) return <CharacterNotFound />;
   if (!screen.data) return <Loading error={screen.error} />;
   const { character, items } = screen.data;
+  const choices = filterChoices(items, services.ref.rarities);
+  // A choice the list no longer has (its last entry used up or deleted) stops filtering, so
+  // nothing stays hidden behind a filter that can't be seen or changed.
+  const active: Filter = {
+    rarity: choices.rarities.some((r) => r.id === filter.rarity) ? filter.rarity : "",
+    family: choices.families.some((f) => f.key === filter.family) ? filter.family : "",
+  };
+  // It's forgotten, too, so it doesn't come back when a new entry has it.
+  if (active.rarity !== filter.rarity || active.family !== filter.family) setFilter(active);
+  const match = {
+    ...(active.rarity ? { rarity: active.rarity } : {}),
+    ...(active.family ? { itemFamily: active.family } : {}),
+  };
+  const shown = items.filter((item) => matchesFilter(item.entry, match));
   const reload = () => void action.run(screen.refresh);
 
   // The list changes in place: reading the category again after every tap would cost a read per entry (NF-5).
@@ -61,10 +77,13 @@ export function Category({ services, id, category }: { services: Services; id: s
       <h1>{categoryName(category)}</h1>
       <UndoBar at={categoryAddress(character.id, category)} onUndone={reload} />
       <Feedback error={action.error} notice={action.notice} />
+      <Filters choices={choices} filter={active} onChange={setFilter} />
       {items.length === 0 ? (
         <p className="hint">Nothing here yet.</p>
+      ) : shown.length === 0 ? (
+        <p className="hint">Nothing matches these filters.</p>
       ) : (
-        <EntryList category={category} items={items} busy={action.busy} onUsed={used} />
+        <EntryList category={category} items={shown} busy={action.busy} onUsed={used} />
       )}
       {adding ? (
         <EntryForm
@@ -88,6 +107,84 @@ export function Category({ services, id, category }: { services: Services; id: s
         </p>
       )}
     </>
+  );
+}
+
+// ---------------------------------------------------------------- filters (SE-3)
+
+/**
+ * A list's filters as chosen: a rarity's ID and an item family in lower case (its spelling
+ * doesn't matter, SE-3), "" for any. Matched with the store's own rule (matchesFilter).
+ * Equipped or active comes in M4.
+ */
+interface Filter {
+  rarity: string;
+  family: string;
+}
+
+/** What a list can be filtered by: the rarities and item families its entries have. */
+interface FilterChoices {
+  rarities: ReferenceData["rarities"];
+  /** One per family however its entries spell it, in order: its lower-case key, and a spelling to show. */
+  families: { key: string; label: string }[];
+}
+
+function filterChoices(items: EntryListItem[], allRarities: ReferenceData["rarities"]): FilterChoices {
+  const rarities = allRarities.filter((r) => items.some(({ entry }) => "rarity" in entry && entry.rarity === r.id));
+  const families = new Map<string, string>();
+  for (const { entry } of items) {
+    const family = "itemFamily" in entry ? entry.itemFamily : undefined;
+    if (family && !families.has(family.toLowerCase())) families.set(family.toLowerCase(), family);
+  }
+  return {
+    rarities,
+    families: [...families].map(([key, label]) => ({ key, label })).sort((a, b) => a.label.localeCompare(b.label)),
+  };
+}
+
+/**
+ * The filters for the rarities and families the list has, the filtered list read from what's
+ * already loaded (NF-5). None show when there's nothing to filter by.
+ */
+function Filters({
+  choices: { rarities, families },
+  filter,
+  onChange,
+}: {
+  choices: FilterChoices;
+  filter: Filter;
+  onChange: (filter: Filter) => void;
+}) {
+  if (rarities.length === 0 && families.length === 0) return null;
+  return (
+    <form className="filters" aria-label="Filters" onSubmit={(e) => e.preventDefault()}>
+      {rarities.length > 0 && (
+        <label>
+          Rarity
+          <select value={filter.rarity} onChange={(e) => onChange({ ...filter, rarity: e.target.value })}>
+            <option value="">Any rarity</option>
+            {rarities.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {families.length > 0 && (
+        <label>
+          Item family
+          <select value={filter.family} onChange={(e) => onChange({ ...filter, family: e.target.value })}>
+            <option value="">Any family</option>
+            {families.map((f) => (
+              <option key={f.key} value={f.key}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+    </form>
   );
 }
 

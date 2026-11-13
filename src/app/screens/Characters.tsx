@@ -53,6 +53,9 @@ export function Characters({ services }: { services: Services }) {
       <p>
         <a className="button" href={href("characters/new")}>
           Add a character
+        </a>{" "}
+        <a className="button secondary" href={href("search")}>
+          Search all characters
         </a>
       </p>
       {lists && lists.main.length === 0 && (
@@ -137,6 +140,9 @@ function InventoryLinks({ id, entries }: { id: string; entries: Entry[] }) {
         <li>
           <a href={href(`characters/${id}/history`)}>History</a>
         </li>
+        <li>
+          <a href={href(`characters/${id}/search`)}>Search</a>
+        </li>
       </ul>
     </nav>
   );
@@ -193,6 +199,9 @@ export function CharacterPage({ services, id }: { services: Services; id: string
         <button type="button" className="secondary" onClick={() => setPanel(panel === "class" ? null : "class")}>
           Correct the class
         </button>
+        <a className="button secondary" href={href(`export/${character.id}`)}>
+          Print or export
+        </a>
       </div>
       {panel === "edit" && (
         <EditCharacter

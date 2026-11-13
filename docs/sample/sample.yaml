@@ -1,0 +1,40 @@
+# The made-up sample character the user guide's examples come from (DOC-4).
+# scripts/generate-docs.ts builds this account with the app's own code and
+# writes its output into the guide's pages; `npm run docs:write` regenerates
+# them after a change here or in the app. Kept apart from the test fixtures.
+# Nothing here is from the game: the skill is the placeholder list's (RD-8).
+
+# When the sample account is made, in UTC.
+at: "2026-05-02T18:00:00.000Z"
+displayName: Lantern Keeper
+character:
+  name: Mirela
+  className: Mage
+  level: 9
+  notes: Made-up sample character for the guide.
+entries:
+  - entry:
+      category: items
+      name: Moonlit Lantern
+      description: Made-up item for the guide.
+      rarity: epic
+      itemFamily: Starglass
+      arcane: true
+    gain:
+      source: Quest
+      link: https://example.com/rewards/42
+      note: From the made-up Night Market quest
+  - entry:
+      category: consumables
+      name: Ember Tonic
+      quantity: 2
+    used:
+      note: At the made-up river crossing
+skills:
+  - skillId: placeholder-mage-skill
+    howGained: starting
+    levelGained: 1
+titles:
+  - name: Keeper of the Lanterns
+    description: Made-up title for the guide.
+    earned: "2026-04-18"

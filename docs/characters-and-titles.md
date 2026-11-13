@@ -4,7 +4,7 @@ reviewed: 2026-11-12
 
 ## Your characters
 
-**Characters**, at the top of every screen, lists your characters by name, with each one's class and level. There's no limit on how many you can have. Characters you've retired are listed under **Retired**.
+**Characters**, at the top of every screen, lists your characters by name, with each one's class and level. There's no limit on how many you can have. Characters you've retired are listed under **Retired**. **Search all characters** looks through all of their inventories at once: see [Search and export](search-and-export.md).
 
 ### Adding a character
 
@@ -13,6 +13,8 @@ Choose **Add a character**, then give its name, class (Warrior, Mage or Rogue) a
 ### Editing
 
 On a character's page, choose **Edit** to change its name, level or notes. Every change of level is recorded in the character's history, for example "Level 12 → 13".
+
+A character's page also links to each category of its inventory, its history and **Search**, and **Print or export** makes its printable sheet: see [Search and export](search-and-export.md).
 
 ### Correcting the class
 

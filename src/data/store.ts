@@ -162,6 +162,11 @@ export interface InventoryStore {
 
   // ---------------------------------------------------------------- search and export (SE, EX)
   search(query: string, options: SearchOptions): Promise<SearchResult[]>;
+  /**
+   * Reads what a search covers once, and returns a search over it that reads nothing more
+   * (NF-5), for searching as the user types. What it covers is as it was when read.
+   */
+  searcher(options: SearchOptions): Promise<(query: string) => SearchResult[]>;
   printableSheet(options: PrintOptions): Promise<SheetDocument>;
   printablePdf(options: PrintOptions): Promise<PdfFile>;
   exportJson(): Promise<ExportFile>;

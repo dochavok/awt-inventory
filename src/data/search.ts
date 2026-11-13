@@ -3,7 +3,18 @@
 // the start of words come first. Pure functions.
 
 import type { Character, Entry, ReferenceData } from "../rules/types";
-import type { SearchResult } from "./types";
+import type { ListFilter, SearchResult } from "./types";
+
+/**
+ * Whether an entry passes a category list's filters (SE-3): the rarity exactly, the item
+ * family whatever its case. Equipped or active is M4's, checked by the store.
+ */
+export function matchesFilter(entry: Entry, { rarity, itemFamily }: Omit<ListFilter, "equipped">): boolean {
+  if (rarity !== undefined && !("rarity" in entry && entry.rarity === rarity)) return false;
+  return (
+    itemFamily === undefined || ("itemFamily" in entry && entry.itemFamily?.toLowerCase() === itemFamily.toLowerCase())
+  );
+}
 
 /**
  * The words in a text, lower-cased and without accents (SE-1): letters and

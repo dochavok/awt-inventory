@@ -1,7 +1,7 @@
 // Search and export (section 10: SE-1 to SE-3, EX-1 to EX-5), through the
 // data layer. The PDF is checked as data (SheetDocument) and as a file.
 
-import { PDFDocument } from "pdf-lib";
+import { PDFArray, PDFDocument, PDFRawStream, decodePDFRawStream } from "pdf-lib";
 import { expect } from "vitest";
 import { rule } from "../support/rule";
 import { seedCharacter, seedProfile, world } from "../support/world";
@@ -313,6 +313,54 @@ rule({ req: ["EX-3"], m: "M3" }, "every page of the sheet shows when it was crea
   expect(sheet.createdAt, "when the sheet was created").toBe(w.clock.iso());
   expect(sheet.pageFooter, "the footer on every page").toMatch(/2026-06-13|13 June 2026|June 13, 2026|Jun 13, 2026/);
 });
+
+/**
+ * The text drawn on each page of a PDF, one string per page, read from the pages' content
+ * streams (the hex strings the standard fonts draw with Tj), so blank pages read as "".
+ */
+async function pdfPageTexts(bytes: Uint8Array): Promise<string[]> {
+  const doc = await PDFDocument.load(bytes);
+  return doc.getPages().map((page) => {
+    const contents = page.node.Contents();
+    const streams =
+      contents instanceof PDFArray ? contents.asArray().map((ref) => doc.context.lookup(ref)) : [contents];
+    return streams
+      .map((stream) => {
+        if (!(stream instanceof PDFRawStream)) return "";
+        const operators = new TextDecoder("latin1").decode(decodePDFRawStream(stream).decode());
+        return [...operators.matchAll(/<([0-9A-Fa-f]*)>\s*Tj/g)]
+          .map((m) =>
+            new TextDecoder("latin1").decode(Uint8Array.from(m[1]!.match(/../g) ?? [], (h) => parseInt(h, 16))),
+          )
+          .join("\n");
+      })
+      .join("\n");
+  });
+}
+
+rule(
+  { req: ["EX-1", "EX-3"], m: "M3" },
+  "the PDF's pages show the sheet itself, and every page shows when it was created",
+  async () => {
+    const { bram } = await bramWithTwo({ showSkillText: true });
+    const pdf = await bram.printablePdf({ characterIds: "all", includeSkillText: true, paper: "letter" });
+    const pages = await pdfPageTexts(pdf.bytes);
+    expect(pages.length, "pages in the PDF for Aldric and Isolde").toBeGreaterThanOrEqual(2);
+    expect(pages.length, "pages read from the PDF").toBe(pdf.pageCount);
+    pages.forEach((text, i) => {
+      expect(text, `page ${i + 1}'s creation date`).toMatch(/Created (Jun 13, 2026|13 Jun 2026|2026-06-13)/);
+      expect(text, `page ${i + 1}'s page number`).toContain(`Page ${i + 1} of ${pages.length}`);
+    });
+    const first = pages[0]!;
+    for (const text of ["Aldric", "Warrior, level 25", "Healing Draught", "Friend of the Forest"]) {
+      expect(first, `page 1 showing ${text}`).toContain(text);
+    }
+    expect(first, "page 1, Aldric's, showing Isolde").not.toContain("Isolde");
+    const isolde = pages.find((text) => text.includes("Isolde"));
+    expect(isolde, "Isolde's page").toBeDefined();
+    expect(isolde, "Isolde's page showing Spark's card text").toContain("a small burst of sparks");
+  },
+);
 
 // ---------------------------------------------------------------- JSON export (EX-4)
 
