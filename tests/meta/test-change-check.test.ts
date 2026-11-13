@@ -230,6 +230,7 @@ rule(
       ["functions/src/dynamic.ts", `export const load = () => import("../../tests/support/fake-auth");`],
       ["functions/src/folder.ts", `export * from "../../tests";`],
       ["functions/src/tool.js", `const fc = require("fast-check");\nmodule.exports = fc;`],
+      ["functions/src/sdk.ts", `import functionsTest from "firebase-functions-test";\nexport default functionsTest;`],
       ["functions/src/greet.ts", `export const greeting = "Hello, Aldric";`],
       [
         "functions/src/fine.ts",
@@ -242,6 +243,7 @@ rule(
       "functions/src/dynamic.ts: imports ../../tests/support/fake-auth, from the tests",
       "functions/src/folder.ts: imports ../../tests, from the tests",
       "functions/src/tool.js: imports fast-check, a test tool",
+      "functions/src/sdk.ts: imports firebase-functions-test, a test tool",
       'functions/src/greet.ts: names "Aldric", from the test fixtures',
     ]);
   },

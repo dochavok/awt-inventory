@@ -102,9 +102,9 @@ rule({ req: ["NF-11"], m: "M3" }, "every CI job has a time limit of 30 minutes o
   expect(workflows, "the workflows checked").toEqual(expect.arrayContaining(["ci.yml", "test-change-rule.yml"]));
   for (const file of workflows) {
     const workflow = parse(read(`.github/workflows/${file}`)) as {
-      jobs: Record<string, { "timeout-minutes"?: unknown }>;
-    };
-    const jobs = Object.entries(workflow.jobs);
+      jobs?: Record<string, { "timeout-minutes"?: unknown }>;
+    } | null;
+    const jobs = Object.entries(workflow?.jobs ?? {});
     expect(jobs.length, `${file}'s jobs`).toBeGreaterThan(0);
     for (const [name, job] of jobs) {
       const limit = job["timeout-minutes"];
