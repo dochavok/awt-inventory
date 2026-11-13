@@ -305,6 +305,32 @@ browserRule(
 );
 
 browserRule(
+  { req: ["SE-3"], m: "M3" },
+  "a family filter keeps filtering when an entry spells the family differently",
+  async ({ page }) => {
+    await signUp(page);
+    const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+    await openCategory(page, wren, "items", "Items");
+    await addEntry(page, "Moon Ring", async (form) => {
+      await form.getByLabel("Item family").fill("Starglass");
+    });
+    await addEntry(page, "Silk Rope");
+    const filters = page.getByRole("form", { name: "Filters" });
+    await expect(filters, "the filters on Wren's items").toBeVisible();
+    await filters.getByLabel("Item family").selectOption({ label: "Starglass" });
+    await expect(entryRows(page), "Wren's Starglass items").toHaveText([/Moon Ring/]);
+    // Sorted first, so its spelling names the family in the filter.
+    await addEntry(page, "Amber Shard", async (form) => {
+      await form.getByLabel("Item family").fill("starglass");
+    });
+    await expect(entryRows(page), "Wren's Starglass items, however they spell it").toHaveText([
+      /Amber Shard/,
+      /Moon Ring/,
+    ]);
+  },
+);
+
+browserRule(
   { req: ["EX-1", "CH-1"], m: "M3" },
   "print and export for a character that isn't there says so, rather than offering every character",
   async ({ page }) => {
