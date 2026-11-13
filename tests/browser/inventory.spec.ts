@@ -255,6 +255,9 @@ browserRule(
     await expect(taken, "Wren's skills, the warned one included").toHaveCount(2);
 
     await taken.filter({ hasText: "Placeholder Mage skill" }).getByRole("button", { name: "Remove" }).click();
+    // Removing a skill asks first, like deleting any entry (SK-4, IN-15).
+    await expect(taken, "Wren's skills while asking").toHaveCount(2);
+    await page.getByRole("button", { name: "Remove for good" }).click();
     await expect(taken, "Wren's skills after removing one").toHaveText([/Placeholder Rogue skill/]);
   },
 );
