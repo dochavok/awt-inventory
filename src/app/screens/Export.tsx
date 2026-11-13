@@ -10,6 +10,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import type { PrintOptions } from "../../data/types";
+import { localDay } from "../../platform/time";
 import type { Character } from "../../rules/types";
 import { href } from "../router";
 import type { Services } from "../services";
@@ -49,15 +50,12 @@ function SaveLink({ made }: { made: Made | null }) {
   );
 }
 
-/** A day in the user's own calendar, as file names use it: 2026-06-13. */
-const localDay = (iso: string) => new Intl.DateTimeFormat("en-CA").format(new Date(iso));
-
 export function Export({ services, id }: { services: Services; id?: string | undefined }) {
   const { store } = services;
-  const screen = useScreenData(async () => {
-    const [main, retired] = await Promise.all([store.listCharacters("main"), store.listCharacters("retired")]);
-    return { main, retired };
-  });
+  // The main characters, then the retired ones.
+  const screen = useScreenData(async () =>
+    (await Promise.all([store.listCharacters("main"), store.listCharacters("retired")])).flat(),
+  );
   if (!screen.data) return <Loading error={screen.error} />;
   return (
     <>
@@ -74,25 +72,18 @@ function PrintableSheet({
   chosen,
 }: {
   services: Services;
-  characters: { main: Character[]; retired: Character[] };
+  characters: Character[];
   chosen: string | undefined;
 }) {
-  const { store, ref } = services;
+  const { store, ref, settings } = services;
   // A character named in the address is chosen; any other address starts with all of them.
-  const [which, setWhich] = useState(
-    () => [...characters.main, ...characters.retired].find((c) => c.id === chosen)?.id ?? "all",
-  );
+  const [which, setWhich] = useState(() => characters.find((c) => c.id === chosen)?.id ?? "all");
   const [paper, setPaper] = useState<PrintOptions["paper"]>("letter");
   const [skillText, setSkillText] = useState(false);
   const file = useMadeFile();
   const make = useAction();
   // Changing what's asked for takes away a file made for something else.
-  const change =
-    <T,>(set: (v: T) => void) =>
-    (v: T) => {
-      set(v);
-      file.clear();
-    };
+  useEffect(file.clear, [which, paper, skillText]);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -111,32 +102,29 @@ function PrintableSheet({
       <h2 id="sheet-title">Printable sheet</h2>
       <label>
         Characters
-        <select value={which} onChange={(e) => change(setWhich)(e.target.value)}>
+        <select value={which} onChange={(e) => setWhich(e.target.value)}>
           <option value="all">All characters (not retired)</option>
-          {characters.main.map((c) => (
+          {characters.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
-            </option>
-          ))}
-          {characters.retired.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name} (retired)
+              {c.retired && " (retired)"}
             </option>
           ))}
         </select>
       </label>
       <label>
         Paper
-        <select value={paper} onChange={(e) => change(setPaper)(e.target.value as PrintOptions["paper"])}>
+        <select value={paper} onChange={(e) => setPaper(e.target.value as PrintOptions["paper"])}>
           <option value="letter">Letter</option>
           <option value="a4">A4</option>
         </select>
       </label>
       <label className="check">
-        <input type="checkbox" checked={skillText} onChange={(e) => change(setSkillText)(e.target.checked)} />
+        <input type="checkbox" checked={skillText} onChange={(e) => setSkillText(e.target.checked)} />
         Include skill text
       </label>
-      {!ref.skills.some((s) => s.text !== undefined) && (
+      {/* The sheet has card text only where the app may show it (SK-2) and the skill list has it. */}
+      {!(settings.showSkillText && ref.skills.some((s) => s.text !== undefined)) && (
         <p className="hint">The skill list has no card text yet, so the sheet shows skill names only.</p>
       )}
       <Feedback error={make.error} notice={null} />

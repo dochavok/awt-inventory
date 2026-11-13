@@ -7,9 +7,6 @@ import type { Character } from "../../rules/types";
 import { href } from "../router";
 import { Feedback, useAction } from "../useAction";
 
-/** How long a search waits after the last key before looking anything up: each look-up reads entries (NF-5). */
-export const SEARCH_PAUSE_MS = 300;
-
 /**
  * Reads what a screen shows when it opens; `refresh` reads it again. A record
  * that isn't there (deleted on another phone, or a wrong address) sets `missing`.

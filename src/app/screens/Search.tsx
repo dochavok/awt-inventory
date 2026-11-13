@@ -2,14 +2,14 @@
 // included (SE-1), or every character's, retired ones too, each result naming
 // its character (SE-2). Results update as the user types.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { SearchResult } from "../../data/types";
 import { categoryName } from "../../data/validate";
 import type { Character } from "../../rules/types";
 import { href } from "../router";
 import type { Services } from "../services";
 import { Feedback, useAction } from "../useAction";
-import { BackTo, CharacterNotFound, Loading, SEARCH_PAUSE_MS, useScreenData } from "./common";
+import { BackTo, CharacterNotFound, Loading, useScreenData } from "./common";
 
 /** Where a result opens: an entry's own page, or the Skills screen for a skill. */
 function resultAddress(r: SearchResult): string {
@@ -17,6 +17,9 @@ function resultAddress(r: SearchResult): string {
     ? href(`characters/${r.characterId}/skills`)
     : href(`characters/${r.characterId}/entries/${r.entryId}`);
 }
+
+/** The scope for all of the user's characters, beside one character's ID. */
+const ALL = "all";
 
 /** Search one character's entries, or every character's when there's no `id`. */
 export function Search({ services, id }: { services: Services; id?: string | undefined }) {
@@ -31,32 +34,23 @@ function SearchBox({ services, character }: { services: Services; character: Cha
   const { store } = services;
   const [query, setQuery] = useState("");
   const [everyone, setEveryone] = useState(character === undefined);
-  const [results, setResults] = useState<SearchResult[] | null>(null);
+  // What's searched is read once for each scope, the first time it's needed, and then searched
+  // as the user types without reading anything more (NF-5).
+  const scope = character && !everyone ? character.id : ALL;
+  const [searchers, setSearchers] = useState<Record<string, (query: string) => SearchResult[]>>({});
   const look = useAction();
 
   useEffect(() => {
-    if (!query.trim()) {
-      setResults(null);
-      return;
-    }
-    // Only the latest search is shown, however the replies arrive.
-    let current = true;
-    const timer = setTimeout(
-      () =>
-        void look.run(async () => {
-          const found = await store.search(
-            query,
-            everyone || character === undefined ? { allCharacters: true } : { characterId: character.id },
-          );
-          if (current) setResults(found);
-        }),
-      SEARCH_PAUSE_MS,
-    );
-    return () => {
-      current = false;
-      clearTimeout(timer);
-    };
-  }, [query, everyone]);
+    if (searchers[scope]) return;
+    void look.run(async () => {
+      const search = await store.searcher(scope === ALL ? { allCharacters: true } : { characterId: scope });
+      setSearchers((all) => ({ ...all, [scope]: search }));
+    });
+  }, [scope]);
+
+  const search = searchers[scope];
+  const typed = query.trim() !== "";
+  const results = useMemo(() => (search && typed ? search(query) : null), [search, query]);
 
   return (
     <>
@@ -84,7 +78,8 @@ function SearchBox({ services, character }: { services: Services; character: Cha
         )}
       </form>
       <Feedback error={look.error} notice={null} />
-      {results && results.length === 0 && <p className="hint">No results.</p>}
+      {typed && !search && !look.error && <p className="hint">Searching…</p>}
+      {results?.length === 0 && <p className="hint">No results.</p>}
       {results && results.length > 0 && (
         <ul className="link-list results" aria-label="Results">
           {results.map((r) => (

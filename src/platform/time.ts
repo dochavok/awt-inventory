@@ -7,6 +7,11 @@ export function formatLocal(iso: string, timeZone: string, locale = "en-US"): st
   return new Intl.DateTimeFormat(locale, { timeZone, dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
 }
 
+/** A moment as a day on the user's own calendar, as file names use it: 2026-06-13. */
+export function localDay(iso: string): string {
+  return new Intl.DateTimeFormat("en-CA").format(new Date(iso));
+}
+
 /** A moment as stored: ISO 8601 in UTC. */
 export function toStoredTime(date: Date): string {
   if (Number.isNaN(date.getTime())) throw new ValidationError("date", "That isn't a valid date and time.");

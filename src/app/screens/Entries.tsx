@@ -5,6 +5,7 @@
 // traded or given away (IN-14), or deleted with Undo (IN-15).
 
 import { useEffect, useId, useState, type FormEvent } from "react";
+import { matchesFilter } from "../../data/search";
 import type { EntryListItem, EntryPatch, GainOptions, NewEntry } from "../../data/types";
 import { categoryName, LIMITS } from "../../data/validate";
 import { NotFoundError } from "../../errors";
@@ -35,7 +36,12 @@ export function Category({ services, id, category }: { services: Services; id: s
   if (screen.missing) return <CharacterNotFound />;
   if (!screen.data) return <Loading error={screen.error} />;
   const { character, items } = screen.data;
-  const shown = items.filter((item) => passes(item.entry, filter));
+  const shown = items.filter((item) =>
+    matchesFilter(item.entry, {
+      ...(filter.rarity ? { rarity: filter.rarity } : {}),
+      ...(filter.family ? { itemFamily: filter.family } : {}),
+    }),
+  );
   const reload = () => void action.run(screen.refresh);
 
   // The list changes in place: reading the category again after every tap would cost a read per entry (NF-5).
@@ -98,16 +104,13 @@ export function Category({ services, id, category }: { services: Services; id: s
 
 // ---------------------------------------------------------------- filters (SE-3)
 
-/** A list's filters: a rarity's ID and an item family, "" for any. Equipped or active comes in M4. */
+/**
+ * A list's filters as chosen: a rarity's ID and an item family, "" for any. Matched with the
+ * store's own rule (matchesFilter). Equipped or active comes in M4.
+ */
 interface Filter {
   rarity: string;
   family: string;
-}
-
-/** Whether an entry passes the filters: the rarity exactly, the family whatever its case, as the store filters. */
-function passes(entry: Entry, { rarity, family }: Filter): boolean {
-  if (rarity && !("rarity" in entry && entry.rarity === rarity)) return false;
-  return !family || ("itemFamily" in entry && entry.itemFamily?.toLowerCase() === family.toLowerCase());
 }
 
 /**

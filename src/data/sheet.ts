@@ -2,7 +2,7 @@
 // (SheetDocument), then laid out as a PDF with pdf-lib, on the phone itself.
 
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
-import { formatLocal } from "../platform/time";
+import { formatLocal, localDay } from "../platform/time";
 import type { Character, Entry, ItemEntry, ReferenceData, SkillEntry, Title } from "../rules/types";
 import type { PdfFile, PrintOptions, SheetDocument } from "./types";
 import { categoryName } from "./validate";
@@ -23,11 +23,6 @@ export interface SheetInput {
 /** The user's own time zone, for dates shown to them (NF-8). */
 function localZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
-}
-
-/** A date as the user's calendar shows it, e.g. 2026-06-13. */
-function localDate(iso: string): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: localZone() }).format(new Date(iso));
 }
 
 export function buildSheet(
@@ -222,5 +217,5 @@ export async function renderPdf(sheet: SheetDocument, options: PrintOptions): Pr
 function fileStem(sheet: SheetDocument): string {
   const only = sheet.characters.length === 1 ? sheet.characters[0]!.name : "AWT characters";
   const safe = only.replace(/[\\/:*?"<>|]+/g, "-").trim() || "Character";
-  return `${safe} ${localDate(sheet.createdAt)}`;
+  return `${safe} ${localDay(sheet.createdAt)}`;
 }

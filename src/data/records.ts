@@ -26,7 +26,7 @@ import type {
   TitleScope,
 } from "../rules/types";
 import type { Backend, Change, NotMine, StoredRecord } from "./backend";
-import { searchEntries } from "./search";
+import { matchesFilter, searchEntries } from "./search";
 import { buildSheet, byName, renderPdf } from "./sheet";
 import { later as laterIn, requireUid, type InventoryStore, type StoreContext } from "./store";
 import type {
@@ -534,12 +534,8 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     async listEntries(characterId, category, filter = {}) {
       await ownCharacter(characterId);
       if (filter.equipped !== undefined) notYet(`${label}.listEntries equipped filter (SE-3)`, "M4");
-      const rarity = filter.rarity;
-      const family = filter.itemFamily?.toLowerCase();
       const items: EntryListItem[] = (await entriesOf(characterId))
-        .filter((e) => e.category === category)
-        .filter((e) => rarity === undefined || ("rarity" in e && e.rarity === rarity))
-        .filter((e) => family === undefined || ("itemFamily" in e && e.itemFamily?.toLowerCase() === family))
+        .filter((e) => e.category === category && matchesFilter(e, filter))
         .map((entry) => ({ entry, equipped: entry.category === "allies" && entry.active }));
       return items.sort((a, b) => entryName(a.entry).localeCompare(entryName(b.entry)));
     },
@@ -764,6 +760,10 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
 
     // ---------------------------------------------------------------- search and export (SE, EX)
     async search(query, options) {
+      return (await store.searcher(options))(query);
+    },
+
+    async searcher(options) {
       let characters: Character[];
       if (options.allCharacters === true) {
         // SE-2: every character, retired ones included.
@@ -773,7 +773,8 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       } else {
         throw new ValidationError("characterId", "Search one character, or all of them.");
       }
-      return searchEntries(query, await withEntries(characters), ref, settings.showSkillText);
+      const searchable = await withEntries(characters);
+      return (query) => searchEntries(query, searchable, ref, settings.showSkillText);
     },
 
     async printableSheet(options) {
