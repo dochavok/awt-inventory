@@ -241,6 +241,28 @@ rule(
   },
 );
 
+rule(
+  { req: ["CH-6", "CH-1", "NF-3"], m: "M3" },
+  "with signal, deleting a character leaves a claim another phone has since taken over, on a phone with an old copy",
+  async () => {
+    const { a, b } = await setUp();
+    const old = await a.store.createCharacter({ name: "Wren", className: "Rogue", level: 3 });
+    await a.db.waitForPendingWrites();
+    // Phone B reads the whole account now, so its copy has the claim on Wren pointing to this character.
+    await loadWholeAccount(b.db, uid("bram"));
+    await a.store.updateCharacter(old.id, { name: "Brin" });
+    const wren = await a.store.createCharacter({ name: "Wren", className: "Mage", level: 5 });
+    await a.db.waitForPendingWrites();
+    await vi.waitFor(async () => expect((await b.store.syncStatus()).online, "phone B with signal").toBe(true));
+    await b.store.deleteCharacter(old.id, (await b.store.character(old.id)).name);
+    await b.db.waitForPendingWrites();
+    const names = `users/${uid("bram")}/characterNames`;
+    const claim = await device("bram").doc(`${names}/name-wren`).get();
+    expect(claim.get("characterId"), "the claim on Wren after phone B deletes Brin").toBe(wren.id);
+    expect(await storedOnServer("bram", `${names}/name-brin`), "the claim on Brin").toBe(false);
+  },
+);
+
 /** A phone that keeps what the server refused, as the app tells the user (NF-3). */
 function phoneTold(user: string, clock: FakeClock) {
   const db = device(user);
