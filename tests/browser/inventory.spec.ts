@@ -386,3 +386,97 @@ browserRule(
     expect(await suggested(), "sources suggested after raising the quantity").toContain("Odd Vendor");
   },
 );
+
+browserRule(
+  { req: ["IN-12", "HI-3"], m: "M3" },
+  "used, with a date or note: the history keeps the note and the earlier day",
+  async ({ page }) => {
+    await signUp(page);
+    const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+    await openFromCharacter(page, wren, /^Consumables/, "Consumables");
+    await addEntry(page, { name: "Healing Draught", quantity: 2 });
+    await rowFor(page, "Healing Draught").getByRole("link", { name: "Healing Draught" }).click();
+    // Two days ago, in the phone's own time, as the date field takes it and the history shows it.
+    const [day, shown] = await page.evaluate(() => {
+      const d = new Date();
+      d.setDate(d.getDate() - 2);
+      const local = new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+      return [local, d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })];
+    });
+    const form = page.getByRole("form", { name: "Mark used" });
+    await expect(form, "the form to mark one used with a date or note").toBeVisible();
+    await form.getByLabel("Date").fill(day!);
+    await form.getByLabel("Note").fill("At the gate");
+    await form.getByRole("button", { name: "Mark used" }).click();
+    await expect(page.getByRole("main"), "Healing Draught's page after using one").toContainText("× 1");
+    await openFromCharacter(page, wren, /^History/, "History");
+    const used = historyRecords(page).filter({ hasText: "Used 1 × Healing Draught" });
+    await expect(used, "the use's note").toContainText("At the gate");
+    await expect(used, "the use's day").toContainText(shown!);
+  },
+);
+
+browserRule(
+  { req: ["IN-8", "IN-3"], m: "M3" },
+  "an emptied extra damage is cleared when the weapon is edited",
+  async ({ page }) => {
+    await signUp(page);
+    const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+    await openFromCharacter(page, wren, /^Weapons/, "Weapons");
+    await addEntry(page, { name: "Hand Axe" }, async (form) => {
+      await form.getByLabel("Extra damage (hearts)").fill("2");
+    });
+    await rowFor(page, "Hand Axe").getByRole("link", { name: "Hand Axe" }).click();
+    const main = page.getByRole("main");
+    await expect(main, "Hand Axe's extra damage").toContainText("2 hearts");
+    await page.getByRole("button", { name: "Edit" }).click();
+    const edit = page.getByRole("form", { name: "Edit Hand Axe" });
+    await edit.getByLabel("Extra damage (hearts)").fill("");
+    await edit.getByRole("button", { name: "Save" }).click();
+    await expect(edit, "the edit form, closed once saved").toBeHidden();
+    await expect(main, "Hand Axe's page after emptying its extra damage").not.toContainText("Extra damage");
+  },
+);
+
+browserRule(
+  { req: ["IN-14", "IN-16"], m: "M3" },
+  "the address of an entry that's gone says so, and points to the history",
+  async ({ page }) => {
+    await signUp(page);
+    const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+    await openFromCharacter(page, wren, /^Items/, "Items");
+    await addEntry(page, { name: "Silk Rope" });
+    await rowFor(page, "Silk Rope").getByRole("link", { name: "Silk Rope" }).click();
+    await expect(page.getByRole("heading", { level: 1 }), "Silk Rope's page").toHaveText("Silk Rope");
+    const address = new URL(page.url()).hash;
+    const trade = page.getByRole("form", { name: "Trade or give away" });
+    await trade.getByLabel("What happened").selectOption({ label: "Given away" });
+    await trade.getByRole("button", { name: "Record" }).click();
+    await expect(page.getByRole("heading", { level: 1 }), "the list once Silk Rope is given away").toHaveText("Items");
+    await page.goto(`/${address}`);
+    await expect(page.getByRole("heading", { level: 1 }), "Silk Rope's old address").toHaveText("Entry not found");
+    await page.getByRole("main").getByRole("link", { name: "history" }).click();
+    await expect(historyRecords(page), "Wren's history").toHaveText([
+      /Gave away 1 × Silk Rope/,
+      /Acquired 1 × Silk Rope/,
+    ]);
+  },
+);
+
+browserRule(
+  { req: ["IN-9"], m: "M3" },
+  "the character's page shows how many entries each category has",
+  async ({ page }) => {
+    await signUp(page);
+    const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+    await openFromCharacter(page, wren, /^Consumables/, "Consumables");
+    await addEntry(page, { name: "Healing Draught", quantity: 3 });
+    await addEntry(page, { name: "Smoke Pellet" });
+    await page.goto(`/#/characters/${wren}`);
+    const inventory = page.getByRole("navigation", { name: "Inventory" });
+    await expect(inventory.getByRole("link", { name: /^Consumables/ }), "Wren's Consumables link").toHaveText(
+      /Consumables\s*2/,
+    );
+    await expect(inventory.getByRole("link", { name: /^Weapons/ }), "Wren's Weapons link").toHaveText(/Weapons\s*0/);
+  },
+);
