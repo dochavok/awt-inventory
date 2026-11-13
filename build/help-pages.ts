@@ -53,9 +53,16 @@ function updated(file: string, root: string): string | null {
   return git(["log", "-1", "--date=format-local:%Y-%m-%d", "--format=%cd", "--", file], root, { TZ: "UTC" }) || null;
 }
 
-/** Links between pages ("privacy.md") become the pages' addresses in the app. */
-function linkPages(html: string): string {
-  return html.replace(/href="([a-z0-9-]+)\.md(#[^"]*)?"/g, 'href="#/help/$1"');
+/**
+ * Links between pages ("privacy.md", "privacy.md#part") become the pages' addresses in the
+ * app, which open at the top of the page. A link to a file that isn't a help page fails the
+ * build, so the app never shows a dead link.
+ */
+function linkPages(html: string, file: string, slugs: ReadonlySet<string>): string {
+  return html.replace(/href="([^":]+)\.md(#[^"]*)?"/g, (_link, target: string) => {
+    if (!slugs.has(target)) throw new Error(`docs/${file} links to ${target}.md, which isn't a help page`);
+    return `href="#/help/${target}"`;
+  });
 }
 
 /** Pages other screens show (Terms at sign-up, the Privacy screen): the build fails without them. */
@@ -72,22 +79,23 @@ const docsDir = (root: string) => join(root, "docs");
 
 function readPages(root: string): HelpPage[] {
   const dir = docsDir(root);
-  return readdirSync(dir)
+  const files = readdirSync(dir)
     .filter((f) => f.endsWith(".md") && !NOT_HELP.includes(f))
-    .sort()
-    .map((file) => {
-      const text = readFileSync(join(dir, file), "utf8");
-      const title = TITLE.exec(text)?.[1]?.trim();
-      if (!title) throw new Error(`docs/${file} has no "# " title`);
-      const body = text.replace(TITLE, "").replace(REVIEWED, "");
-      return {
-        slug: file.replace(/\.md$/, ""),
-        title,
-        html: linkPages(marked.parse(body, { async: false })),
-        updated: updated(`docs/${file}`, root),
-        reviewed: REVIEWED.exec(text)?.[1] ?? null,
-      };
-    });
+    .sort();
+  const slugs = new Set(files.map((f) => f.replace(/\.md$/, "")));
+  return files.map((file) => {
+    const text = readFileSync(join(dir, file), "utf8");
+    const title = TITLE.exec(text)?.[1]?.trim();
+    if (!title) throw new Error(`docs/${file} has no "# " title`);
+    const body = text.replace(TITLE, "").replace(REVIEWED, "");
+    return {
+      slug: file.replace(/\.md$/, ""),
+      title,
+      html: linkPages(marked.parse(body, { async: false }), file, slugs),
+      updated: updated(`docs/${file}`, root),
+      reviewed: REVIEWED.exec(text)?.[1] ?? null,
+    };
+  });
 }
 
 export function helpPages(root: string): Plugin {

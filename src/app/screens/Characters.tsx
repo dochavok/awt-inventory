@@ -280,11 +280,8 @@ function EditCharacter({
   const submit = (e: FormEvent) => {
     e.preventDefault();
     void save.run(async () => {
-      const patch: Partial<Pick<Character, "name" | "level" | "notes">> = {};
-      if (name.trim() !== character.name) patch.name = name;
-      if (Number(level) !== character.level) patch.level = Number(level);
-      if (notes !== (character.notes ?? "")) patch.notes = notes;
-      if (Object.keys(patch).length > 0) await store.updateCharacter(character.id, patch);
+      // The store changes only the fields that differ, so an unchanged one keeps its edit time (NF-3).
+      await store.updateCharacter(character.id, { name, level: Number(level), notes });
       onSaved();
     });
   };
@@ -333,8 +330,15 @@ function CorrectClass({
   useEffect(() => {
     setNotice(null);
     setConfirmed(false);
-    void correct.run(async () => setNotice(await store.classCorrectionNotice(character.id, to)));
-    // The warning for the class chosen.
+    // The warning for the class chosen; one that arrives after another class is chosen is dropped.
+    let current = true;
+    void correct.run(async () => {
+      const latest = await store.classCorrectionNotice(character.id, to);
+      if (current) setNotice(latest);
+    });
+    return () => {
+      current = false;
+    };
   }, [to]);
 
   const submit = (e: FormEvent) => {

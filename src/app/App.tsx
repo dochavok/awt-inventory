@@ -3,7 +3,7 @@
 // whole account is read once signed in, so all of it stays on the phone (NF-3).
 
 import { useEffect, useRef, useState } from "react";
-import type { RefusedChange } from "../data/firestore-store";
+import { characterOf, type RefusedChange } from "../data/firestore-store";
 import { useRoute, type Route } from "./router";
 import type { Services } from "./services";
 import { ConnectionBar, Header, RefusedNotices } from "./Shell";
@@ -15,11 +15,14 @@ import { SignIn } from "./screens/SignIn";
 import { SignUp } from "./screens/SignUp";
 import { Titles } from "./screens/Titles";
 
-/** Whether a screen shows records of a kind, so a refused change to one must leave it (NF-3). */
-function shows(route: Route | null, kind: RefusedChange["kind"]): boolean {
+/** Whether a screen shows the record a refused change was to, so the change must leave it (NF-3). */
+function shows(route: Route | null, { kind, id }: RefusedChange): boolean {
   switch (route?.screen) {
     case "character":
-      return kind !== "profile" && kind !== "report";
+      // A character's page shows that character, its entries and history, and titles.
+      if (kind === "profile" || kind === "report") return false;
+      if (kind === "title" || id === undefined) return true;
+      return (kind === "character" ? id : characterOf(id)) === route.id;
     case "titles":
       return kind === "title" || kind === "character";
     case "account":
@@ -55,15 +58,15 @@ export function App({ services }: { services: Services }) {
     return services.onSignInChange(() => setSignedIn(services.auth.currentUser() !== null));
   }, [services]);
 
-  // NF-3: a change the server refused is undone on the phone; a screen showing that kind of
-  // record reloads. Other screens are left alone, so nothing typed into them is lost.
+  // NF-3: a change the server refused is undone on the phone; a screen showing that record
+  // reloads. Other screens are left alone, so nothing typed into them is lost.
   const [refusals, setRefusals] = useState(0);
   const shown = useRef(route);
   shown.current = route;
   useEffect(
     () =>
       services.onWriteRefused((change) => {
-        if (shows(shown.current, change.kind)) setRefusals((n) => n + 1);
+        if (shows(shown.current, change)) setRefusals((n) => n + 1);
       }),
     [services],
   );

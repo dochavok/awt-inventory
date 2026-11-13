@@ -223,13 +223,11 @@ function EditTitle({
   const submit = (e: FormEvent) => {
     e.preventDefault();
     void save.run(async () => {
-      const before = fieldsOf(title);
-      const patch: Partial<Pick<Title, "name" | "description" | "earned">> = {};
-      if (fields.name.trim() !== before.name) patch.name = fields.name;
-      if (fields.description !== before.description) patch.description = fields.description;
-      if (fields.earned !== before.earned) patch.earned = fields.earned;
-      if (Object.keys(patch).length > 0) await store.updateTitle(title.id, patch);
-      if (fields.appliesTo !== before.appliesTo) await store.setTitleScope(title.id, toScope(fields.appliesTo));
+      // The store changes only the fields that differ, so an unchanged one keeps its edit time (NF-3).
+      const { name, description, earned, appliesTo } = fields;
+      await store.updateTitle(title.id, { name, description, earned });
+      // Only a move checks the character it moves to, so a title of a character that's gone can still be edited.
+      if (appliesTo !== fieldsOf(title).appliesTo) await store.setTitleScope(title.id, toScope(appliesTo));
       onDone();
     });
   };

@@ -30,9 +30,14 @@ export function Header({ signedIn, help }: { signedIn: boolean; help: string }) 
 /** How often the connection bar checks for signal and changes waiting. */
 const CHECK_MS = 2_000;
 
+interface Status {
+  online: boolean;
+  waiting: number;
+}
+
 /** NF-3: shows when the app is offline, and how many changes are waiting to be sent. Hidden otherwise. */
 export function ConnectionBar({ store }: { store: InventoryStore }) {
-  const [status, setStatus] = useState<{ online: boolean; waiting: number }>({ online: true, waiting: 0 });
+  const [status, setStatus] = useState<Status>({ online: true, waiting: 0 });
 
   useEffect(() => {
     let stopped = false;
@@ -48,11 +53,17 @@ export function ConnectionBar({ store }: { store: InventoryStore }) {
       running = true;
       clearTimeout(timer);
       const browserOnline = navigator.onLine;
+      // The same status as before keeps the same object, so the bar isn't drawn again.
+      const show = (next: (old: Status) => Status) =>
+        setStatus((old) => {
+          const value = next(old);
+          return value.online === old.online && value.waiting === old.waiting ? old : value;
+        });
       try {
         const s = await store.syncStatus();
-        if (!stopped) setStatus({ online: browserOnline && s.online, waiting: s.pendingChanges });
+        if (!stopped) show(() => ({ online: browserOnline && s.online, waiting: s.pendingChanges }));
       } catch {
-        if (!stopped) setStatus((old) => ({ ...old, online: browserOnline }));
+        if (!stopped) show((old) => ({ ...old, online: browserOnline }));
       }
       running = false;
       if (stopped) return;

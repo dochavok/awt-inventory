@@ -90,7 +90,8 @@ function fields(snap: DocumentSnapshot): DocumentData {
   return data;
 }
 
-const characterOf = (id: Id): Id | undefined => (id.includes(SEP) ? id.split(SEP)[0] : undefined);
+/** The character an entry or history record's ID belongs to. */
+export const characterOf = (id: Id): Id | undefined => (id.includes(SEP) ? id.split(SEP)[0] : undefined);
 
 /** Where a user's records live (the layout above). */
 function accountRefs(db: Firestore, uid: string) {
@@ -176,12 +177,14 @@ export function createFirestoreStore(
   }
 
   /**
-   * Sends one change (one user action), whatever number of batches it takes.
+   * Sends one change (one user action), whatever number of batches it takes. Tidying alone
+   * isn't a change the user made, so it isn't counted as one waiting.
    * Not awaited: the change is on the phone already, and is sent whenever there's signal.
    */
   function send(batches: Sent[]): void {
     if (batches.length === 0) return;
-    pending += 1;
+    const counted = batches.some((b) => b.about) ? 1 : 0;
+    pending += counted;
     const refused = (about: RefusedChange) => (error: unknown) => {
       try {
         options.onWriteRefused?.(error, about);
@@ -191,7 +194,7 @@ export function createFirestoreStore(
     };
     const commits = batches.map(({ batch, about }) => batch.commit().catch(about ? refused(about) : () => undefined));
     void Promise.all(commits).then(() => {
-      pending -= 1;
+      pending -= counted;
     });
   }
 
@@ -314,7 +317,7 @@ export function createFirestoreStore(
    */
   async function claimDeletes(deleted: Set<Id>): Promise<Sent[]> {
     const fromCache = () => getDocsFromCache(names());
-    // Slow signal never holds up the delete: after PROBE_MS, the phone's own copy is used.
+    // On slow signal, the phone's own copy is used after PROBE_MS.
     const fromServer = () =>
       Promise.race([
         getDocsFromServer(names()),
@@ -490,10 +493,10 @@ export function createFirestoreStore(
     async write(changes) {
       uid();
       watch();
+      // The changes are on the phone, and on their way, before a deleted character's claims are looked up.
+      send(batchesFor(changes));
       const deleted = new Set(changes.flatMap((c) => (c.op === "delete" && c.kind === "character" ? [c.id] : [])));
-      // Only a character's deletion waits to find its claims; every other change is sent straight away.
-      const claims = deleted.size > 0 ? await claimDeletes(deleted) : [];
-      send([...batchesFor(changes), ...claims]);
+      if (deleted.size > 0) send(await claimDeletes(deleted));
     },
 
     async syncStatus() {
