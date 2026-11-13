@@ -65,39 +65,13 @@ function referenceData(): ReferenceData {
   );
 }
 
-/** How long after reading the whole account it's read again, on reopening the app or when signal returns. */
+/** How long after reading the whole account it's read again when signal returns. */
 const RELOAD_MS = 15 * 60_000;
-
-/**
- * When the whole account was last read, kept on the phone so reopening the app soon after
- * doesn't read it all again. Storage that can't be used (a private window) means it's read.
- */
-const LAST_LOAD = "awt.lastWholeAccountRead";
-
-function lastLoad(): { uid: string; at: number } | undefined {
-  try {
-    const value: unknown = JSON.parse(localStorage.getItem(LAST_LOAD) ?? "null");
-    if (typeof value === "object" && value !== null && "uid" in value && "at" in value) {
-      const { uid, at } = value;
-      if (typeof uid === "string" && typeof at === "number") return { uid, at };
-    }
-  } catch {
-    // Unreadable: read the account again.
-  }
-  return undefined;
-}
-
-function setLastLoad(uid: string, at: number): void {
-  try {
-    localStorage.setItem(LAST_LOAD, JSON.stringify({ uid, at }));
-  } catch {
-    // Can't be kept: the next start reads the account again.
-  }
-}
 
 export function createServices(): Services {
   const ref = referenceData();
   const refusedListeners = new Set<(change: RefusedChange) => void>();
+  let lastLoad: { uid: string; at: number } | undefined;
   let loading: { uid: string; done: Promise<void> } | undefined;
   const { config, emulators } = firebaseConfig();
   const app = initializeApp(config);
@@ -143,13 +117,14 @@ export function createServices(): Services {
     },
     loadWholeAccount() {
       const uid = firebaseAuth.currentUser?.uid;
-      // Every document read is billed (NF-5): reopening the app, or signal coming and going on a
-      // patchy connection, doesn't read everything again each time, and a read under way is shared.
-      const last = lastLoad();
-      if (!uid || (last?.uid === uid && Math.abs(Date.now() - last.at) < RELOAD_MS)) return Promise.resolve();
+      // Every document read is billed (NF-5): signal coming and going on a patchy connection
+      // doesn't read everything again each time, and a read already under way is shared.
+      if (!uid || (lastLoad?.uid === uid && Date.now() - lastLoad.at < RELOAD_MS)) return Promise.resolve();
       if (loading?.uid === uid) return loading.done;
       const done = loadWholeAccount(firestore, uid)
-        .then(() => setLastLoad(uid, Date.now()))
+        .then(() => {
+          lastLoad = { uid, at: Date.now() };
+        })
         .finally(() => {
           if (loading?.done === done) loading = undefined;
         });
