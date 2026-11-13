@@ -226,6 +226,21 @@ rule(
   },
 );
 
+rule(
+  { req: ["NF-3", "CH-6"], m: "M3" },
+  "deleting a character offline counts as one change waiting, with the claims on its names",
+  async () => {
+    const { b, characterId } = await setUp();
+    await loadWholeAccount(b.db, uid("bram"));
+    await b.db.disableNetwork();
+    await b.store.deleteCharacter(characterId, "Aldric");
+    expect(await b.store.syncStatus(), "phone B offline after deleting Aldric").toEqual({
+      online: false,
+      pendingChanges: 1,
+    });
+  },
+);
+
 /** A phone that keeps what the server refused, as the app tells the user (NF-3). */
 function phoneTold(user: string, clock: FakeClock) {
   const db = device(user);

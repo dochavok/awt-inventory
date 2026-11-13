@@ -187,6 +187,48 @@ browserRule(
 );
 
 browserRule(
+  { req: ["NF-3", "TI-2"], m: "M3" },
+  "a title added on another phone shows on its character's page after reopening the app without signal",
+  async ({ page, context }) => {
+    const player = await signUp(page);
+    // This phone opens the app once with its email verified, and has time to read the whole
+    // account: 2 seconds after the app opens, and the reading itself.
+    await page.reload();
+    await expectSignedIn(page);
+    await page.waitForTimeout(6_000);
+    const other = await secondPhone(context.browser()!, page);
+    let isolde: string;
+    try {
+      await signIn(other.page, player);
+      isolde = await addCharacter(other.page, { name: "Isolde", className: "Mage", level: 13 });
+      await other.page.goto("/#/titles");
+      const add = other.page.getByRole("form", { name: "Add a title" });
+      await expect(add, "the form to add a title on the other phone").toBeVisible({ timeout: 15_000 });
+      await add.getByLabel("Name").fill("Hero of the Bridge");
+      await add.getByLabel("Applies to").selectOption({ label: "Only Isolde" });
+      await add.getByRole("button", { name: "Add title" }).click();
+      await expect(other.page.getByText("Hero of the Bridge"), "the title on the other phone").toBeVisible();
+      await expect(connection(other.page), "the other phone once the title is sent").toBeHidden({ timeout: 20_000 });
+    } finally {
+      await other.context.close();
+    }
+    // This phone is reopened with signal, soon after it was last opened, and never opens Isolde or the titles.
+    await page.reload();
+    await expectSignedIn(page);
+    await page.waitForTimeout(6_000);
+    await context.setOffline(true);
+    await page.reload();
+    await expectSignedIn(page);
+    await page.goto(`/#/characters/${isolde}`);
+    await expect(page.getByRole("heading", { level: 1 }), "Isolde's page offline").toHaveText("Isolde");
+    await expect(
+      page.getByRole("region", { name: "Titles" }).getByText("Hero of the Bridge"),
+      "Isolde's title offline",
+    ).toBeVisible();
+  },
+);
+
+browserRule(
   { req: ["NF-4"], m: "M3" },
   "on slow mobile signal, a character's page opens within 2 seconds once the app has been opened before",
   async ({ page, context }) => {
