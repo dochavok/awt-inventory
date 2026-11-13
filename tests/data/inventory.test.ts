@@ -643,3 +643,20 @@ rule(
     await expect(toRetired, "moving Tail Guard to the retired Cape slot").rejects.toMatchObject({ field: "slotKind" });
   },
 );
+
+rule(
+  { req: ["IN-11", "IN-8"], m: "M3" },
+  "an edit that doesn't raise the quantity isn't refused for a source or link it wouldn't record",
+  async () => {
+    const { bram, characterId, id } = await bramWithAldric();
+    const before = await bram.history(characterId);
+    await bram.updateEntry(id("aldric-draught"), { notes: "Renamed at the faire" }, { link: "not a web address" });
+    expect(await bram.entry(id("aldric-draught")), "Healing Draught after the edit").toMatchObject({
+      notes: "Renamed at the faire",
+      quantity: 3,
+    });
+    expect(await bram.history(characterId), "Aldric's history after an edit with no gain").toEqual(before);
+    const raised = bram.updateEntry(id("aldric-draught"), { quantity: 4 }, { link: "not a web address" });
+    await expect(raised, "raising the quantity with that link").rejects.toMatchObject({ field: "link" });
+  },
+);

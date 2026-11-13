@@ -371,8 +371,9 @@ browserRule(
     const suggested = async () => {
       await page.getByRole("button", { name: "Edit" }).click();
       const field = page.getByRole("form", { name: "Edit Silk Rope" }).getByLabel("Where it came from");
+      // The suggestions arrive just after the form opens.
+      await expect(field, "the source field's suggestions").toHaveAttribute("list", /.+/);
       const list = await field.getAttribute("list");
-      expect(list, "the source field's suggestions").toBeTruthy();
       const values = await page
         .locator(`datalist[id="${list}"] option`)
         .evaluateAll((options) => options.map((o) => (o as HTMLOptionElement).value));

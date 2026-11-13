@@ -36,10 +36,10 @@ Tests shows each file with the number of its tests that name the requirement.
 | IN-5 | Must | M2 | data/inventory.test.ts (1), rules/equipping.test.ts (2) |
 | IN-6 | Must | M2 | data/inventory.test.ts (2), rules/totals.test.ts (1) |
 | IN-7 | Must | M2 | data/inventory.test.ts (1) |
-| IN-8 | Must | M2 | browser/inventory.spec.ts (1), data/inventory.test.ts (4) |
+| IN-8 | Must | M2 | browser/inventory.spec.ts (1), data/inventory.test.ts (5) |
 | IN-9 | Must | M2 | data/inventory.test.ts (2) |
 | IN-10 | Must | M2 | browser/inventory.spec.ts (1), data/inventory.test.ts (2) |
-| IN-11 | Should | M3 | access/privacy.test.ts (2), browser/inventory.spec.ts (2), data/inventory.test.ts (2), data/limits.test.ts (1) |
+| IN-11 | Should | M3 | access/privacy.test.ts (2), browser/inventory.spec.ts (2), data/inventory.test.ts (3), data/limits.test.ts (1) |
 | IN-12 | Must | M2 | access/firestore-store.test.ts (1), access/offline.test.ts (2), browser/inventory.spec.ts (1), data/inventory.test.ts (3) |
 | IN-13 | Must | M2 | access/firestore-store.test.ts (1), access/offline.test.ts (1), browser/inventory.spec.ts (1), data/inventory.test.ts (6) |
 | IN-14 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (1), data/grants.test.ts (1), data/inventory.test.ts (6) |
