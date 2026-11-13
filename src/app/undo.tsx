@@ -1,6 +1,6 @@
 // IN-15: after a delete, Undo is offered for about 10 seconds. An entry is
 // deleted on its own page and the offer shows on the list it was in, so the
-// offer is kept here, for whichever screen shows an UndoBar next or now.
+// offer is kept here, with that list's address, for the bar on that list.
 
 import { useEffect, useState } from "react";
 import { UNDO_SECONDS } from "../data/records";
@@ -12,6 +12,8 @@ const UNDO_MS = UNDO_SECONDS * 1000;
 interface Offer {
   message: string;
   undo: () => Promise<void>;
+  /** The address of the list the deleted record was in, where the offer shows. */
+  at: string;
   /** When the offer ends (Date.now() time). */
   until: number;
 }
@@ -19,29 +21,30 @@ interface Offer {
 let pending: Offer | undefined;
 const listeners = new Set<(offer: Offer) => void>();
 
-/** Offers Undo for a delete just made, on the screen showing an UndoBar now or next. */
-export function offerUndo(message: string, undo: () => Promise<void>): void {
-  pending = { message, undo, until: Date.now() + UNDO_MS };
+/** Offers Undo for a delete just made, on the list at the address `at`. */
+export function offerUndo(message: string, undo: () => Promise<void>, at: string): void {
+  pending = { message, undo, at, until: Date.now() + UNDO_MS };
   for (const listener of listeners) listener(pending);
 }
 
-/** The offer still open, if any; one that has ended is let go, with the deleted records it holds. */
-function open(): Offer | undefined {
+/** The offer still open for the list at `at`, if any; one that has ended is let go, with what it holds. */
+function open(at: string): Offer | undefined {
   if (pending && pending.until <= Date.now()) pending = undefined;
-  return pending;
+  return pending?.at === at ? pending : undefined;
 }
 
-/** Shows the Undo offer while it's open; `onUndone` reloads the screen once it's undone. */
-export function UndoBar({ onUndone }: { onUndone: () => void }) {
-  const [offer, setOffer] = useState(open);
+/** Shows the Undo offer for the list at `at` while it's open; `onUndone` reloads the list once it's undone. */
+export function UndoBar({ at, onUndone }: { at: string; onUndone: () => void }) {
+  const [offer, setOffer] = useState(() => open(at));
   const act = useAction();
 
   useEffect(() => {
-    listeners.add(setOffer);
+    const listener = (o: Offer) => setOffer(o.at === at ? o : undefined);
+    listeners.add(listener);
     return () => {
-      listeners.delete(setOffer);
+      listeners.delete(listener);
     };
-  }, []);
+  }, [at]);
 
   useEffect(() => {
     if (!offer) return;
@@ -52,26 +55,30 @@ export function UndoBar({ onUndone }: { onUndone: () => void }) {
     return () => clearTimeout(timer);
   }, [offer]);
 
-  if (!offer) return <Feedback error={act.error} notice={act.notice} />;
   return (
-    <div className="card undo" role="status" aria-label="Undo">
-      <span>{offer.message}</span>
-      <button
-        type="button"
-        className="secondary"
-        disabled={act.busy}
-        onClick={() =>
-          void act.run(async () => {
-            await offer.undo();
-            if (pending === offer) pending = undefined;
-            setOffer(undefined);
-            onUndone();
-            return "Undone.";
-          })
-        }
-      >
-        Undo
-      </button>
-    </div>
+    <>
+      {offer && (
+        <div className="card undo" role="status" aria-label="Undo">
+          <span>{offer.message}</span>
+          <button
+            type="button"
+            className="secondary"
+            disabled={act.busy}
+            onClick={() =>
+              void act.run(async () => {
+                await offer.undo();
+                if (pending === offer) pending = undefined;
+                setOffer(undefined);
+                onUndone();
+                return "Undone.";
+              })
+            }
+          >
+            Undo
+          </button>
+        </div>
+      )}
+      <Feedback error={act.error} notice={act.notice} />
+    </>
   );
 }

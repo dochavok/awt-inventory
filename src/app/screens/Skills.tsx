@@ -40,7 +40,7 @@ export function Skills({ services, id }: { services: Services; id: string }) {
     <>
       <BackTo character={character} />
       <h1>Skills</h1>
-      <UndoBar onUndone={reload} />
+      <UndoBar at={`characters/${character.id}/skills`} onUndone={reload} />
       <Feedback error={action.error} notice={action.notice} />
       {skills.length === 0 ? (
         <p className="hint">No skills yet.</p>
@@ -65,7 +65,7 @@ export function Skills({ services, id }: { services: Services; id: string }) {
                 onClick={() =>
                   void action.run(async () => {
                     const { undo } = await store.deleteEntry(s.entryId);
-                    offerUndo(`${s.name} removed.`, undo);
+                    offerUndo(`${s.name} removed.`, undo, `characters/${character.id}/skills`);
                     await screen.refresh();
                   })
                 }

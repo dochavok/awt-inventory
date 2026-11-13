@@ -59,7 +59,7 @@ export function Category({ services, id, category }: { services: Services; id: s
     <>
       <BackTo character={character} />
       <h1>{categoryName(category)}</h1>
-      <UndoBar onUndone={reload} />
+      <UndoBar at={categoryAddress(character.id, category)} onUndone={reload} />
       <Feedback error={action.error} notice={action.notice} />
       {items.length === 0 ? (
         <p className="hint">Nothing here yet.</p>
@@ -192,7 +192,8 @@ function fieldsOf(entry: ItemEntry | undefined, ref: ReferenceData): Fields {
  * trims it, and empty text means none (or clears it when editing).
  */
 function entryFrom(category: ItemCategory, f: Fields): Record<string, unknown> {
-  const count = (value: string) => (value.trim() === "" ? undefined : Number(value));
+  // An empty number field means none: null clears it when editing (IN-8).
+  const count = (value: string) => (value.trim() === "" ? null : Number(value));
   const base = {
     category,
     name: f.name,
@@ -416,7 +417,11 @@ function EntryForm({
       let message = "Saved.";
       if (entry) await store.updateEntry(entry.id, fields as EntryPatch, gain);
       else message = `${(await store.addEntry(character.id, fields as unknown as NewEntry, gain)).name} added.`;
-      for (const [list, field] of SUGGESTION_FIELDS) remember(services, list, String(f[field]));
+      // A source is recorded only with a gain: an entry added, or its quantity raised (IN-11).
+      const gained = !entry || Number(f.quantity) > entry.quantity;
+      for (const [list, field] of SUGGESTION_FIELDS) {
+        if (list !== "acquisitionSource" || gained) remember(services, list, String(f[field]));
+      }
       onDone(message);
     });
   };
@@ -677,9 +682,11 @@ export function EntryPage({ services, id, entryId }: { services: Services; id: s
           onCancel={() => setPanel(null)}
         />
       )}
-      {usable(entry.category) && <UseForm key={entry.quantity} services={services} entry={entry} onDone={done} />}
-      {/* Keyed by the quantity, so the form offers all that's left after each change. */}
-      <TradeForm key={entry.quantity} services={services} entry={entry} onDone={done} />
+      {/* Keyed by the quantity, so each form starts afresh, and offers all that's left, after a change. */}
+      {usable(entry.category) && (
+        <UseForm key={`use-${entry.quantity}`} services={services} entry={entry} onDone={done} />
+      )}
+      <TradeForm key={`trade-${entry.quantity}`} services={services} entry={entry} onDone={done} />
       <section className="card danger" aria-labelledby="delete-entry-title">
         <h2 id="delete-entry-title">Delete</h2>
         <p>For an entry added by mistake. It leaves no trace: its history goes with it.</p>
@@ -696,7 +703,7 @@ export function EntryPage({ services, id, entryId }: { services: Services; id: s
                 onClick={() =>
                   void action.run(async () => {
                     const { undo } = await store.deleteEntry(entry.id);
-                    offerUndo(`${entry.name} deleted.`, undo);
+                    offerUndo(`${entry.name} deleted.`, undo, list);
                     go(list);
                   })
                 }

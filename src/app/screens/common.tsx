@@ -70,10 +70,11 @@ export function BackTo({ character }: { character: Character }) {
 
 /**
  * A day picked in a date field, as the time the store keeps (HI-3): midday in the
- * user's own time, so it shows as that day wherever they are. Empty means now.
+ * user's own time, so it shows as that day wherever they are. Empty or today means now.
  */
 export function pickedDate(day: string): string | undefined {
-  return day ? new Date(`${day}T12:00`).toISOString() : undefined;
+  // Today is now, so a record dated today never sorts after one made later today.
+  return day && day !== today() ? new Date(`${day}T12:00`).toISOString() : undefined;
 }
 
 /** A stored time as a day in the user's own time (HI-3). */

@@ -513,11 +513,11 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       }
       noGrants(patch.grants);
       const { id: _id, characterId: _c, ...current } = entry;
-      // A field left undefined is unchanged; empty text clears an optional one.
+      // A field left undefined is unchanged; empty text, or null for a number, clears an optional one.
       const merged: Record<string, unknown> = { ...current };
       for (const [key, value] of Object.entries(patch)) if (value !== undefined) merged[key] = value;
       merged.category = entry.category;
-      const fields = check.itemEntry(merged, ref);
+      const fields = check.itemEntry(merged, ref, entry as unknown as Record<string, unknown>);
       const next = { ...fields, id: entry.id, characterId: entry.characterId } as ItemEntry;
       const gained = next.quantity - entry.quantity;
       const gain = gainOptions(options);
