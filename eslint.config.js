@@ -1,5 +1,6 @@
 // Lint settings. The restricted imports enforce TF-4 (every test goes through the
-// tagging wrapper) and TF-2 (the rules core stays pure).
+// tagging wrapper), TF-2 (the rules core stays pure) and TF-7 (the server code in
+// functions/ never refers to the tests; the test-change check scans only src/).
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 
@@ -19,7 +20,9 @@ const untaggedTests = {
 };
 
 export default tseslint.config(
-  { ignores: ["node_modules/", "dist/", "coverage/", "var/", "playwright-report/", "test-results/"] },
+  {
+    ignores: ["node_modules/", "dist/", "coverage/", "var/", "playwright-report/", "test-results/", "functions/lib/"],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -46,6 +49,33 @@ export default tseslint.config(
             },
             { group: ["react", "react-dom", "react/*"], message: "The rules core has no UI code (TF-2)." },
             { group: ["**/data/**", "**/platform/**", "**/app/**"], message: "The rules core is pure (TF-2)." },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["functions/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "**/tests/**",
+                "vitest",
+                "vitest/*",
+                "@playwright/test",
+                "fast-check",
+                "@firebase/rules-unit-testing",
+              ],
+              message: "The server code never refers to the tests, test data or test tools (TF-7).",
+            },
+            {
+              group: ["react", "react-dom", "react/*", "**/app/**"],
+              message: "The server code has no UI code.",
+            },
           ],
         },
       ],
