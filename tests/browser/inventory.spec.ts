@@ -348,3 +348,40 @@ browserRule(
     await expect(page.getByRole("button", { name: "Undo" }), "Undo back on Wren's Items").toBeVisible();
   },
 );
+
+browserRule(
+  { req: ["IN-11"], m: "M3" },
+  "a source typed without raising the quantity isn't suggested later; one recorded with a gain is",
+  async ({ page }) => {
+    await signUp(page);
+    const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+    await openFromCharacter(page, wren, /^Items/, "Items");
+    await addEntry(page, { name: "Silk Rope" });
+    await rowFor(page, "Silk Rope").getByRole("link", { name: "Silk Rope" }).click();
+    /** The sources the edit form suggests, after saving it with `source` typed and the quantity at `quantity`. */
+    const saveWith = async (source: string, quantity: string) => {
+      await page.getByRole("button", { name: "Edit" }).click();
+      const form = page.getByRole("form", { name: "Edit Silk Rope" });
+      await expect(form, "Silk Rope's edit form").toBeVisible();
+      await form.getByLabel("Quantity").fill(quantity);
+      await form.getByLabel("Where it came from").fill(source);
+      await form.getByRole("button", { name: "Save" }).click();
+      await expect(form, "the edit form, closed once saved").toBeHidden();
+    };
+    const suggested = async () => {
+      await page.getByRole("button", { name: "Edit" }).click();
+      const field = page.getByRole("form", { name: "Edit Silk Rope" }).getByLabel("Where it came from");
+      const list = await field.getAttribute("list");
+      expect(list, "the source field's suggestions").toBeTruthy();
+      const values = await page
+        .locator(`datalist[id="${list}"] option`)
+        .evaluateAll((options) => options.map((o) => (o as HTMLOptionElement).value));
+      await page.getByRole("button", { name: "Cancel" }).click();
+      return values;
+    };
+    await saveWith("Odd Vendor", "1");
+    expect(await suggested(), "sources suggested after an edit that gained nothing").not.toContain("Odd Vendor");
+    await saveWith("Odd Vendor", "2");
+    expect(await suggested(), "sources suggested after raising the quantity").toContain("Odd Vendor");
+  },
+);
