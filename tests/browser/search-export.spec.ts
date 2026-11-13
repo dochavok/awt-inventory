@@ -275,6 +275,48 @@ browserRule(
   },
 );
 
+browserRule(
+  { req: ["SE-3", "IN-12"], m: "M3" },
+  "a filter that stopped when its last entry was used up stays off when a new entry of that family is added",
+  async ({ page }) => {
+    await signUp(page);
+    const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+    await openCategory(page, wren, "consumables", "Consumables");
+    await addEntry(page, "Smoke Pellet", async (form) => {
+      await form.getByLabel("Item family").fill("Shadowcraft");
+    });
+    await addEntry(page, "Healing Draught");
+    const filters = page.getByRole("form", { name: "Filters" });
+    await expect(filters, "the filters on Wren's consumables").toBeVisible();
+    await filters.getByLabel("Item family").selectOption({ label: "Shadowcraft" });
+    await entryRows(page).filter({ hasText: "Smoke Pellet" }).getByRole("button", { name: /used/i }).click();
+    await expect(entryRows(page), "Wren's consumables once the last Shadowcraft one is used").toHaveText([
+      /Healing Draught/,
+    ]);
+    await addEntry(page, "Shadow Tonic", async (form) => {
+      await form.getByLabel("Item family").fill("Shadowcraft");
+    });
+    await expect(entryRows(page), "Wren's consumables after adding another Shadowcraft one").toHaveText([
+      /Healing Draught/,
+      /Shadow Tonic/,
+    ]);
+    await expect(filters.getByLabel("Item family"), "the family filter, still off").toHaveValue("");
+  },
+);
+
+browserRule(
+  { req: ["EX-1", "CH-1"], m: "M3" },
+  "print and export for a character that isn't there says so, rather than offering every character",
+  async ({ page }) => {
+    await signUp(page);
+    await page.goto("/#/export/no-such-character");
+    await expect(page.getByRole("heading", { level: 1 }), "the page for a missing character's export").toHaveText(
+      "Character not found",
+    );
+    await expect(sheetForm(page), "the printable sheet form, for a missing character").toHaveCount(0);
+  },
+);
+
 // ---------------------------------------------------------------- printable sheet (EX-1 to EX-3)
 
 browserRule(
