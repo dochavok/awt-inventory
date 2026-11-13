@@ -2,7 +2,7 @@
 // documents, so these tests check those. Files that don't exist yet fail as
 // expected (an assertion), never with a crash.
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { expect } from "vitest";
 import { parse } from "yaml";
 import { backupPlan } from "../../src/server/backup";
@@ -96,3 +96,21 @@ rule(
     expect(guide, "the maintainer guide on the budget alert").toMatch(/budget alert[^\n]*\$5/i);
   },
 );
+
+rule({ req: ["NF-11"], m: "M3" }, "every CI job has a time limit of 30 minutes or less", () => {
+  const workflows = readdirSync(new URL(".github/workflows/", ROOT)).filter((f) => /\.ya?ml$/.test(f));
+  expect(workflows, "the workflows checked").toEqual(expect.arrayContaining(["ci.yml", "test-change-rule.yml"]));
+  for (const file of workflows) {
+    const workflow = parse(read(`.github/workflows/${file}`)) as {
+      jobs: Record<string, { "timeout-minutes"?: unknown }>;
+    };
+    const jobs = Object.entries(workflow.jobs);
+    expect(jobs.length, `${file}'s jobs`).toBeGreaterThan(0);
+    for (const [name, job] of jobs) {
+      const limit = job["timeout-minutes"];
+      expect(typeof limit, `${file} ${name}'s time limit`).toBe("number");
+      expect(limit as number, `${file} ${name}'s time limit`).toBeGreaterThanOrEqual(1);
+      expect(limit as number, `${file} ${name}'s time limit`).toBeLessThanOrEqual(30);
+    }
+  }
+});
