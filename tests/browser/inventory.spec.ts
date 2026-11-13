@@ -99,7 +99,9 @@ browserRule(
     const used = historyRecords(page).filter({ hasText: "Used 1 × Smoke Pellet" });
     await used.getByRole("button", { name: "Restore" }).click();
     await expect(historyRecords(page), "Wren's history after the restore").toHaveCount(4);
-    await expect(historyRecords(page).nth(0), "the newest record").toContainText("Restored 1 × Smoke Pellet");
+    // The restore sits next to the use it undoes (IN-13), below Twin Fangs, added after the use.
+    await expect(historyRecords(page).nth(1), "the record above the use").toContainText("Restored 1 × Smoke Pellet");
+    await expect(historyRecords(page).nth(2), "the record below the restore").toContainText("Used 1 × Smoke Pellet");
     await expect(
       historyRecords(page).filter({ hasText: "Used 1 × Smoke Pellet" }).getByRole("button", { name: "Restore" }),
       "the Restore button on a use already restored",
