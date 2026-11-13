@@ -29,6 +29,7 @@ export function Skills({ services, id }: { services: Services; id: string }) {
     const [character, skills] = await Promise.all([store.character(id), store.skills(id)]);
     return { character, skills };
   });
+  const [removing, setRemoving] = useState<string | null>(null);
   const action = useAction();
 
   if (screen.missing) return <CharacterNotFound />;
@@ -58,20 +59,38 @@ export function Skills({ services, id }: { services: Services; id: string }) {
               </p>
               {s.text && <p>{s.text}</p>}
               {s.notes && <p className="notes">{s.notes}</p>}
-              <button
-                type="button"
-                className="secondary"
-                disabled={action.busy}
-                onClick={() =>
-                  void action.run(async () => {
-                    const { undo } = await store.deleteEntry(s.entryId);
-                    offerUndo(`${s.name} removed.`, undo, `characters/${character.id}/skills`);
-                    await screen.refresh();
-                  })
-                }
-              >
-                Remove
-              </button>
+              {/* Removing asks first, then offers Undo, like deleting any entry (SK-4, IN-15). */}
+              {removing === s.entryId ? (
+                <>
+                  <p>
+                    Remove <span className="name">{s.name}</span> for good?
+                  </p>
+                  <div className="actions">
+                    <button
+                      type="button"
+                      className="danger"
+                      disabled={action.busy}
+                      onClick={() =>
+                        void action.run(async () => {
+                          const { undo } = await store.deleteEntry(s.entryId);
+                          offerUndo(`${s.name} removed.`, undo, `characters/${character.id}/skills`);
+                          setRemoving(null);
+                          await screen.refresh();
+                        })
+                      }
+                    >
+                      Remove for good
+                    </button>
+                    <button type="button" className="secondary" onClick={() => setRemoving(null)}>
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <button type="button" className="secondary" onClick={() => setRemoving(s.entryId)}>
+                  Remove
+                </button>
+              )}
             </li>
           ))}
         </ul>
