@@ -18,10 +18,7 @@ import { href } from "../router";
 import type { Services } from "../services";
 import { offerUndo, UndoBar } from "../undo";
 import { Feedback, useAction } from "../useAction";
-import { BackTo, CharacterNotFound, LevelInput, Loading, useScreenData } from "./common";
-
-/** How long the search waits after the last key before looking the skills up. */
-const SEARCH_PAUSE_MS = 300;
+import { BackTo, CharacterNotFound, LevelInput, Loading, SEARCH_PAUSE_MS, useScreenData } from "./common";
 
 export function Skills({ services, id }: { services: Services; id: string }) {
   const { store } = services;

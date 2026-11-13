@@ -29,11 +29,13 @@ export function Category({ services, id, category }: { services: Services; id: s
     return { character, items };
   });
   const [adding, setAdding] = useState(false);
+  const [filter, setFilter] = useState<Filter>({ rarity: "", family: "" });
   const action = useAction();
 
   if (screen.missing) return <CharacterNotFound />;
   if (!screen.data) return <Loading error={screen.error} />;
   const { character, items } = screen.data;
+  const shown = items.filter((item) => passes(item.entry, filter));
   const reload = () => void action.run(screen.refresh);
 
   // The list changes in place: reading the category again after every tap would cost a read per entry (NF-5).
@@ -61,10 +63,13 @@ export function Category({ services, id, category }: { services: Services; id: s
       <h1>{categoryName(category)}</h1>
       <UndoBar at={categoryAddress(character.id, category)} onUndone={reload} />
       <Feedback error={action.error} notice={action.notice} />
+      <Filters allRarities={services.ref.rarities} items={items} filter={filter} onChange={setFilter} />
       {items.length === 0 ? (
         <p className="hint">Nothing here yet.</p>
+      ) : shown.length === 0 ? (
+        <p className="hint">Nothing matches these filters.</p>
       ) : (
-        <EntryList category={category} items={items} busy={action.busy} onUsed={used} />
+        <EntryList category={category} items={shown} busy={action.busy} onUsed={used} />
       )}
       {adding ? (
         <EntryForm
@@ -88,6 +93,77 @@ export function Category({ services, id, category }: { services: Services; id: s
         </p>
       )}
     </>
+  );
+}
+
+// ---------------------------------------------------------------- filters (SE-3)
+
+/** A list's filters: a rarity's ID and an item family, "" for any. Equipped or active comes in M4. */
+interface Filter {
+  rarity: string;
+  family: string;
+}
+
+/** Whether an entry passes the filters: the rarity exactly, the family whatever its case, as the store filters. */
+function passes(entry: Entry, { rarity, family }: Filter): boolean {
+  if (rarity && !("rarity" in entry && entry.rarity === rarity)) return false;
+  return !family || ("itemFamily" in entry && entry.itemFamily?.toLowerCase() === family.toLowerCase());
+}
+
+/**
+ * The filters for the rarities and families the list has, the filtered list read from what's
+ * already loaded (NF-5). None show when there's nothing to filter by.
+ */
+function Filters({
+  allRarities,
+  items,
+  filter,
+  onChange,
+}: {
+  allRarities: ReferenceData["rarities"];
+  items: EntryListItem[];
+  filter: Filter;
+  onChange: (filter: Filter) => void;
+}) {
+  const rarities = allRarities.filter((r) => items.some(({ entry }) => "rarity" in entry && entry.rarity === r.id));
+  // One choice per family, however its entries spell it; the first spelling names it.
+  const families = new Map<string, string>();
+  for (const { entry } of items) {
+    const family = "itemFamily" in entry ? entry.itemFamily : undefined;
+    if (family && !families.has(family.toLowerCase())) families.set(family.toLowerCase(), family);
+  }
+  if (rarities.length === 0 && families.size === 0) return null;
+  return (
+    <form className="filters" aria-label="Filters" onSubmit={(e) => e.preventDefault()}>
+      {rarities.length > 0 && (
+        <label>
+          Rarity
+          <select value={filter.rarity} onChange={(e) => onChange({ ...filter, rarity: e.target.value })}>
+            <option value="">Any rarity</option>
+            {rarities.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {families.size > 0 && (
+        <label>
+          Item family
+          <select value={filter.family} onChange={(e) => onChange({ ...filter, family: e.target.value })}>
+            <option value="">Any family</option>
+            {[...families.values()]
+              .sort((a, b) => a.localeCompare(b))
+              .map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+          </select>
+        </label>
+      )}
+    </form>
   );
 }
 

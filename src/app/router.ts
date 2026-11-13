@@ -15,6 +15,10 @@ export type Route =
   | { screen: "category"; id: string; category: ItemCategory }
   | { screen: "entry"; id: string; entryId: string }
   | { screen: "help"; page?: string }
+  /** Search one character (SE-1), or all of them when there's no `id` (SE-2). */
+  | { screen: "search"; id?: string }
+  /** The printable sheet and the JSON export (EX), with `id` as the character chosen. */
+  | { screen: "export"; id?: string }
   | { screen: "report"; kind?: ReportKind };
 
 /** The address of a screen: href("characters/abc") is "#/characters/abc". */
@@ -41,6 +45,8 @@ export function parseRoute(hash: string): Route | null {
   if (first === "characters" && second) return characterRoute(second, third, fourth);
   if (third !== undefined) return null;
   if (first === "help") return second ? { screen: "help", page: second } : { screen: "help" };
+  if (first === "export") return second ? { screen: "export", id: second } : { screen: "export" };
+  if (first === "search" && second === undefined) return { screen: "search" };
   if (first === "report") {
     if (second === undefined) return { screen: "report" };
     return (REPORT_KINDS as readonly string[]).includes(second)
@@ -59,7 +65,7 @@ function characterRoute(id: string, part?: string, entryId?: string): Route | nu
   if (id === "new") return null;
   if (part === "entries") return entryId ? { screen: "entry", id, entryId } : null;
   if (entryId !== undefined) return null;
-  if (part === "skills" || part === "history") return { screen: part, id };
+  if (part === "skills" || part === "history" || part === "search") return { screen: part, id };
   if ((ITEM_CATEGORIES as readonly string[]).includes(part)) {
     return { screen: "category", id, category: part as ItemCategory };
   }

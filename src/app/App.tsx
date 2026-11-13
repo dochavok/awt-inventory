@@ -10,9 +10,11 @@ import { ConnectionBar, Header, RefusedNotices } from "./Shell";
 import { Account } from "./screens/Account";
 import { CharacterPage, Characters, NewCharacter } from "./screens/Characters";
 import { Category, EntryPage } from "./screens/Entries";
+import { Export } from "./screens/Export";
 import { Help, helpFor } from "./screens/Help";
 import { History } from "./screens/History";
 import { ReportForm } from "./screens/Report";
+import { Search } from "./screens/Search";
 import { Skills } from "./screens/Skills";
 import { Privacy } from "./screens/Privacy";
 import { SignIn } from "./screens/SignIn";
@@ -41,8 +43,12 @@ function shows(route: Route | null, { kind, id }: RefusedChange): boolean {
       return kind === "profile";
     case "help":
     case "privacy":
+    case "search":
+    case "export":
     case "new-character":
     case "report":
+      // Search and export keep what's typed or chosen: the next search or file reads afresh,
+      // and a result or character that's gone opens as "not found".
       return false;
     case "characters":
     case "sign-in":
@@ -123,6 +129,8 @@ export function App({ services }: { services: Services }) {
   } else if (route?.screen === "skills") screen = <Skills services={services} id={route.id} />;
   else if (route?.screen === "history") screen = <History services={services} id={route.id} />;
   else if (route?.screen === "report") screen = <ReportForm services={services} kind={route.kind} />;
+  else if (route?.screen === "search") screen = <Search services={services} id={route.id} />;
+  else if (route?.screen === "export") screen = <Export services={services} id={route.id} />;
   else screen = <Characters services={services} />;
 
   return (
