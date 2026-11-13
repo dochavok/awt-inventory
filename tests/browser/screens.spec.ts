@@ -235,6 +235,43 @@ browserRule(
 );
 
 browserRule(
+  { req: ["NF-3", "CH-1"], m: "M3" },
+  "a refusal of one character leaves another character's page as it was, with what was being typed",
+  async ({ page, context }) => {
+    const player = await signUp(page);
+    const brin = await addCharacter(page, { name: "Brin", className: "Warrior", level: 8 });
+    await expect(connection(page), "phone A once Brin is sent").toBeHidden({ timeout: 20_000 });
+    const other = await secondPhone(context.browser()!, page);
+    try {
+      await signIn(other.page, player);
+      // Phone B opens Brin with signal, so it's there offline.
+      await other.page.goto(`/#/characters/${brin}`);
+      await expect(other.page.getByRole("heading", { level: 1 }), "Brin's page on phone B").toHaveText("Brin");
+      await context.setOffline(true);
+      await other.context.setOffline(true);
+      await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+      await addCharacter(other.page, { name: "wren", className: "Mage", level: 5 });
+      await other.page.goto(`/#/characters/${brin}`);
+      await expect(other.page.getByRole("heading", { level: 1 }), "Brin's page on phone B offline").toHaveText("Brin");
+      await other.page.getByRole("button", { name: "Edit" }).click();
+      const notes = other.page.getByRole("form", { name: "Edit Brin" }).getByLabel("Notes");
+      await notes.fill("Typed while signal returns.");
+      await context.setOffline(false);
+      await expect(connection(page), "phone A once its Wren is sent").toBeHidden({ timeout: 20_000 });
+      await other.context.setOffline(false);
+      const told = other.page.getByRole("alert");
+      await expect(told, "what phone B is told").toContainText(/refused/i, { timeout: 20_000 });
+      await expect(told, "the refused character, named").toContainText("wren");
+      await expect(notes, "Brin's notes being typed on phone B, after wren's refusal").toHaveValue(
+        "Typed while signal returns.",
+      );
+    } finally {
+      await other.context.close();
+    }
+  },
+);
+
+browserRule(
   { req: ["CH-1", "NF-1"], m: "M3" },
   "an address for a character that doesn't exist, even a broken one, says it isn't there",
   async ({ page }) => {

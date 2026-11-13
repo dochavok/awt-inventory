@@ -203,6 +203,29 @@ rule(
   },
 );
 
+rule(
+  { req: ["NF-3", "CH-2"], m: "M3" },
+  "saving a character's edit form with nothing changed doesn't beat another phone's earlier change",
+  async () => {
+    const { a, b, clock, characterId } = await setUp();
+    const before = await a.store.character(characterId);
+    await b.db.disableNetwork();
+    await b.store.updateCharacter(characterId, { notes: "Written offline on phone B" });
+    clock.advanceSeconds(60);
+    // The edit form sends every field as it stands, the name as typed with spaces around it.
+    await a.store.updateCharacter(characterId, {
+      name: ` ${before.name} `,
+      level: before.level,
+      notes: before.notes ?? "",
+    });
+    await a.db.waitForPendingWrites();
+    await online(b);
+    expect((await a.store.character(characterId)).notes, "Aldric's notes after phone B syncs").toBe(
+      "Written offline on phone B",
+    );
+  },
+);
+
 /** A phone that keeps what the server refused, as the app tells the user (NF-3). */
 function phoneTold(user: string, clock: FakeClock) {
   const db = device(user);
