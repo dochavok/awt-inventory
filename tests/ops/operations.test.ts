@@ -114,3 +114,33 @@ rule({ req: ["NF-11"], m: "M3" }, "every CI job has a time limit of 30 minutes o
     }
   }
 });
+
+rule({ req: ["NF-11"], m: "M3" }, "CI builds the Cloud Functions with the same build the deploy runs", () => {
+  const firebase = JSON.parse(read("firebase.json")) as { functions?: { source?: string; predeploy?: string[] }[] };
+  const functions = firebase.functions ?? [];
+  expect(
+    functions.map((f) => f.source),
+    "the Cloud Functions folders the deploy uses",
+  ).toEqual(["functions"]);
+  expect(functions[0]?.predeploy, "the deploy's build of the Cloud Functions").toEqual([
+    'npm --prefix "$RESOURCE_DIR" run build',
+  ]);
+  type Step = { run?: string; "working-directory"?: string; if?: string };
+  const ci = parse(read(".github/workflows/ci.yml")) as { jobs: Record<string, { steps?: Step[] }> };
+  const inFunctions = (steps: Step[], command: string) =>
+    steps.findIndex((s) => s["working-directory"] === "functions" && s.run?.trim() === command);
+  const building = Object.entries(ci.jobs).filter(([, job]) => inFunctions(job.steps ?? [], "npm run build") >= 0);
+  expect(
+    building.map(([name]) => name),
+    "CI jobs that build the Cloud Functions",
+  ).toHaveLength(1);
+  const steps = building[0]![1].steps!;
+  const install = inFunctions(steps, "npm ci");
+  const build = inFunctions(steps, "npm run build");
+  expect(install, "CI installs the Cloud Functions packages").toBeGreaterThanOrEqual(0);
+  expect(install, "CI installs the Cloud Functions packages before building").toBeLessThan(build);
+  // Skipped only while functions/ doesn't exist.
+  for (const step of [steps[install]!, steps[build]!]) {
+    expect([undefined, "hashFiles('functions/package.json') != ''"], `when CI runs "${step.run}"`).toContain(step.if);
+  }
+});
