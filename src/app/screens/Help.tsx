@@ -39,6 +39,15 @@ export function helpFor(route: Route | null, signedIn: boolean): string {
       return "help";
     case "account":
       return "help/getting-started";
+    case "category":
+    case "entry":
+      return "help/inventory";
+    case "skills":
+      return "help/skills";
+    case "history":
+      return "help/history";
+    case "report":
+      return "help/troubleshooting";
     default:
       return signedIn ? "help/characters-and-titles" : "help/getting-started";
   }

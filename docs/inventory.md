@@ -4,6 +4,8 @@ reviewed: 2026-11-12
 
 A character's inventory has seven categories: **Weapons, Armor, Skills, Familiars/Allies, Consumables, Items** and **Components**. Skills have their own page: [Skills](skills.md). The app has no item catalog: you type in your own items.
 
+A character's page lists the categories, with how many entries each has. Open one to see its entries, and **Add an entry** at the bottom. Tap an entry's name to see all of it and to edit, trade or delete it.
+
 ## Entries
 
 Every entry has a name, a quantity (1 unless you say otherwise), a description (the card's text) and your own notes. Each category lists its entries alphabetically, and marks the ones equipped or active.
@@ -21,6 +23,8 @@ You can change any field of an entry at any time.
 ## Gaining, using and losing entries
 
 - **Adding** an entry, or raising its quantity, is recorded in the history as *acquired*. You can say where it came from (a vendor, a quest, a DM award or a trade) and add a link, such as to the post in Discord's rewards channel.
-- **Used:** mark a consumable or component *used* and its quantity drops by one. At zero it leaves the list but stays in the history. A use marked by mistake can be **restored** from the history.
-- **Traded or given away:** for all or part of the quantity, with an optional note of who to. If it was equipped, it's unequipped first. The history keeps a copy of the entry as it was.
-- **Delete** an entry added by mistake. It leaves no trace in the history. **Undo** is offered for about 10 seconds.
+- **Used:** in the Consumables or Components list, tap **Used** next to an entry and its quantity drops by one. To give a date or a note, use **Used, with a date or note** on the entry's own page. At zero it leaves the list but stays in the history. A use marked by mistake can be **restored** from the history.
+- **Traded or given away:** on the entry's page, for all or part of the quantity, with an optional note of who to. If it was equipped, it's unequipped first. The history keeps a copy of the entry as it was.
+- **Delete** an entry added by mistake, at the bottom of its page. The app asks first. It leaves no trace in the history. **Undo** is offered for about 10 seconds.
+
+Where a date is asked for, leave it empty for today, or choose an earlier day, for example when catching up after a faire weekend.

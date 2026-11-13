@@ -2,7 +2,7 @@
 
 reviewed: 2026-11-12
 
-Each character has its own history, newest first. It records:
+Each character has its own history, newest first: open **History** from the character's page. It records:
 
 - entries **acquired**, with where they came from;
 - entries **used**, and uses **restored**;
@@ -18,7 +18,15 @@ A record's date is today unless you choose an earlier one, for example when catc
 
 ## Filtering
 
-The history can be filtered by event and by category.
+The history can be filtered by event and by category, with the two lists at the top.
+
+## Restoring a use
+
+A use marked by mistake has a **Restore** button in the history. It brings the quantity back up by one, and the history records the restore next to the use. Each use can be restored once.
+
+## Links
+
+A record's **Link**, such as to the post in Discord's rewards channel, opens in a new tab.
 
 ## Records can't be edited
 

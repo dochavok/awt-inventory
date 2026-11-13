@@ -331,3 +331,113 @@ a {
 .danger h2 {
   color: var(--danger);
 }
+
+/* A character's inventory links: the category, then how many entries it has. */
+.inventory-links ul.link-list a {
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.count {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.back {
+  margin: 0;
+}
+
+/* A category's entries: name, quantity and marks, with Used within reach (NF-1). */
+ul.entry-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+}
+
+ul.entry-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  padding: 0.5rem 0.25rem;
+}
+
+ul.entry-list li + li {
+  border-top: 1px solid var(--border);
+}
+
+ul.entry-list a {
+  flex: 1 1 10rem;
+  min-width: 0;
+  padding: 0.35rem 0;
+}
+
+.quantity {
+  color: var(--muted);
+}
+
+.details {
+  margin: 0 0 1rem;
+}
+
+.details div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.75rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.details dt {
+  font-weight: 600;
+  min-width: 8rem;
+}
+
+.details dd {
+  margin: 0;
+  flex: 1 1 12rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.filters label {
+  flex: 1 1 10rem;
+}
+
+.undo {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  border-color: var(--accent);
+}
+
+button.option {
+  background: none;
+  border: none;
+  color: var(--text);
+  text-align: left;
+  text-decoration: underline;
+  padding: 0.35rem 0;
+  overflow-wrap: anywhere;
+}

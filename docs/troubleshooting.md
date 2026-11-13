@@ -17,6 +17,13 @@ Every refusal and warning the app shows, and what to do about it.
 - **"… is already a …":** a class correction must pick a different class.
 - **A level the app won't take:** a level is from 1 up to the highest level in the level chart.
 
+## Inventory
+
+- **"A link must be a web address":** a link with an entry you gained starts with `http://` or `https://`, such as the address of a post in Discord's rewards channel.
+- **"It's too late to undo":** **Undo** is offered for about 10 seconds after deleting an entry. After that, add the entry again.
+- **"That use … was restored already":** each use can be restored once.
+- **"… is no longer in the inventory":** a use can't be restored once the rest of the entry was deleted. Add it again instead.
+
 ## Without signal
 
 - **"The server refused the character …, so it's been undone on this phone":** while this phone was offline, another of your phones gave a character the same name and reached the server first. The character from this phone, with anything added to it here, wasn't kept. Add it again under another name.
@@ -32,3 +39,11 @@ Warnings never stop you adding a skill: DMs sometimes allow these. Check with yo
 - **Entry level:** the character's level is below the tree's entry level.
 - **Already has it:** the character has the skill already and can't take it again, or has taken it as often as it allows.
 - **Not in the list:** skills that aren't in the list can't be added. Use **Not listed? Tell the maintainer** in the skill picker.
+
+## Reporting a problem
+
+If something here doesn't help, tell the maintainer: choose **Send a report** on your account page, or **Not listed? Tell the maintainer** in the skill picker for a missing or wrong skill. Pick the kind of report (missing or wrong skill, bug, idea, or account problem), write a subject and what happened, and name the character if it's about one. The app shows the report's number, which the maintainer can refer to.
+
+- You can send up to 5 reports a day.
+- A report written without signal is sent when signal returns.
+- An account problem isn't posted anywhere: the maintainer is told only its number.
