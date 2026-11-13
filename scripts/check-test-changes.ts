@@ -16,6 +16,7 @@ import {
   appCodeProblems,
   isAppFile,
   requirementsChanged,
+  SKIPPED_IN_FUNCTIONS,
   testChangeProblems,
   type Change,
   type Reader,
@@ -58,6 +59,19 @@ function filesUnder(dir: string): string[] {
   }
 }
 
+/** Repository paths of the files in functions/, without listing the entries part 2 never reads. */
+function functionsFiles(): string[] {
+  try {
+    return readdirSync(join(ROOT, "functions"), { withFileTypes: true })
+      .filter((e) => !SKIPPED_IN_FUNCTIONS.includes(e.name))
+      .flatMap((e) =>
+        e.isDirectory() ? filesUnder(`functions/${e.name}`) : e.isFile() ? [`functions/${e.name}`] : [],
+      );
+  } catch {
+    return [];
+  }
+}
+
 function fixtureNames(): string[] {
   type Fixture = { character?: { name?: unknown }; displayName?: unknown; email?: unknown } | null;
   const read = (file: string) =>
@@ -79,8 +93,7 @@ function main(argv: string[]): number {
   const changes = changedFiles(base);
   const part1 = testChangeProblems(changes, readerAt(base), readerAt("HEAD"));
   const appFiles = new Map(
-    ["src", "data", "functions"]
-      .flatMap(filesUnder)
+    [...filesUnder("src"), ...filesUnder("data"), ...functionsFiles()]
       .filter(isAppFile)
       .map((p) => [p, readFileSync(join(ROOT, p), "utf8")] as const),
   );

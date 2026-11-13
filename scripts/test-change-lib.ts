@@ -498,17 +498,17 @@ function moduleSpecifiers(path: string, source: string): string[] {
 
 /**
  * Whether part 2 reads a repository path: the app (src/), its reference data
- * (data/) and the server code (functions/), but not functions/' packages or
- * build output.
+ * (data/) and the server code (functions/), but not functions/' packages,
+ * lockfile or build output.
  */
 export function isAppFile(path: string): boolean {
   if (/^(src|data)\//.test(path)) return true;
-  return (
-    path.startsWith("functions/") &&
-    !/^functions\/(.*\/)?node_modules\//.test(path) &&
-    !path.startsWith("functions/lib/")
-  );
+  if (!path.startsWith("functions/") || path.includes("/node_modules/")) return false;
+  return !SKIPPED_IN_FUNCTIONS.includes(path.split("/")[1]!);
 }
+
+/** The entries directly in functions/ that part 2 never reads, so the check doesn't list them either. */
+export const SKIPPED_IN_FUNCTIONS = ["node_modules", "lib", "package-lock.json"];
 
 /**
  * Part 2: `files` maps the paths `isAppFile` accepts to their contents;

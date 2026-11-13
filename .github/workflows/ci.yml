@@ -46,6 +46,8 @@ jobs:
         with:
           node-version: 26
           cache: npm
+          # The root's lockfile, and functions/' once it exists.
+          cache-dependency-path: "**/package-lock.json"
       - run: npm ci
       - run: npm run lint
       - name: Install the Cloud Functions packages
