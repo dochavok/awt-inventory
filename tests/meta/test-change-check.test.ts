@@ -260,6 +260,7 @@ rule(
       "functions/package.json",
       "functions/package-lock.json",
       "functions/node_modules/vitest/index.js",
+      "functions/tools/node_modules/vitest/index.js",
       "functions/lib/index.js",
       "tests/support/rule.ts",
       "scripts/coverage.ts",
