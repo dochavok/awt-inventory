@@ -41,8 +41,10 @@ export function Category({ services, id, category }: { services: Services; id: s
   // nothing stays hidden behind a filter that can't be seen or changed.
   const active: Filter = {
     rarity: choices.rarities.some((r) => r.id === filter.rarity) ? filter.rarity : "",
-    family: choices.families.includes(filter.family) ? filter.family : "",
+    family: choices.families.some((f) => f.key === filter.family) ? filter.family : "",
   };
+  // It's forgotten, too, so it doesn't come back when a new entry has it.
+  if (active.rarity !== filter.rarity || active.family !== filter.family) setFilter(active);
   const match = {
     ...(active.rarity ? { rarity: active.rarity } : {}),
     ...(active.family ? { itemFamily: active.family } : {}),
@@ -75,7 +77,7 @@ export function Category({ services, id, category }: { services: Services; id: s
       <h1>{categoryName(category)}</h1>
       <UndoBar at={categoryAddress(character.id, category)} onUndone={reload} />
       <Feedback error={action.error} notice={action.notice} />
-      <Filters choices={choices} chosen={filter} active={active} onChange={setFilter} />
+      <Filters choices={choices} filter={active} onChange={setFilter} />
       {items.length === 0 ? (
         <p className="hint">Nothing here yet.</p>
       ) : shown.length === 0 ? (
@@ -111,8 +113,9 @@ export function Category({ services, id, category }: { services: Services; id: s
 // ---------------------------------------------------------------- filters (SE-3)
 
 /**
- * A list's filters as chosen: a rarity's ID and an item family, "" for any. Matched with the
- * store's own rule (matchesFilter). Equipped or active comes in M4.
+ * A list's filters as chosen: a rarity's ID and an item family in lower case (its spelling
+ * doesn't matter, SE-3), "" for any. Matched with the store's own rule (matchesFilter).
+ * Equipped or active comes in M4.
  */
 interface Filter {
   rarity: string;
@@ -122,8 +125,8 @@ interface Filter {
 /** What a list can be filtered by: the rarities and item families its entries have. */
 interface FilterChoices {
   rarities: ReferenceData["rarities"];
-  /** One per family, however its entries spell it (the first spelling names it), in order. */
-  families: string[];
+  /** One per family however its entries spell it, in order: its lower-case key, and a spelling to show. */
+  families: { key: string; label: string }[];
 }
 
 function filterChoices(items: EntryListItem[], allRarities: ReferenceData["rarities"]): FilterChoices {
@@ -133,7 +136,10 @@ function filterChoices(items: EntryListItem[], allRarities: ReferenceData["rarit
     const family = "itemFamily" in entry ? entry.itemFamily : undefined;
     if (family && !families.has(family.toLowerCase())) families.set(family.toLowerCase(), family);
   }
-  return { rarities, families: [...families.values()].sort((a, b) => a.localeCompare(b)) };
+  return {
+    rarities,
+    families: [...families].map(([key, label]) => ({ key, label })).sort((a, b) => a.label.localeCompare(b.label)),
+  };
 }
 
 /**
@@ -142,21 +148,13 @@ function filterChoices(items: EntryListItem[], allRarities: ReferenceData["rarit
  */
 function Filters({
   choices: { rarities, families },
-  chosen,
-  active: filter,
+  filter,
   onChange,
 }: {
   choices: FilterChoices;
-  /** What the user chose. */
-  chosen: Filter;
-  /** What's still filtering: the choices the list still has. */
-  active: Filter;
+  filter: Filter;
   onChange: (filter: Filter) => void;
 }) {
-  // A choice that stopped filtering is forgotten, so it doesn't come back with a new entry.
-  useEffect(() => {
-    if (chosen.rarity !== filter.rarity || chosen.family !== filter.family) onChange(filter);
-  });
   if (rarities.length === 0 && families.length === 0) return null;
   return (
     <form className="filters" aria-label="Filters" onSubmit={(e) => e.preventDefault()}>
@@ -179,8 +177,8 @@ function Filters({
           <select value={filter.family} onChange={(e) => onChange({ ...filter, family: e.target.value })}>
             <option value="">Any family</option>
             {families.map((f) => (
-              <option key={f} value={f}>
-                {f}
+              <option key={f.key} value={f.key}>
+                {f.label}
               </option>
             ))}
           </select>

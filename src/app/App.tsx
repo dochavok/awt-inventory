@@ -41,14 +41,15 @@ function shows(route: Route | null, { kind, id }: RefusedChange): boolean {
       return kind === "title" || kind === "character";
     case "account":
       return kind === "profile";
+    case "export":
+      // Its list of characters; a character named in the address that's gone shows as not found.
+      return kind === "character";
     case "help":
     case "privacy":
     case "search":
-    case "export":
     case "new-character":
     case "report":
-      // Search and export keep what's typed or chosen: the next search or file reads afresh,
-      // and a result or character that's gone opens as "not found".
+      // Search keeps what's typed: it reads its entries again itself when a change is refused.
       return false;
     case "characters":
     case "sign-in":

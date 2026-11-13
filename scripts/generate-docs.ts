@@ -34,6 +34,10 @@ const docs = join(ROOT, "docs");
 
 for (const file of readdirSync(docs).filter((f) => f.endsWith(".md"))) {
   const before = readFileSync(join(docs, file), "utf8").replaceAll("\r\n", "\n");
+  // Every marker must be part of a pair this script can read, so no example goes unchecked.
+  const markers = before.match(/<!--\s*(end\s+)?generated\b/g)?.length ?? 0;
+  const pairs = before.match(MARKED)?.length ?? 0;
+  if (markers !== pairs * 2) problems.push(`docs/${file}: a "generated" marker isn't part of a pair it can read`);
   const after = before.replace(MARKED, (whole, start: string, name: string, end: string) => {
     used.add(name);
     const example = made[name];
@@ -50,7 +54,9 @@ for (const name of Object.keys(made)) {
 }
 
 for (const problem of problems) console.error(problem);
-if (mode === "--write") {
+if (problems.length > 0) {
+  // Nothing is written until every marker and example is right, so docs/ is never half done.
+} else if (mode === "--write") {
   for (const { file, text } of changed) {
     writeFileSync(join(ROOT, file), text);
     console.log(`Updated ${file}`);

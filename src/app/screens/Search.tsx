@@ -8,7 +8,8 @@ import { categoryName } from "../../data/validate";
 import type { Character } from "../../rules/types";
 import { href } from "../router";
 import type { Services } from "../services";
-import { Feedback, useAction } from "../useAction";
+import { messageFor } from "../messages";
+import { Feedback } from "../useAction";
 import { BackTo, CharacterNotFound, Loading, useScreenData } from "./common";
 
 /** Where a result opens: an entry's own page, or the Skills screen for a skill. */
@@ -38,24 +39,49 @@ function SearchBox({ services, character }: { services: Services; character: Cha
   // as the user types without reading anything more (NF-5).
   const scope = character && !everyone ? character.id : ALL;
   const [searchers, setSearchers] = useState<Record<string, (query: string) => SearchResult[]>>({});
-  const look = useAction();
-  // Scopes being read, so each is read once at a time; one that failed is tried again on the next key.
+  // Why a scope's read failed, for that scope only; it's tried again on the next key.
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  // Scopes being read, so each is read once at a time.
   const reading = useRef(new Set<string>());
+  // Counts the reads thrown away; a read started before that is thrown away too when it ends.
+  const generation = useRef(0);
+
+  // NF-3: a change the server refused is undone on the phone, so what was read may hold it.
+  // Everything is read again, and what's typed stays.
+  useEffect(
+    () =>
+      services.onWriteRefused(() => {
+        generation.current += 1;
+        reading.current.clear();
+        setSearchers({});
+      }),
+    [services],
+  );
 
   useEffect(() => {
     if (searchers[scope] || reading.current.has(scope)) return;
     reading.current.add(scope);
-    void look.run(async () => {
-      try {
-        const search = await store.searcher(scope === ALL ? { allCharacters: true } : { characterId: scope });
-        setSearchers((all) => ({ ...all, [scope]: search }));
-      } finally {
-        reading.current.delete(scope);
-      }
-    });
-  }, [scope, query]);
+    const started = generation.current;
+    const current = () => generation.current === started;
+    void store
+      .searcher(scope === ALL ? { allCharacters: true } : { characterId: scope })
+      .then(
+        (search) => {
+          if (!current()) return;
+          setSearchers((all) => ({ ...all, [scope]: search }));
+          setErrors((all) => ({ ...all, [scope]: "" }));
+        },
+        (error: unknown) => {
+          if (current()) setErrors((all) => ({ ...all, [scope]: messageFor(error) }));
+        },
+      )
+      .finally(() => {
+        if (current()) reading.current.delete(scope);
+      });
+  }, [scope, query, searchers]);
 
   const search = searchers[scope];
+  const error = (!search && errors[scope]) || null;
   const typed = query.trim() !== "";
   const results = useMemo(() => (search && typed ? search(query) : null), [search, query]);
 
@@ -84,9 +110,8 @@ function SearchBox({ services, character }: { services: Services; character: Cha
           </label>
         )}
       </form>
-      {/* A failed read shows only while the scope searched has nothing to search. */}
-      {!search && <Feedback error={look.error} notice={null} />}
-      {typed && !search && !look.error && <p className="hint">Searching…</p>}
+      <Feedback error={error} notice={null} />
+      {typed && !search && !error && <p className="hint">Searching…</p>}
       {results?.length === 0 && <p className="hint">No results.</p>}
       {results && results.length > 0 && (
         <ul className="link-list results" aria-label="Results">
