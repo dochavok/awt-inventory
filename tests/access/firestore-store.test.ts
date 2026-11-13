@@ -248,3 +248,27 @@ rule(
     }
   },
 );
+
+/** The IDs of the documents in one of Bram's collections, read from the server by a new phone of his. */
+async function storedIds(path: string): Promise<string[]> {
+  return (await device("bram").collection(path).get()).docs.map((d) => d.id).sort();
+}
+
+rule(
+  { req: ["CH-6", "CH-1"], m: "M3" },
+  "through Firestore, deleting a character removes the claims that still point to it, and no other",
+  async () => {
+    const bram = await signedUp("bram");
+    const first = await bram.store.createCharacter({ name: "Wren", className: "Rogue", level: 3 });
+    await bram.store.updateCharacter(first.id, { name: "Brin" });
+    // A new Wren takes over the old claim on "wren", so it no longer points to the first character.
+    await bram.store.createCharacter({ name: "Wren", className: "Mage", level: 1 });
+    await bram.store.createCharacter({ name: "Aldric", className: "Warrior", level: 26 });
+    await synced(bram);
+    const names = `users/${uid("bram")}/characterNames`;
+    expect(await storedIds(names), "Bram's claimed names before").toEqual(["name-aldric", "name-brin", "name-wren"]);
+    await bram.store.deleteCharacter(first.id, "Brin");
+    await synced(bram);
+    expect(await storedIds(names), "Bram's claimed names after deleting Brin").toEqual(["name-aldric", "name-wren"]);
+  },
+);

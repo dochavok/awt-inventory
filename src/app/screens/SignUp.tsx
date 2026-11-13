@@ -13,13 +13,13 @@ export function SignUp({ accounts, onBusy }: { accounts: Accounts; onBusy: (busy
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [accepted, setAccepted] = useState(false);
-  // This screen stays up while signing up (onBusy), then the account page opens if it worked.
+  // This screen stays up while signing up (onBusy), then the characters screen opens if it worked.
   const { busy, error, notice, run } = useAction(onBusy);
 
   const signUp = (action: () => Promise<unknown>) =>
     run(async () => {
       await action();
-      go("account");
+      go("characters");
     });
 
   const create = (e: FormEvent) => {

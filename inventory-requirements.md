@@ -643,7 +643,7 @@ These features are planned but not scheduled. Each will be written out in full, 
 
 ## 19. User Documentation
 
-**DOC-1 · Must · M3: Help inside the app.** The user guide is written as Markdown files in the repository's `docs/` folder and built into the app as help pages. Every main screen has a help link to its page. The help works wherever the app works, offline included.
+**DOC-1 · Must · M3: Help inside the app.** The user guide is written as Markdown files in the repository's `docs/` folder and built into the app as help pages. Every main screen has a help link to its page. The help works wherever the app works, offline included, once the app has been opened with signal and has finished storing itself on the phone.
 
 **DOC-2 · Must · M3+: Pages.** The guide covers what's been built, growing with each milestone:
 

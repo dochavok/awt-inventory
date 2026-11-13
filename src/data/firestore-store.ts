@@ -26,6 +26,8 @@ import {
   getDoc,
   getDocFromServer,
   getDocs,
+  getDocsFromCache,
+  getDocsFromServer,
   increment,
   onSnapshot,
   query,
@@ -88,7 +90,21 @@ function fields(snap: DocumentSnapshot): DocumentData {
   return data;
 }
 
-const characterOf = (id: Id): Id | undefined => (id.includes(SEP) ? id.split(SEP)[0] : undefined);
+/** The character an entry or history record's ID belongs to. */
+export const characterOf = (id: Id): Id | undefined => (id.includes(SEP) ? id.split(SEP)[0] : undefined);
+
+/** Where a user's records live (the layout above). */
+function accountRefs(db: Firestore, uid: string) {
+  const user = doc(db, "users", uid);
+  return {
+    user,
+    characters: collection(user, "characters"),
+    titles: collection(user, "titles"),
+    reports: collection(user, "reports"),
+    /** Claims on names, one per name ignoring case; the "name-" prefix keeps every ID valid. */
+    names: collection(user, "characterNames"),
+  };
+}
 
 /**
  * `firestore` is a Firestore instance for the signed-in user: the app's, or in
@@ -101,15 +117,14 @@ export function createFirestoreStore(
 ): InventoryStore {
   const db = firestore as Firestore;
   const uid = () => requireUid(context);
-  const user = (): DocumentReference => doc(db, "users", uid());
-  const characters = () => collection(user(), "characters");
+  const user = (): DocumentReference => accountRefs(db, uid()).user;
+  const characters = () => accountRefs(db, uid()).characters;
   const characterRef = (id: Id) => doc(characters(), id);
   const entries = (characterId: Id) => collection(characterRef(characterId), "entries");
   const historyOf = (characterId: Id) => collection(characterRef(characterId), "history");
-  const titles = () => collection(user(), "titles");
-  const reports = () => collection(user(), "reports");
-  /** Claims on names, one per name ignoring case; the "name-" prefix keeps every ID valid. */
-  const names = () => collection(user(), "characterNames");
+  const titles = () => accountRefs(db, uid()).titles;
+  const reports = () => accountRefs(db, uid()).reports;
+  const names = () => accountRefs(db, uid()).names;
 
   /** The document a record lives in, or undefined for an ID no record of that kind can have. */
   function refFor(kind: RecordKind, id: Id): DocumentReference | undefined {
@@ -151,20 +166,25 @@ export function createFirestoreStore(
 
   let pending = 0;
   let lastSeq = 0;
-
   /** One batched write, and what it's about, to tell the user if the server refuses it. */
   interface Sent {
     batch: WriteBatch;
-    about: RefusedChange;
+    /**
+     * Absent for tidying the user didn't ask for (a deleted character's name claims):
+     * a refusal of that isn't news to them.
+     */
+    about?: RefusedChange;
   }
 
   /**
-   * Sends one change (one user action), whatever number of batches it takes.
+   * Sends one change (one user action), whatever number of batches it takes. Tidying alone
+   * isn't a change the user made, so it isn't counted as one waiting.
    * Not awaited: the change is on the phone already, and is sent whenever there's signal.
    */
   function send(batches: Sent[]): void {
     if (batches.length === 0) return;
-    pending += 1;
+    const counted = batches.some((b) => b.about) ? 1 : 0;
+    pending += counted;
     const refused = (about: RefusedChange) => (error: unknown) => {
       try {
         options.onWriteRefused?.(error, about);
@@ -172,8 +192,9 @@ export function createFirestoreStore(
         console.error("The write-refused handler failed", handlerError);
       }
     };
-    void Promise.all(batches.map(({ batch, about }) => batch.commit().catch(refused(about)))).then(() => {
-      pending -= 1;
+    const commits = batches.map(({ batch, about }) => batch.commit().catch(about ? refused(about) : () => undefined));
+    void Promise.all(commits).then(() => {
+      pending -= counted;
     });
   }
 
@@ -278,12 +299,40 @@ export function createFirestoreStore(
 
   /**
    * Claims a name for a character, with the name as the character has it. Every rename
-   * claims again, a change of case too. Claims are never released: the rules let a claim
-   * be taken over once its character is gone or has another name, so a claim left from a
-   * rename or delete (on any phone, offline too) never blocks.
+   * claims again, a change of case too. A rename never releases the old name's claim (only
+   * deleting the character does, claimDeletes): the rules let a claim be taken over once its
+   * character is gone or has another name, so a claim left behind (on any phone, offline
+   * too) never blocks.
    */
   function claimName(batch: WriteBatch, name: string, characterId: Id): void {
     batch.set(doc(names(), `name-${encodeURIComponent(characterNameKey(name))}`), { characterId, name });
+  }
+
+  /**
+   * Deletes for the claims that still point to characters being deleted (CH-6), current
+   * and past names. With signal they're read from the server, so a claim another phone has
+   * taken over is left alone; without, from what the phone has (the whole-account load puts
+   * every claim on it, and its own changes are there too). Each is its own batch, sent after
+   * the character's, so a failed claim delete never undoes the character's.
+   */
+  async function claimDeletes(deleted: Set<Id>): Promise<Sent[]> {
+    const fromCache = () => getDocsFromCache(names());
+    // On slow signal, the phone's own copy is used after PROBE_MS.
+    const fromServer = () =>
+      Promise.race([
+        getDocsFromServer(names()),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timed out")), PROBE_MS)),
+      ]).catch(fromCache);
+    const read = listening?.online ? fromServer() : fromCache();
+    const claims = await read.then(
+      (snap) => snap.docs.filter((d) => deleted.has(d.get("characterId") as string)),
+      () => [],
+    );
+    return claims.map((claim) => {
+      const batch = writeBatch(db);
+      batch.delete(claim.ref);
+      return { batch };
+    });
   }
 
   // Whether the phone has signal, from a listener on the profile that Firestore keeps up to date.
@@ -300,7 +349,10 @@ export function createFirestoreStore(
         state.online = !snap.metadata.fromCache;
       },
       () => {
+        // A listener that fails stops for good: forget it, so the next check starts a new one
+        // instead of asking the server directly every time.
         state.online = false;
+        if (listening === state) listening = undefined;
       },
     );
     listening = state;
@@ -441,7 +493,10 @@ export function createFirestoreStore(
     async write(changes) {
       uid();
       watch();
+      // The changes are on the phone, and on their way, before a deleted character's claims are looked up.
       send(batchesFor(changes));
+      const deleted = new Set(changes.flatMap((c) => (c.op === "delete" && c.kind === "character" ? [c.id] : [])));
+      if (deleted.size > 0) send(await claimDeletes(deleted));
     },
 
     async syncStatus() {
@@ -478,4 +533,28 @@ export function createFirestoreStore(
   }
 
   return createRecordsStore(backend, context, "FirestoreStore");
+}
+
+/**
+ * NF-3: with signal, reads everything in the account once, so the phone's offline
+ * cache holds every character, including ones this phone never opened, and the
+ * claims on their names.
+ */
+export async function loadWholeAccount(firestore: unknown, uid: string): Promise<void> {
+  // From the server only: without a real connection this fails, rather than counting what the
+  // phone already had as read.
+  const refs = accountRefs(firestore as Firestore, uid);
+  const [, characterDocs] = await Promise.all([
+    getDocFromServer(refs.user),
+    getDocsFromServer(refs.characters),
+    getDocsFromServer(refs.titles),
+    getDocsFromServer(refs.reports),
+    getDocsFromServer(refs.names),
+  ]);
+  await Promise.all(
+    characterDocs.docs.flatMap((character) => [
+      getDocsFromServer(collection(character.ref, "entries")),
+      getDocsFromServer(collection(character.ref, "history")),
+    ]),
+  );
 }

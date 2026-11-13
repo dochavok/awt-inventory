@@ -94,6 +94,11 @@ browserRule(
     await expect(page.getByRole("link", { name: /help/i }), "the help link").toBeVisible();
     await page.getByRole("link", { name: /help/i }).click();
     await expect(page.getByRole("heading", { name: /getting started/i }), "the help page for signing in").toBeVisible();
+    // The app has been opened with signal and has stored itself on the phone (DOC-1).
+    expect(
+      await page.evaluate(async () => (await navigator.serviceWorker.ready).active !== null),
+      "the app stored on the phone",
+    ).toBe(true);
     await context.setOffline(true);
     await page.reload();
     await expect(page.getByRole("heading", { name: /getting started/i }), "the same help page offline").toBeVisible();

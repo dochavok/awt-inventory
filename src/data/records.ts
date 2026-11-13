@@ -351,7 +351,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       const next = { ...character };
       if (patch.name !== undefined) {
         next.name = check.requiredText("name", patch.name, check.LIMITS.name);
-        await uniqueName(next.name, characterId);
+        if (next.name !== character.name) await uniqueName(next.name, characterId);
       }
       if (patch.level !== undefined) next.level = check.level(patch.level, ref);
       if (patch.notes !== undefined) {
