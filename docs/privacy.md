@@ -19,6 +19,10 @@ When trading arrives, an entry you choose to list for trade will show its name, 
 
 The maintainer has no screens for browsing anyone's data, and looks at stored data through the hosting provider's console only for support you've asked for. Reports you send are read by the maintainer; your email address and display name are kept out of the copy used to track them.
 
+## On your phone
+
+So the app works without signal, it keeps a copy of your account on each phone or computer you use it on: your game records, your display name and your email address. Signing out doesn't remove that copy. Nothing else is kept there: no passwords and no payment details.
+
 ## Deleting it
 
 You can delete your account at any time from your account page. That removes every character, entry, title, history record and report in it, and your sign-in, permanently.
