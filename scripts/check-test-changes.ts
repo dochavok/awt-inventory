@@ -14,6 +14,7 @@ import { parse } from "yaml";
 import {
   RULE,
   appCodeProblems,
+  isAppFile,
   requirementsChanged,
   testChangeProblems,
   type Change,
@@ -78,7 +79,10 @@ function main(argv: string[]): number {
   const changes = changedFiles(base);
   const part1 = testChangeProblems(changes, readerAt(base), readerAt("HEAD"));
   const appFiles = new Map(
-    [...filesUnder("src"), ...filesUnder("data")].map((p) => [p, readFileSync(join(ROOT, p), "utf8")] as const),
+    ["src", "data", "functions"]
+      .flatMap(filesUnder)
+      .filter(isAppFile)
+      .map((p) => [p, readFileSync(join(ROOT, p), "utf8")] as const),
   );
   const part2 = appCodeProblems(appFiles, fixtureNames());
   const problems = [...part1, ...part2];
