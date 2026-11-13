@@ -323,3 +323,25 @@ browserRule({ req: ["SP-1"], m: "M3" }, "the report form opens from the account 
   await expect(page.getByRole("heading", { level: 1 }), "the report form").toHaveText("Send a report");
   await expect(page.getByLabel("Kind").locator("option:checked"), "the kind chosen").toHaveText("Bug");
 });
+
+browserRule(
+  { req: ["IN-15"], m: "M3" },
+  "Undo for an entry shows only on the list it was deleted from, not on another character's",
+  async ({ page }) => {
+    await signUp(page);
+    const brin = await addCharacter(page, { name: "Brin", className: "Warrior", level: 8 });
+    const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+    await openFromCharacter(page, wren, /^Items/, "Items");
+    await addEntry(page, { name: "Silk Rope" });
+    await rowFor(page, "Silk Rope").getByRole("link", { name: "Silk Rope" }).click();
+    await page.getByRole("button", { name: "Delete entry" }).click();
+    await page.getByRole("button", { name: "Delete for good" }).click();
+    await expect(page.getByRole("button", { name: "Undo" }), "Undo on Wren's Items").toBeVisible();
+    await page.goto(`/#/characters/${brin}/items`);
+    await expect(page.getByRole("heading", { level: 1 }), "Brin's Items").toHaveText("Items");
+    await expect(page.getByRole("main"), "Brin's Items screen").toContainText("Nothing here yet.");
+    await expect(page.getByRole("button", { name: "Undo" }), "Undo on Brin's Items").toHaveCount(0);
+    await page.goto(`/#/characters/${wren}/items`);
+    await expect(page.getByRole("button", { name: "Undo" }), "Undo back on Wren's Items").toBeVisible();
+  },
+);
