@@ -3,24 +3,11 @@
 // work without a server, offline too.
 
 import { useEffect, useState } from "react";
-import type { ReportKind } from "../data/types";
-import type { ItemEntry } from "../rules/types";
+import { REPORT_KINDS, type ReportKind } from "../data/types";
+import { ITEM_CATEGORIES, type ItemCategory } from "../rules/types";
 
 /** Screens whose address is just their name, e.g. #/titles. */
 const SIMPLE = ["sign-in", "sign-up", "privacy", "account", "characters", "titles"] as const;
-
-/** The inventory categories with entries of their own (skills have their own screen). */
-export type ItemCategory = ItemEntry["category"];
-export const ITEM_CATEGORIES: readonly ItemCategory[] = [
-  "weapons",
-  "armor",
-  "allies",
-  "consumables",
-  "items",
-  "components",
-];
-
-const REPORT_KINDS: readonly ReportKind[] = ["missing-skill", "bug", "idea", "account-problem"];
 
 export type Route =
   | { screen: (typeof SIMPLE)[number] | "new-character" }
@@ -29,10 +16,6 @@ export type Route =
   | { screen: "entry"; id: string; entryId: string }
   | { screen: "help"; page?: string }
   | { screen: "report"; kind?: ReportKind };
-
-/** The character a screen is about, if it's one of a character's screens. */
-export const characterOfRoute = (route: Route | null): string | undefined =>
-  route && "id" in route ? route.id : undefined;
 
 /** The address of a screen: href("characters/abc") is "#/characters/abc". */
 export const href = (path: string): string => `#/${path}`;

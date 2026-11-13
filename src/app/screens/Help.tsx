@@ -32,7 +32,10 @@ export const helpPage = (slug: string) => pages.find((p) => p.slug === slug);
  * characters, as App does.
  */
 export function helpFor(route: Route | null, signedIn: boolean): string {
-  switch (route?.screen) {
+  const screen = route?.screen ?? "characters";
+  if (!signedIn && screen !== "privacy" && screen !== "help") return "help/getting-started";
+  // Every screen is listed, so a new one must say. Signed in, the sign-in addresses show the characters.
+  switch (screen) {
     case "privacy":
       return "help/privacy";
     case "help":
@@ -48,8 +51,13 @@ export function helpFor(route: Route | null, signedIn: boolean): string {
       return "help/history";
     case "report":
       return "help/troubleshooting";
-    default:
-      return signedIn ? "help/characters-and-titles" : "help/getting-started";
+    case "characters":
+    case "new-character":
+    case "character":
+    case "titles":
+    case "sign-in":
+    case "sign-up":
+      return "help/characters-and-titles";
   }
 }
 

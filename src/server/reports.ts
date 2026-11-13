@@ -2,7 +2,7 @@
 // Functions. The issue tracker is a GitHub App installed only on the private
 // reports repository; both it and the mailer are ports, faked in tests.
 
-import type { Report, ReportKind } from "../data/types";
+import { REPORT_KIND_NAMES, type Report } from "../data/types";
 import { EMAIL_PATTERN, escapeRegExp } from "../platform/text";
 
 export interface IssueTracker {
@@ -20,13 +20,6 @@ export interface ReportDelivery {
   /** The user's display name, so the issue can leave it out (SP-2). */
   displayNameOf?: (uid: string) => Promise<string | undefined>;
 }
-
-const KIND_NAMES: Record<ReportKind, string> = {
-  "missing-skill": "Missing or wrong skill",
-  bug: "Bug",
-  idea: "Idea",
-  "account-problem": "Account problem",
-};
 
 /**
  * Replaces email addresses and the sender's display name (as a whole word, any
@@ -54,7 +47,7 @@ function issueFor(report: Report, displayName: string | undefined): { title: str
       scrubbed(report.message, displayName),
       "",
       "---",
-      `Kind: ${report.kind} (${KIND_NAMES[report.kind]})`,
+      `Kind: ${report.kind} (${REPORT_KIND_NAMES[report.kind]})`,
       `App version: ${report.appVersion}`,
       `Report number: ${report.number}`,
       `Email addresses and the sender's name are removed here. The full report, as sent, is in the app's database under report number ${report.number}.`,

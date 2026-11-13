@@ -6,6 +6,7 @@ import { ValidationError } from "../errors";
 import { levelCap } from "../rules/levels";
 import {
   CLASS_NAMES,
+  HOW_GAINED_NAMES,
   type Category,
   type ClassName,
   type HowGained,
@@ -57,10 +58,15 @@ function maxLength(field: string, value: string, max: number, label: string): st
 export function webLink(field: string, value: unknown): string | undefined {
   const link = optionalText(field, value, LIMITS.link)?.trim();
   if (link === undefined) return undefined;
-  if (!/^https?:\/\/\S+$/i.test(link) || !parses(link)) {
+  if (!isWebLink(link)) {
     throw new ValidationError(field, "A link must be a web address starting with http:// or https://.");
   }
   return link;
+}
+
+/** Whether a link is a web address the app may show as a link (IN-11). */
+export function isWebLink(link: string): boolean {
+  return /^https?:\/\/\S+$/i.test(link) && parses(link);
 }
 
 function parses(url: string): boolean {
@@ -111,7 +117,7 @@ export function level(value: unknown, ref: ReferenceData, field = "level"): numb
   return wholeNumber(field, value, 1, levelCap(ref), "level");
 }
 
-const HOW_GAINED: readonly HowGained[] = ["starting", "level-up", "quest", "trained-old-system", "other"];
+const HOW_GAINED = Object.keys(HOW_GAINED_NAMES) as HowGained[];
 
 export function howGained(value: unknown): HowGained {
   if (!HOW_GAINED.includes(value as HowGained)) {

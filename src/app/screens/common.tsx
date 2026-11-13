@@ -29,7 +29,10 @@ export function useScreenData<T>(read: () => Promise<T>) {
     // Read once when the screen opens; App gives each screen its own key.
   }, []);
 
-  return { data, missing, error: load.error, refresh };
+  /** Changes what's shown in place, once it has loaded, after a change the screen made itself. */
+  const set = (change: (data: T) => T) => setData((old) => (old === null ? old : change(old)));
+
+  return { data, missing, error: load.error, refresh, set };
 }
 
 /** Shown while a screen loads, or why it couldn't. */
@@ -79,7 +82,56 @@ export function shownDate(stored: string): string {
 }
 
 /** Today in the user's own time, as a date field's highest choice (events can't be in the future). */
-export function today(): string {
+function today(): string {
   const now = new Date();
   return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+}
+
+/** When an event happened (HI-3): today unless an earlier day is chosen. Use pickedDate on the value. */
+export function DayField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (day: string) => void;
+}) {
+  return (
+    <label>
+      {label}
+      <input type="date" max={today()} value={value} onChange={(e) => onChange(e.target.value)} />
+      <span className="hint">Leave empty for today.</span>
+    </label>
+  );
+}
+
+/** A character's level, or the level a skill was gained at: from 1 to the level chart's highest (RD-5). */
+export function LevelInput({
+  label = "Level",
+  value,
+  onChange,
+  max,
+}: {
+  label?: string;
+  value: string;
+  onChange: (v: string) => void;
+  max: number;
+}) {
+  return (
+    <label>
+      {label}
+      <input
+        type="number"
+        inputMode="numeric"
+        required
+        min={1}
+        max={max}
+        step={1}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <span className="hint">From 1 to {max}.</span>
+    </label>
+  );
 }

@@ -3,10 +3,11 @@
 // offer is kept here, for whichever screen shows an UndoBar next or now.
 
 import { useEffect, useState } from "react";
+import { UNDO_SECONDS } from "../data/records";
 import { Feedback, useAction } from "./useAction";
 
-/** How long Undo is offered (IN-15: about 10 seconds). */
-export const UNDO_MS = 10_000;
+/** How long Undo is offered: as long as the store allows it (IN-15). */
+const UNDO_MS = UNDO_SECONDS * 1000;
 
 interface Offer {
   message: string;
@@ -24,7 +25,11 @@ export function offerUndo(message: string, undo: () => Promise<void>): void {
   for (const listener of listeners) listener(pending);
 }
 
-const open = () => (pending && pending.until > Date.now() ? pending : undefined);
+/** The offer still open, if any; one that has ended is let go, with the deleted records it holds. */
+function open(): Offer | undefined {
+  if (pending && pending.until <= Date.now()) pending = undefined;
+  return pending;
+}
 
 /** Shows the Undo offer while it's open; `onUndone` reloads the screen once it's undone. */
 export function UndoBar({ onUndone }: { onUndone: () => void }) {
@@ -40,7 +45,10 @@ export function UndoBar({ onUndone }: { onUndone: () => void }) {
 
   useEffect(() => {
     if (!offer) return;
-    const timer = setTimeout(() => setOffer(undefined), offer.until - Date.now());
+    const timer = setTimeout(() => {
+      if (pending === offer) pending = undefined;
+      setOffer(undefined);
+    }, offer.until - Date.now());
     return () => clearTimeout(timer);
   }, [offer]);
 

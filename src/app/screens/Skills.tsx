@@ -4,26 +4,24 @@
 // the link to report a skill that isn't listed (SK-5).
 
 import { useEffect, useState, type FormEvent } from "react";
-import type { SkillView } from "../../data/types";
 import { LIMITS } from "../../data/validate";
 import { levelCap } from "../../rules/levels";
-import type { Character, HowGained, SkillOption, SkillPicker } from "../../rules/types";
+import {
+  HOW_GAINED_NAMES,
+  SKILL_TIER_NAMES,
+  type Character,
+  type HowGained,
+  type SkillOption,
+  type SkillPicker,
+} from "../../rules/types";
 import { href } from "../router";
 import type { Services } from "../services";
 import { offerUndo, UndoBar } from "../undo";
 import { Feedback, useAction } from "../useAction";
-import { BackTo, CharacterNotFound, Loading, useScreenData } from "./common";
+import { BackTo, CharacterNotFound, LevelInput, Loading, useScreenData } from "./common";
 
-const HOW_GAINED: [HowGained, string][] = [
-  ["starting", "Starting"],
-  ["level-up", "Level-up"],
-  ["quest", "Quest"],
-  ["trained-old-system", "Trained under the old system"],
-  ["other", "Other"],
-];
-const howGainedName = (h: HowGained) => HOW_GAINED.find(([id]) => id === h)?.[1] ?? h;
-
-const TIERS: Record<SkillView["tier"], string> = { normal: "Normal", epic: "Epic", legendary: "Legendary" };
+/** How long the search waits after the last key before looking the skills up. */
+const SEARCH_PAUSE_MS = 300;
 
 export function Skills({ services, id }: { services: Services; id: string }) {
   const { store } = services;
@@ -53,10 +51,10 @@ export function Skills({ services, id }: { services: Services; id: string }) {
               <strong className="name">{s.name}</strong>
               {s.retired && <span className="tag">No longer in the list</span>}
               <p className="hint">
-                {s.tree} · {s.usage} · {TIERS[s.tier]}
+                {s.tree} · {s.usage} · {SKILL_TIER_NAMES[s.tier]}
               </p>
               <p>
-                {howGainedName(s.howGained)}, level {s.levelGained}
+                {HOW_GAINED_NAMES[s.howGained]}, level {s.levelGained}
               </p>
               {s.text && <p>{s.text}</p>}
               {s.notes && <p className="notes">{s.notes}</p>}
@@ -113,14 +111,20 @@ function Picker({
   const load = useAction();
 
   useEffect(() => {
+    // Each look-up reads the character's entries (NF-5), so typing waits for a pause first.
     // Only the latest search is shown, however the replies arrive.
     let current = true;
-    void load.run(async () => {
-      const found = await store.skillPicker(character.id, { allTrees, ...(query.trim() ? { query } : {}) });
-      if (current) setPicker(found);
-    });
+    const timer = setTimeout(
+      () =>
+        void load.run(async () => {
+          const found = await store.skillPicker(character.id, { allTrees, ...(query.trim() ? { query } : {}) });
+          if (current) setPicker(found);
+        }),
+      query ? SEARCH_PAUSE_MS : 0,
+    );
     return () => {
       current = false;
+      clearTimeout(timer);
     };
   }, [allTrees, query, version]);
 
@@ -223,26 +227,14 @@ function AddSkill({
       <label>
         How gained
         <select value={howGained} onChange={(e) => setHowGained(e.target.value as HowGained)}>
-          {HOW_GAINED.map(([value, name]) => (
+          {Object.entries(HOW_GAINED_NAMES).map(([value, name]) => (
             <option key={value} value={value}>
               {name}
             </option>
           ))}
         </select>
       </label>
-      <label>
-        Level gained
-        <input
-          type="number"
-          inputMode="numeric"
-          required
-          min={1}
-          max={levelCap(services.ref)}
-          step={1}
-          value={level}
-          onChange={(e) => setLevel(e.target.value)}
-        />
-      </label>
+      <LevelInput label="Level gained" value={level} onChange={setLevel} max={levelCap(services.ref)} />
       <label>
         Notes
         <textarea maxLength={LIMITS.notes} value={notes} onChange={(e) => setNotes(e.target.value)} />

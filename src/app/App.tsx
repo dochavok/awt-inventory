@@ -4,7 +4,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { characterOf, type RefusedChange } from "../data/firestore-store";
-import { characterOfRoute, useRoute, type Route } from "./router";
+import { useRoute, type Route } from "./router";
 import type { Services } from "./services";
 import { ConnectionBar, Header, RefusedNotices } from "./Shell";
 import { Account } from "./screens/Account";
@@ -19,16 +19,22 @@ import { SignIn } from "./screens/SignIn";
 import { SignUp } from "./screens/SignUp";
 import { Titles } from "./screens/Titles";
 
-/** Whether a screen shows the record a refused change was to, so the change must leave it (NF-3). */
+/**
+ * Whether a screen shows the record a refused change was to, so the change must leave it (NF-3).
+ * Every screen is listed, so a new one must say.
+ */
 function shows(route: Route | null, { kind, id }: RefusedChange): boolean {
-  const shown = characterOfRoute(route);
-  if (shown !== undefined) {
-    // A character's screens show that character, its entries and history, and titles.
-    if (kind === "profile" || kind === "report") return false;
-    if (kind === "title" || id === undefined) return true;
-    return (kind === "character" ? id : characterOf(id)) === shown;
-  }
-  switch (route?.screen) {
+  if (route === null) return kind === "character";
+  switch (route.screen) {
+    case "character":
+    case "category":
+    case "entry":
+    case "skills":
+    case "history":
+      // A character's screens show that character, its entries and history, and titles.
+      if (kind === "profile" || kind === "report") return false;
+      if (kind === "title" || id === undefined) return true;
+      return (kind === "character" ? id : characterOf(id)) === route.id;
     case "titles":
       return kind === "title" || kind === "character";
     case "account":
@@ -38,8 +44,10 @@ function shows(route: Route | null, { kind, id }: RefusedChange): boolean {
     case "new-character":
     case "report":
       return false;
-    default:
-      // The characters list, at its own address or the start one.
+    case "characters":
+    case "sign-in":
+    case "sign-up":
+      // The characters list: signed in, the sign-in addresses show it too.
       return kind === "character";
   }
 }
@@ -107,15 +115,14 @@ export function App({ services }: { services: Services }) {
   } else if (route?.screen === "account") screen = <Account services={services} />;
   else if (route?.screen === "titles") screen = <Titles services={services} />;
   else if (route?.screen === "new-character") screen = <NewCharacter services={services} />;
-  else if (route?.screen === "character") screen = <CharacterPage key={route.id} services={services} id={route.id} />;
+  else if (route?.screen === "character") screen = <CharacterPage services={services} id={route.id} />;
   else if (route?.screen === "category") {
-    screen = <Category key={route.id + route.category} services={services} id={route.id} category={route.category} />;
+    screen = <Category services={services} id={route.id} category={route.category} />;
   } else if (route?.screen === "entry") {
-    screen = <EntryPage key={route.entryId} services={services} id={route.id} entryId={route.entryId} />;
-  } else if (route?.screen === "skills") screen = <Skills key={route.id} services={services} id={route.id} />;
-  else if (route?.screen === "history") screen = <History key={route.id} services={services} id={route.id} />;
-  else if (route?.screen === "report")
-    screen = <ReportForm key={route.kind ?? ""} services={services} kind={route.kind} />;
+    screen = <EntryPage services={services} id={route.id} entryId={route.entryId} />;
+  } else if (route?.screen === "skills") screen = <Skills services={services} id={route.id} />;
+  else if (route?.screen === "history") screen = <History services={services} id={route.id} />;
+  else if (route?.screen === "report") screen = <ReportForm services={services} kind={route.kind} />;
   else screen = <Characters services={services} />;
 
   return (
@@ -123,7 +130,8 @@ export function App({ services }: { services: Services }) {
       <Header signedIn={inApp} help={helpFor(route, inApp)} />
       {inApp && <ConnectionBar store={services.store} />}
       {inApp && <RefusedNotices subscribe={services.onWriteRefused} />}
-      <main className="page" key={refusals}>
+      {/* Each address, and each refusal that touches what's shown, starts the screen afresh. */}
+      <main className="page" key={`${refusals}:${JSON.stringify(route)}`}>
         {screen}
       </main>
     </>

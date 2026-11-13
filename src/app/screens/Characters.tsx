@@ -8,12 +8,12 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { ClassCorrectionNotice } from "../../data/types";
 import { categoryName, LIMITS } from "../../data/validate";
 import { levelCap } from "../../rules/levels";
-import { CLASS_NAMES, type Category, type Character, type ClassName, type Entry } from "../../rules/types";
+import { CATEGORIES, CLASS_NAMES, type Category, type Character, type ClassName, type Entry } from "../../rules/types";
 import { go, href } from "../router";
 import type { Services } from "../services";
 import { VerifyEmail } from "../Shell";
 import { Feedback, useAction } from "../useAction";
-import { CharacterNotFound, Loading, useScreenData } from "./common";
+import { CharacterNotFound, LevelInput, Loading, useScreenData } from "./common";
 
 const describe = (c: Pick<Character, "className" | "level">) => `${c.className} · level ${c.level}`;
 
@@ -120,34 +120,14 @@ export function NewCharacter({ services }: { services: Services }) {
   );
 }
 
-function LevelInput({ value, onChange, max }: { value: string; onChange: (v: string) => void; max: number }) {
-  return (
-    <label>
-      Level
-      <input
-        type="number"
-        inputMode="numeric"
-        required
-        min={1}
-        max={max}
-        step={1}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      <span className="hint">From 1 to {max}.</span>
-    </label>
-  );
-}
-
 /** The links to a character's inventory, skills and history, in the glossary's order, with how many of each. */
-const INVENTORY: Category[] = ["weapons", "armor", "skills", "allies", "consumables", "items", "components"];
-
 function InventoryLinks({ id, entries }: { id: string; entries: Entry[] }) {
-  const count = (category: Category) => entries.filter((e) => e.category === category && e.quantity > 0).length;
+  // The sheet's entries are those still in the inventory.
+  const count = (category: Category) => entries.filter((e) => e.category === category).length;
   return (
     <nav aria-label="Inventory" className="inventory-links">
       <ul className="link-list">
-        {INVENTORY.map((category) => (
+        {CATEGORIES.map((category) => (
           <li key={category}>
             <a href={href(`characters/${id}/${category}`)}>
               {categoryName(category)} <span className="count">{count(category)}</span>

@@ -8,6 +8,17 @@ export const CLASS_NAMES: readonly ClassName[] = ["Warrior", "Mage", "Rogue"];
 /** The seven inventory categories (glossary). */
 export type Category = "weapons" | "armor" | "skills" | "allies" | "consumables" | "items" | "components";
 
+/** The categories in the glossary's order. */
+export const CATEGORIES: readonly Category[] = [
+  "weapons",
+  "armor",
+  "skills",
+  "allies",
+  "consumables",
+  "items",
+  "components",
+];
+
 export type Permission = "weapon-use" | "ranged-weapon-use" | "armor-use" | "dual-wielding";
 
 // ---------------------------------------------------------------- grants (8.1)
@@ -115,6 +126,15 @@ export interface Component extends EntryBase {
 
 export type HowGained = "starting" | "level-up" | "quest" | "trained-old-system" | "other";
 
+/** SK-1: how a skill was gained, as the app names it. */
+export const HOW_GAINED_NAMES: Record<HowGained, string> = {
+  starting: "Starting",
+  "level-up": "Level-up",
+  quest: "Quest",
+  "trained-old-system": "Trained under the old system",
+  other: "Other",
+};
+
 /** A skill on a character. Name, tree, text and grants come from the skill list (SK-2, SK-8). */
 export interface SkillEntry {
   id: Id;
@@ -129,6 +149,10 @@ export interface SkillEntry {
 
 export type Entry = Weapon | Armor | Item | Ally | Consumable | Component | SkillEntry;
 export type ItemEntry = Exclude<Entry, SkillEntry>;
+
+/** The categories with entries of their own: all but Skills, which are added from the skill list. */
+export type ItemCategory = ItemEntry["category"];
+export const ITEM_CATEGORIES = CATEGORIES.filter((c): c is ItemCategory => c !== "skills");
 
 /**
  * Where something is equipped. A slot kind ID from the reference data (including
@@ -214,6 +238,8 @@ export interface SkillTree extends Retirable {
 export type Prerequisite = { skill: Id } | { all: Prerequisite[] } | { any: Prerequisite[] };
 
 export type SkillTier = "normal" | "epic" | "legendary";
+
+export const SKILL_TIER_NAMES: Record<SkillTier, string> = { normal: "Normal", epic: "Epic", legendary: "Legendary" };
 
 export interface Skill extends Retirable {
   id: Id;

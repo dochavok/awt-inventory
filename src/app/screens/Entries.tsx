@@ -7,12 +7,13 @@
 import { useEffect, useId, useState, type FormEvent } from "react";
 import type { EntryListItem, EntryPatch, GainOptions, NewEntry } from "../../data/types";
 import { categoryName, LIMITS } from "../../data/validate";
-import type { Character, ItemEntry, ReferenceData } from "../../rules/types";
-import { go, href, type ItemCategory } from "../router";
+import { NotFoundError } from "../../errors";
+import type { Character, Entry, ItemCategory, ItemEntry, ReferenceData } from "../../rules/types";
+import { go, href } from "../router";
 import type { Services } from "../services";
 import { offerUndo, UndoBar } from "../undo";
 import { Feedback, useAction } from "../useAction";
-import { BackTo, CharacterNotFound, Loading, pickedDate, today, useScreenData } from "./common";
+import { BackTo, CharacterNotFound, DayField, Loading, pickedDate, useScreenData } from "./common";
 
 /** Only consumables and components can be marked used (IN-12). */
 const usable = (category: ItemCategory) => category === "consumables" || category === "components";
@@ -35,12 +36,23 @@ export function Category({ services, id, category }: { services: Services; id: s
   const { character, items } = screen.data;
   const reload = () => void action.run(screen.refresh);
 
-  const used = (entry: ItemEntry) =>
+  // The list changes in place: reading the category again after every tap would cost a read per entry (NF-5).
+  const used = (entry: Entry) =>
     void action.run(async () => {
       await store.markUsed(entry.id);
-      await screen.refresh();
       const left = entry.quantity - 1;
-      return left > 0 ? `Used one ${entry.name}: ${left} left.` : `Used the last ${entry.name}.`;
+      screen.set((data) => ({
+        ...data,
+        items: data.items.flatMap((item) =>
+          item.entry.id !== entry.id
+            ? [item]
+            : left > 0
+              ? [{ ...item, entry: { ...item.entry, quantity: left } as Entry }]
+              : [],
+        ),
+      }));
+      const name = "name" in entry ? entry.name : "";
+      return left > 0 ? `Used one ${name}: ${left} left.` : `Used the last ${name}.`;
     });
 
   return (
@@ -49,8 +61,11 @@ export function Category({ services, id, category }: { services: Services; id: s
       <h1>{categoryName(category)}</h1>
       <UndoBar onUndone={reload} />
       <Feedback error={action.error} notice={action.notice} />
-      <EntryList category={category} items={items} busy={action.busy} onUsed={used} />
-      {items.length === 0 && <p className="hint">Nothing here yet.</p>}
+      {items.length === 0 ? (
+        <p className="hint">Nothing here yet.</p>
+      ) : (
+        <EntryList category={category} items={items} busy={action.busy} onUsed={used} />
+      )}
       {adding ? (
         <EntryForm
           services={services}
@@ -85,17 +100,17 @@ function EntryList({
   category: ItemCategory;
   items: EntryListItem[];
   busy: boolean;
-  onUsed: (entry: ItemEntry) => void;
+  onUsed: (entry: Entry) => void;
 }) {
-  if (items.length === 0) return null;
   return (
     <ul className="entry-list" aria-label={categoryName(category)}>
       {items.map(({ entry, equipped }) => {
-        if (entry.category === "skills") return null;
+        // A category other than Skills lists no skills; the name is there for every entry it lists.
+        const name = "name" in entry ? entry.name : "";
         return (
           <li key={entry.id}>
             <a href={href(`characters/${entry.characterId}/entries/${entry.id}`)}>
-              <strong className="name">{entry.name}</strong>
+              <strong className="name">{name}</strong>
             </a>
             <span className="quantity">× {entry.quantity}</span>
             {equipped && <span className="tag">{entry.category === "allies" ? "Active" : "Equipped"}</span>}
@@ -103,7 +118,7 @@ function EntryList({
               <button
                 type="button"
                 className="secondary"
-                aria-label={`Mark one ${entry.name} used`}
+                aria-label={`Mark one ${name} used`}
                 disabled={busy}
                 onClick={() => onUsed(entry)}
               >
@@ -211,12 +226,42 @@ function entryFrom(category: ItemCategory, f: Fields): Record<string, unknown> {
 
 type SuggestionField = Parameters<Services["store"]["suggestions"]>[0];
 
+/**
+ * Suggestions read so far, for the user signed in: each field's are read once a session, since
+ * reading them goes through the whole account (NF-5). What's typed on this phone is added as saved.
+ */
+const suggestionCache = new Map<string, Promise<string[]>>();
+const cacheKey = (services: Services, field: SuggestionField) => `${services.auth.currentUser()?.uid}:${field}`;
+
+function suggestionsFor(services: Services, field: SuggestionField): Promise<string[]> {
+  const key = cacheKey(services, field);
+  let found = suggestionCache.get(key);
+  if (!found) {
+    found = services.store.suggestions(field);
+    // A failed read is tried again next time.
+    found.catch(() => suggestionCache.delete(key));
+    suggestionCache.set(key, found);
+  }
+  return found;
+}
+
+function remember(services: Services, field: SuggestionField, value: string): void {
+  const typed = value.trim();
+  const key = cacheKey(services, field);
+  const found = suggestionCache.get(key);
+  if (!typed || !found) return;
+  suggestionCache.set(
+    key,
+    found.then((list) => (list.some((s) => s.toLowerCase() === typed.toLowerCase()) ? list : [...list, typed])),
+  );
+}
+
 /** Earlier values and common ones for the form's free-text fields (IN-2, IN-3, IN-6, IN-7, IN-11). */
 function useSuggestions(services: Services, fields: SuggestionField[]) {
   const [found, setFound] = useState<Partial<Record<SuggestionField, string[]>>>({});
   useEffect(() => {
     let current = true;
-    void Promise.all(fields.map(async (f) => [f, await services.store.suggestions(f)] as const)).then(
+    void Promise.all(fields.map(async (f) => [f, await suggestionsFor(services, f)] as const)).then(
       (pairs) => current && setFound(Object.fromEntries(pairs)),
       // Suggestions only help: without them, the fields still take any text.
       () => undefined,
@@ -224,10 +269,19 @@ function useSuggestions(services: Services, fields: SuggestionField[]) {
     return () => {
       current = false;
     };
-    // Read once when the form opens.
+    // Read when the form opens.
   }, []);
   return found;
 }
+
+/** Which suggestion list each form field adds to. */
+const SUGGESTION_FIELDS: [SuggestionField, keyof Fields][] = [
+  ["itemFamily", "itemFamily"],
+  ["weaponGroup", "weaponGroup"],
+  ["allyType", "allyType"],
+  ["componentTier", "tier"],
+  ["acquisitionSource", "source"],
+];
 
 const SUGGESTED: Record<ItemCategory, SuggestionField[]> = {
   weapons: ["itemFamily", "weaponGroup", "acquisitionSource"],
@@ -359,13 +413,11 @@ function EntryForm({
       const date = pickedDate(f.gained);
       if (date) gain.date = date;
       const fields = entryFrom(category, f);
-      if (entry) {
-        await store.updateEntry(entry.id, fields as EntryPatch, gain);
-        onDone("Saved.");
-      } else {
-        const added = await store.addEntry(character.id, fields as unknown as NewEntry, gain);
-        onDone(`${added.name} added.`);
-      }
+      let message = "Saved.";
+      if (entry) await store.updateEntry(entry.id, fields as EntryPatch, gain);
+      else message = `${(await store.addEntry(character.id, fields as unknown as NewEntry, gain)).name} added.`;
+      for (const [list, field] of SUGGESTION_FIELDS) remember(services, list, String(f[field]));
+      onDone(message);
     });
   };
 
@@ -486,11 +538,7 @@ function EntryForm({
           />
           <span className="hint">Such as the post in Discord&apos;s rewards channel.</span>
         </label>
-        <label>
-          Date gained
-          <input type="date" max={today()} value={f.gained} onChange={(e) => set("gained")(e.target.value)} />
-          <span className="hint">Leave empty for today.</span>
-        </label>
+        <DayField label="Date gained" value={f.gained} onChange={set("gained")} />
       </fieldset>
       <Feedback error={save.error} notice={null} />
       <div className="actions">
@@ -555,7 +603,15 @@ function details(entry: ItemEntry, ref: ReferenceData): [string, string][] {
 export function EntryPage({ services, id, entryId }: { services: Services; id: string; entryId: string }) {
   const { store, ref } = services;
   const screen = useScreenData(async () => {
-    const [character, entry] = await Promise.all([store.character(id), store.entry(entryId)]);
+    // A character that isn't there is "missing"; an entry that isn't (deleted, or all of it
+    // used, traded or given away) is shown as gone from the character's inventory.
+    const [character, entry] = await Promise.all([
+      store.character(id),
+      store.entry(entryId).catch((error: unknown) => {
+        if (error instanceof NotFoundError) return null;
+        throw error;
+      }),
+    ]);
     return { character, entry };
   });
   const [panel, setPanel] = useState<"edit" | "delete" | null>(null);
@@ -564,39 +620,31 @@ export function EntryPage({ services, id, entryId }: { services: Services; id: s
   if (screen.missing) return <CharacterNotFound />;
   if (!screen.data) return <Loading error={screen.error} />;
   const { character, entry } = screen.data;
-  if (entry.category === "skills" || entry.characterId !== character.id) {
+  if (!entry || entry.category === "skills" || entry.characterId !== character.id) {
     return (
       <>
         <BackTo character={character} />
         <h1>Entry not found</h1>
-        <p>This entry isn&apos;t in {character.name}&apos;s inventory.</p>
-      </>
-    );
-  }
-  const list = categoryAddress(character.id, entry.category);
-  if (entry.quantity <= 0) {
-    return (
-      <>
-        <BackTo character={character} />
-        <h1 className="name">{entry.name}</h1>
         <p>
-          {entry.name} is no longer in the inventory. Its records are in the{" "}
-          <a href={href(`characters/${character.id}/history`)}>history</a>.
+          This entry isn&apos;t in {character.name}&apos;s inventory: it may have been used up, traded, given away or
+          deleted. What happened to it is in the <a href={href(`characters/${character.id}/history`)}>history</a>.
         </p>
       </>
     );
   }
+  const list = categoryAddress(character.id, entry.category);
 
   /** After a change: the entry's page again, or its list if none is left. */
-  const after = async (left: number, message: string) => {
-    if (left <= 0) {
-      go(list);
-      return;
-    }
-    await screen.refresh();
-    setPanel(null);
-    return message;
-  };
+  const done = (left: number, message: string) =>
+    void action.run(async () => {
+      if (left <= 0) {
+        go(list);
+        return;
+      }
+      await screen.refresh();
+      setPanel(null);
+      return message;
+    });
 
   return (
     <>
@@ -625,24 +673,13 @@ export function EntryPage({ services, id, entryId }: { services: Services; id: s
           character={character}
           category={entry.category}
           entry={entry}
-          onDone={(message) => void action.run(() => after(entry.quantity, message))}
+          onDone={(message) => done(entry.quantity, message)}
           onCancel={() => setPanel(null)}
         />
       )}
-      {usable(entry.category) && (
-        <UseForm
-          key={entry.quantity}
-          services={services}
-          entry={entry}
-          onDone={(left, m) => void action.run(() => after(left, m))}
-        />
-      )}
-      <TradeForm
-        key={`trade-${entry.quantity}`}
-        services={services}
-        entry={entry}
-        onDone={(left, m) => void action.run(() => after(left, m))}
-      />
+      {usable(entry.category) && <UseForm key={entry.quantity} services={services} entry={entry} onDone={done} />}
+      {/* Keyed by the quantity, so the form offers all that's left after each change. */}
+      <TradeForm key={entry.quantity} services={services} entry={entry} onDone={done} />
       <section className="card danger" aria-labelledby="delete-entry-title">
         <h2 id="delete-entry-title">Delete</h2>
         <p>For an entry added by mistake. It leaves no trace: its history goes with it.</p>
@@ -707,11 +744,7 @@ function UseForm({
   return (
     <form className="card" aria-label="Mark used" onSubmit={submit}>
       <h2>Used, with a date or note</h2>
-      <label>
-        Date
-        <input type="date" max={today()} value={day} onChange={(e) => setDay(e.target.value)} />
-        <span className="hint">Leave empty for today.</span>
-      </label>
+      <DayField label="Date" value={day} onChange={setDay} />
       <label>
         Note
         <input maxLength={LIMITS.notes} value={note} onChange={(e) => setNote(e.target.value)} />
@@ -770,11 +803,7 @@ function TradeForm({
         Who to
         <input maxLength={LIMITS.notes} value={who} onChange={(e) => setWho(e.target.value)} />
       </label>
-      <label>
-        Date
-        <input type="date" max={today()} value={day} onChange={(e) => setDay(e.target.value)} />
-        <span className="hint">Leave empty for today.</span>
-      </label>
+      <DayField label="Date" value={day} onChange={setDay} />
       <Feedback error={trade.error} notice={null} />
       <button type="submit" disabled={trade.busy}>
         Record

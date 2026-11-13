@@ -3,18 +3,11 @@
 // signal returns (NF-3). The skill picker opens it as a missing skill (SK-5).
 
 import { useEffect, useState, type FormEvent } from "react";
-import type { ReportKind } from "../../data/types";
+import { REPORT_KIND_NAMES, REPORT_KINDS, type ReportKind } from "../../data/types";
 import { LIMITS } from "../../data/validate";
 import type { Character } from "../../rules/types";
 import type { Services } from "../services";
 import { Feedback, useAction } from "../useAction";
-
-const KINDS: [ReportKind, string][] = [
-  ["missing-skill", "Missing or wrong skill"],
-  ["bug", "Bug"],
-  ["idea", "Idea"],
-  ["account-problem", "Account problem"],
-];
 
 export function ReportForm({ services, kind: chosen }: { services: Services; kind?: ReportKind | undefined }) {
   const { store } = services;
@@ -31,7 +24,8 @@ export function ReportForm({ services, kind: chosen }: { services: Services; kin
       ([main, retired]) => setCharacters([...main, ...retired]),
       () => undefined,
     );
-  }, [store]);
+    // Read once when the form opens.
+  }, []);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -54,9 +48,9 @@ export function ReportForm({ services, kind: chosen }: { services: Services; kin
         <label>
           Kind
           <select value={kind} onChange={(e) => setKind(e.target.value as ReportKind)}>
-            {KINDS.map(([value, name]) => (
+            {REPORT_KINDS.map((value) => (
               <option key={value} value={value}>
-                {name}
+                {REPORT_KIND_NAMES[value]}
               </option>
             ))}
           </select>
