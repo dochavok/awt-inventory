@@ -483,6 +483,8 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 **NF-11 · Must · M3: Protected deployment.**
 
 - Merging to `main` deploys, but only after CI passes.
+- CI builds the server code (Cloud Functions) with the same build the deploy runs, so server code that wouldn't deploy can't merge.
+- Every CI job has a time limit of 30 minutes or less, so a stuck job fails instead of holding up merges and deploys for hours.
 - The GitHub account uses two-factor authentication, and `main` requires a pull request.
 - Deploy credentials live only in a GitHub environment that only `main` can use.
 - Dependabot keeps dependencies up to date.
@@ -527,7 +529,7 @@ When a DM answers a question, start at step 2.
 - `CLAUDE.md` states the rule.
 - Claude Code must ask before editing tests, fixtures, test settings, CI workflows, the check scripts or its own settings.
 - CI fails any change that alters or removes an existing test, fixture or harness file unless the same change edits this document. Adding tests is always allowed.
-- CI also fails if app code refers to the tests or test data.
+- CI also fails if app code, the server code included, refers to the tests or test data.
 - The check is required before merging to `main`, and always runs as it is on `main`, so a pull request can't change how it's judged.
 
 **TF-8 · Must · M1: Assertions that can fail.**
