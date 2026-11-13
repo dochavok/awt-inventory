@@ -11,20 +11,25 @@
 //
 //   npm run docs:write                    rewrite the examples in docs/
 //   tsx scripts/generate-docs.ts --check  exit 1 if any is out of date (run by npm test)
+//   ... --root <dir>                      use another copy of the repository's docs/ and data/
 
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { docsExamples } from "../build/docs-examples";
 
-const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const MARKED = /(<!-- generated: ([\w-]+) -->\n)[\s\S]*?(<!-- end generated: \2 -->)/g;
-const mode = process.argv[2];
+const [mode, rootFlag, rootDir, ...extra] = process.argv.slice(2);
 
-if (mode !== "--check" && mode !== "--write") {
-  console.error("Usage: generate-docs.ts --check | --write");
+if (
+  (mode !== "--check" && mode !== "--write") ||
+  extra.length > 0 ||
+  (rootFlag !== undefined && (rootFlag !== "--root" || !rootDir))
+) {
+  console.error("Usage: generate-docs.ts --check | --write [--root <dir>]");
   process.exit(2);
 }
+const ROOT = rootDir ?? fileURLToPath(new URL("../", import.meta.url));
 
 const made = await docsExamples(ROOT);
 const used = new Set<string>();
