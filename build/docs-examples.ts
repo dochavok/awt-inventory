@@ -6,9 +6,9 @@
 //   ...
 //   <!-- end generated: NAME -->
 //
-// scripts/generate-docs.ts writes them (--write) or checks they still match
-// (--check); this file holds the work, so a new example doesn't change the
-// protected script.
+// This file makes the examples, so a new one doesn't change a protected script.
+// scripts/generate-docs.ts (protected, TF-7) puts them between the markers
+// (--write) or checks the committed ones still match (--check).
 
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -70,43 +70,10 @@ async function sampleStore(root: string): Promise<InventoryStore> {
 }
 
 /** Each example by name: the Markdown that goes between its markers. */
-async function examples(root: string): Promise<Record<string, string>> {
+export async function docsExamples(root: string): Promise<Record<string, string>> {
   const store = await sampleStore(root);
   return {
     // EX-5: the whole JSON export of the sample account.
     "json-example": ["```json", JSON.stringify(await store.exportJson(), null, 2), "```"].join("\n"),
   };
-}
-
-const MARKED = /(<!-- generated: ([\w-]+) -->\n)[\s\S]*?(<!-- end generated: \2 -->)/g;
-
-export interface DocsCheck {
-  /** Pages whose text differs from what the examples make, with the new text. */
-  changed: { file: string; text: string }[];
-  /** Markers naming an example that doesn't exist. */
-  problems: string[];
-}
-
-/** Every guide page with its examples made afresh, and which of them differ from what's committed. */
-export async function checkDocs(root: string): Promise<DocsCheck> {
-  const made = await examples(root);
-  const used = new Set<string>();
-  const result: DocsCheck = { changed: [], problems: [] };
-  const docs = join(root, "docs");
-  for (const file of readdirSync(docs).filter((f) => f.endsWith(".md"))) {
-    const before = readFileSync(join(docs, file), "utf8").replaceAll("\r\n", "\n");
-    const after = before.replace(MARKED, (whole, start: string, name: string, end: string) => {
-      used.add(name);
-      if (made[name] === undefined) {
-        result.problems.push(`docs/${file}: no example called "${name}"`);
-        return whole;
-      }
-      return `${start}${made[name]}\n${end}`;
-    });
-    if (after !== before) result.changed.push({ file: `docs/${file}`, text: after });
-  }
-  for (const name of Object.keys(made)) {
-    if (!used.has(name)) result.problems.push(`no guide page has the "${name}" example`);
-  }
-  return result;
 }

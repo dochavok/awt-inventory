@@ -75,7 +75,7 @@ export function Category({ services, id, category }: { services: Services; id: s
       <h1>{categoryName(category)}</h1>
       <UndoBar at={categoryAddress(character.id, category)} onUndone={reload} />
       <Feedback error={action.error} notice={action.notice} />
-      <Filters choices={choices} filter={active} onChange={setFilter} />
+      <Filters choices={choices} chosen={filter} active={active} onChange={setFilter} />
       {items.length === 0 ? (
         <p className="hint">Nothing here yet.</p>
       ) : shown.length === 0 ? (
@@ -142,13 +142,21 @@ function filterChoices(items: EntryListItem[], allRarities: ReferenceData["rarit
  */
 function Filters({
   choices: { rarities, families },
-  filter,
+  chosen,
+  active: filter,
   onChange,
 }: {
   choices: FilterChoices;
-  filter: Filter;
+  /** What the user chose. */
+  chosen: Filter;
+  /** What's still filtering: the choices the list still has. */
+  active: Filter;
   onChange: (filter: Filter) => void;
 }) {
+  // A choice that stopped filtering is forgotten, so it doesn't come back with a new entry.
+  useEffect(() => {
+    if (chosen.rarity !== filter.rarity || chosen.family !== filter.family) onChange(filter);
+  });
   if (rarities.length === 0 && families.length === 0) return null;
   return (
     <form className="filters" aria-label="Filters" onSubmit={(e) => e.preventDefault()}>

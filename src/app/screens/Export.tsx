@@ -8,14 +8,14 @@
 // user taps, which phones save reliably, where a download started after the
 // file is made might be blocked.
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import type { PrintOptions } from "../../data/types";
 import { localDay } from "../../platform/time";
 import type { Character } from "../../rules/types";
 import { href } from "../router";
 import type { Services } from "../services";
 import { Feedback, useAction } from "../useAction";
-import { Loading, useScreenData } from "./common";
+import { CharacterNotFound, Loading, useScreenData } from "./common";
 
 /** A file made on the phone, ready to save. */
 interface Made {
@@ -30,6 +30,7 @@ interface Made {
 function useMadeFile() {
   const [made, setMade] = useState<Made | null>(null);
   const open = useRef(true);
+  const clear = useCallback(() => setMade(null), []);
   useEffect(() => {
     open.current = true;
     return () => {
@@ -47,7 +48,7 @@ function useMadeFile() {
     offer: (name: string, blob: Blob) => {
       if (open.current) setMade({ name, url: URL.createObjectURL(blob) });
     },
-    clear: () => setMade(null),
+    clear,
   };
 }
 
@@ -69,6 +70,9 @@ export function Export({ services, id }: { services: Services; id?: string | und
     (await Promise.all([store.listCharacters("main"), store.listCharacters("retired")])).flat(),
   );
   if (!screen.data) return <Loading error={screen.error} />;
+  // An address naming a character that isn't there (deleted on another phone, or a wrong
+  // link) says so, rather than quietly offering every character instead.
+  if (id !== undefined && !screen.data.some((c) => c.id === id)) return <CharacterNotFound />;
   return (
     <>
       <h1>Print and export</h1>
@@ -88,15 +92,16 @@ function PrintableSheet({
   chosen: string | undefined;
 }) {
   const { store, ref, settings } = services;
-  // A character named in the address is chosen; any other address starts with all of them.
-  const [which, setWhich] = useState(() => characters.find((c) => c.id === chosen)?.id ?? "all");
+  // The character named in the address is chosen; otherwise all of them.
+  const [which, setWhich] = useState(chosen ?? "all");
   const [paper, setPaper] = useState<PrintOptions["paper"]>("letter");
   const [skillText, setSkillText] = useState(false);
   const file = useMadeFile();
   const make = useAction();
   // Changing what's asked for takes away a file made for something else. While one is being
   // made, the choices are locked, so the file offered is always for what the form shows.
-  useEffect(file.clear, [which, paper, skillText]);
+  const { clear } = file;
+  useEffect(() => clear(), [clear, which, paper, skillText]);
   // The sheet has card text only where the app may show it (SK-2) and the skill list has it.
   const textAvailable = settings.showSkillText && ref.skills.some((s) => s.text !== undefined);
 
