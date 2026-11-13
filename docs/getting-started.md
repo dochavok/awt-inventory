@@ -39,4 +39,4 @@ If the server refuses a change once it's sent, the app says which one and undoes
 
 ## Help
 
-**Help**, at the top of every screen, opens the page about that screen. The help works without signal too. Each page says when it was last updated and when it was last checked against the app.
+**Help**, at the top of every screen, opens the page about that screen. Once the app has been opened with signal, the help works without signal too. Each page says when it was last updated and when it was last checked against the app.
