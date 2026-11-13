@@ -252,6 +252,29 @@ browserRule(
   },
 );
 
+browserRule(
+  { req: ["SE-3", "IN-12"], m: "M3" },
+  "a filter whose last entry is used up stops filtering, so the rest of the list shows again",
+  async ({ page }) => {
+    await signUp(page);
+    const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+    await openCategory(page, wren, "consumables", "Consumables");
+    await addEntry(page, "Smoke Pellet", async (form) => {
+      await form.getByLabel("Item family").fill("Shadowcraft");
+    });
+    await addEntry(page, "Healing Draught");
+    const filters = page.getByRole("form", { name: "Filters" });
+    await expect(filters, "the filters on Wren's consumables").toBeVisible();
+    await filters.getByLabel("Item family").selectOption({ label: "Shadowcraft" });
+    await expect(entryRows(page), "Wren's Shadowcraft consumables").toHaveText([/Smoke Pellet/]);
+    await entryRows(page).filter({ hasText: "Smoke Pellet" }).getByRole("button", { name: /used/i }).click();
+    await expect(entryRows(page), "Wren's consumables once the last Shadowcraft one is used").toHaveText([
+      /Healing Draught/,
+    ]);
+    await expect(filters, "the filters, with no family left to filter by").toBeHidden();
+  },
+);
+
 // ---------------------------------------------------------------- printable sheet (EX-1 to EX-3)
 
 browserRule(
