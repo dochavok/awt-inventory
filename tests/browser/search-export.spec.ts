@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import { expect, type Locator, type Page } from "@playwright/test";
 import { PDFArray, PDFDocument, PDFRawStream, decodePDFRawStream } from "pdf-lib";
 import { browserRule } from "../support/browser-rule";
-import { addCharacter, signUp } from "../support/browser-account";
+import { addCharacter, secondPhone, signIn, signUp } from "../support/browser-account";
 
 /** The connection bar (NF-3). */
 const connection = (page: Page) => page.getByRole("status", { name: "Connection" });
@@ -488,6 +488,87 @@ browserRule(
       await expect(page.getByRole("heading", { level: 1 }), `the help page ${what} links to`).toHaveText(
         "Search and export",
       );
+    }
+  },
+);
+
+// ---------------------------------------------------------------- after review (EX-1, NF-3)
+
+browserRule(
+  { req: ["EX-1", "SK-2"], q: ["Q10"], m: "M3" },
+  "include skill text can't be ticked while the skill list has no card text the app may show",
+  async ({ page }) => {
+    await signUp(page);
+    const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+    await page.goto(`/#/export/${wren}`);
+    const form = sheetForm(page);
+    await expect(form, "the printable sheet form").toBeVisible();
+    await expect(form.getByLabel("Include skill text"), "the skill text tick box").toBeDisabled();
+    await expect(form, "why it can't be ticked").toContainText(/no card text/i);
+  },
+);
+
+browserRule(
+  { req: ["NF-3", "SE-2", "CH-1"], m: "M3" },
+  "a search drops what the server refused, and keeps what was typed",
+  async ({ page, context }) => {
+    const player = await signUp(page);
+    const other = await secondPhone(context.browser()!, page);
+    try {
+      await signIn(other.page, player);
+      await context.setOffline(true);
+      await other.context.setOffline(true);
+      await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+      const refused = await addCharacter(other.page, { name: "wren", className: "Mage", level: 5 });
+      await openCategory(other.page, refused, "items", "Items");
+      await addEntry(other.page, "Glass Orb");
+      await openSearch(other.page, "/#/search");
+      await searchBox(other.page).fill("glass");
+      await expect(results(other.page), "phone B's results for glass, offline").toHaveText([/Glass Orb/]);
+      await context.setOffline(false);
+      await expect(connection(page), "phone A once its Wren is sent").toBeHidden({ timeout: 20_000 });
+      await other.context.setOffline(false);
+      await expect(other.page.getByRole("alert"), "what phone B is told").toContainText(/refused/i, {
+        timeout: 20_000,
+      });
+      await expect(results(other.page), "phone B's results for glass, once its wren is undone").toHaveCount(0, {
+        timeout: 10_000,
+      });
+      await expect(searchBox(other.page), "what phone B had typed").toHaveValue("glass");
+    } finally {
+      await other.context.close();
+    }
+  },
+);
+
+browserRule(
+  { req: ["NF-3", "EX-1", "CH-1"], m: "M3" },
+  "print and export for a character the server refused says it isn't there",
+  async ({ page, context }) => {
+    const player = await signUp(page);
+    const other = await secondPhone(context.browser()!, page);
+    try {
+      await signIn(other.page, player);
+      await context.setOffline(true);
+      await other.context.setOffline(true);
+      await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+      const refused = await addCharacter(other.page, { name: "wren", className: "Mage", level: 5 });
+      await other.page.goto(`/#/export/${refused}`);
+      await expect(
+        sheetForm(other.page).getByLabel("Characters").locator("option:checked"),
+        "phone B's export, for its wren",
+      ).toHaveText("wren");
+      await context.setOffline(false);
+      await expect(connection(page), "phone A once its Wren is sent").toBeHidden({ timeout: 20_000 });
+      await other.context.setOffline(false);
+      await expect(other.page.getByRole("alert"), "what phone B is told").toContainText(/refused/i, {
+        timeout: 20_000,
+      });
+      await expect(other.page.getByRole("heading", { level: 1 }), "phone B's export once wren is undone").toHaveText(
+        "Character not found",
+      );
+    } finally {
+      await other.context.close();
     }
   },
 );
