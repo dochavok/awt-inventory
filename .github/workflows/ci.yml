@@ -4,7 +4,7 @@
 #   lint               ESLint, Prettier and the TypeScript compiler; then, once
 #                      functions/ exists, the Cloud Functions build, the same
 #                      one the deploy runs (firebase.json predeploy, NF-11)
-#   test              rule scenarios, property tests, the data layer and the
+#   test               rule scenarios, property tests, the data layer and the
 #                      harness's own tests (Vitest). One of them runs the coverage
 #                      check: every Must has a test, every tag is valid, and
 #                      tests/COVERAGE.md is up to date (TF-4). Tests for unfinished

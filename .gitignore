@@ -10,6 +10,7 @@ var/*
 # Node and builds
 node_modules/
 dist/
+functions/lib/
 coverage/
 .vite/
 
