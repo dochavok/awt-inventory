@@ -27,7 +27,7 @@ Added to the home screen, the app opens full screen with its own icon.
 
 ## Your account
 
-**Account**, at the top of every screen, is where you change your display name, sign out, read the privacy note, or delete your account. Deleting it removes everything in it for good: type your display name to confirm.
+**Account**, at the top of every screen, is where you change your display name, sign out, read the privacy note, print or export your characters ([Search and export](search-and-export.md)), or delete your account. Deleting it removes everything in it for good: type your display name to confirm.
 
 ## Without signal
 
