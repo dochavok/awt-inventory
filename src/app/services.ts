@@ -110,8 +110,8 @@ export function createServices(): Services {
     },
   );
   // NF-12: the signed-in user's name and email, so an error report can leave them
-  // out. Looked up only when a report is about to be sent, so no read is spent
-  // otherwise. If the lookup fails (the database is what's failing, say), the
+  // out. Looked up only for an error that will be reported (when it happens, if
+  // the error service is still loading), so no read is spent otherwise. If the lookup fails (the database is what's failing, say), the
   // name last looked up for the same user is used, so the report still goes.
   let lastName: { uid: string; displayName: string } | undefined;
   startErrorReports(async () => {

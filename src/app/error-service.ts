@@ -1,4 +1,4 @@
-﻿// Error reports to the maintainer through Sentry (NF-12). Only the production
+// Error reports to the maintainer through Sentry (NF-12). Only the production
 // build has a DSN (VITE_SENTRY_DSN); without one nothing is sent. The SDK (only
 // the parts in ./sentry, about 30 kB) loads as its own file while the app
 // starts; errors the app catches before it's ready are kept and sent once it
@@ -28,8 +28,8 @@ export function startErrorReports(known: () => Promise<Known>): void {
   const dsn = import.meta.env.VITE_SENTRY_DSN;
   if (!dsn) return;
   lookUp = known;
-  import("./sentry")
-    .then((loaded) => {
+  import("./sentry").then(
+    (loaded) => {
       loaded.init({
         dsn,
         release: __APP_VERSION__,
@@ -51,12 +51,13 @@ export function startErrorReports(known: () => Promise<Known>): void {
       });
       sentry = loaded;
       for (const { error, who } of early.splice(0)) loaded.captureException(error, { data: { who } });
-    })
-    .catch(() => {
-      // No signal for the SDK: nothing can be sent this session.
+    },
+    () => {
+      // Only a failed load lands here (no signal for the SDK): nothing can be sent this session.
       lookUp = undefined;
       early.length = 0;
-    });
+    },
+  );
 }
 
 /** Reports an error the app caught, unless it's a refusal the user was shown. */

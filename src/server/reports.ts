@@ -7,7 +7,8 @@ import type { Clock } from "../platform/clock";
 import { EMAIL_PATTERN, escapeRegExp } from "../platform/text";
 
 export interface IssueTracker {
-  createIssue(issue: { title: string; body: string; labels: string[] }): Promise<{ number: number }>;
+  /** The new issue's number, if GitHub's reply gave one. */
+  createIssue(issue: { title: string; body: string; labels: string[] }): Promise<{ number?: number }>;
 }
 
 export interface Mailer {
@@ -76,7 +77,9 @@ export async function deliverReport(report: Report, delivery: ReportDelivery): P
     // rather than send it unscrubbed.
     const displayName = await delivery.displayNameOf?.(report.uid);
     const issue = await delivery.issues.createIssue(issueFor(report, displayName));
-    return { ...report, delivery: "issue-created", issueNumber: issue.number };
+    const created: Report = { ...report, delivery: "issue-created" };
+    if (issue.number !== undefined) created.issueNumber = issue.number;
+    return created;
   } catch (e) {
     // SP-2: GitHub (or the mail service) can't be reached; the report waits for the next try.
     // Our clients' errors give only the status, so the line holds nothing from the report.

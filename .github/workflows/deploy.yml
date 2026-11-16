@@ -52,8 +52,8 @@ jobs:
         # Only the newest commit on main deploys, so an older one never replaces it.
         run: |
           set -o pipefail
-          newest=$(git ls-remote --exit-code origin refs/heads/main | cut -f1)
-          if [ -z "$newest" ]; then echo "::error::Couldn't read main's newest commit"; exit 1; fi
+          newest=$(git ls-remote --exit-code origin refs/heads/main | cut -f1) \
+            || { echo "::error::Couldn't read main's newest commit"; exit 1; }
           if [ "$newest" = "${{ github.event.workflow_run.head_sha }}" ]; then
             echo "newest=true" >> "$GITHUB_OUTPUT"
           else

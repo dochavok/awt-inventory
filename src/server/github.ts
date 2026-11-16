@@ -34,7 +34,8 @@ function appToken(privateKey: string, now: Date): string {
 
 /** An issue tracker that creates issues as the GitHub App; `privateKey` is its PEM key, from the secret store. */
 export function gitHubIssues(privateKey: string, deps: GitHubDeps): IssueTracker {
-  async function post<T>(path: string, token: string, body?: unknown): Promise<T> {
+  /** The reply, or undefined if GitHub accepted the request but its reply can't be read. */
+  async function post<T>(path: string, token: string, body?: unknown): Promise<T | undefined> {
     const response = await deps.fetch(`${API}${path}`, {
       method: "POST",
       headers: {
@@ -48,26 +49,25 @@ export function gitHubIssues(privateKey: string, deps: GitHubDeps): IssueTracker
     });
     // The status only: GitHub's reply could quote the issue.
     if (!response.ok) throw new Error(`GitHub refused POST ${path}: ${response.status}`);
-    try {
-      return (await response.json()) as T;
-    } catch {
-      // Not the parser's message: it would quote part of the reply.
-      throw new Error(`GitHub's reply to POST ${path} couldn't be read: ${response.status}`);
-    }
+    // The parser's own error would quote part of the reply, so it's never passed on.
+    return (await response.json().catch(() => undefined)) as T | undefined;
   }
 
   return {
     async createIssue(issue) {
-      const { token } = await post<{ token: string }>(
+      const reply = await post<{ token?: unknown }>(
         `/app/installations/${REPORTS_APP.installationId}/access_tokens`,
         appToken(privateKey, deps.now()),
       );
-      const created = await post<{ number: number }>(
+      if (typeof reply?.token !== "string") throw new Error("GitHub's installation token reply couldn't be read");
+      const created = await post<{ number?: unknown }>(
         `/repos/${REPORTS_APP.owner}/${REPORTS_APP.repo}/issues`,
-        token,
+        reply.token,
         issue,
       );
-      return { number: created.number };
+      // The issue exists once GitHub accepted it, even if its number can't be read:
+      // it counts as delivered, so a retry doesn't make it twice.
+      return typeof created?.number === "number" ? { number: created.number } : {};
     },
   };
 }

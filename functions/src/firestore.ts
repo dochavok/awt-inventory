@@ -55,11 +55,9 @@ export function firestoreDeliveryStore(db: Firestore): DeliveryStore {
       const doc = queueDoc(ref);
       return db.runTransaction(async (tx) => {
         const data = (await tx.get(doc)).data();
-        const before: QueueEntry | undefined = data && {
-          ...(typeof data.leaseUntil === "string" ? { leaseUntil: data.leaseUntil } : {}),
-          ...(data.counted === true ? { counted: true } : {}),
-        };
-        const next = change(before);
+        // Everything stored but the report's address, so a new QueueEntry field is never dropped.
+        const { uid: _uid, id: _id, ...before } = data ?? {};
+        const next = change(data && (before as QueueEntry));
         if (next === undefined) tx.delete(doc);
         else tx.set(doc, { uid: ref.uid, id: ref.id, ...next });
         return next;

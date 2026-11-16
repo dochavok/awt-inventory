@@ -610,3 +610,22 @@ rule(
     ).toEqual(Array(7).fill("issue-created"));
   },
 );
+
+rule(
+  { req: ["SP-2"], m: "M3" },
+  "an issue GitHub accepted counts as delivered even if its reply can't be read, so the retry doesn't make it twice",
+  async () => {
+    const { privateKey } = rsaKeys();
+    const garbled = (async (input: string | URL | Request) =>
+      String(input).endsWith("/access_tokens")
+        ? new Response(JSON.stringify({ token: "made-up-installation-token" }), { status: 201 })
+        : new Response('{"number": 7, "title": "CM looks', { status: 201 })) as typeof fetch;
+    const done = await deliverReport(report(), {
+      issues: gitHubIssues(privateKey, { fetch: garbled, now: () => new Date() }),
+      mailer: new FakeMailer(),
+      maintainerEmail: "maintainer@example.test",
+    });
+    expect(done.delivery, "the report").toBe("issue-created");
+    expect(done.issueNumber, "the issue number, unreadable").toBeUndefined();
+  },
+);
