@@ -539,3 +539,48 @@ rule(
     expect(counterExpiry("2026-12-31").toISOString(), "a count at the year's end").toBe("2027-01-02T00:00:00.000Z");
   },
 );
+
+rule(
+  { req: ["SP-2"], m: "M3" },
+  "a report whose first handling fails partway is still delivered by the retry",
+  async () => {
+    class FlakyStore extends FakeDeliveryStore {
+      counterFailures = 1;
+      override async updateCounter(uid: string, change: (counter: ReportCounter | undefined) => ReportCounter) {
+        if (this.counterFailures-- > 0) throw new Error("transaction contention (fake)");
+        return super.updateCounter(uid, change);
+      }
+    }
+    const { issues, clock, deps } = server();
+    const store = new FlakyStore();
+    const ref = store.add(report());
+    await expect(receiveReport(ref, { ...deps, store }), "the first handling").rejects.toThrow();
+    expect(store.delivery(ref), "the report after the failure").toBe("pending");
+
+    clock.advance(60 * 60_000);
+    await retryQueued({ ...deps, store });
+    expect(store.delivery(ref), "the report after the retry").toBe("issue-created");
+    expect(issues.created.length, "issues created").toBe(1);
+  },
+);
+
+rule(
+  { req: ["SP-2", "PV-2"], m: "M3" },
+  "a delivery that fails is logged with why, never with the report's text",
+  async () => {
+    const { issues, deps } = delivery();
+    const logged: string[] = [];
+    issues.down = true;
+    const done = await deliverReport(report({ subject: "Made-up subject", message: "Made-up private message" }), {
+      ...deps,
+      log: (line) => logged.push(line),
+    });
+    expect(done.delivery, "the report").toBe("pending");
+    expect(logged.length, "lines logged").toBe(1);
+    expect(logged[0], "the log line").toContain("GitHub unreachable (fake)");
+    expect(logged[0], "the log line").toContain("42");
+    for (const text of ["Made-up subject", "Made-up private message", "uid-bram"]) {
+      expect(logged[0], `the log line including ${text}`).not.toContain(text);
+    }
+  },
+);

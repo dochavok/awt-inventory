@@ -223,3 +223,22 @@ rule(
     ]);
   },
 );
+
+rule(
+  { req: ["NF-11"], m: "M3" },
+  "a deploy goes ahead only while its commit is still the newest on main, so an older one can't replace it",
+  () => {
+    for (const [name, job] of deployJobs()) {
+      const steps = (job.steps ?? []) as (DeployStep & { id?: string; name?: string; run?: string; if?: string })[];
+      const check = steps.findIndex((s) => s.id === "latest");
+      expect(check, `${name}'s check that its commit is the newest on main`).toBeGreaterThan(0);
+      expect(steps[check]?.run ?? "", "the check").toContain("refs/heads/main");
+      expect(steps[check]?.run ?? "", "the check").toContain("github.event.workflow_run.head_sha");
+      for (const step of steps.slice(check + 1)) {
+        expect(step.if ?? "", `${name}'s step ${step.name ?? step.uses ?? step.run}`).toContain(
+          "steps.latest.outputs.newest == 'true'",
+        );
+      }
+    }
+  },
+);
