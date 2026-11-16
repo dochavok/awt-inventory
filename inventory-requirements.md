@@ -367,7 +367,7 @@ The to-do list joins the printable sheet in M7 (section 11). Sheets are created 
 
 ### 10.3 Reports to the maintainer
 
-**SP-1 · Must · M3: Reports to the maintainer.** A signed-in user can send the maintainer a report from the app, choosing its kind (missing or wrong skill, bug, idea, account problem) and writing a subject and message, optionally naming a character. Reports are saved in the app's database, where only the sender and the maintainer can read them, and are deleted with the account (AC-5). A user can send at most 5 reports a day.
+**SP-1 · Must · M3: Reports to the maintainer.** A signed-in user can send the maintainer a report from the app, choosing its kind (missing or wrong skill, bug, idea, account problem) and writing a subject and message, optionally naming a character. Reports are saved in the app's database, where only the sender and the maintainer can read them, and are deleted with the account (AC-5). A user can send at most 5 reports a day. The server checks this limit too, and doesn't pass on reports over it.
 
 **SP-2 · Must · M3: Issues from reports.** Every report except *account problem* becomes an issue in a **separate, private** GitHub repository (not the app's public one), labelled with its kind. The issue holds the subject, message, kind, app version and report number, and never the user's email address or display name, even where the user typed them: the server replaces them with a marker. The issue says that the full report, as sent, is in the app's database under its report number. The server creates it with a GitHub App installed only on that repository, with permission only for issues. If GitHub can't be reached, the issue is created later, and the report is never lost.
 
@@ -691,6 +691,7 @@ Chosen with Craig on 2026-11-09. The rules must run in the browser, for working 
 | Sign-in | Firebase Authentication: Google, and email with password |
 | Database | Cloud Firestore with its offline cache. Security rules enforce PV-1 and the invite list (NF-13). |
 | Server code | Cloud Functions: reports to GitHub through a GitHub App (SP-2), report emails (SP-3), nightly backups (NF-10) |
+| Report emails | Resend, free plan, sending from Resend's shared address to the maintainer only (SP-3) |
 | Hosting | Firebase Hosting, deployed from `main` by GitHub Actions after CI passes (NF-11) |
 | Backups | A nightly Firestore export to a bucket in a separate Google Cloud project, deleted after 30 days |
 | PDF | Created on the phone (`pdf-lib`) |
