@@ -2,7 +2,7 @@
 
 For the maintainer only (NF-10); not part of the in-app guide.
 
-Restore tested: not yet
+Restore tested: 2026-11-16
 
 ## The two kinds of backup
 
