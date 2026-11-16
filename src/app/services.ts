@@ -110,16 +110,22 @@ export function createServices(): Services {
     },
   );
   // NF-12: the signed-in user's name and email, so an error report can leave them
-  // out. Looked up only when a report is about to be sent, so no read is spent otherwise.
+  // out. Looked up only when a report is about to be sent, so no read is spent
+  // otherwise. If the lookup fails (the database is what's failing, say), the
+  // name last looked up for the same user is used, so the report still goes.
+  let lastName: { uid: string; displayName: string } | undefined;
   startErrorReports(async () => {
     const user = firebaseAuth.currentUser;
     if (!user) return {};
     const email = user.email ?? undefined;
     try {
-      return { email, displayName: (await store.profile()).displayName };
+      const { displayName } = await store.profile();
+      lastName = { uid: user.uid, displayName };
+      return { email, displayName };
     } catch (e) {
       // No profile yet (signing up): there's no display name to leave out.
       if (e instanceof NotFoundError) return { email };
+      if (lastName?.uid === user.uid) return { email, displayName: lastName.displayName };
       throw e;
     }
   });

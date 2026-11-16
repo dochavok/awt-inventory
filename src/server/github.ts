@@ -48,7 +48,12 @@ export function gitHubIssues(privateKey: string, deps: GitHubDeps): IssueTracker
     });
     // The status only: GitHub's reply could quote the issue.
     if (!response.ok) throw new Error(`GitHub refused POST ${path}: ${response.status}`);
-    return (await response.json()) as T;
+    try {
+      return (await response.json()) as T;
+    } catch {
+      // Not the parser's message: it would quote part of the reply.
+      throw new Error(`GitHub's reply to POST ${path} couldn't be read: ${response.status}`);
+    }
   }
 
   return {

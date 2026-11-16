@@ -51,11 +51,13 @@ jobs:
         # CI runs can finish out of order (a re-run of an older commit's CI, say).
         # Only the newest commit on main deploys, so an older one never replaces it.
         run: |
-          newest=$(git ls-remote origin refs/heads/main | cut -f1)
+          set -o pipefail
+          newest=$(git ls-remote --exit-code origin refs/heads/main | cut -f1)
+          if [ -z "$newest" ]; then echo "::error::Couldn't read main's newest commit"; exit 1; fi
           if [ "$newest" = "${{ github.event.workflow_run.head_sha }}" ]; then
             echo "newest=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::notice::Not deploying: main has moved on to $newest, which deploys itself."
+            echo "::notice::Not deploying: main has moved on to $newest, which deploys once its CI passes."
             echo "newest=false" >> "$GITHUB_OUTPUT"
           fi
       - uses: actions/setup-node@v7

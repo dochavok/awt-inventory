@@ -584,3 +584,29 @@ rule(
     }
   },
 );
+
+rule(
+  { req: ["SP-1", "SP-2"], m: "M3" },
+  "reports counted on the day they arrived aren't counted again when they're delivered the next day",
+  async () => {
+    const { issues, store, clock, deps } = server();
+    clock.set("2026-06-13T23:00:00.000Z");
+    issues.down = true;
+    const late = [1, 2, 3, 4, 5].map((n) => store.add(report({ id: `r${n}`, number: n })));
+    for (const ref of late) await receiveReport(ref, deps);
+    expect(
+      late.map((ref) => store.delivery(ref)),
+      "the 5 reports while GitHub is down",
+    ).toEqual(["pending", "pending", "pending", "pending", "pending"]);
+
+    clock.set("2026-06-14T09:00:00.000Z");
+    issues.down = false;
+    const next = [6, 7].map((n) => store.add(report({ id: `r${n}`, number: n })));
+    for (const ref of next) await receiveReport(ref, deps);
+    await retryQueued(deps);
+    expect(
+      [...late, ...next].map((ref) => store.delivery(ref)),
+      "all 7 reports, 5 from June 13 and 2 from June 14",
+    ).toEqual(Array(7).fill("issue-created"));
+  },
+);

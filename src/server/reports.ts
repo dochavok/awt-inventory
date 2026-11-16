@@ -109,6 +109,8 @@ export interface ReportCounter {
 /** A report waiting for delivery. While leased, one run is delivering it and no other may. */
 export interface QueueEntry {
   leaseUntil?: string;
+  /** Counted against its sender's day (SP-1), so a later try doesn't count it again. */
+  counted?: boolean;
 }
 
 /**
@@ -176,20 +178,25 @@ export async function deliverQueued(ref: ReportRef, server: ServerDelivery): Pro
   const { store, clock } = server;
   const now = clock.now();
   let mine = false;
+  let alreadyCounted = false;
   await store.updateQueue(ref, (entry) => {
     // A transaction may run this more than once: only its last run counts.
     mine = entry !== undefined && !(entry.leaseUntil && entry.leaseUntil > now.toISOString());
-    return mine ? { leaseUntil: new Date(now.getTime() + LEASE_MS).toISOString() } : entry;
+    alreadyCounted = entry?.counted === true;
+    return mine ? { ...entry, leaseUntil: new Date(now.getTime() + LEASE_MS).toISOString() } : entry;
   });
   if (!mine) return;
   const report = await store.report(ref);
   if (report?.delivery === "pending") {
-    const day = now.toISOString().slice(0, 10);
-    const counter = await store.updateCounter(ref.uid, (c) => counted(c, ref.id, day));
-    if (!counter.ids.includes(ref.id)) {
-      await store.saveDelivery(ref, { delivery: "not-sent" });
-      await store.updateQueue(ref, () => undefined);
-      return;
+    if (!alreadyCounted) {
+      const day = now.toISOString().slice(0, 10);
+      const counter = await store.updateCounter(ref.uid, (c) => counted(c, ref.id, day));
+      if (!counter.ids.includes(ref.id)) {
+        await store.saveDelivery(ref, { delivery: "not-sent" });
+        await store.updateQueue(ref, () => undefined);
+        return;
+      }
+      await store.updateQueue(ref, (entry) => entry && { ...entry, counted: true });
     }
     const done = await deliverReport(report, { ...server, displayNameOf: (uid) => store.displayName(uid) });
     if (done.delivery === "pending") return;
