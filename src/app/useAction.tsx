@@ -1,7 +1,8 @@
 // Runs a form's action, tracking whether it's busy and what went wrong.
 
 import { useState } from "react";
-import { messageFor } from "./messages";
+import { reportError } from "./error-service";
+import { isExplainedRefusal, messageFor } from "./messages";
 
 /**
  * `onBusy`, when given, hears when an action starts and ends. The sign-in and
@@ -22,6 +23,8 @@ export function useAction(onBusy?: (busy: boolean) => void) {
       const done = await action();
       if (done) setNotice(done);
     } catch (e) {
+      // NF-12: refusals the user is shown aren't reported; anything else is.
+      if (!isExplainedRefusal(e)) reportError(e);
       setError(messageFor(e));
     } finally {
       setBusy(false);

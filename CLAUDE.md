@@ -42,7 +42,15 @@ When a DM answers a question in `dm-rule-questions.md`, start at step 2.
 
 - `data/`: the reference data (level chart, slot kinds, rarities, suggestions,
   skill list) as YAML. Committed. Entries are retired, never deleted (RD-3).
-- `docs/`: the in-app user guide (DOC-1) and `docs/maintainer.md` (DOC-5).
+- `docs/`: the in-app user guide (DOC-1), `docs/maintainer.md` (DOC-5, with
+  the one-time setup) and `docs/restore-runbook.md` (NF-10).
+- `functions/`: the Cloud Functions (reports, backups), in `us-east4`, with
+  their own `package.json`. Only wiring lives there: the logic is in
+  `src/server/`, tested from `tests/server/`. `npm run build` there
+  type-checks and bundles into `functions/lib/` (git-ignored), as CI and the
+  deploy do.
+- `.github/workflows/deploy.yml`: deploys after CI passes on a push to `main`
+  (NF-11). Merging to `main` is shipping to production.
 - `tests/`: rule scenarios, `fixtures/` (made-up users and characters, and the
   test copy of the reference data), access rule tests, browser tests.
 - `var/`: local runtime files such as emulator data. Git-ignored.

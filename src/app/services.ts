@@ -19,6 +19,7 @@ import { loadReferenceData } from "../refdata";
 import type { AppSettings, InventoryStore } from "../data/store";
 import { systemClock } from "../platform/clock";
 import { createFirebaseAuth } from "../platform/firebase-auth";
+import { reportError, startErrorReports } from "./error-service";
 import type { AuthProvider } from "../platform/auth";
 import type { ReferenceData } from "../rules/types";
 
@@ -90,7 +91,9 @@ export function createServices(): Services {
     connectFirestoreEmulator(firestore, host, 8080);
   }
   const auth = createFirebaseAuth(firebaseAuth);
-  const store = createFirestoreStore(
+  // NF-12: the signed-in user's name and email, so error reports can leave them out.
+  let known: { displayName?: string; email?: string } = {};
+  const firestoreStore = createFirestoreStore(
     firestore,
     {
       currentUid: () => firebaseAuth.currentUser?.uid ?? null,
@@ -100,11 +103,33 @@ export function createServices(): Services {
     },
     {
       // NF-3: a change the server refused once it was sent is undone on the phone; the app says which.
-      onWriteRefused: (_error, change) => {
+      onWriteRefused: (error, change) => {
+        // NF-12: the app and the server disagreed, so the maintainer hears of it too.
+        reportError(error);
         for (const listener of refusedListeners) listener(change);
       },
     },
   );
+  const store: InventoryStore = {
+    ...firestoreStore,
+    async setDisplayName(displayName) {
+      const profile = await firestoreStore.setDisplayName(displayName);
+      known = { ...known, displayName: profile.displayName };
+      return profile;
+    },
+  };
+  firebaseAuth.onAuthStateChanged((user) => {
+    known = user?.email ? { email: user.email } : {};
+    if (!user) return;
+    store
+      .profile()
+      .then((profile) => {
+        if (firebaseAuth.currentUser?.uid === user.uid) known = { ...known, displayName: profile.displayName };
+      })
+      // No profile yet (signing up): there's no display name to leave out.
+      .catch(() => undefined);
+  });
+  void startErrorReports(() => known);
   // The invite list (NF-13) is enforced by the server's rules, which no user can read past.
   const accounts = createAccounts({ auth, store: () => store, inviteList: async () => null });
   return {

@@ -18,9 +18,17 @@ const AUTH_MESSAGES: Record<string, string> = {
   "auth/requires-recent-login": "For your safety, sign out and sign in again, then try once more.",
 };
 
+/** NF-12: a refusal the app explains to the user (its own, or a sign-in one); not an error to report. */
+export function isExplainedRefusal(error: unknown): boolean {
+  return error instanceof AppError || authMessage(error) !== undefined;
+}
+
+function authMessage(error: unknown): string | undefined {
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === "string" && Object.hasOwn(AUTH_MESSAGES, code) ? AUTH_MESSAGES[code] : undefined;
+}
+
 export function messageFor(error: unknown): string {
   if (error instanceof AppError) return error.message;
-  const code = (error as { code?: unknown }).code;
-  if (typeof code === "string" && code in AUTH_MESSAGES) return AUTH_MESSAGES[code]!;
-  return "Something went wrong. Please try again.";
+  return authMessage(error) ?? "Something went wrong. Please try again.";
 }

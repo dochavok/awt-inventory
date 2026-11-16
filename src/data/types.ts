@@ -243,6 +243,9 @@ export const REPORT_KIND_NAMES: Record<ReportKind, string> = {
 
 export const REPORT_KINDS = Object.keys(REPORT_KIND_NAMES) as ReportKind[];
 
+/** SP-1: reports a user can send in a day. The app and the server both check it. */
+export const REPORTS_PER_DAY = 5;
+
 export interface NewReport {
   kind: ReportKind;
   subject: string;

@@ -14,4 +14,6 @@ interface ImportMetaEnv {
   readonly VITE_FIREBASE_AUTH_DOMAIN?: string;
   readonly VITE_FIREBASE_PROJECT_ID?: string;
   readonly VITE_FIREBASE_APP_ID?: string;
+  /** Sentry's address for error reports (NF-12); only the production build has one. */
+  readonly VITE_SENTRY_DSN?: string;
 }

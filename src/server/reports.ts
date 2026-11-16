@@ -2,8 +2,7 @@
 // Functions. The issue tracker is a GitHub App installed only on the private
 // reports repository; both it and the mailer are ports, faked in tests.
 
-import { REPORT_KIND_NAMES, type Report } from "../data/types";
-import { NotImplementedError } from "../errors";
+import { REPORT_KIND_NAMES, REPORTS_PER_DAY, type Report } from "../data/types";
 import type { Clock } from "../platform/clock";
 import { EMAIL_PATTERN, escapeRegExp } from "../platform/text";
 
@@ -137,17 +136,76 @@ export interface ServerDelivery {
   clock: Clock;
 }
 
-/** A new report has reached the database: count it against its sender's day (SP-1), then deliver it. */
-export async function receiveReport(_ref: ReportRef, _server: ServerDelivery): Promise<void> {
-  throw NotImplementedError.stub("receiveReport", "M3");
+/** How long one run holds a report while delivering it. Another run may take it over after that. */
+const LEASE_MS = 5 * 60_000;
+
+/** The sender's counter for `day` with `id` counted, unless the day's limit is reached (SP-1). Counting twice changes nothing. */
+function counted(counter: ReportCounter | undefined, id: string, day: string): ReportCounter {
+  const ids = counter?.day === day ? counter.ids : [];
+  if (ids.includes(id) || ids.length >= REPORTS_PER_DAY) return { day, ids };
+  return { day, ids: [...ids, id] };
 }
 
-/** Delivers one queued report, unless another run is already delivering it. */
-export async function deliverQueued(_ref: ReportRef, _server: ServerDelivery): Promise<void> {
-  throw NotImplementedError.stub("deliverQueued", "M3");
+/**
+ * A new report has reached the database (the server may be told more than
+ * once): count it against its sender's UTC day (SP-1), then deliver it. A report
+ * over the limit is kept, marked as not sent.
+ */
+export async function receiveReport(ref: ReportRef, server: ServerDelivery): Promise<void> {
+  const { store, clock } = server;
+  if ((await store.report(ref))?.delivery !== "pending") return;
+  const day = clock.now().toISOString().slice(0, 10);
+  const counter = await store.updateCounter(ref.uid, (c) => counted(c, ref.id, day));
+  if (!counter.ids.includes(ref.id)) {
+    await store.saveDelivery(ref, { delivery: "not-sent" });
+    return;
+  }
+  await store.updateQueue(ref, (entry) => entry ?? {});
+  await deliverQueued(ref, server);
 }
 
-/** The regular retry (SP-2): tries every report still waiting. */
-export async function retryQueued(_server: ServerDelivery): Promise<void> {
-  throw NotImplementedError.stub("retryQueued", "M3");
+/**
+ * Delivers one queued report, unless another run is delivering it. One that
+ * can't be delivered stays queued for the retry (SP-2).
+ */
+export async function deliverQueued(ref: ReportRef, server: ServerDelivery): Promise<void> {
+  const { store, clock } = server;
+  const now = clock.now();
+  let mine = false;
+  await store.updateQueue(ref, (entry) => {
+    // A transaction may run this more than once: only its last run counts.
+    mine = entry !== undefined && !(entry.leaseUntil && entry.leaseUntil > now.toISOString());
+    return mine ? { leaseUntil: new Date(now.getTime() + LEASE_MS).toISOString() } : entry;
+  });
+  if (!mine) return;
+  const report = await store.report(ref);
+  if (report?.delivery === "pending") {
+    const done = await deliverReport(report, {
+      issues: server.issues,
+      mailer: server.mailer,
+      maintainerEmail: server.maintainerEmail,
+      displayNameOf: (uid) => store.displayName(uid),
+    });
+    if (done.delivery === "pending") return;
+    await store.saveDelivery(
+      ref,
+      done.issueNumber === undefined
+        ? { delivery: done.delivery }
+        : { delivery: done.delivery, issueNumber: done.issueNumber },
+    );
+  }
+  await store.updateQueue(ref, () => undefined);
+}
+
+/** The regular retry (SP-2): tries every report still waiting. One that fails doesn't stop the rest. */
+export async function retryQueued(server: ServerDelivery): Promise<void> {
+  const failures: unknown[] = [];
+  for (const ref of await server.store.queued()) {
+    try {
+      await deliverQueued(ref, server);
+    } catch (e) {
+      failures.push(e);
+    }
+  }
+  if (failures.length > 0) throw new AggregateError(failures, `${failures.length} queued reports failed`);
 }

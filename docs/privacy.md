@@ -9,7 +9,7 @@ reviewed: 2026-11-12
 - Your game records: characters, inventory, skills, titles and history.
 - Reports you send the maintainer from the app.
 
-Nothing else.
+Nothing else. Error reports (below) go to the maintainer, not into your account.
 
 ## Who can see it
 
@@ -18,6 +18,10 @@ Only you. Your records can be read and changed only by you, and the server enfor
 When trading arrives, an entry you choose to list for trade will show its name, category, description, rarity, item family and quantity, with your display name, to other players. Never your notes, your character's name or your history.
 
 The maintainer has no screens for browsing anyone's data, and looks at stored data through the hosting provider's console only for support you've asked for. Reports you send are read by the maintainer; your email address and display name are kept out of the copy used to track them.
+
+## When something goes wrong
+
+If the app hits an error, it tells the maintainer automatically through Sentry, an error-tracking service, so the error can be fixed. The error report says what went wrong, where in the app's code, and which browser and kind of phone it happened on. It never holds your game records, your display name or your email address. Messages the app shows you, such as a name already in use, aren't errors and aren't reported.
 
 ## On your phone
 

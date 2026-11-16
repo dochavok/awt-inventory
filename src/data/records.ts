@@ -40,14 +40,11 @@ import type {
   Report,
   SkillView,
 } from "./types";
-import { REPORT_KINDS } from "./types";
+import { REPORT_KINDS, REPORTS_PER_DAY } from "./types";
 import * as check from "./validate";
 
 /** IN-15: how long Undo works after a hard delete. */
 export const UNDO_SECONDS = 10;
-
-/** SP-1: reports a user can send in a day. */
-const REPORTS_PER_DAY = 5;
 
 /** EX-4: the JSON export's format version. */
 const EXPORT_FORMAT_VERSION = 1;

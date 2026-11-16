@@ -1,0 +1,78 @@
+# Deploys AWT Inventory to Firebase (NF-11): the app (Hosting), the Cloud
+# Functions and the Firestore rules.
+#
+# It runs once CI has passed for a push to main in this repository, and deploys
+# exactly the commit CI checked. Its job uses the `production` environment,
+# which holds the app's settings (variables) and the deploy credentials
+# (secrets). Google Cloud is reached through Workload Identity Federation, so no
+# long-lived key exists anywhere. docs/maintainer.md lists the variables and
+# secrets.
+# tests/ops/operations.test.ts checks this file.
+
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  # One deploy at a time, in order; none is cancelled halfway.
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main'
+      && github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          # The whole history, so each help page shows when it was last changed (DOC-6).
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: "**/package-lock.json"
+      - run: npm ci
+      - name: Install the Cloud Functions packages
+        working-directory: functions
+        run: npm ci
+      - name: Build the app for the real project
+        env:
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+          VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+        run: |
+          # Without the project's settings the build would talk to the local emulators.
+          for name in VITE_FIREBASE_API_KEY VITE_FIREBASE_AUTH_DOMAIN VITE_FIREBASE_PROJECT_ID VITE_FIREBASE_APP_ID VITE_SENTRY_DSN; do
+            if [ -z "${!name}" ]; then echo "::error::The production environment has no $name variable"; exit 1; fi
+          done
+          npm run build
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - name: Deploy to Firebase
+        # The Cloud Functions are built by firebase.json's predeploy step, as CI builds them.
+        # --force: functions no longer in the code are removed, and the first deploy sets
+        # up the cleanup policy for old function images, instead of stopping to ask.
+        run: npx firebase deploy --only hosting,functions,firestore:rules --project awt-inventory --non-interactive --force
