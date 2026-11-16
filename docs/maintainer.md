@@ -243,11 +243,17 @@ gcloud storage buckets add-iam-policy-binding gs://$BUCKET --role roles/storage.
 ```
 
 **4. Firestore settings:** report numbers can be looked up across users, and
-the server's daily report counters expire on their own:
+the server's daily report counters expire on their own.
+
+For the report numbers (gcloud's `--index` flag can't choose the query
+scope): Firebase console → Firestore Database → Indexes → Single field → Add
+exemption; collection ID `reports`, field path `number`; tick Ascending for
+both Collection and Collection group; save.
+
+For the counters (the command may take a few minutes; Ctrl-C stops only the
+waiting, and `gcloud firestore fields ttls list --project $APP` shows it):
 
 ```bash
-gcloud firestore indexes fields update number --project $APP --collection-group reports \
-  --index order=ascending,query-scope=collection --index order=ascending,query-scope=collection-group
 gcloud firestore fields ttls update expireAt --project $APP \
   --collection-group reportCounts --enable-ttl
 ```
