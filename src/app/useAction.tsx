@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { reportError } from "./error-service";
-import { isExplainedRefusal, messageFor } from "./messages";
+import { messageFor } from "./messages";
 
 /**
  * `onBusy`, when given, hears when an action starts and ends. The sign-in and
@@ -24,7 +24,7 @@ export function useAction(onBusy?: (busy: boolean) => void) {
       if (done) setNotice(done);
     } catch (e) {
       // NF-12: refusals the user is shown aren't reported; anything else is.
-      if (!isExplainedRefusal(e)) reportError(e);
+      reportError(e);
       setError(messageFor(e));
     } finally {
       setBusy(false);

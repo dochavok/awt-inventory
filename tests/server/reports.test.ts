@@ -20,6 +20,7 @@ import {
   type ServerDelivery,
 } from "../../src/server/reports";
 import { FakeClock } from "../support/fake-clock";
+import { counterExpiry } from "../../src/server/reports";
 
 class FakeIssues implements IssueTracker {
   readonly created: { title: string; body: string; labels: string[] }[] = [];
@@ -527,3 +528,14 @@ rule({ req: ["SP-3"], m: "M3" }, "if Resend refuses the email, the report waits"
   });
   expect(done.delivery, "the report").toBe("pending");
 });
+
+rule(
+  { req: ["SP-1", "PV-2"], m: "M3" },
+  "the server keeps a sender's daily count only until the next day has started everywhere",
+  () => {
+    expect(counterExpiry("2026-06-13").toISOString(), "when Bram's count for June 13 can go").toBe(
+      "2026-06-15T00:00:00.000Z",
+    );
+    expect(counterExpiry("2026-12-31").toISOString(), "a count at the year's end").toBe("2027-01-02T00:00:00.000Z");
+  },
+);

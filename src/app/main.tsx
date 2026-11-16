@@ -8,8 +8,8 @@ import "./styles.css";
 
 // NF-12: errors while drawing a screen are reported too.
 createRoot(document.getElementById("root")!, {
-  onUncaughtError: (error) => reportError(error),
-  onCaughtError: (error) => reportError(error),
+  onUncaughtError: reportError,
+  onCaughtError: reportError,
 }).render(
   <StrictMode>
     <App services={createServices()} />

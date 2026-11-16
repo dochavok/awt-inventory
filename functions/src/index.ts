@@ -10,6 +10,7 @@ import { getFirestore, v1 } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { systemClock } from "../../src/platform/clock";
 import { BACKUP_SCHEDULE, backupPlan, exportRequest } from "../../src/server/backup";
 import { gitHubIssues } from "../../src/server/github";
 import { resendMailer } from "../../src/server/mail";
@@ -36,11 +37,11 @@ const secrets = [GITHUB_APP_PRIVATE_KEY, RESEND_API_KEY, MAINTAINER_EMAIL];
 /** Built per call: secrets can be read only while a function runs. */
 function delivery(): ServerDelivery {
   return {
-    issues: gitHubIssues(GITHUB_APP_PRIVATE_KEY.value(), { fetch, now: () => new Date() }),
+    issues: gitHubIssues(GITHUB_APP_PRIVATE_KEY.value(), { fetch, now: () => systemClock.now() }),
     mailer: resendMailer(RESEND_API_KEY.value(), { fetch }),
     maintainerEmail: MAINTAINER_EMAIL.value(),
     store: firestoreDeliveryStore(getFirestore()),
-    clock: { now: () => new Date() },
+    clock: systemClock,
   };
 }
 

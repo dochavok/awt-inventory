@@ -4,12 +4,16 @@
 
 import { Timestamp, type Firestore } from "firebase-admin/firestore";
 import type { Report } from "../../src/data/types";
-import type { DeliveryStore, QueueEntry, ReportCounter, ReportRef } from "../../src/server/reports";
+import {
+  counterExpiry,
+  type DeliveryStore,
+  type QueueEntry,
+  type ReportCounter,
+  type ReportRef,
+} from "../../src/server/reports";
 
 /** gRPC's NOT_FOUND. */
 const NOT_FOUND = 5;
-
-const DAY_MS = 24 * 60 * 60_000;
 
 export function firestoreDeliveryStore(db: Firestore): DeliveryStore {
   const reportDoc = (ref: ReportRef) => db.doc(`users/${ref.uid}/reports/${ref.id}`);
@@ -41,7 +45,7 @@ export function firestoreDeliveryStore(db: Firestore): DeliveryStore {
         const data = (await tx.get(doc)).data();
         const next = change(data && { day: String(data.day), ids: (data.ids as string[]) ?? [] });
         // A TTL policy on expireAt removes the counter once its day is over (docs/maintainer.md).
-        const expireAt = Timestamp.fromMillis(Date.parse(`${next.day}T00:00:00Z`) + 2 * DAY_MS);
+        const expireAt = Timestamp.fromDate(counterExpiry(next.day));
         tx.set(doc, { ...next, expireAt } satisfies ReportCounter & { expireAt: Timestamp });
         return next;
       });

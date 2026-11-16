@@ -18,12 +18,14 @@ export function shouldReport(error: unknown): boolean {
 /**
  * The error service's last look at an event before it's sent (Sentry's
  * `beforeSend`): null drops it. `known` gives the signed-in user's display name
- * and email at that moment.
+ * and email at that moment; `report` decides which errors are sent (the app
+ * also leaves out sign-in refusals it explains).
  */
 export function errorReportFilter(
   known: () => { displayName?: string; email?: string },
+  report: (error: unknown) => boolean = shouldReport,
 ): (event: ErrorEvent, hint: { originalException?: unknown }) => ErrorEvent | null {
-  return (event, hint) => (shouldReport(hint.originalException) ? scrubEvent(event, known()) : null);
+  return (event, hint) => (report(hint.originalException) ? scrubEvent(event, known()) : null);
 }
 
 /** The parts of an error event the app sends (a subset of Sentry's event). */

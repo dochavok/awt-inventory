@@ -44,7 +44,7 @@ export function gitHubIssues(privateKey: string, deps: GitHubDeps): IssueTracker
         "User-Agent": "awt-inventory",
         "X-GitHub-Api-Version": "2022-11-28",
       },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      body: body === undefined ? undefined : JSON.stringify(body),
     });
     // The status only: GitHub's reply could quote the issue.
     if (!response.ok) throw new Error(`GitHub refused POST ${path}: ${response.status}`);

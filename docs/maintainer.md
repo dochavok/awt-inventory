@@ -233,10 +233,10 @@ Firestore's service agent writes the exports:
 ```bash
 gcloud storage buckets create gs://$BUCKET --project $BACKUP --location $REGION \
   --uniform-bucket-level-access --public-access-prevention
-cat > lifecycle.json <<'EOF'
-{ "lifecycle": { "rule": [ { "action": { "type": "Delete" }, "condition": { "age": 30 } } ] } }
-EOF
-gcloud storage buckets update gs://$BUCKET --lifecycle-file lifecycle.json
+# The committed rule (docs/backup-lifecycle.json), from the branch or main
+curl -fsSL -o backup-lifecycle.json \
+  https://raw.githubusercontent.com/$REPO/${REF:-main}/docs/backup-lifecycle.json
+gcloud storage buckets update gs://$BUCKET --lifecycle-file backup-lifecycle.json
 gcloud beta services identity create --service firestore.googleapis.com --project $APP
 gcloud storage buckets add-iam-policy-binding gs://$BUCKET --role roles/storage.admin \
   --member serviceAccount:service-$APP_NUMBER@gcp-sa-firestore.iam.gserviceaccount.com

@@ -127,17 +127,23 @@ export interface DeliveryStore {
   queued(): Promise<ReportRef[]>;
 }
 
-/** Everything the server needs to deliver reports. */
-export interface ServerDelivery {
-  issues: IssueTracker;
-  mailer: Mailer;
-  maintainerEmail: string;
+/** Everything the server needs to deliver reports. The store supplies the display name lookup. */
+export interface ServerDelivery extends Omit<ReportDelivery, "displayNameOf"> {
   store: DeliveryStore;
   clock: Clock;
 }
 
 /** How long one run holds a report while delivering it. Another run may take it over after that. */
 const LEASE_MS = 5 * 60_000;
+
+/**
+ * When a sender's counter for `day` can be removed (a TTL policy does it): once
+ * the next day has started everywhere, so it's never needed again and keeps
+ * nothing about the sender longer than that.
+ */
+export function counterExpiry(day: string): Date {
+  return new Date(Date.parse(`${day}T00:00:00Z`) + 2 * 24 * 60 * 60_000);
+}
 
 /** The sender's counter for `day` with `id` counted, unless the day's limit is reached (SP-1). Counting twice changes nothing. */
 function counted(counter: ReportCounter | undefined, id: string, day: string): ReportCounter {
@@ -180,12 +186,7 @@ export async function deliverQueued(ref: ReportRef, server: ServerDelivery): Pro
   if (!mine) return;
   const report = await store.report(ref);
   if (report?.delivery === "pending") {
-    const done = await deliverReport(report, {
-      issues: server.issues,
-      mailer: server.mailer,
-      maintainerEmail: server.maintainerEmail,
-      displayNameOf: (uid) => store.displayName(uid),
-    });
+    const done = await deliverReport(report, { ...server, displayNameOf: (uid) => store.displayName(uid) });
     if (done.delivery === "pending") return;
     await store.saveDelivery(
       ref,
