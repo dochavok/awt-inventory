@@ -629,3 +629,34 @@ rule(
     expect(done.issueNumber, "the issue number, unreadable").toBeUndefined();
   },
 );
+
+rule(
+  { req: ["SP-1"], m: "M3" },
+  "a report counted by a run that failed before finishing isn't counted again by the retry the same day",
+  async () => {
+    class FailsAfterCounting extends FakeDeliveryStore {
+      failNextMark = true;
+      override async updateQueue(ref: ReportRef, change: (entry: QueueEntry | undefined) => QueueEntry | undefined) {
+        const marking = change({ leaseUntil: "9999-12-31T00:00:00.000Z" })?.counted === true;
+        if (marking && this.failNextMark) {
+          this.failNextMark = false;
+          throw new Error("function timed out (fake)");
+        }
+        return super.updateQueue(ref, change);
+      }
+    }
+    const { issues, clock, deps } = server();
+    const store = new FailsAfterCounting();
+    const first = store.add(report({ id: "r1", number: 1 }));
+    await expect(receiveReport(first, { ...deps, store }), "the run that fails after counting").rejects.toThrow();
+    clock.advance(60 * 60_000);
+    await retryQueued({ ...deps, store });
+    const more = [2, 3, 4, 5].map((n) => store.add(report({ id: `r${n}`, number: n })));
+    for (const ref of more) await receiveReport(ref, { ...deps, store });
+    expect(
+      [first, ...more].map((ref) => store.delivery(ref)),
+      "Bram's 5 reports that day",
+    ).toEqual(Array(5).fill("issue-created"));
+    expect(issues.created.length, "issues created").toBe(5);
+  },
+);
