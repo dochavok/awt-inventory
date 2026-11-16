@@ -17,3 +17,14 @@ export interface BackupPlan {
 export function backupPlan(_env: { appProject: string; backupProject: string; bucket: string }): BackupPlan {
   throw NotImplementedError.stub("backupPlan", "M3");
 }
+
+/** The Firestore export request for one night: the whole database, into that day's folder in the bucket. */
+export interface ExportRequest {
+  name: string;
+  outputUriPrefix: string;
+  collectionIds: string[];
+}
+
+export function exportRequest(_plan: BackupPlan, _appProject: string, _at: Date): ExportRequest {
+  throw NotImplementedError.stub("exportRequest", "M3");
+}

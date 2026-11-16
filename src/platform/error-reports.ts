@@ -3,7 +3,7 @@
 // error (its type, message, stack trace and tags) and drops everything that
 // could hold game records or personal details.
 
-import { AppError } from "../errors";
+import { AppError, NotImplementedError } from "../errors";
 import { EMAIL_PATTERN, escapeRegExp } from "./text";
 
 /**
@@ -13,6 +13,17 @@ import { EMAIL_PATTERN, escapeRegExp } from "./text";
  */
 export function shouldReport(error: unknown): boolean {
   return !(error instanceof AppError);
+}
+
+/**
+ * The error service's last look at an event before it's sent (Sentry's
+ * `beforeSend`): null drops it. `known` gives the signed-in user's display name
+ * and email at that moment.
+ */
+export function errorReportFilter(
+  _known: () => { displayName?: string; email?: string },
+): (event: ErrorEvent, hint: { originalException?: unknown }) => ErrorEvent | null {
+  throw NotImplementedError.stub("errorReportFilter", "M3");
 }
 
 /** The parts of an error event the app sends (a subset of Sentry's event). */

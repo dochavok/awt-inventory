@@ -258,7 +258,8 @@ export interface Report extends NewReport {
   sentAt: string;
   appVersion: string;
   /** "pending" until the issue (SP-2) or email (SP-3) is created. */
-  delivery: "pending" | "issue-created" | "emailed";
+  /** "not-sent": over the sender's daily limit when it reached the server (SP-1). */
+  delivery: "pending" | "issue-created" | "emailed" | "not-sent";
   issueNumber?: number;
 }
 

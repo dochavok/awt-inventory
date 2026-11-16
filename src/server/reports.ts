@@ -3,6 +3,8 @@
 // reports repository; both it and the mailer are ports, faked in tests.
 
 import { REPORT_KIND_NAMES, type Report } from "../data/types";
+import { NotImplementedError } from "../errors";
+import type { Clock } from "../platform/clock";
 import { EMAIL_PATTERN, escapeRegExp } from "../platform/text";
 
 export interface IssueTracker {
@@ -85,4 +87,67 @@ export async function deliverPending(reports: Report[], delivery: ReportDelivery
   const out: Report[] = [];
   for (const report of reports) out.push(await deliverReport(report, delivery));
   return out;
+}
+
+// ---------------------------------------------------------------- the delivery queue
+
+/** A report in the database: its sender and its ID. */
+export interface ReportRef {
+  uid: string;
+  id: string;
+}
+
+/** SP-1: the reports the server has counted for a sender on one UTC day. */
+export interface ReportCounter {
+  day: string;
+  ids: string[];
+}
+
+/** A report waiting for delivery. While leased, one run is delivering it and no other may. */
+export interface QueueEntry {
+  leaseUntil?: string;
+}
+
+/**
+ * What the server keeps about reports: the reports themselves, the senders'
+ * display names, a per-sender daily counter and a queue of reports to deliver.
+ * Cloud Firestore in functions/; a fake in tests. The `update*` methods apply
+ * `change` atomically and store its result.
+ */
+export interface DeliveryStore {
+  /** The report, or undefined once it's gone (its account was deleted). */
+  report(ref: ReportRef): Promise<Report | undefined>;
+  displayName(uid: string): Promise<string | undefined>;
+  saveDelivery(ref: ReportRef, result: Pick<Report, "delivery" | "issueNumber">): Promise<void>;
+  updateCounter(uid: string, change: (counter: ReportCounter | undefined) => ReportCounter): Promise<ReportCounter>;
+  /** `change` returns the new entry, or undefined to remove it; resolves to what `change` returned. */
+  updateQueue(
+    ref: ReportRef,
+    change: (entry: QueueEntry | undefined) => QueueEntry | undefined,
+  ): Promise<QueueEntry | undefined>;
+  queued(): Promise<ReportRef[]>;
+}
+
+/** Everything the server needs to deliver reports. */
+export interface ServerDelivery {
+  issues: IssueTracker;
+  mailer: Mailer;
+  maintainerEmail: string;
+  store: DeliveryStore;
+  clock: Clock;
+}
+
+/** A new report has reached the database: count it against its sender's day (SP-1), then deliver it. */
+export async function receiveReport(_ref: ReportRef, _server: ServerDelivery): Promise<void> {
+  throw NotImplementedError.stub("receiveReport", "M3");
+}
+
+/** Delivers one queued report, unless another run is already delivering it. */
+export async function deliverQueued(_ref: ReportRef, _server: ServerDelivery): Promise<void> {
+  throw NotImplementedError.stub("deliverQueued", "M3");
+}
+
+/** The regular retry (SP-2): tries every report still waiting. */
+export async function retryQueued(_server: ServerDelivery): Promise<void> {
+  throw NotImplementedError.stub("retryQueued", "M3");
 }

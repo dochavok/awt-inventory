@@ -7,6 +7,7 @@ import { expect } from "vitest";
 import { parse } from "yaml";
 import { backupPlan } from "../../src/server/backup";
 import { rule } from "../support/rule";
+import { exportRequest } from "../../src/server/backup";
 
 const ROOT = new URL("../../", import.meta.url);
 
@@ -144,3 +145,81 @@ rule({ req: ["NF-11"], m: "M3" }, "CI builds the Cloud Functions with the same b
     expect([undefined, "hashFiles('functions/package.json') != ''"], `when CI runs "${step.run}"`).toContain(step.if);
   }
 });
+
+type DeployStep = { uses?: string; with?: Record<string, unknown> };
+
+function deployJobs() {
+  const deploy = parse(read(".github/workflows/deploy.yml")) as {
+    jobs: Record<string, { if?: string; steps?: DeployStep[] }>;
+  };
+  const jobs = Object.entries(deploy.jobs);
+  expect(jobs.length, "deploy jobs").toBeGreaterThan(0);
+  return jobs;
+}
+
+function checkoutOf(steps: DeployStep[] | undefined): DeployStep | undefined {
+  return (steps ?? []).find((s) => s.uses?.startsWith("actions/checkout@"));
+}
+
+rule(
+  { req: ["NF-11"], m: "M3" },
+  "a deploy starts only from a CI run for a push to main in this repository, and deploys the commit CI checked",
+  () => {
+    for (const [name, job] of deployJobs()) {
+      const condition = job.if ?? "";
+      for (const part of [
+        "github.event.workflow_run.event == 'push'",
+        "github.event.workflow_run.head_branch == 'main'",
+        "github.event.workflow_run.head_repository.full_name == github.repository",
+      ]) {
+        expect(condition, `${name}'s condition`).toContain(part);
+      }
+      expect(checkoutOf(job.steps)?.with?.ref, `the commit ${name} checks out`).toBe(
+        "${{ github.event.workflow_run.head_sha }}",
+      );
+    }
+  },
+);
+
+rule(
+  { req: ["DOC-6"], m: "M3" },
+  "the deploy checks out the whole history, so each help page shows when it was really last updated",
+  () => {
+    for (const [name, job] of deployJobs()) {
+      expect(checkoutOf(job.steps)?.with?.["fetch-depth"], `${name}'s checkout depth`).toBe(0);
+    }
+  },
+);
+
+rule(
+  { req: ["NF-10"], m: "M3" },
+  "each night's backup is the whole database, in its own dated folder in the backup bucket",
+  () => {
+    const plan = backupPlan({
+      appProject: "awt-inventory-test",
+      backupProject: "awt-inventory-backup-test",
+      bucket: "made-up-bucket",
+    });
+    expect(exportRequest(plan, "awt-inventory-test", new Date("2026-06-13T03:00:00.000Z")), "the export").toEqual({
+      name: "projects/awt-inventory-test/databases/(default)",
+      outputUriPrefix: "gs://made-up-bucket/2026-06-13",
+      collectionIds: [],
+    });
+  },
+);
+
+rule(
+  { req: ["NF-10"], m: "M3" },
+  "the backup bucket's lifecycle deletes each backup once it's as old as the plan keeps them",
+  () => {
+    const plan = backupPlan({
+      appProject: "awt-inventory-test",
+      backupProject: "awt-inventory-backup-test",
+      bucket: "made-up-bucket",
+    });
+    const file = JSON.parse(read("docs/backup-lifecycle.json")) as { lifecycle?: { rule?: unknown } };
+    expect(file.lifecycle?.rule, "the bucket's lifecycle rules").toEqual([
+      { action: { type: "Delete" }, condition: { age: plan.retentionDays } },
+    ]);
+  },
+);
