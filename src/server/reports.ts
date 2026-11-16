@@ -20,6 +20,8 @@ export interface ReportDelivery {
   maintainerEmail: string;
   /** The user's display name, so the issue can leave it out (SP-2). */
   displayNameOf?: (uid: string) => Promise<string | undefined>;
+  /** Where a failed delivery is recorded for the maintainer: the report number and the error, never the report's text. */
+  log?: (line: string) => void;
 }
 
 /**
@@ -75,8 +77,10 @@ export async function deliverReport(report: Report, delivery: ReportDelivery): P
     const displayName = await delivery.displayNameOf?.(report.uid);
     const issue = await delivery.issues.createIssue(issueFor(report, displayName));
     return { ...report, delivery: "issue-created", issueNumber: issue.number };
-  } catch {
+  } catch (e) {
     // SP-2: GitHub (or the mail service) can't be reached; the report waits for the next try.
+    // Our clients' errors give only the status, so the line holds nothing from the report.
+    delivery.log?.(`Report ${report.number} not delivered yet: ${e instanceof Error ? e.message : String(e)}`);
     return report;
   }
 }
@@ -154,25 +158,19 @@ function counted(counter: ReportCounter | undefined, id: string, day: string): R
 
 /**
  * A new report has reached the database (the server may be told more than
- * once): count it against its sender's UTC day (SP-1), then deliver it. A report
- * over the limit is kept, marked as not sent.
+ * once). It's queued first, so that if anything after fails, the retry still
+ * finds it (SP-2), then handled as any queued report.
  */
 export async function receiveReport(ref: ReportRef, server: ServerDelivery): Promise<void> {
-  const { store, clock } = server;
-  if ((await store.report(ref))?.delivery !== "pending") return;
-  const day = clock.now().toISOString().slice(0, 10);
-  const counter = await store.updateCounter(ref.uid, (c) => counted(c, ref.id, day));
-  if (!counter.ids.includes(ref.id)) {
-    await store.saveDelivery(ref, { delivery: "not-sent" });
-    return;
-  }
-  await store.updateQueue(ref, (entry) => entry ?? {});
+  await server.store.updateQueue(ref, (entry) => entry ?? {});
   await deliverQueued(ref, server);
 }
 
 /**
- * Delivers one queued report, unless another run is delivering it. One that
- * can't be delivered stays queued for the retry (SP-2).
+ * Handles one queued report, unless another run is: counts it against its
+ * sender's UTC day (SP-1; counting again changes nothing), then delivers it. A
+ * report over the limit is kept, marked as not sent. One that can't be
+ * delivered stays queued for the retry (SP-2).
  */
 export async function deliverQueued(ref: ReportRef, server: ServerDelivery): Promise<void> {
   const { store, clock } = server;
@@ -186,6 +184,13 @@ export async function deliverQueued(ref: ReportRef, server: ServerDelivery): Pro
   if (!mine) return;
   const report = await store.report(ref);
   if (report?.delivery === "pending") {
+    const day = now.toISOString().slice(0, 10);
+    const counter = await store.updateCounter(ref.uid, (c) => counted(c, ref.id, day));
+    if (!counter.ids.includes(ref.id)) {
+      await store.saveDelivery(ref, { delivery: "not-sent" });
+      await store.updateQueue(ref, () => undefined);
+      return;
+    }
     const done = await deliverReport(report, { ...server, displayNameOf: (uid) => store.displayName(uid) });
     if (done.delivery === "pending") return;
     await store.saveDelivery(

@@ -23,6 +23,11 @@ export function isExplainedRefusal(error: unknown): boolean {
   return error instanceof AppError || authMessage(error) !== undefined;
 }
 
+/** NF-12: whether the app reports an error: anything except a refusal it explains. */
+export function isReportable(error: unknown): boolean {
+  return !isExplainedRefusal(error);
+}
+
 function authMessage(error: unknown): string | undefined {
   const code = (error as { code?: unknown } | null)?.code;
   return typeof code === "string" && Object.hasOwn(AUTH_MESSAGES, code) ? AUTH_MESSAGES[code] : undefined;

@@ -7,6 +7,7 @@
 
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, v1 } from "firebase-admin/firestore";
+import { logger } from "firebase-functions";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
@@ -42,11 +43,15 @@ function delivery(): ServerDelivery {
     maintainerEmail: MAINTAINER_EMAIL.value(),
     store: firestoreDeliveryStore(getFirestore()),
     clock: systemClock,
+    log: (line) => logger.warn(line),
   };
 }
 
-export const onReportCreated = onDocumentCreated({ document: "users/{uid}/reports/{reportId}", secrets }, (event) =>
-  receiveReport({ uid: event.params.uid, id: event.params.reportId }, delivery()),
+// retry: if the report can't even be queued (Firestore briefly unavailable), the
+// event comes again; once queued, the hourly retry takes over.
+export const onReportCreated = onDocumentCreated(
+  { document: "users/{uid}/reports/{reportId}", secrets, retry: true },
+  (event) => receiveReport({ uid: event.params.uid, id: event.params.reportId }, delivery()),
 );
 
 export const retryReports = onSchedule({ schedule: "every 60 minutes", timeZone: "UTC", secrets }, () =>
