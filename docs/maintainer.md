@@ -206,6 +206,7 @@ gcloud services enable --project $BACKUP storage.googleapis.com
 ```bash
 gcloud iam service-accounts create awt-functions --project $APP \
   --display-name "AWT Inventory Cloud Functions"
+sleep 60  # a new account takes a minute before roles can be granted to it
 for role in roles/datastore.user roles/datastore.importExportAdmin roles/eventarc.eventReceiver \
             roles/run.invoker roles/logging.logWriter; do
   gcloud projects add-iam-policy-binding $APP --member serviceAccount:$FUNCTIONS_SA \
@@ -218,6 +219,7 @@ can't add them itself, by design):
 
 ```bash
 gcloud beta services identity create --service pubsub.googleapis.com --project $APP
+sleep 60
 gcloud projects add-iam-policy-binding $APP --condition None --quiet > /dev/null \
   --member serviceAccount:service-$APP_NUMBER@gcp-sa-pubsub.iam.gserviceaccount.com \
   --role roles/iam.serviceAccountTokenCreator
@@ -238,6 +240,7 @@ curl -fsSL -o backup-lifecycle.json \
   https://raw.githubusercontent.com/$REPO/${REF:-main}/docs/backup-lifecycle.json
 gcloud storage buckets update gs://$BUCKET --lifecycle-file backup-lifecycle.json
 gcloud beta services identity create --service firestore.googleapis.com --project $APP
+sleep 60
 gcloud storage buckets add-iam-policy-binding gs://$BUCKET --role roles/storage.admin \
   --member serviceAccount:service-$APP_NUMBER@gcp-sa-firestore.iam.gserviceaccount.com
 ```
@@ -264,6 +267,7 @@ environment:
 
 ```bash
 gcloud iam service-accounts create github-deploy --project $APP --display-name "GitHub Actions deploy"
+sleep 60
 for role in roles/firebasehosting.admin roles/firebaserules.admin roles/cloudfunctions.developer \
             roles/cloudscheduler.admin roles/eventarc.developer roles/run.developer \
             roles/artifactregistry.admin roles/secretmanager.viewer roles/iam.securityReviewer \
