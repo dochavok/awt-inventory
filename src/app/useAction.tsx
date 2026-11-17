@@ -1,6 +1,7 @@
 // Runs a form's action, tracking whether it's busy and what went wrong.
 
 import { useState } from "react";
+import { reportError } from "./error-service";
 import { messageFor } from "./messages";
 
 /**
@@ -22,6 +23,8 @@ export function useAction(onBusy?: (busy: boolean) => void) {
       const done = await action();
       if (done) setNotice(done);
     } catch (e) {
+      // NF-12: refusals the user is shown aren't reported; anything else is.
+      reportError(e);
       setError(messageFor(e));
     } finally {
       setBusy(false);

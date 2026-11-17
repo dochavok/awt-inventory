@@ -2,11 +2,13 @@
 // Functions. The issue tracker is a GitHub App installed only on the private
 // reports repository; both it and the mailer are ports, faked in tests.
 
-import { REPORT_KIND_NAMES, type Report } from "../data/types";
+import { REPORT_KIND_NAMES, REPORTS_PER_DAY, type Report } from "../data/types";
+import type { Clock } from "../platform/clock";
 import { EMAIL_PATTERN, escapeRegExp } from "../platform/text";
 
 export interface IssueTracker {
-  createIssue(issue: { title: string; body: string; labels: string[] }): Promise<{ number: number }>;
+  /** The new issue's number, if GitHub's reply gave one. */
+  createIssue(issue: { title: string; body: string; labels: string[] }): Promise<{ number?: number }>;
 }
 
 export interface Mailer {
@@ -19,6 +21,8 @@ export interface ReportDelivery {
   maintainerEmail: string;
   /** The user's display name, so the issue can leave it out (SP-2). */
   displayNameOf?: (uid: string) => Promise<string | undefined>;
+  /** Where a failed delivery is recorded for the maintainer: the report number and the error, never the report's text. */
+  log?: (line: string) => void;
 }
 
 /**
@@ -73,9 +77,13 @@ export async function deliverReport(report: Report, delivery: ReportDelivery): P
     // rather than send it unscrubbed.
     const displayName = await delivery.displayNameOf?.(report.uid);
     const issue = await delivery.issues.createIssue(issueFor(report, displayName));
-    return { ...report, delivery: "issue-created", issueNumber: issue.number };
-  } catch {
+    const created: Report = { ...report, delivery: "issue-created" };
+    if (issue.number !== undefined) created.issueNumber = issue.number;
+    return created;
+  } catch (e) {
     // SP-2: GitHub (or the mail service) can't be reached; the report waits for the next try.
+    // Our clients' errors give only the status, so the line holds nothing from the report.
+    delivery.log?.(`Report ${report.number} not delivered yet: ${e instanceof Error ? e.message : String(e)}`);
     return report;
   }
 }
@@ -85,4 +93,135 @@ export async function deliverPending(reports: Report[], delivery: ReportDelivery
   const out: Report[] = [];
   for (const report of reports) out.push(await deliverReport(report, delivery));
   return out;
+}
+
+// ---------------------------------------------------------------- the delivery queue
+
+/** A report in the database: its sender and its ID. */
+export interface ReportRef {
+  uid: string;
+  id: string;
+}
+
+/** SP-1: the reports the server has counted for a sender on one UTC day. */
+export interface ReportCounter {
+  day: string;
+  ids: string[];
+}
+
+/** A report waiting for delivery. While leased, one run is delivering it and no other may. */
+export interface QueueEntry {
+  leaseUntil?: string;
+  /** Counted against its sender's day (SP-1), so a later try doesn't count it again. */
+  counted?: boolean;
+}
+
+/**
+ * What the server keeps about reports: the reports themselves, the senders'
+ * display names, a per-sender daily counter and a queue of reports to deliver.
+ * Cloud Firestore in functions/; a fake in tests. The `update*` methods apply
+ * `change` atomically and store its result.
+ */
+export interface DeliveryStore {
+  /** The report, or undefined once it's gone (its account was deleted). */
+  report(ref: ReportRef): Promise<Report | undefined>;
+  displayName(uid: string): Promise<string | undefined>;
+  saveDelivery(ref: ReportRef, result: Pick<Report, "delivery" | "issueNumber">): Promise<void>;
+  updateCounter(uid: string, change: (counter: ReportCounter | undefined) => ReportCounter): Promise<ReportCounter>;
+  /** `change` returns the new entry, or undefined to remove it; resolves to what `change` returned. */
+  updateQueue(
+    ref: ReportRef,
+    change: (entry: QueueEntry | undefined) => QueueEntry | undefined,
+  ): Promise<QueueEntry | undefined>;
+  queued(): Promise<ReportRef[]>;
+}
+
+/** Everything the server needs to deliver reports. The store supplies the display name lookup. */
+export interface ServerDelivery extends Omit<ReportDelivery, "displayNameOf"> {
+  store: DeliveryStore;
+  clock: Clock;
+}
+
+/** How long one run holds a report while delivering it. Another run may take it over after that. */
+const LEASE_MS = 5 * 60_000;
+
+/**
+ * When a sender's counter for `day` can be removed (a TTL policy does it): once
+ * the next day has started everywhere, so it's never needed again and keeps
+ * nothing about the sender longer than that.
+ */
+export function counterExpiry(day: string): Date {
+  return new Date(Date.parse(`${day}T00:00:00Z`) + 2 * 24 * 60 * 60_000);
+}
+
+/** The sender's counter for `day` with `id` counted, unless the day's limit is reached (SP-1). Counting twice changes nothing. */
+function counted(counter: ReportCounter | undefined, id: string, day: string): ReportCounter {
+  const ids = counter?.day === day ? counter.ids : [];
+  if (ids.includes(id) || ids.length >= REPORTS_PER_DAY) return { day, ids };
+  return { day, ids: [...ids, id] };
+}
+
+/**
+ * A new report has reached the database (the server may be told more than
+ * once). It's queued first, so that if anything after fails, the retry still
+ * finds it (SP-2), then handled as any queued report.
+ */
+export async function receiveReport(ref: ReportRef, server: ServerDelivery): Promise<void> {
+  await server.store.updateQueue(ref, (entry) => entry ?? {});
+  await deliverQueued(ref, server);
+}
+
+/**
+ * Handles one queued report, unless another run is: counts it against its
+ * sender's UTC day (SP-1; counting again changes nothing), then delivers it. A
+ * report over the limit is kept, marked as not sent. One that can't be
+ * delivered stays queued for the retry (SP-2).
+ */
+export async function deliverQueued(ref: ReportRef, server: ServerDelivery): Promise<void> {
+  const { store, clock } = server;
+  const now = clock.now();
+  let mine = false;
+  let alreadyCounted = false;
+  await store.updateQueue(ref, (entry) => {
+    // A transaction may run this more than once: only its last run counts.
+    mine = entry !== undefined && !(entry.leaseUntil && entry.leaseUntil > now.toISOString());
+    alreadyCounted = entry?.counted === true;
+    return mine ? { ...entry, leaseUntil: new Date(now.getTime() + LEASE_MS).toISOString() } : entry;
+  });
+  if (!mine) return;
+  const report = await store.report(ref);
+  if (report?.delivery === "pending") {
+    if (!alreadyCounted) {
+      const day = now.toISOString().slice(0, 10);
+      const counter = await store.updateCounter(ref.uid, (c) => counted(c, ref.id, day));
+      if (!counter.ids.includes(ref.id)) {
+        await store.saveDelivery(ref, { delivery: "not-sent" });
+        await store.updateQueue(ref, () => undefined);
+        return;
+      }
+      await store.updateQueue(ref, (entry) => entry && { ...entry, counted: true });
+    }
+    const done = await deliverReport(report, { ...server, displayNameOf: (uid) => store.displayName(uid) });
+    if (done.delivery === "pending") return;
+    await store.saveDelivery(
+      ref,
+      done.issueNumber === undefined
+        ? { delivery: done.delivery }
+        : { delivery: done.delivery, issueNumber: done.issueNumber },
+    );
+  }
+  await store.updateQueue(ref, () => undefined);
+}
+
+/** The regular retry (SP-2): tries every report still waiting. One that fails doesn't stop the rest. */
+export async function retryQueued(server: ServerDelivery): Promise<void> {
+  const failures: unknown[] = [];
+  for (const ref of await server.store.queued()) {
+    try {
+      await deliverQueued(ref, server);
+    } catch (e) {
+      failures.push(e);
+    }
+  }
+  if (failures.length > 0) throw new AggregateError(failures, `${failures.length} queued reports failed`);
 }

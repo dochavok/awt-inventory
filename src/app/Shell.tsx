@@ -9,7 +9,8 @@ import type { AuthProvider, AuthUser } from "../platform/auth";
 import { href } from "./router";
 import { Feedback, useAction } from "./useAction";
 
-export function Header({ signedIn, help }: { signedIn: boolean; help: string }) {
+/** `help` is the help page for the screen shown; none while the app doesn't yet know which screen that is. */
+export function Header({ signedIn, help }: { signedIn: boolean; help: string | undefined }) {
   return (
     <header className="app-header">
       <span className="app-name">AWT Inventory</span>
@@ -21,7 +22,7 @@ export function Header({ signedIn, help }: { signedIn: boolean; help: string }) 
             <a href={href("account")}>Account</a>
           </>
         )}
-        <a href={href(help)}>Help</a>
+        {help !== undefined && <a href={href(help)}>Help</a>}
       </nav>
     </header>
   );

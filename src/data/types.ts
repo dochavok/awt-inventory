@@ -243,6 +243,9 @@ export const REPORT_KIND_NAMES: Record<ReportKind, string> = {
 
 export const REPORT_KINDS = Object.keys(REPORT_KIND_NAMES) as ReportKind[];
 
+/** SP-1: reports a user can send in a day. The app and the server both check it. */
+export const REPORTS_PER_DAY = 5;
+
 export interface NewReport {
   kind: ReportKind;
   subject: string;
@@ -258,7 +261,8 @@ export interface Report extends NewReport {
   sentAt: string;
   appVersion: string;
   /** "pending" until the issue (SP-2) or email (SP-3) is created. */
-  delivery: "pending" | "issue-created" | "emailed";
+  /** "not-sent": over the sender's daily limit when it reached the server (SP-1). */
+  delivery: "pending" | "issue-created" | "emailed" | "not-sent";
   issueNumber?: number;
 }
 

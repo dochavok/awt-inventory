@@ -19,6 +19,8 @@ import { loadReferenceData } from "../refdata";
 import type { AppSettings, InventoryStore } from "../data/store";
 import { systemClock } from "../platform/clock";
 import { createFirebaseAuth } from "../platform/firebase-auth";
+import { NotFoundError } from "../errors";
+import { reportError, startErrorReports } from "./error-service";
 import type { AuthProvider } from "../platform/auth";
 import type { ReferenceData } from "../rules/types";
 
@@ -100,11 +102,33 @@ export function createServices(): Services {
     },
     {
       // NF-3: a change the server refused once it was sent is undone on the phone; the app says which.
-      onWriteRefused: (_error, change) => {
+      onWriteRefused: (error, change) => {
+        // NF-12: the app and the server disagreed, so the maintainer hears of it too.
+        reportError(error);
         for (const listener of refusedListeners) listener(change);
       },
     },
   );
+  // NF-12: the signed-in user's name and email, so an error report can leave them
+  // out. Looked up only for an error that will be reported (when it happens, if
+  // the error service is still loading), so no read is spent otherwise. If the lookup fails (the database is what's failing, say), the
+  // name last looked up for the same user is used, so the report still goes.
+  let lastName: { uid: string; displayName: string } | undefined;
+  startErrorReports(async () => {
+    const user = firebaseAuth.currentUser;
+    if (!user) return {};
+    const email = user.email ?? undefined;
+    try {
+      const { displayName } = await store.profile();
+      lastName = { uid: user.uid, displayName };
+      return { email, displayName };
+    } catch (e) {
+      // No profile yet (signing up): there's no display name to leave out.
+      if (e instanceof NotFoundError) return { email };
+      if (lastName?.uid === user.uid) return { email, displayName: lastName.displayName };
+      throw e;
+    }
+  });
   // The invite list (NF-13) is enforced by the server's rules, which no user can read past.
   const accounts = createAccounts({ auth, store: () => store, inviteList: async () => null });
   return {

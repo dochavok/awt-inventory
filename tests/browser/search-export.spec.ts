@@ -367,7 +367,7 @@ browserRule(
       "the character chosen from Wren's page",
     ).toHaveText("Wren");
     const pdf = await savePdf(page, { paper: "A4" });
-    expect(pdf.name, "the PDF's file name").toBe(`Wren ${await todayInName(page)}.pdf`);
+    expect(pdf.name, "the PDF's file name").toBe(`Wren-${await todayInName(page)}.pdf`);
     expect(new TextDecoder().decode(pdf.bytes.slice(0, 5)), "the file's first bytes").toBe("%PDF-");
     const doc = await PDFDocument.load(pdf.bytes);
     const { width, height } = doc.getPage(0).getSize();
@@ -395,7 +395,7 @@ browserRule(
     await tap(page.getByRole("link", { name: "Print or export" }), "the print or export link on the account page");
     await expect(page.getByRole("heading", { level: 1 }), "the print and export screen").toHaveText("Print and export");
     const pdf = await savePdf(page, { character: "All characters (not retired)", paper: "Letter" });
-    expect(pdf.name, "the PDF's file name").toBe(`AWT characters ${await todayInName(page)}.pdf`);
+    expect(pdf.name, "the PDF's file name").toBe(`AWT-characters-${await todayInName(page)}.pdf`);
     const pages = await pdfPageTexts(pdf.bytes);
     expect(
       pages.map((text) => text.split("\n")[0]),
@@ -418,7 +418,7 @@ browserRule(
     await page.getByRole("link", { name: "Account" }).click();
     await tap(page.getByRole("link", { name: "Print or export" }), "the print or export link on the account page");
     const file = await saveJson(page);
-    expect(file.name, "the JSON file's name").toBe(`AWT inventory ${await todayInName(page)}.json`);
+    expect(file.name, "the JSON file's name").toBe(`AWT-inventory-${await todayInName(page)}.json`);
     expect(file.data.formatVersion, "the format version").toBe(1);
     expect(
       file.data.characters.map((c) => c.character.name),

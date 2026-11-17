@@ -5,6 +5,7 @@ import { AccessDeniedError, ConfirmationError, NotFoundError, RateLimitError, Va
 import { scrubEvent, shouldReport, type ErrorEvent } from "../../src/platform/error-reports";
 import { formatLocal, toStoredTime } from "../../src/platform/time";
 import { rule } from "../support/rule";
+import { errorReportFilter } from "../../src/platform/error-reports";
 
 rule({ req: ["NF-8"], m: "M2" }, "a time is stored in UTC, whatever zone it was given in", () => {
   expect(toStoredTime(new Date("2026-06-13T14:00:00-05:00")), "2 pm in Chicago, stored").toBe(
@@ -199,3 +200,44 @@ rule({ req: ["NF-12"], m: "M3" }, "an error report's address is only the app's, 
   const report: ErrorEvent = { request: { url: "https://app.example.test/#/characters/c123/entries/e456?q=Duskfang" } };
   expect(scrubEvent(report, known).request, "the scrubbed address").toEqual({ url: "https://app.example.test" });
 });
+
+rule(
+  { req: ["NF-12"], m: "M3" },
+  "the app's error service drops refusals the user is shown and scrubs everything else before sending",
+  () => {
+    let signedIn: { displayName?: string; email?: string } = {};
+    const beforeSend = errorReportFilter(() => signedIn);
+    for (const refusal of [
+      new RateLimitError(5, "You can send 5 reports a day. Try again tomorrow."),
+      new ValidationError("name", "Aldric is already in use"),
+      new NotFoundError("character", "aldric"),
+    ]) {
+      expect(beforeSend(event(), { originalException: refusal }), `a ${refusal.name}`).toBeNull();
+    }
+
+    // The signed-in user is read when the error happens, not when the service starts.
+    signedIn = known;
+    const sent = beforeSend(event(), { originalException: new TypeError("x is undefined") });
+    expect(sent, "a real error").not.toBeNull();
+    const text = JSON.stringify(sent);
+    for (const leak of ["Bramblewick", "bram@example.test", "Duskfang", "Aldric", "secret note"]) {
+      expect(text, `the report sent, mentioning ${leak}`).not.toContain(leak);
+    }
+    expect(sent?.exception?.values?.[0]?.type, "the error type sent").toBe("TypeError");
+    expect(sent?.exception?.values?.[0]?.value, "the error message sent").toContain("x is undefined");
+  },
+);
+
+rule(
+  { req: ["NF-12"], m: "M3" },
+  "a change the server refused when it synced is still sent to the error service",
+  () => {
+    const beforeSend = errorReportFilter(() => known);
+    const refusedSync = Object.assign(new Error("Missing or insufficient permissions."), { code: "permission-denied" });
+    const sent = beforeSend(
+      { exception: { values: [{ type: "FirebaseError", value: "Missing or insufficient permissions." }] } },
+      { originalException: refusedSync },
+    );
+    expect(sent?.exception?.values?.[0]?.value, "the refused sync sent").toBe("Missing or insufficient permissions.");
+  },
+);
