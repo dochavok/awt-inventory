@@ -266,16 +266,16 @@ A character's totals are never typed in. They're worked out from the level chart
 
 ### 8.2 Totals
 
-**GR-7 · Must · M4: Class bonus.** The character's class bonus comes from the level chart for its class and level, under the class's own name: Combat Bonus (Warrior), Arcane Bonus (Mage), Stealth Bonus (Rogue). It's shown on its own line.
+**GR-7 · Must · M4: Class bonus.** The character's class bonus comes from the level chart for its class and level, under the class's own name: Combat Bonus (Warrior), Arcane Bonus (Mage), Stealth Bonus (Rogue). It's shown on its own line. From level 10, a Rogue's Stealth Bonus is dice plus a number, and it's always shown that way, never as one number: e.g. *Stealth Bonus 1d4 + 3*.
 
-**GR-8 · Must · M4: CM.** Total CM is the class bonus plus every CM grant that counts and isn't situational. It's shown with one line per source, in this order: class bonus, Armor, Weapons, Skills, Ally, Items, Titles, Other (manual). Lines that are zero are hidden.
+**GR-8 · Must · M4: CM.** Total CM is the class bonus plus every CM grant that counts and isn't situational. It's shown with one line per source, in this order: class bonus, Armor, Weapons, Skills, Ally, Items, Titles, Other (manual). Lines that are zero are hidden. The class bonus's number counts in the total; its dice, if it has any, are rolled with the combat dice (GR-11). Until Q12 is answered, every class's bonus counts in CM.
 *Example:* Combat Bonus 63, Armor 71, Weapons 15, Skills 11, Ally 10 → **Total CM 170**.
 
 **GR-9 · Must · M4: Mitigation.** Total mitigation is the sum of every mitigation grant that counts and isn't situational, with no maximum, shown with the same breakdown by source.
 
 **GR-10 · Should · M4: Hearts.** Max hearts are the level chart's hearts for the class and level, plus heart grants, shown with the same breakdown.
 
-**GR-11 · Must · M4: Combat dice.** The level chart's combat dice for the level, then each extra die listed with its source, e.g. *3d20 + 1d8 · + 1d6 (Shadow, familiar)*. Dice aren't merged into one expression.
+**GR-11 · Must · M4: Combat dice.** The level chart's combat dice for the level, then each extra die listed with its source, e.g. *3d20 + 1d8 · + 1d6 (Shadow, familiar)*. A Rogue's Stealth Bonus dice are listed the same way, e.g. *1d20 + 1d4 · + 1d4 (Stealth Bonus)*. Dice aren't merged into one expression.
 
 **GR-12 · Must · M4: Where it comes from.** For each total, the user can open a list of every grant in it: the source, its category and the amount. Situational grants are listed separately under each total they would affect.
 
@@ -412,7 +412,7 @@ The game's fixed lists are data files in the repository, not part of the code or
 **RD-1 · Must · M2: The files.**
 
 - **Level chart:**
-  - for each class and level: the class bonus, combat dice, max hearts, whether a skill or spell is gained, and whether an arcane slot is gained;
+  - for each class and level: the class bonus (a number, plus dice where the chart gives them, as for a Rogue's Stealth Bonus from level 10), combat dice, max hearts, whether a skill or spell is gained, and whether an arcane slot is gained;
   - for each class: its starting number of arcane slots;
   - *source:* the AWT level chart (PDF).
 - **Paper-doll slot kinds,** including Main hand and Off hand.
@@ -591,6 +591,7 @@ Each milestone from M2 on is done when all of its tests from M1 pass, with no te
 - Q7: Divine and Mythic limits
 - Q9: weapon groups
 - Q11: familiars, allies and minions
+- Q12: which class bonuses are added to rolls
 
 **Waiting on the game's owner:** Q10, whether the app may show the skill and spell card text and use the level chart, and whether both may be published in the public repository (RD-8). The real reference data can't be committed until then.
 
