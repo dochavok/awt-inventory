@@ -21,6 +21,15 @@ updates:
       functions-packages:
         patterns: ["*"]
         update-types: [minor, patch]
+    ignore:
+      # The functions run on Node 24, so their types stay on Node 24 until the
+      # runtime moves (functions/package.json engines).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # TypeScript's major versions move with the root's, once typescript-eslint
+      # supports them, so the shared src/server code is checked by one version.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
