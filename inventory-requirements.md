@@ -251,6 +251,8 @@ A character's totals are never typed in. They're worked out from the level chart
 - +n allowance for a rarity (e.g. +1 Legendary)
 - a permission (Weapon Use, Ranged Weapon Use, Armor Use, Dual Wielding)
 
+A grant in the skill list (SK-7) can belong to a **group**, such as the Holy Die or the bonus vs Evil. Within a group only the largest grant is used (for dice, the one with the highest roll): a larger die or bonus replaces a smaller one, as the level chart's dice do, and the smaller ones aren't listed. A grouped die is situational (GR-4) unless one of the character's skills makes that group's die always count (e.g. Divine Instrument for the Holy Die). It's then listed among the combat dice (GR-11), with its source.
+
 **GR-2 · Must · M4: Sources.** The user can add grants to any entry in Weapons, Armor, Items or Familiars/Allies, and to any title. Skills get their grants from the skill list (SK-7). A **manual grant**, with a reason (e.g. "DM ruling, Faire 2026"), can be added directly to a character. One source can have several grants.
 
 **GR-3 · Must · M4: When grants count.**
@@ -260,7 +262,7 @@ A character's totals are never typed in. They're worked out from the level chart
 - A title's grants count for every character if it's player-level, or for its one character if it's character-level (TI-5).
 - Consumables and components never give grants.
 
-**GR-4 · Must · M4: Situational grants.** Any grant can have a condition in free text ("vs Evil", "ranged weapons only", "1/combat"). It's then **situational**: listed with its source and condition, but never added to a total.
+**GR-4 · Must · M4: Situational grants.** Any grant can have a condition in free text ("vs Evil", "ranged weapons only", "1/combat"). It's then **situational**: listed with its source and condition, but never added to a total. The one exception is a grouped die that a skill makes always count (GR-1).
 
 **GR-5 · Must · M4: Always worked out.** Totals, slot counts and allowances are recalculated from the grants on every change. Nothing that comes from a grant is stored as a number to keep up to date by hand. So trading, unequipping or deleting a source removes its grants immediately.
 
