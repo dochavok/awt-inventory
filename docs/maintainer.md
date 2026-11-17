@@ -197,7 +197,8 @@ gcloud services enable --project $APP \
   artifactregistry.googleapis.com eventarc.googleapis.com pubsub.googleapis.com \
   cloudscheduler.googleapis.com secretmanager.googleapis.com firestore.googleapis.com \
   firebaserules.googleapis.com firebasehosting.googleapis.com firebaseextensions.googleapis.com \
-  iamcredentials.googleapis.com sts.googleapis.com cloudresourcemanager.googleapis.com
+  iamcredentials.googleapis.com sts.googleapis.com cloudresourcemanager.googleapis.com \
+  cloudbilling.googleapis.com
 gcloud services enable --project $BACKUP storage.googleapis.com
 ```
 
@@ -269,7 +270,7 @@ environment:
 gcloud iam service-accounts create github-deploy --project $APP --display-name "GitHub Actions deploy"
 sleep 60
 for role in roles/firebasehosting.admin roles/firebaserules.admin roles/cloudfunctions.developer \
-            roles/cloudscheduler.admin roles/eventarc.developer roles/run.developer \
+            roles/cloudscheduler.admin roles/eventarc.developer roles/run.admin \
             roles/artifactregistry.admin roles/secretmanager.viewer roles/iam.securityReviewer \
             roles/serviceusage.serviceUsageConsumer roles/serviceusage.serviceUsageViewer \
             roles/firebaseextensions.viewer roles/firebase.viewer; do
@@ -277,6 +278,10 @@ for role in roles/firebasehosting.admin roles/firebaserules.admin roles/cloudfun
     --role $role --condition None --quiet > /dev/null
 done
 gcloud iam service-accounts add-iam-policy-binding $FUNCTIONS_SA --project $APP \
+  --member serviceAccount:$DEPLOY_SA --role roles/iam.serviceAccountUser
+# firebase deploy checks it can act as the App Engine default account before any
+# functions deploy, whichever account the functions run as.
+gcloud iam service-accounts add-iam-policy-binding $APP@appspot.gserviceaccount.com --project $APP \
   --member serviceAccount:$DEPLOY_SA --role roles/iam.serviceAccountUser
 
 gcloud iam workload-identity-pools create github --project $APP --location global \
