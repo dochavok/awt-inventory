@@ -6,8 +6,11 @@ import { defineSecret } from "firebase-functions/params";
 /** The same region as the Firestore database (us-east4), so triggers and exports stay close to it. */
 export const REGION = "us-east4";
 
-/** The functions' own service account in the app's project ("name@" is short for name@PROJECT.iam.gserviceaccount.com). */
-export const RUNTIME_SERVICE_ACCOUNT = "awt-functions@";
+/**
+ * The functions' own service account in the app's project, written out in full:
+ * the deploy's check of who can read the secrets doesn't expand the "name@" shorthand.
+ */
+export const RUNTIME_SERVICE_ACCOUNT = "awt-functions@awt-inventory.iam.gserviceaccount.com";
 
 /** NF-10: the backup project and its bucket, separate from the app's project. */
 export const BACKUP = { backupProject: "awt-inventory-backup", bucket: "awt-inventory-backups" };
