@@ -539,3 +539,16 @@ rule({ req: ["EX-4", "PV-1"], m: "M3" }, "the export never includes another user
     expect(text, `Bram's export mentioning ${other}`).not.toContain(other);
   }
 });
+
+rule(
+  { req: ["EX-2"], m: "M3" },
+  "a PDF's file name has hyphens in place of spaces, in the character's name too",
+  async () => {
+    const { bram } = await bramWithTwo();
+    const bold = await bram.createCharacter({ name: "Bram the Bold", className: "Warrior", level: 2 });
+    const one = await bram.printablePdf({ characterIds: [bold.id], includeSkillText: false, paper: "a4" });
+    expect(one.fileName, "the file name for Bram the Bold").toBe("Bram-the-Bold-2026-06-13.pdf");
+    const all = await bram.printablePdf({ characterIds: "all", includeSkillText: false, paper: "a4" });
+    expect(all.fileName, "the file name for all characters").toBe("AWT-characters-2026-06-13.pdf");
+  },
+);

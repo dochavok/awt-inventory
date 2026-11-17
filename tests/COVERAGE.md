@@ -87,7 +87,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | SE-2 | Must | M3 | browser/search-export.spec.ts (2), data/privacy.test.ts (1), data/search-export.test.ts (3) |
 | SE-3 | Should | M3 | browser/search-export.spec.ts (4), data/privacy.test.ts (1), data/search-export.test.ts (2) |
 | EX-1 | Must | M3 | browser/search-export.spec.ts (5), data/privacy.test.ts (1), data/search-export.test.ts (6) |
-| EX-2 | Must | M3 | browser/search-export.spec.ts (2), data/search-export.test.ts (1) |
+| EX-2 | Must | M3 | browser/search-export.spec.ts (2), data/search-export.test.ts (2) |
 | EX-3 | Must | M3 | browser/search-export.spec.ts (1), data/search-export.test.ts (2) |
 | EX-4 | Must | M3 | access/firestore-store.test.ts (1), browser/search-export.spec.ts (2), data/search-export.test.ts (4) |
 | EX-5 | Should | M3 | docs/docs.test.ts (2) |
