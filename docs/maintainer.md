@@ -160,7 +160,10 @@ limit too, and marks reports over it `not-sent` without passing them on.
   email for a reply. Look only for support the player asked for (PV-3).
 - **A report that wasn't delivered** (GitHub or Resend down) waits in
   `reportQueue` and is retried every hour. One that stays there for a day
-  points to a broken secret or account: read `retryReports`' logs.
+  points to a broken secret or account: read `retryReports`' logs. "GitHub
+  refused POST /repos/…/issues: 404" means the App isn't installed on
+  `awt-inventory-reports` (GitHub → Settings → Applications → AWT Inventory
+  Reports → Configure → Repository access: only that repository).
 
 ## Updating the guide
 
@@ -282,6 +285,10 @@ gcloud iam service-accounts add-iam-policy-binding $FUNCTIONS_SA --project $APP 
 # firebase deploy checks it can act as the App Engine default account before any
 # functions deploy, whichever account the functions run as.
 gcloud iam service-accounts add-iam-policy-binding $APP@appspot.gserviceaccount.com --project $APP \
+  --member serviceAccount:$DEPLOY_SA --role roles/iam.serviceAccountUser
+# Cloud Functions builds each function with Cloud Build, which runs as the
+# default compute account, so the deploy must be able to act as it too.
+gcloud iam service-accounts add-iam-policy-binding $COMPUTE_SA --project $APP \
   --member serviceAccount:$DEPLOY_SA --role roles/iam.serviceAccountUser
 
 gcloud iam workload-identity-pools create github --project $APP --location global \
