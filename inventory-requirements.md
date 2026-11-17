@@ -182,9 +182,9 @@ Skills and spells aren't typed in. They're picked from the skill list in the ref
 
 **SK-1 · Must · M2: Adding a skill.** The user picks a skill from the skill list, searching by name. By default the list shows the trees open to the character's class; the user can switch to all trees. The user also records **How gained** (Starting, Level-up, Quest, Trained under the old system, or Other), **Level gained**, and optional notes.
 
-**SK-1a · Must · M2: Available skills first.** The picker first offers the skills the character can take **now**: those whose prerequisites are all on the character, in a tree the character's class and level allow, and not already taken as often as allowed. Starting skills of the character's own trees count as available. Every other skill is listed below them, under a separate heading, and choosing one gives the warnings in SK-3.
+**SK-1a · Must · M2: Available skills first.** The picker first offers the skills the character can take **now**: those whose prerequisites are all on the character, in a tree the character's class and level allow, and not already taken as often as allowed. Starting skills of the character's own trees count as available. Every other skill is listed below them, under a separate heading, and choosing one gives the warnings in SK-3. A skill in several trees is listed once. It's available if any of its trees allows it as above.
 
-**SK-2 · Must · M2: What's shown.** A character's skill shows its name, tree, usage (passive, 1/combat, 1/day, task…), tier (normal, Epic, Legendary) and card text, all from the skill list, plus the user's own fields. Card text is shown only if the game's owner agrees (Q10). Otherwise, the name, tree and tags are shown without the text.
+**SK-2 · Must · M2: What's shown.** A character's skill shows its name, tree (every tree, for a skill in several), usage (passive, 1/combat, 1/day, task…), tier (normal, Epic, Legendary) and card text, all from the skill list, plus the user's own fields. Card text is shown only if the game's owner agrees (Q10). Otherwise, the name, tree and tags are shown without the text.
 
 **SK-3 · Must · M2: Warnings, not blocks.** When the user adds a skill, the app warns, but still allows it, if:
 
@@ -192,6 +192,8 @@ Skills and spells aren't typed in. They're picked from the skill list in the ref
 - the skill is from another class's tree;
 - the character's level is below the tree's entry level (such as 51 for prestige trees);
 - the character already has it, and the skill can't be taken more than once. Skills that can be taken several times (such as Toughness, up to 5) are counted, and the warning appears only above their limit.
+
+A skill in several trees is checked against each of them, and the app gives the warnings of the tree that has the fewest.
 
 **SK-4 · Must · M2: Removing.** A skill can be hard-deleted, like any entry (IN-15). Skills can't be marked used or traded.
 
@@ -419,7 +421,7 @@ The game's fixed lists are data files in the repository, not part of the code or
 - **Rarities:** each with an optional equipped limit and an optional minimum level (EQ-10, EQ-11).
 - **Item families (suggestions only):** common families with other names players use (e.g. *Will Passion* for Passion, *hotdog* for Glizzy) and a short description. They're offered as suggestions; players can type any family.
 - **Component tiers and acquisition sources (suggestions only):** common values offered as suggestions (IN-7, IN-11). Players can type their own.
-- **Skill list:** each skill with its name, tree and kind of tree, the classes the tree is open to, the tree's entry requirement, usage, tier, card text, prerequisites ("A and B", "A or B"), how many times it can be taken, and *retired* or *replaced by* where they apply.
+- **Skill list:** each tree with its kind, the classes it's open to and its entry requirement; and each skill with its name, usage, tier, card text, how many times it can be taken, and *retired* or *replaced by* where they apply. A skill is in one tree, or in several when the same card is printed in several trees. In each of its trees it has its own prerequisites ("A and B", "A or B"), and it may be one of that tree's starting skills.
 - **Skill grants:** each skill's unconditional grants and permissions (SK-7), by skill ID.
 
 **RD-2 · Must · M2: Permanent IDs.** Every entry in every file has a permanent ID separate from its display name. Users' records store IDs, so renaming never breaks them.
