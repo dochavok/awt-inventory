@@ -136,7 +136,8 @@ export function App({ services }: { services: Services }) {
 
   return (
     <>
-      <Header signedIn={inApp} help={helpFor(route, inApp)} />
+      {/* DOC-1: no help link while a kept sign-in is being restored, since it would point to the signed-out help. */}
+      <Header signedIn={inApp} help={ready ? helpFor(route, inApp) : undefined} />
       {inApp && <ConnectionBar store={services.store} />}
       {inApp && <RefusedNotices subscribe={services.onWriteRefused} />}
       {/* Each address, and each refusal that touches what's shown, starts the screen afresh. */}
