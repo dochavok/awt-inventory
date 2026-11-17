@@ -213,9 +213,18 @@ export async function renderPdf(sheet: SheetDocument, options: PrintOptions): Pr
   return { fileName: `${fileStem(sheet)}.pdf`, mimeType: "application/pdf", bytes, pageCount: doc.getPageCount() };
 }
 
-/** "Rowan 2026-06-13", or "AWT characters 2026-06-13" for several (EX-2). */
+/**
+ * "Rowan-2026-06-13", or "AWT-characters-2026-06-13" for several (EX-2): hyphens
+ * in place of spaces, since some browsers turn spaces in a download's name into
+ * underscores.
+ */
 function fileStem(sheet: SheetDocument): string {
   const only = sheet.characters.length === 1 ? sheet.characters[0]!.name : "AWT characters";
-  const safe = only.replace(/[\\/:*?"<>|]+/g, "-").trim() || "Character";
-  return `${safe} ${localDay(sheet.createdAt)}`;
+  return fileName(only, sheet.createdAt) || `Character-${localDay(sheet.createdAt)}`;
+}
+
+/** A download's name (EX-2, EX-4): `words` with hyphens for spaces and characters files can't hold, then the day. */
+export function fileName(words: string, at: string): string {
+  const safe = words.replace(/[\\/:*?"<>|\s]+/g, "-").replace(/^-+|-+$/g, "");
+  return safe ? `${safe}-${localDay(at)}` : "";
 }

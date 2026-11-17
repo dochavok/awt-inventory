@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import type { PrintOptions } from "../../data/types";
-import { localDay } from "../../platform/time";
+import { fileName } from "../../data/sheet";
 import type { Character } from "../../rules/types";
 import { href } from "../router";
 import type { Services } from "../services";
@@ -169,7 +169,7 @@ function JsonExport({ services }: { services: Services }) {
     void make.run(async () => {
       const data = await services.store.exportJson();
       file.offer(
-        `AWT inventory ${localDay(data.exportedAt)}.json`,
+        `${fileName("AWT inventory", data.exportedAt)}.json`,
         new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }),
       );
     });
