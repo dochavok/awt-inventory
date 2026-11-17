@@ -275,7 +275,7 @@ A character's totals are never typed in. They're worked out from the level chart
 
 **GR-10 · Should · M4: Hearts.** Max hearts are the level chart's hearts for the class and level, plus heart grants, shown with the same breakdown.
 
-**GR-11 · Must · M4: Combat dice.** The level chart's combat dice for the level, then each extra die listed with its source, e.g. *3d20 + 1d8 · + 1d6 (Shadow, familiar)*. A Rogue's Stealth Bonus dice are listed the same way, e.g. *1d20 + 1d4 · + 1d4 (Stealth Bonus)*. Dice aren't merged into one expression.
+**GR-11 · Must · M4: Combat dice.** The level chart's combat dice for the level, as the chart gives them (e.g. *1d20 + 1d4*), then each extra die listed with its source, e.g. *3d20 + 1d8 · + 1d6 (Shadow, familiar)*. A Rogue's Stealth Bonus dice are listed the same way, e.g. *1d20 + 1d4 · + 1d4 (Stealth Bonus)*. Dice aren't merged into one expression.
 
 **GR-12 · Must · M4: Where it comes from.** For each total, the user can open a list of every grant in it: the source, its category and the amount. Situational grants are listed separately under each total they would affect.
 
@@ -412,7 +412,7 @@ The game's fixed lists are data files in the repository, not part of the code or
 **RD-1 · Must · M2: The files.**
 
 - **Level chart:**
-  - for each class and level: the class bonus (a number, plus dice where the chart gives them, as for a Rogue's Stealth Bonus from level 10), combat dice, max hearts, whether a skill or spell is gained, and whether an arcane slot is gained;
+  - for each class and level: the class bonus (a number, plus dice where the chart gives them, as for a Rogue's Stealth Bonus from level 10), combat dice (one or more dice, e.g. 3d20, or 1d20 + 1d4 from level 11), max hearts, whether a skill or spell is gained, and whether an arcane slot is gained;
   - for each class: its starting number of arcane slots;
   - *source:* the AWT level chart (PDF).
 - **Paper-doll slot kinds,** including Main hand and Off hand.
