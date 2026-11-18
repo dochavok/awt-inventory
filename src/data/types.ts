@@ -37,8 +37,10 @@ export interface ClassCorrectionNotice {
   affects: ("class bonus" | "combat dice" | "hearts" | "arcane slots" | "own skill trees")[];
 }
 
-type Distribute<T> = T extends unknown ? Omit<T, "id" | "characterId" | "quantity"> & { quantity?: number } : never;
-/** An entry to add, outside Skills (skills are added with addSkill, SK-1). */
+type Distribute<T> = T extends unknown
+  ? Omit<T, "id" | "characterId" | "quantity" | "grants"> & { quantity?: number; grants?: NewGrant[] }
+  : never;
+/** An entry to add, outside Skills (skills are added with addSkill, SK-1); its grants get their IDs when it's added. */
 export type NewEntry = Distribute<ItemEntry>;
 
 export type EntryPatch = Partial<Omit<ItemEntry, "id" | "characterId" | "category">> & Record<string, unknown>;

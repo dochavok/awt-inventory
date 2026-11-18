@@ -40,8 +40,11 @@ export type Change =
   | { op: "delete"; kind: RecordKind; id: Id };
 
 export interface Backend {
-  /** A new, unique ID for a record. Entries and history records belong to `characterId`. */
-  newId(kind: RecordKind, characterId?: Id): Id;
+  /**
+   * A new, unique ID for a record, or for a grant (kept inside its entry, title or
+   * character). Entries and history records belong to `characterId`.
+   */
+  newId(kind: RecordKind | "grant", characterId?: Id): Id;
   /** A number above every earlier one from this backend, to keep history records in order (HI-1). */
   nextSeq(): number;
 

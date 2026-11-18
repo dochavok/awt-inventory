@@ -11,6 +11,8 @@ import {
   type ClassName,
   type HowGained,
   type ItemEntry,
+  type NewGrant,
+  type Permission,
   type ReferenceData,
 } from "../rules/types";
 import { toStoredTime } from "../platform/time";
@@ -32,6 +34,14 @@ export const LIMITS = {
   extraDamage: 999,
   hearts: 999,
   entriesPerCharacter: 1_000,
+  /** Grants on one entry, title or manual grant (GR-2). Also in firestore.rules. */
+  grantsPerSource: 50,
+  /** Manual grants on one character (GR-2). Also in firestore.rules. */
+  manualGrants: 50,
+  /** A CM, mitigation, hearts or allowance grant's amount (GR-1). */
+  grantAmount: 999,
+  /** Slots one grant adds (GR-1). */
+  slotGrant: 10,
 } as const;
 
 /** A required single-line text: trimmed, not blank, at most `max` characters. */
@@ -280,4 +290,108 @@ export function itemEntry(
       break;
   }
   return out as unknown as Omit<ItemEntry, "id" | "characterId">;
+}
+
+// ---------------------------------------------------------------- grants (GR-1, GR-2)
+
+/** GR-2: the categories whose entries can carry grants. */
+const GRANT_CATEGORIES: readonly Category[] = ["weapons", "armor", "items", "allies"];
+
+/** Refuses grants on an entry whose category can't have them (GR-2), naming the category. */
+export function grantsAllowed(category: Category): void {
+  if (!GRANT_CATEGORIES.includes(category)) {
+    throw new ValidationError(
+      "grants",
+      `${categoryName(category)} entries can't have grants: only Weapons, Armor, Items and Familiars/Allies can.`,
+    );
+  }
+}
+
+const PERMISSIONS: readonly Permission[] = ["weapon-use", "ranged-weapon-use", "armor-use", "dual-wielding"];
+const EFFECTS = ["resistance", "immunity", "cr-bonus"] as const;
+/** Dice notation for one die, e.g. 1d6 (GR-1, GR-11). */
+const DIE = /^[1-9]\d?d[1-9]\d{0,2}$/;
+
+/** The fields each kind of grant has, beyond `kind` and an optional `condition`. */
+const GRANT_FIELDS: Record<NewGrant["kind"], readonly string[]> = {
+  cm: ["amount"],
+  mitigation: ["amount"],
+  hearts: ["amount"],
+  die: ["die"],
+  slots: ["slotKind", "amount"],
+  "arcane-slots": ["amount"],
+  allowance: ["rarity", "amount"],
+  permission: ["permission"],
+  effect: ["effect", "text"],
+};
+
+/**
+ * One grant, checked: a kind from GR-1 (or an effect, GR-6), a whole amount of
+ * 1 or more, a die like 1d6, a slot kind or rarity from the reference data that
+ * isn't retired, and an optional condition (GR-4). Every refusal names `grants`.
+ */
+export function grant(input: unknown, ref: ReferenceData): NewGrant {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) {
+    throw new ValidationError("grants", "A grant must say what it gives.");
+  }
+  const g = input as Record<string, unknown>;
+  const kind = g.kind as NewGrant["kind"];
+  if (typeof kind !== "string" || !(kind in GRANT_FIELDS)) {
+    throw new ValidationError("grants", `${String(g.kind)} isn't a kind of grant.`);
+  }
+  const allowed = new Set(["kind", "condition", "id", ...GRANT_FIELDS[kind]]);
+  for (const [field, value] of Object.entries(g)) {
+    if (value !== undefined && !allowed.has(field)) {
+      throw new ValidationError("grants", `A ${kind} grant doesn't have a ${field}.`);
+    }
+  }
+  const amount = (max: number = LIMITS.grantAmount) => wholeNumber("grants", g.amount, 1, max, "grant's amount");
+  let out: NewGrant;
+  switch (kind) {
+    case "cm":
+    case "mitigation":
+    case "hearts":
+    case "arcane-slots":
+      out = { kind, amount: amount(kind === "arcane-slots" ? LIMITS.slotGrant : LIMITS.grantAmount) };
+      break;
+    case "die":
+      if (typeof g.die !== "string" || !DIE.test(g.die.trim())) {
+        throw new ValidationError("grants", `${String(g.die)} isn't a die like 1d6.`);
+      }
+      out = { kind, die: g.die.trim() };
+      break;
+    case "slots":
+      out = {
+        kind,
+        slotKind: referenceId("grants", g.slotKind, ref.slotKinds, "paper-doll slot", undefined),
+        amount: amount(LIMITS.slotGrant),
+      };
+      break;
+    case "allowance":
+      out = { kind, rarity: referenceId("grants", g.rarity, ref.rarities, "rarity", undefined), amount: amount() };
+      break;
+    case "permission":
+      out = { kind, permission: choice("grants", g.permission, PERMISSIONS, "permission") };
+      break;
+    case "effect":
+      out = {
+        kind,
+        effect: choice("grants", g.effect, EFFECTS, "effect"),
+        text: requiredText("grants", g.text, LIMITS.shortText, "effect's text"),
+      };
+      break;
+  }
+  const condition = optionalText("grants", g.condition, LIMITS.shortText, "condition")?.trim();
+  if (condition) out.condition = condition;
+  return out;
+}
+
+/** A list of grants for one source: each checked, at most `LIMITS.grantsPerSource` (NF-6). */
+export function grantList(input: unknown, ref: ReferenceData): NewGrant[] {
+  if (input === undefined || input === null) return [];
+  if (!Array.isArray(input)) throw new ValidationError("grants", "Grants must be a list.");
+  if (input.length > LIMITS.grantsPerSource) {
+    throw new ValidationError("grants", `One source can have at most ${LIMITS.grantsPerSource} grants.`);
+  }
+  return input.map((g) => grant(g, ref));
 }

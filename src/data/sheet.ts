@@ -3,7 +3,19 @@
 
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { formatLocal, localDay } from "../platform/time";
-import type { Character, Entry, ItemEntry, ReferenceData, SkillEntry, Title } from "../rules/types";
+import type {
+  BreakdownGroup,
+  Character,
+  Entry,
+  ItemEntry,
+  ReferenceData,
+  SkillEntry,
+  SlotState,
+  SourceRef,
+  Title,
+  Total,
+  Totals,
+} from "../rules/types";
 import type { PdfFile, PrintOptions, SheetDocument } from "./types";
 import { categoryName } from "./validate";
 
@@ -18,6 +30,53 @@ export interface SheetInput {
   /** Entries still in the inventory. */
   entries: Entry[];
   titles: Title[];
+  /** The character's totals and slots (GR-7 to GR-12, EQ-5), for the sheet's totals and Equipped list. */
+  totals: Totals;
+  slots: SlotState;
+}
+
+type SheetPage = SheetDocument["characters"][number];
+
+const GROUP_LABELS: Record<Exclude<BreakdownGroup, "class-bonus">, string> = {
+  "level-chart": "Level chart",
+  armor: "Armor",
+  weapons: "Weapons",
+  skills: "Skills",
+  ally: "Ally",
+  items: "Items",
+  titles: "Titles",
+  other: "Other",
+};
+
+/** A source as the sheet names it: an entry, skill or title by name, a manual grant by its reason. */
+function sourceLabel(source: SourceRef): string {
+  return source.type === "manual" ? source.reason : source.type === "level-chart" ? "Level chart" : source.name;
+}
+
+/** EX-1: CM, mitigation, max hearts and combat dice, each with its breakdown (GR-8 to GR-11). */
+function sheetTotals(totals: Totals): NonNullable<SheetPage["totals"]> {
+  const lines = (total: Total) =>
+    total.lines.map((l) => ({
+      label: l.group === "class-bonus" ? totals.classBonus.name : GROUP_LABELS[l.group],
+      value: l.value,
+    }));
+  const extra = totals.dice.extra.map((d) => ` + ${d.die} (${sourceLabel(d.source)})`).join("");
+  return [
+    { label: "CM", value: totals.cm.value, lines: lines(totals.cm) },
+    { label: "Mitigation", value: totals.mitigation.value, lines: lines(totals.mitigation) },
+    { label: "Max hearts", value: totals.hearts.value, lines: lines(totals.hearts) },
+    { label: "Combat dice", value: `${totals.dice.base}${extra}`, lines: [] },
+  ];
+}
+
+/** EX-1: what's equipped, slot by slot in paper-doll order, then the arcane slots (EQ-5, EQ-7). */
+function sheetEquipped(slots: SlotState): SheetPage["equipped"] {
+  return [
+    ...slots.kinds.flatMap((k) =>
+      k.slots.flatMap((s) => (s.occupant ? [{ slot: s.label, entry: s.occupant.name }] : [])),
+    ),
+    ...slots.arcane.occupants.map((o) => ({ slot: "Arcane", entry: o.name })),
+  ];
 }
 
 /** The user's own time zone, for dates shown to them (NF-8). */
@@ -33,7 +92,7 @@ export function buildSheet(
   return {
     createdAt: options.createdAt,
     pageFooter: `Created ${formatLocal(options.createdAt, localZone())}`,
-    characters: characters.map(({ character, entries, titles }) => {
+    characters: characters.map(({ character, entries, titles, totals, slots }) => {
       const items = entries.filter((e): e is ItemEntry => e.category !== "skills");
       const skills = entries
         .filter((e): e is SkillEntry => e.category === "skills")
@@ -53,7 +112,8 @@ export function buildSheet(
         name: character.name,
         className: character.className,
         level: character.level,
-        equipped: [],
+        totals: sheetTotals(totals),
+        equipped: sheetEquipped(slots),
         categories: SHEET_CATEGORIES.map((category) => ({
           category,
           entries: items
