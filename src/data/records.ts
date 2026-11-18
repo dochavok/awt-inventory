@@ -60,6 +60,9 @@ function plainCharacter(stored: StoredCharacter): Character {
   return character;
 }
 
+/** The fields that decide where an entry can be equipped (EQ-2, EQ-3, EQ-7). */
+const PLACEMENT = ["slotKind", "arcane", "hands"];
+
 /** Whether an edit's grants are the entry's own, whatever the order of their fields (an absent list is empty). */
 function sameGrants(given: unknown, kept: Grant[] | undefined): boolean {
   if (!Array.isArray(given)) return false;
@@ -613,7 +616,8 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     },
 
     async updateEntry(entryId, patch, options = {}) {
-      const entry = await ownEntry(entryId);
+      const stored = await storedEntry(entryId);
+      const entry = plainEntry(stored);
       if (entry.category === "skills") {
         throw new ValidationError("category", `${entryName(entry)} is a skill; only its notes can change.`);
       }
@@ -633,14 +637,18 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       const next = { ...fields, id: entry.id, characterId: entry.characterId } as ItemEntry;
       if (entry.grants !== undefined) next.grants = entry.grants;
       const gained = next.quantity - entry.quantity;
-      const changes = update("entry", entryId, changedFields(entry, next, ["id", "characterId", "quantity"]));
+      const edited = changedFields(entry, next, ["id", "characterId", "quantity"]);
+      const changes = update("entry", entryId, edited);
       // Quantities are added to, not set, so changes made on two phones add up (NF-3).
       if (gained !== 0) changes.push({ op: "add-quantity", entryId, by: gained });
       // Where it came from is checked, and kept, only with a gain (IN-11).
       if (gained > 0) changes.push(acquired(next, gained, gainOptions(options)).change);
       // An ally made inactive by an edit stops granting, as with setActive (GR-3, EQ-8).
       const deactivated = entry.category === "allies" && entry.active && next.category === "allies" && !next.active;
-      await writeLosing(changes, "unequipped", deactivated ? losingFrom(entry) : []);
+      // EQ-4: an edit to what an equipped entry fits unequips it.
+      const refitted = stored.slot !== undefined && PLACEMENT.some((f) => f in edited);
+      if (refitted) changes.push(...update("entry", entryId, { slot: undefined }));
+      await writeLosing(changes, "unequipped", deactivated || refitted ? losingFrom(stored) : []);
       return next;
     },
 
