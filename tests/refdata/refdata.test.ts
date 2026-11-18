@@ -238,7 +238,7 @@ rule(
 );
 
 rule(
-  { req: ["RD-1", "GR-1", "RD-4"], m: "M2" },
+  { req: ["RD-1", "GR-1", "RD-4"], m: "M4" },
   "a skill's grant can be in a group, and die-always names a group whose die always counts",
   () => {
     const grants = (skill: string) =>
@@ -252,7 +252,7 @@ rule(
       [
         "a group on a permission",
         (list) => (of(list, "blade-basics")[0].group = "cinder-die"),
-        /skill-grants\.yaml blade-basics.*group/,
+        /skill-grants\.yaml sg-blade-basics-1: .*group/,
       ],
       ["a group on an effect", (list) => (of(list, "night-eyes")[0].group = "cinder-die"), /night-eyes.*group/],
       ["die-always without a group", (list) => delete of(list, "cinder-focus")[0].group, /cinder-focus.*group/],
