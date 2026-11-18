@@ -121,7 +121,7 @@ rule(
 );
 
 rule(
-  { req: ["TI-5", "GR-3"], m: "M4" },
+  { req: ["TI-5", "GR-3"], q: ["Q12"], m: "M4" },
   "a player-level title's grant applies to all of Bram's characters, including new ones",
   async () => {
     const { bram, aldric } = await bramWithAldric();
@@ -140,7 +140,7 @@ rule(
 );
 
 rule(
-  { req: ["TI-5", "TI-2"], m: "M4" },
+  { req: ["TI-5", "TI-2"], q: ["Q12"], m: "M4" },
   "a title switched to character-level for Isolde stops counting for Aldric",
   async () => {
     const { bram, aldric } = await bramWithAldric();
