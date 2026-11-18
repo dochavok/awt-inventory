@@ -353,7 +353,7 @@ rule(
 );
 
 rule(
-  { req: ["GR-1", "EQ-5"], m: "M4" },
+  { req: ["GR-1", "EQ-1"], m: "M4" },
   "a group's slot grants for different slot kinds, or allowances for different rarities, don't replace each other",
   () => {
     // An edited list: the Cinder Marks also give grouped slots and allowances, each for something different.
@@ -383,7 +383,7 @@ rule(
 );
 
 rule(
-  { req: ["GR-1", "EQ-5"], m: "M4" },
+  { req: ["GR-1", "EQ-1"], m: "M4" },
   "a group's slot grants for the same slot kind, or allowances for the same rarity, keep only the largest",
   () => {
     const ref = testReferenceData();

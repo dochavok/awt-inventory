@@ -72,11 +72,11 @@ Tests shows each file with the number of its tests that name the requirement.
 | GR-10 | Should | M4 | properties/totals.test.ts (1), rules/totals.test.ts (3) |
 | GR-11 | Must | M4 | data/search-export.test.ts (1), properties/totals.test.ts (1), rules/totals.test.ts (12) |
 | GR-12 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (11) |
-| EQ-1 | Must | M4 | data/inventory.test.ts (1), rules/equipping.test.ts (10) |
+| EQ-1 | Must | M4 | data/inventory.test.ts (1), rules/equipping.test.ts (10), rules/totals.test.ts (2) |
 | EQ-2 | Must | M4 | access/firestore-store.test.ts (1), data/grants.test.ts (2), properties/equipping.test.ts (1), rules/equipping.test.ts (5) |
 | EQ-3 | Must | M4 | properties/equipping.test.ts (1), rules/equipping.test.ts (11) |
 | EQ-4 | Must | M4 | access/firestore-store.test.ts (1), access/privacy.test.ts (2), data/grants.test.ts (7), data/inventory.test.ts (1), data/search-export.test.ts (1), rules/equipping.test.ts (3) |
-| EQ-5 | Must | M4 | rules/equipping.test.ts (3), rules/totals.test.ts (2) |
+| EQ-5 | Must | M4 | rules/equipping.test.ts (3) |
 | EQ-6 | Must | M4 | data/grants.test.ts (1), rules/equipping.test.ts (8) |
 | EQ-7 | Must | M4 | properties/equipping.test.ts (1), rules/equipping.test.ts (7) |
 | EQ-8 | Must | M4 | access/offline.test.ts (1), data/grants.test.ts (7), properties/equipping.test.ts (1), properties/totals.test.ts (1), rules/equipping.test.ts (13) |
