@@ -279,7 +279,7 @@ A grant in the skill list (SK-7) can belong to a **group**, such as the Holy Die
 
 **GR-10 · Should · M4: Hearts.** Max hearts are the level chart's hearts for the class and level, plus heart grants, shown with the same breakdown.
 
-**GR-11 · Must · M4: Combat dice.** The level chart's combat dice for the level, as the chart gives them (e.g. *1d20 + 1d4*), then each extra die listed with its source, e.g. *3d20 + 1d8 · + 1d6 (Shadow, familiar)*. A Rogue's Stealth Bonus dice are listed the same way, e.g. *1d20 + 1d4 · + 1d4 (Stealth Bonus)*. Dice aren't merged into one expression.
+**GR-11 · Must · M4: Combat dice.** The level chart's combat dice for the level, as the chart gives them (e.g. *1d20 + 1d4*), then each extra die listed with its source, e.g. *3d20 + 1d8 + 1d6 (Shadow, familiar)*. A Rogue's Stealth Bonus dice are listed the same way, e.g. *1d20 + 1d4 + 1d4 (Stealth Bonus)*. Dice aren't merged into one expression: each extra die keeps its own source in brackets.
 
 **GR-12 · Must · M4: Where it comes from.** For each total, the user can open a list of every grant in it: the source, its category and the amount. Situational grants are listed separately under each total they would affect.
 
