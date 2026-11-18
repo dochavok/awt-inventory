@@ -201,6 +201,20 @@
       outcome: blocked
       block: { reason: slot-full, about: off-hand, occupants: [Greatsword], mentions: [Off hand, Greatsword] }
 
+- id: one-hander-not-in-paper-doll
+  req: [EQ-3]
+  milestone: M4
+  title: A one-handed weapon goes only in a hand, so a dagger is blocked from the Belt
+  given:
+    character: aldric
+    add:
+      entries: [{ id: x-dagger, category: weapons, name: Iron Dagger, hands: 1, range: melee }]
+  equip: { entry: x-dagger, slot: belt }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: wrong-slot, about: belt, mentions: [Iron Dagger] }
+
 - id: two-hander-not-in-one-hand
   req: [EQ-3]
   milestone: M4
@@ -400,7 +414,42 @@
       outcome: blocked
       block: { reason: not-arcane, about: arcane, mentions: [Hooded Lantern] }
 
+- id: plain-item-not-in-paper-doll
+  req: [IN-5, EQ-7]
+  milestone: M4
+  title: An item that isn't arcane can't be equipped in a paper-doll slot either
+  given: { character: aldric }
+  equip: { entry: aldric-lantern, slot: belt }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: cannot-equip, about: belt, mentions: [Hooded Lantern] }
+
 # ---------------------------------------------------------------- over-limit alerts (EQ-8)
+
+- id: alert-names-the-grant-lost
+  req: [EQ-8]
+  milestone: M4
+  title: With Back slots from Broad Shoulders and the Wanderer cloak, trading the cloak names the cloak, not the skill that's kept
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-shoulders, category: skills, skillId: broad-shoulders, howGained: level-up, levelGained: 23 }
+        - { id: x-wander, category: items, name: Cloak of the Wanderer, arcane: true, grants: [{ id: g-x-wander, kind: slots, slotKind: back, amount: 1 }] }
+        - { id: x-pack, category: armor, name: Traveller's Pack, slotKind: back }
+        - { id: x-quiver, category: armor, name: Quiver, slotKind: back }
+      equipped:
+        - { entryId: x-wander, slot: arcane }
+        - { entryId: aldric-cloak, slot: back }
+        - { entryId: x-pack, slot: back }
+        - { entryId: x-quiver, slot: back }
+  change:
+    reason: traded
+    remove: { entries: [x-wander] }
+  expect:
+    alerts:
+      - { scope: back, equipped: 3, allowed: 2, lost: { source: Cloak of the Wanderer, reason: traded }, mentions: [Cloak of the Wanderer] }
 
 - id: alert-grant-traded
   req: [EQ-8]

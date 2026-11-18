@@ -33,7 +33,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | IN-2 | Must | M2 | browser/inventory.spec.ts (1), data/inventory.test.ts (5) |
 | IN-3 | Must | M2 | browser/inventory.spec.ts (2), data/inventory.test.ts (2) |
 | IN-4 | Must | M2 | data/inventory.test.ts (1), rules/equipping.test.ts (2) |
-| IN-5 | Must | M2 | data/inventory.test.ts (1), rules/equipping.test.ts (2) |
+| IN-5 | Must | M2 | data/inventory.test.ts (1), rules/equipping.test.ts (3) |
 | IN-6 | Must | M2 | data/inventory.test.ts (2), rules/totals.test.ts (1) |
 | IN-7 | Must | M2 | data/inventory.test.ts (1) |
 | IN-8 | Must | M2 | browser/inventory.spec.ts (2), data/inventory.test.ts (5) |
@@ -74,12 +74,12 @@ Tests shows each file with the number of its tests that name the requirement.
 | GR-12 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (7) |
 | EQ-1 | Must | M4 | data/inventory.test.ts (1), rules/equipping.test.ts (8) |
 | EQ-2 | Must | M4 | properties/equipping.test.ts (1), rules/equipping.test.ts (5) |
-| EQ-3 | Must | M4 | properties/equipping.test.ts (1), rules/equipping.test.ts (9) |
+| EQ-3 | Must | M4 | properties/equipping.test.ts (1), rules/equipping.test.ts (10) |
 | EQ-4 | Must | M4 | data/grants.test.ts (1), data/inventory.test.ts (1), rules/equipping.test.ts (2) |
 | EQ-5 | Must | M4 | rules/equipping.test.ts (3) |
 | EQ-6 | Must | M4 | rules/equipping.test.ts (7) |
-| EQ-7 | Must | M4 | properties/equipping.test.ts (1), rules/equipping.test.ts (6) |
-| EQ-8 | Must | M4 | data/grants.test.ts (1), properties/equipping.test.ts (1), properties/totals.test.ts (1), rules/equipping.test.ts (11) |
+| EQ-7 | Must | M4 | properties/equipping.test.ts (1), rules/equipping.test.ts (7) |
+| EQ-8 | Must | M4 | data/grants.test.ts (1), properties/equipping.test.ts (1), properties/totals.test.ts (1), rules/equipping.test.ts (12) |
 | EQ-9 | Should | M5 | rules/equipping.test.ts (10) |
 | EQ-10 | Should | M5 | properties/equipping.test.ts (1), rules/equipping.test.ts (7) |
 | EQ-11 | Should | M5 | rules/equipping.test.ts (3) |
