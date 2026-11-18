@@ -3,5 +3,5 @@
 
 export * from "./types";
 export { skillPicker, skillWarnings, recordCheck, placements, skillRetired } from "./skills";
-export { computeTotals } from "./totals";
+export { computeTotals, classBonusShown, dieSourceName, sourceName } from "./totals";
 export { slotState, checkEquip, overLimitAlerts, fitsSlot } from "./equipping";

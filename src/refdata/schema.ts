@@ -9,6 +9,8 @@ const name = z.string().trim().min(1);
 const count = z.number().int().min(0);
 const retired = z.boolean().optional();
 
+/** One die, e.g. 1d8, as a grant gives it (GR-1). */
+const oneDie = z.string().regex(/^\d+d\d+$/);
 /** One or more dice, e.g. 3d20, or 1d20 + 1d4 (RD-1). */
 const dice = z.string().regex(/^\d+d\d+( \+ \d+d\d+)*$/, "dice are written like 3d20, or 1d20 + 1d4 for several");
 
@@ -116,7 +118,7 @@ const grant = z.discriminatedUnion("kind", [
   z.strictObject({ ...grouped, kind: z.literal("cm"), amount: z.number().int() }),
   z.strictObject({ ...grouped, kind: z.literal("mitigation"), amount: z.number().int() }),
   z.strictObject({ ...grouped, kind: z.literal("hearts"), amount: z.number().int() }),
-  z.strictObject({ ...grouped, kind: z.literal("die"), die: z.string().regex(/^\d+d\d+$/) }),
+  z.strictObject({ ...grouped, kind: z.literal("die"), die: oneDie }),
   z.strictObject({ ...grouped, kind: z.literal("slots"), slotKind: id, amount: z.number().int() }),
   z.strictObject({ ...grouped, kind: z.literal("arcane-slots"), amount: z.number().int() }),
   z.strictObject({ ...grouped, kind: z.literal("allowance"), rarity: id, amount: z.number().int() }),

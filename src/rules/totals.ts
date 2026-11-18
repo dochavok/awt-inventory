@@ -15,6 +15,7 @@ import {
   type LevelRow,
   type Permission,
   type ReferenceData,
+  type SourceRef,
   type Total,
   type Totals,
 } from "./types";
@@ -61,6 +62,21 @@ function total(counted: SourcedGrant[], kind: AmountKind, chart?: { group: Break
     grants,
     situational,
   };
+}
+
+/** A grant's source as the app names it: an entry, skill or title by name, a manual grant by its reason. */
+export function sourceName(source: SourceRef): string {
+  return source.type === "manual" ? source.reason : source.type === "level-chart" ? "Level chart" : source.name;
+}
+
+/** GR-7: the class bonus as shown: its number, or with dice always both, e.g. "1d4 + 3". */
+export function classBonusShown(classBonus: Totals["classBonus"]): number | string {
+  return classBonus.dice ? `${classBonus.dice} + ${classBonus.value}` : classBonus.value;
+}
+
+/** GR-11: where an extra die comes from; the level chart's own is the class bonus's (e.g. Stealth Bonus). */
+export function dieSourceName(die: ExtraDie, classBonus: Totals["classBonus"]): string {
+  return die.source.type === "level-chart" ? classBonus.name : sourceName(die.source);
 }
 
 /** Class bonus, CM, mitigation, hearts, dice, permissions and effects (GR-1 to GR-12, EQ-9, GR-6). */

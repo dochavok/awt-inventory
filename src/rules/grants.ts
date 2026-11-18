@@ -92,18 +92,23 @@ function countingGroup(entry: Entry, slot: SlotTarget | undefined): BreakdownGro
   }
 }
 
-/** How large a grouped grant is: its amount, or for a die its highest roll (GR-1). */
-function size(grant: Grant): number {
+/** How large a grouped grant is: its amount, or for a die (always one, e.g. 1d8) its highest roll (GR-1). */
+function size(grant: SkillGrant): number {
   if (grant.kind === "die") {
-    return grant.die.split("+").reduce((sum, part) => {
-      const [count = 0, sides = 0] = part.trim().split("d").map(Number);
-      return sum + count * sides;
-    }, 0);
+    const [count = 0, sides = 0] = grant.die.split("d").map(Number);
+    return count * sides;
   }
   return "amount" in grant ? grant.amount : 0;
 }
 
-type Collected = Omit<SourcedGrant, "grant"> & { grant: SkillGrant };
+/** A grant as collected, and whether it's the skill list's: only those have groups and die-always (GR-1). */
+interface Collected extends Omit<SourcedGrant, "grant"> {
+  grant: SkillGrant;
+  skillList: boolean;
+}
+
+/** A collected grant's GR-1 group: only a skill list grant's counts; on a player's own (bad data) it's ignored. */
+const groupOf = (c: Collected): Id | undefined => (c.skillList ? c.grant.group : undefined);
 
 /**
  * GR-1's groups: within a group (of one kind) only the largest grant is kept,
@@ -114,38 +119,34 @@ type Collected = Omit<SourcedGrant, "grant"> & { grant: SkillGrant };
 function resolveGroups(collected: Collected[]): SourcedGrant[] {
   const always = new Set<Id>();
   const largest = new Map<string, Collected>();
-  const keyOf = (c: Collected) => `${c.grant.kind} ${c.grant.group}`;
+  const keyOf = (c: Collected, group: Id) => `${c.grant.kind} ${group}`;
   const beats = (a: Collected, b: Collected) => {
-    const [sa, sb] = [size(a.grant as Grant), size(b.grant as Grant)];
+    const [sa, sb] = [size(a.grant), size(b.grant)];
     if (sa !== sb) return sa > sb;
     if (a.grant.id !== b.grant.id) return a.grant.id < b.grant.id;
     return sourceKey(a.source) < sourceKey(b.source);
   };
   for (const c of collected) {
-    if (c.grant.kind === "die-always") always.add(c.grant.group);
-    else if (c.grant.group !== undefined) {
-      const best = largest.get(keyOf(c));
-      if (!best || beats(c, best)) largest.set(keyOf(c), c);
+    const group = groupOf(c);
+    if (group === undefined) continue;
+    if (c.grant.kind === "die-always") always.add(group);
+    else {
+      const best = largest.get(keyOf(c, group));
+      if (!best || beats(c, best)) largest.set(keyOf(c, group), c);
     }
   }
   const out: SourcedGrant[] = [];
   for (const c of collected) {
-    const { grant } = c;
+    const { grant, source } = c;
     if (grant.kind === "die-always") continue;
-    if (grant.group !== undefined && largest.get(keyOf(c)) !== c) continue;
-    if (grant.kind === "die" && grant.group !== undefined && always.has(grant.group)) {
+    const group = groupOf(c);
+    if (group !== undefined && largest.get(keyOf(c, group)) !== c) continue;
+    if (grant.kind === "die" && group !== undefined && always.has(group)) {
       const { condition: _situational, ...counts } = grant;
-      out.push({ ...c, grant: counts });
-    } else out.push({ ...c, grant });
+      out.push({ grant: counts, source, group: c.group });
+    } else out.push({ grant, source, group: c.group });
   }
   return out;
-}
-
-/** A player's own grant without a skill list's group, or nothing for a die-always. */
-function plainGrant(grant: Grant): Grant[] {
-  if ((grant.kind as string) === "die-always") return [];
-  const { group: _skillListOnly, ...plain } = grant as Grant & { group?: Id };
-  return [plain as Grant];
 }
 
 /** Every grant that counts for the character now (situational ones included), in sheet order. */
@@ -153,32 +154,33 @@ export function countedGrants(sheet: CharacterSheet, ref: ReferenceData): Source
   const slots = equippedSlots(sheet);
   const skillGrants = new Map(ref.skillGrants.map((s) => [s.skill, s.grants]));
   const counted: Collected[] = [];
-  const add = (grants: readonly SkillGrant[] | undefined, source: SourceRef, group: BreakdownGroup) => {
+  const add = (
+    grants: readonly SkillGrant[] | undefined,
+    source: SourceRef,
+    group: BreakdownGroup,
+    skillList = false,
+  ) => {
     for (const grant of grants ?? []) {
-      if (grant.kind === "die-always" || usable(grant)) counted.push({ grant, source, group });
+      if (grant.kind === "die-always" || usable(grant)) counted.push({ grant, source, group, skillList });
     }
   };
-  // GR-1: groups and die-always come only from the skill list. On a player's own grants
-  // (bad data the app's checks would refuse) they're ignored.
-  const addOwn = (grants: readonly Grant[] | undefined, source: SourceRef, group: BreakdownGroup) =>
-    add(grants?.flatMap(plainGrant), source, group);
 
   for (const entry of sheet.entries) {
     if (entry.category === "skills") {
       const source: SourceRef = { type: "skill", id: entry.id, name: entryName(entry, ref), skillId: entry.skillId };
-      add(skillGrants.get(entry.skillId), source, "skills");
+      add(skillGrants.get(entry.skillId), source, "skills", true);
       continue;
     }
     const group = countingGroup(entry, slots.get(entry.id));
-    if (group) addOwn(entry.grants, { type: "entry", id: entry.id, name: entry.name, category: entry.category }, group);
+    if (group) add(entry.grants, { type: "entry", id: entry.id, name: entry.name, category: entry.category }, group);
   }
   for (const title of sheet.titles) {
     if (titleApplies(title.scope, sheet.character.id)) {
-      addOwn(title.grants, { type: "title", id: title.id, name: title.name }, "titles");
+      add(title.grants, { type: "title", id: title.id, name: title.name }, "titles");
     }
   }
   for (const manual of sheet.manualGrants) {
-    addOwn(manual.grants, { type: "manual", id: manual.id, reason: manual.reason }, "other");
+    add(manual.grants, { type: "manual", id: manual.id, reason: manual.reason }, "other");
   }
   return resolveGroups(counted);
 }

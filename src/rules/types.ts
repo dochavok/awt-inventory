@@ -357,6 +357,7 @@ export interface Total {
   situational: GrantLine[];
 }
 
+/** An extra die (GR-11). One whose source is the level chart is the class bonus's dice (GR-7). */
 export interface ExtraDie {
   die: string;
   source: SourceRef;

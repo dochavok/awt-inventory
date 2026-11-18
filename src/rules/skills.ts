@@ -90,12 +90,19 @@ function treeOf(c: Context, placement: SkillPlacement): SkillTree {
  * open to the character's class first, then the skill list's order. A retired
  * tree's placement counts only if every tree is retired (RD-3).
  */
-function ranked(c: Context, skill: Skill): { placement: SkillPlacement; tree: SkillTree }[] {
-  const all = placements(skill).map((placement) => ({ placement, tree: treeOf(c, placement) }));
+function ranked(c: Context, skill: Skill): { placement: SkillPlacement; tree: SkillTree; own: boolean }[] {
+  const all = placements(skill).map((placement) => {
+    const tree = treeOf(c, placement);
+    return { placement, tree, own: tree.classes.includes(c.sheet.character.className) };
+  });
   const live = all.filter((p) => !p.tree.retired);
-  const own = (p: { tree: SkillTree }) => p.tree.classes.includes(c.sheet.character.className);
   const list = live.length > 0 ? live : all;
-  return [...list.filter(own), ...list.filter((p) => !own(p))];
+  return [...list.filter((p) => p.own), ...list.filter((p) => !p.own)];
+}
+
+/** RD-3: a skill that's retired, or whose trees all are, isn't newly offered or added. */
+function retiredSkill(skill: Skill, tree: (id: Id) => SkillTree | undefined): boolean {
+  return skill.retired === true || placements(skill).every((p) => tree(p.tree)?.retired);
 }
 
 function warningsFor(c: Context, skill: Skill, placement: SkillPlacement, tree: SkillTree): SkillWarning[] {
@@ -155,23 +162,16 @@ function judge(c: Context, skill: Skill): Judged {
   const notTaken = (c.taken.get(skill.id) ?? 0) === 0;
   let allows: Id | undefined;
   let fewest: { tree: Id; warnings: SkillWarning[] } | undefined;
-  for (const { placement, tree } of ranked(c, skill)) {
+  for (const { placement, tree, own } of ranked(c, skill)) {
     const warnings = warningsFor(c, skill, placement, tree);
-    const ownTree = tree.classes.includes(c.sheet.character.className);
-    if (allows === undefined && (warnings.length === 0 || (placement.starting && ownTree && notTaken))) {
+    if (allows === undefined && (warnings.length === 0 || (placement.starting && own && notTaken))) {
       allows = tree.id;
     }
     if (!fewest || warnings.length < fewest.warnings.length) fewest = { tree: tree.id, warnings };
   }
+  // Only bad data has a skill in no tree (the schema refuses it).
   if (!fewest) throw new NotFoundError("skill tree", `for ${skill.id}`);
   return { tree: allows ?? fewest.tree, available: allows !== undefined, warnings: fewest.warnings };
-}
-
-/** A skill's trees that aren't retired (RD-3); none means it can't be newly offered or added. */
-function liveTrees(c: Context, skill: Skill): SkillTree[] {
-  return placements(skill)
-    .map((p) => treeOf(c, p))
-    .filter((t) => !t.retired);
 }
 
 /** The skill picker's two lists (SK-1, SK-1a). `query` searches by name, ignoring case. */
@@ -183,11 +183,10 @@ export function skillPicker(
   const c = context(sheet, ref);
   const query = options.query?.trim().toLowerCase() ?? "";
   const picker: SkillPicker = { available: [], others: [] };
-  const own = (t: SkillTree) => t.classes.includes(sheet.character.className);
   const offered = ref.skills
-    .filter((s) => !s.retired)
-    .filter((s) => liveTrees(c, s).some((t) => options.allTrees || own(t)))
     .filter((s) => s.name.toLowerCase().includes(query))
+    .filter((s) => !retiredSkill(s, (id) => c.trees.get(id)))
+    .filter((s) => ranked(c, s).some((p) => options.allTrees || p.own))
     .sort((a, b) => a.name.localeCompare(b.name));
   for (const skill of offered) {
     const judged = judge(c, skill);
@@ -204,7 +203,7 @@ export function skillPicker(
 
 /** RD-3: a skill that's retired, or whose trees all are, can't be newly added. */
 export function skillRetired(skill: Skill, ref: ReferenceData): boolean {
-  return skill.retired === true || placements(skill).every((p) => ref.trees.find((t) => t.id === p.tree)?.retired);
+  return retiredSkill(skill, (id) => ref.trees.find((t) => t.id === id));
 }
 
 /** SK-6: levels up to the character's where the class's chart gives a skill but none has that Level gained. */

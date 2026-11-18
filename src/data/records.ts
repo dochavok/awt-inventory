@@ -264,13 +264,13 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
   const lastChanges = new Map<Id, SheetChange>();
 
   /** An entry's grants: its own, or a skill's from the skill list (SK-7). */
-  function grantsOf(entry: Entry): SkillGrant[] | undefined {
-    if (entry.category === "skills") return ref.skillGrants.find((s) => s.skill === entry.skillId)?.grants;
-    return entry.grants;
-  }
-
   /** The grants the user gave an entry (GR-2); a skill has none of its own. */
   const ownGrants = (entry: Entry): Grant[] | undefined => (entry.category === "skills" ? undefined : entry.grants);
+
+  function grantsOf(entry: Entry): SkillGrant[] | undefined {
+    if (entry.category === "skills") return ref.skillGrants.find((s) => s.skill === entry.skillId)?.grants;
+    return ownGrants(entry);
+  }
 
   /** Whether losing these grants can take slots away, the only way a change raises an alert (EQ-8). */
   const losesSlots = (grants: SkillGrant[] | undefined) => grants?.some(addsSlots) === true;
