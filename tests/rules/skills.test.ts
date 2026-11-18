@@ -255,6 +255,26 @@ rule({ req: ["SK-1"], m: "M2" }, "a skill in several trees is in a character's o
   expect(offered(fixtureSheet("aldric")), "Moonlit Step in Aldric's own trees (neither)").toBe(0);
 });
 
+rule(
+  { req: ["SK-1a", "SK-3"], m: "M2" },
+  "a skill in two of a character's own trees is available when the second allows it",
+  () => {
+    // An edited list: Moonlit Step in Bladework (after Twin Fangs, which Aldric lacks) and Bulwark (no prerequisite).
+    const edited = testReferenceData();
+    edited.skills.find((s) => s.id === "moonlit-step")!.trees = [
+      { tree: "bladework", prerequisites: { skill: "twin-fangs" } },
+      { tree: "bulwark" },
+    ];
+    const picker = moonlit(skillPicker(fixtureSheet("aldric"), edited, { allTrees: false }));
+    expect(
+      picker.available.map((o) => o.tree),
+      "the tree that lets Aldric take Moonlit Step",
+    ).toEqual(["bulwark"]);
+    expect(picker.others, "Moonlit Step among Aldric's other skills").toEqual([]);
+    expect(skillWarnings(fixtureSheet("aldric"), edited, "moonlit-step"), "Aldric's warnings").toEqual([]);
+  },
+);
+
 rule({ req: ["SK-1", "RD-3"], m: "M2" }, "a retired tree no longer makes a skill in several trees available", () => {
   const retired = testReferenceData();
   retired.trees.find((t) => t.id === "arcana")!.retired = true;

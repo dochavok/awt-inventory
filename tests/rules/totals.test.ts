@@ -230,6 +230,23 @@ rule(
   },
 );
 
+rule(
+  { req: ["GR-1", "GR-4"], m: "M4" },
+  "die-always makes only its group's die count, not a bonus in that group",
+  () => {
+    const ref = testReferenceData();
+    // An edited list: Cinder Mark II's vs Undead bonus put in the Cinder Die's group.
+    const bonus = ref.skillGrants.find((g) => g.skill === "cinder-mark-ii")!.grants[1]!;
+    if (bonus.kind === "cm") bonus.group = "cinder-die";
+    const totals = computeTotals(isoldeWith("cinder-mark-ii", "cinder-focus"), ref);
+    expect(fromSkills(totals.cm.situational), "Isolde's situational CM from skills").toEqual([
+      "Cinder Mark II 5 vs Undead",
+    ]);
+    expect(fromSkills(totals.cm.grants), "Isolde's CM lines from skills (her Ward only)").toEqual(["Ward 2"]);
+    expect(fromSkills(totals.dice.extra), "Isolde's extra dice from skills").toEqual(["Cinder Mark II 1d8"]);
+  },
+);
+
 rule({ req: ["GR-1", "GR-11"], m: "M4" }, "die-always adds nothing without a die in its group", () => {
   const totals = computeTotals(isoldeWith("cinder-focus"), testReferenceData());
   expect(totals.dice.extra, "Isolde's extra dice with only Cinder Focus").toEqual([]);
