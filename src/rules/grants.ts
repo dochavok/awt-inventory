@@ -119,7 +119,12 @@ const groupOf = (c: Collected): Id | undefined => (c.skillList ? c.grant.group :
 function resolveGroups(collected: Collected[]): SourcedGrant[] {
   const always = new Set<Id>();
   const largest = new Map<string, Collected>();
-  const keyOf = (c: Collected, group: Id) => `${c.grant.kind} ${group}`;
+  // One growing bonus: the same kind, for the same slot kind or rarity.
+  const keyOf = (c: Collected, group: Id) => {
+    const { grant } = c;
+    const target = grant.kind === "slots" ? grant.slotKind : grant.kind === "allowance" ? grant.rarity : "";
+    return `${grant.kind} ${target} ${group}`;
+  };
   const beats = (a: Collected, b: Collected) => {
     const [sa, sb] = [size(a.grant), size(b.grant)];
     if (sa !== sb) return sa > sb;

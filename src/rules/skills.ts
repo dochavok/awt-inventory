@@ -155,22 +155,23 @@ interface Judged {
 /**
  * SK-1a, SK-3: a skill is available if any of its trees allows it (one the
  * class and level allow, prerequisites met, not taken as often as allowed, or
- * a starting skill of the character's own tree). Otherwise its warnings are the
- * tree's with the fewest, ties going to the first in `ranked` order.
+ * a starting skill of the character's own tree). Its warnings are the tree's
+ * with the fewest, ties going to the first in `ranked` order. The tree named is
+ * one with no warnings if there is one, so it matches the warnings.
  */
-function judge(c: Context, skill: Skill): Judged {
+function judge(c: Context, skill: Skill, trees = ranked(c, skill)): Judged {
   const notTaken = (c.taken.get(skill.id) ?? 0) === 0;
-  let allows: Id | undefined;
+  let starts: Id | undefined;
   let fewest: { tree: Id; warnings: SkillWarning[] } | undefined;
-  for (const { placement, tree, own } of ranked(c, skill)) {
+  for (const { placement, tree, own } of trees) {
     const warnings = warningsFor(c, skill, placement, tree);
-    if (allows === undefined && (warnings.length === 0 || (placement.starting && own && notTaken))) {
-      allows = tree.id;
-    }
+    if (starts === undefined && placement.starting && own && notTaken) starts = tree.id;
     if (!fewest || warnings.length < fewest.warnings.length) fewest = { tree: tree.id, warnings };
   }
   // Only bad data has a skill in no tree (the schema refuses it).
   if (!fewest) throw new NotFoundError("skill tree", `for ${skill.id}`);
+  const clean = fewest.warnings.length === 0 ? fewest.tree : undefined;
+  const allows = clean ?? starts;
   return { tree: allows ?? fewest.tree, available: allows !== undefined, warnings: fewest.warnings };
 }
 
@@ -184,12 +185,12 @@ export function skillPicker(
   const query = options.query?.trim().toLowerCase() ?? "";
   const picker: SkillPicker = { available: [], others: [] };
   const offered = ref.skills
-    .filter((s) => s.name.toLowerCase().includes(query))
-    .filter((s) => !retiredSkill(s, (id) => c.trees.get(id)))
-    .filter((s) => ranked(c, s).some((p) => options.allTrees || p.own))
-    .sort((a, b) => a.name.localeCompare(b.name));
-  for (const skill of offered) {
-    const judged = judge(c, skill);
+    .filter((s) => s.name.toLowerCase().includes(query) && !retiredSkill(s, (id) => c.trees.get(id)))
+    .map((skill) => ({ skill, trees: ranked(c, skill) }))
+    .filter(({ trees }) => trees.some((p) => options.allTrees || p.own))
+    .sort((a, b) => a.skill.name.localeCompare(b.skill.name));
+  for (const { skill, trees } of offered) {
+    const judged = judge(c, skill, trees);
     const option: SkillOption = {
       skillId: skill.id,
       name: skill.name,
