@@ -154,10 +154,15 @@ limit too, and marks reports over it `not-sent` without passing them on.
 - **Account problems (SP-3)** come by email from `onboarding@resend.dev`,
   holding only the report number. Add that sender to your contacts so it isn't
   filed as spam.
-- **Reading a full report:** Firestore console → Query builder → collection
-  group `reports`, filter `number` == the report number. The report sits under
-  its sender's `users/{uid}`; that user document has their display name and
-  email for a reply. Look only for support the player asked for (PV-3).
+- **Reading a full report:** the email or issue gives only the report number.
+  Firebase console → Firestore Database → switch from Panel View to **Query
+  Builder** (Panel View doesn't list reports). Query the collection group
+  `reports`, add a **WHERE** clause with field `number`, type **number** (not
+  string), and the report number as the value. The result's path is
+  `users/{uid}/reports/{id}`, and `{uid}` is the sender. Their `users/{uid}`
+  document has their display name and email for a reply. Authentication →
+  Users, searched by that uid, shows how they sign in and when they last did.
+  Look only for support the player asked for (PV-3).
 - **A report that wasn't delivered** (GitHub or Resend down) waits in
   `reportQueue` and is retried every hour. One that stays there for a day
   points to a broken secret or account: read `retryReports`' logs. "GitHub
@@ -252,10 +257,11 @@ gcloud storage buckets add-iam-policy-binding gs://$BUCKET --role roles/storage.
 **4. Firestore settings:** report numbers can be looked up across users, and
 the server's daily report counters expire on their own.
 
-For the report numbers (gcloud's `--index` flag can't choose the query
-scope): Firebase console → Firestore Database → Indexes → Single field → Add
-exemption; collection ID `reports`, field path `number`; tick Ascending for
-both Collection and Collection group; save.
+For the report numbers: run the lookup from "Answering reports" once with any
+number. Until the setting exists, Firestore refuses the query with a link to
+create it. Open the link, check it names collection `reports` and field
+`number`, with Ascending for Collection group, and save. Once it shows as
+ready, the lookup works.
 
 For the counters (the command may take a few minutes; Ctrl-C stops only the
 waiting, and `gcloud firestore fields ttls list --project $APP` shows it):
