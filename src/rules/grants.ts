@@ -141,6 +141,13 @@ function resolveGroups(collected: Collected[]): SourcedGrant[] {
   return out;
 }
 
+/** A player's own grant without a skill list's group, or nothing for a die-always. */
+function plainGrant(grant: Grant): Grant[] {
+  if ((grant.kind as string) === "die-always") return [];
+  const { group: _skillListOnly, ...plain } = grant as Grant & { group?: Id };
+  return [plain as Grant];
+}
+
 /** Every grant that counts for the character now (situational ones included), in sheet order. */
 export function countedGrants(sheet: CharacterSheet, ref: ReferenceData): SourcedGrant[] {
   const slots = equippedSlots(sheet);
@@ -151,6 +158,10 @@ export function countedGrants(sheet: CharacterSheet, ref: ReferenceData): Source
       if (grant.kind === "die-always" || usable(grant)) counted.push({ grant, source, group });
     }
   };
+  // GR-1: groups and die-always come only from the skill list. On a player's own grants
+  // (bad data the app's checks would refuse) they're ignored.
+  const addOwn = (grants: readonly Grant[] | undefined, source: SourceRef, group: BreakdownGroup) =>
+    add(grants?.flatMap(plainGrant), source, group);
 
   for (const entry of sheet.entries) {
     if (entry.category === "skills") {
@@ -159,15 +170,15 @@ export function countedGrants(sheet: CharacterSheet, ref: ReferenceData): Source
       continue;
     }
     const group = countingGroup(entry, slots.get(entry.id));
-    if (group) add(entry.grants, { type: "entry", id: entry.id, name: entry.name, category: entry.category }, group);
+    if (group) addOwn(entry.grants, { type: "entry", id: entry.id, name: entry.name, category: entry.category }, group);
   }
   for (const title of sheet.titles) {
     if (titleApplies(title.scope, sheet.character.id)) {
-      add(title.grants, { type: "title", id: title.id, name: title.name }, "titles");
+      addOwn(title.grants, { type: "title", id: title.id, name: title.name }, "titles");
     }
   }
   for (const manual of sheet.manualGrants) {
-    add(manual.grants, { type: "manual", id: manual.id, reason: manual.reason }, "other");
+    addOwn(manual.grants, { type: "manual", id: manual.id, reason: manual.reason }, "other");
   }
   return resolveGroups(counted);
 }
