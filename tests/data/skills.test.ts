@@ -152,17 +152,21 @@ async function bramWithIsolde() {
   return { w, bram, id: isolde.character.id };
 }
 
-rule({ req: ["SK-2", "SK-1a"], m: "M2" }, "a skill in several trees shows every tree, in the list's order", async () => {
-  const { bram, id } = await bramWithIsolde();
-  const { entry, warnings } = await bram.addSkill(id, {
-    skillId: "moonlit-step",
-    howGained: "level-up",
-    levelGained: 13,
-  });
-  expect(warnings, "Isolde's warnings for Moonlit Step").toEqual([]);
-  const shown = (await bram.skills(id)).find((s) => s.entryId === entry.id);
-  expect(shown, "Isolde's Moonlit Step").toMatchObject({ name: "Moonlit Step", tree: "Arcana, Shadowcraft" });
-});
+rule(
+  { req: ["SK-2", "SK-1a"], m: "M2" },
+  "a skill in several trees shows every tree, in the list's order",
+  async () => {
+    const { bram, id } = await bramWithIsolde();
+    const { entry, warnings } = await bram.addSkill(id, {
+      skillId: "moonlit-step",
+      howGained: "level-up",
+      levelGained: 13,
+    });
+    expect(warnings, "Isolde's warnings for Moonlit Step").toEqual([]);
+    const shown = (await bram.skills(id)).find((s) => s.entryId === entry.id);
+    expect(shown, "Isolde's Moonlit Step").toMatchObject({ name: "Moonlit Step", tree: "Arcana, Shadowcraft" });
+  },
+);
 
 rule(
   { req: ["SK-5", "RD-3"], m: "M2" },

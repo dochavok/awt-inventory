@@ -234,14 +234,13 @@ rule(
     expect(isolde.available[0]!.tree, "the tree that lets Isolde take Moonlit Step").toBe("arcana");
 
     const brin = moonlit(skillPicker(fixtureSheet("brin"), ref, { allTrees: true }));
-    expect([brin.available.length, brin.others.length], "Moonlit Step in Brin's lists, without Quick Fingers").toEqual(
-      [0, 1],
-    );
+    expect([brin.available.length, brin.others.length], "Moonlit Step in Brin's lists, without Quick Fingers").toEqual([
+      0, 1,
+    ]);
     const ready = moonlit(skillPicker(withSkill(fixtureSheet("brin"), "quick-fingers"), ref, { allTrees: true }));
-    expect(
-      [ready.available.length, ready.others.length],
-      "Moonlit Step in Brin's lists, with Quick Fingers",
-    ).toEqual([1, 0]);
+    expect([ready.available.length, ready.others.length], "Moonlit Step in Brin's lists, with Quick Fingers").toEqual([
+      1, 0,
+    ]);
     expect(ready.available[0]!.tree, "the tree that lets Brin take Moonlit Step").toBe("shadowcraft");
   },
 );
@@ -260,10 +259,9 @@ rule({ req: ["SK-1", "RD-3"], m: "M2" }, "a retired tree no longer makes a skill
   const retired = testReferenceData();
   retired.trees.find((t) => t.id === "arcana")!.retired = true;
   const isolde = moonlit(skillPicker(fixtureSheet("isolde"), retired, { allTrees: true }));
-  expect(
-    [isolde.available.length, isolde.others.length],
-    "Moonlit Step in Isolde's lists with Arcana retired",
-  ).toEqual([0, 1]);
+  expect([isolde.available.length, isolde.others.length], "Moonlit Step in Isolde's lists with Arcana retired").toEqual(
+    [0, 1],
+  );
   const own = moonlit(skillPicker(fixtureSheet("isolde"), retired, { allTrees: false }));
   expect(own.available.length + own.others.length, "Moonlit Step in Isolde's own trees with Arcana retired").toBe(0);
 });

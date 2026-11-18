@@ -69,7 +69,8 @@ export function computeTotals(sheet: CharacterSheet, ref: ReferenceData): Totals
   const row = levelRow(ref, className, level);
   const counted = countedGrants(sheet, ref);
 
-  const extra: ExtraDie[] = [];
+  // GR-8, GR-11: the class bonus's dice (a Rogue's Stealth Bonus) are rolled with the combat dice, listed first.
+  const extra: ExtraDie[] = row.classBonusDice ? [{ die: row.classBonusDice, source: { type: "level-chart" } }] : [];
   const situationalDice: ExtraDie[] = [];
   const permissions = new Map<Permission, Totals["permissions"][number]["sources"]>();
   const effects: Totals["effects"] = [];
@@ -86,7 +87,11 @@ export function computeTotals(sheet: CharacterSheet, ref: ReferenceData): Totals
   }
 
   return {
-    classBonus: { name: CLASS_BONUS_NAMES[className], value: row.classBonus },
+    classBonus: {
+      name: CLASS_BONUS_NAMES[className],
+      value: row.classBonus,
+      ...(row.classBonusDice ? { dice: row.classBonusDice } : {}),
+    },
     cm: total(counted, "cm", { group: "class-bonus", amount: row.classBonus }),
     mitigation: total(counted, "mitigation"),
     hearts: total(counted, "hearts", { group: "level-chart", amount: row.hearts }),

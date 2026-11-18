@@ -241,8 +241,7 @@ rule(
   { req: ["RD-1", "GR-1", "RD-4"], m: "M4" },
   "a skill's grant can be in a group, and die-always names a group whose die always counts",
   () => {
-    const grants = (skill: string) =>
-      loadReferenceData(testFiles()).skillGrants.find((g) => g.skill === skill)?.grants;
+    const grants = (skill: string) => loadReferenceData(testFiles()).skillGrants.find((g) => g.skill === skill)?.grants;
     expect(grants("cinder-mark-ii")?.[0], "Cinder Mark II's die").toMatchObject({ die: "1d8", group: "cinder-die" });
     expect(grants("cinder-focus"), "Cinder Focus's grants").toEqual([
       { id: "sg-cinder-focus-1", kind: "die-always", group: "cinder-die" },

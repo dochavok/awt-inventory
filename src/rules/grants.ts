@@ -10,6 +10,7 @@ import type {
   GrantLine,
   Id,
   ReferenceData,
+  SkillGrant,
   SlotTarget,
   SourceRef,
   TitleScope,
@@ -61,7 +62,7 @@ export function titleApplies(scope: TitleScope, characterId: Id): boolean {
 }
 
 /** A grant that adds slots, to a slot kind or the arcane slots: the only kind whose loss can raise an alert (EQ-8). */
-export function addsSlots(grant: Grant): boolean {
+export function addsSlots(grant: SkillGrant): boolean {
   return grant.kind === "slots" || grant.kind === "arcane-slots";
 }
 
@@ -91,13 +92,64 @@ function countingGroup(entry: Entry, slot: SlotTarget | undefined): BreakdownGro
   }
 }
 
+/** How large a grouped grant is: its amount, or for a die its highest roll (GR-1). */
+function size(grant: Grant): number {
+  if (grant.kind === "die") {
+    return grant.die.split("+").reduce((sum, part) => {
+      const [count = 0, sides = 0] = part.trim().split("d").map(Number);
+      return sum + count * sides;
+    }, 0);
+  }
+  return "amount" in grant ? grant.amount : 0;
+}
+
+type Collected = Omit<SourcedGrant, "grant"> & { grant: SkillGrant };
+
+/**
+ * GR-1's groups: within a group (of one kind) only the largest grant is kept,
+ * whatever order the sheet lists them in. A grouped die that a `die-always`
+ * grant names loses its condition, so it counts (GR-4's exception), and the
+ * `die-always` grants themselves go.
+ */
+function resolveGroups(collected: Collected[]): SourcedGrant[] {
+  const always = new Set<Id>();
+  const largest = new Map<string, Collected>();
+  const keyOf = (c: Collected) => `${c.grant.kind} ${c.grant.group}`;
+  const beats = (a: Collected, b: Collected) => {
+    const [sa, sb] = [size(a.grant as Grant), size(b.grant as Grant)];
+    if (sa !== sb) return sa > sb;
+    if (a.grant.id !== b.grant.id) return a.grant.id < b.grant.id;
+    return sourceKey(a.source) < sourceKey(b.source);
+  };
+  for (const c of collected) {
+    if (c.grant.kind === "die-always") always.add(c.grant.group);
+    else if (c.grant.group !== undefined) {
+      const best = largest.get(keyOf(c));
+      if (!best || beats(c, best)) largest.set(keyOf(c), c);
+    }
+  }
+  const out: SourcedGrant[] = [];
+  for (const c of collected) {
+    const { grant } = c;
+    if (grant.kind === "die-always") continue;
+    if (grant.group !== undefined && largest.get(keyOf(c)) !== c) continue;
+    if (grant.kind === "die" && grant.group !== undefined && always.has(grant.group)) {
+      const { condition: _situational, ...counts } = grant;
+      out.push({ ...c, grant: counts });
+    } else out.push({ ...c, grant });
+  }
+  return out;
+}
+
 /** Every grant that counts for the character now (situational ones included), in sheet order. */
 export function countedGrants(sheet: CharacterSheet, ref: ReferenceData): SourcedGrant[] {
   const slots = equippedSlots(sheet);
   const skillGrants = new Map(ref.skillGrants.map((s) => [s.skill, s.grants]));
-  const counted: SourcedGrant[] = [];
-  const add = (grants: Grant[] | undefined, source: SourceRef, group: BreakdownGroup) => {
-    for (const grant of grants ?? []) if (usable(grant)) counted.push({ grant, source, group });
+  const counted: Collected[] = [];
+  const add = (grants: readonly SkillGrant[] | undefined, source: SourceRef, group: BreakdownGroup) => {
+    for (const grant of grants ?? []) {
+      if (grant.kind === "die-always" || usable(grant)) counted.push({ grant, source, group });
+    }
   };
 
   for (const entry of sheet.entries) {
@@ -117,7 +169,7 @@ export function countedGrants(sheet: CharacterSheet, ref: ReferenceData): Source
   for (const manual of sheet.manualGrants) {
     add(manual.grants, { type: "manual", id: manual.id, reason: manual.reason }, "other");
   }
-  return counted;
+  return resolveGroups(counted);
 }
 
 /** A key that tells sources apart (a skill taken three times is three sources). */

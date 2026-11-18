@@ -5,7 +5,7 @@
 import { parse } from "yaml";
 import type { z } from "zod";
 import { highestLevel, levelCap } from "../rules/levels";
-import { prerequisiteSkillIds } from "../rules/skills";
+import { placements, prerequisiteSkillIds } from "../rules/skills";
 import { CLASS_NAMES, type ReferenceData } from "../rules/types";
 import { FILES, type FileName, type Parsed } from "./schema";
 
@@ -115,9 +115,14 @@ function checkReferences(p: Partial<Parsed>): DataProblem[] {
     const trees = new Set(skillsFile.trees.map((t) => t.id));
     const skills = new Set(skillsFile.skills.map((s) => s.id));
     for (const skill of skillsFile.skills) {
-      if (!trees.has(skill.tree)) problems.push(problem(file, `unknown tree ${skill.tree}`, skill.id));
-      for (const needed of skill.prerequisites ? prerequisiteSkillIds(skill.prerequisites) : []) {
-        if (!skills.has(needed)) problems.push(problem(file, `unknown prerequisite ${needed}`, skill.id));
+      const seen = new Set<string>();
+      for (const placement of placements(skill)) {
+        if (!trees.has(placement.tree)) problems.push(problem(file, `unknown tree ${placement.tree}`, skill.id));
+        if (seen.has(placement.tree)) problems.push(problem(file, `in the ${placement.tree} tree twice`, skill.id));
+        seen.add(placement.tree);
+        for (const needed of placement.prerequisites ? prerequisiteSkillIds(placement.prerequisites) : []) {
+          if (!skills.has(needed)) problems.push(problem(file, `unknown prerequisite ${needed}`, skill.id));
+        }
       }
       for (const replacement of skill.replacedBy ?? []) {
         if (!skills.has(replacement))
@@ -133,6 +138,9 @@ function checkReferences(p: Partial<Parsed>): DataProblem[] {
     const file = "skill-grants.yaml";
     const seen = new Set<string>();
     const grantIds = new Set<string>();
+    const dieGroups = new Set(
+      skillGrants.flatMap((s) => s.grants.flatMap((g) => (g.kind === "die" && g.group ? [g.group] : []))),
+    );
     for (const { skill, grants } of skillGrants) {
       if (seen.has(skill)) problems.push(problem(file, `grants for ${skill} are listed twice`, skill));
       seen.add(skill);
@@ -147,6 +155,9 @@ function checkReferences(p: Partial<Parsed>): DataProblem[] {
         }
         if (grant.kind === "allowance" && rarities && !rarities.some((r) => r.id === grant.rarity)) {
           problems.push(problem(file, `grant ${grant.id} is for unknown rarity ${grant.rarity}`, skill));
+        }
+        if (grant.kind === "die-always" && !dieGroups.has(grant.group)) {
+          problems.push(problem(file, `grant ${grant.id} is for the ${grant.group} group, which has no die`, skill));
         }
       }
     }

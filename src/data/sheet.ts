@@ -55,12 +55,17 @@ function sourceLabel(source: SourceRef): string {
 
 /** EX-1: CM, mitigation, max hearts and combat dice, each with its breakdown (GR-8 to GR-11). */
 function sheetTotals(totals: Totals): NonNullable<SheetPage["totals"]> {
+  const { classBonus } = totals;
   const lines = (total: Total) =>
-    total.lines.map((l) => ({
-      label: l.group === "class-bonus" ? totals.classBonus.name : GROUP_LABELS[l.group],
-      value: l.value,
-    }));
-  const extra = totals.dice.extra.map((d) => ` + ${d.die} (${sourceLabel(d.source)})`).join("");
+    total.lines.map((l) =>
+      l.group === "class-bonus"
+        ? // GR-7: a class bonus with dice is always shown as dice plus its number.
+          { label: classBonus.name, value: classBonus.dice ? `${classBonus.dice} + ${l.value}` : l.value }
+        : { label: GROUP_LABELS[l.group], value: l.value },
+    );
+  // GR-11: the chart's own extra die is the class bonus's (a Rogue's Stealth Bonus).
+  const dieSource = (source: SourceRef) => (source.type === "level-chart" ? classBonus.name : sourceLabel(source));
+  const extra = totals.dice.extra.map((d) => ` + ${d.die} (${dieSource(d.source)})`).join("");
   return [
     { label: "CM", value: totals.cm.value, lines: lines(totals.cm) },
     { label: "Mitigation", value: totals.mitigation.value, lines: lines(totals.mitigation) },

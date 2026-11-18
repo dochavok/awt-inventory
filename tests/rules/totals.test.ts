@@ -218,7 +218,10 @@ rule(
       totals.dice.extra.filter((d) => d.source.type === "skill"),
       "Isolde's extra dice from skills",
     ).toEqual([
-      { die: "1d8", source: { type: "skill", id: "x-cinder-mark-ii", name: "Cinder Mark II", skillId: "cinder-mark-ii" } },
+      {
+        die: "1d8",
+        source: { type: "skill", id: "x-cinder-mark-ii", name: "Cinder Mark II", skillId: "cinder-mark-ii" },
+      },
     ]);
     expect(fromSkills(totals.dice.situational), "Isolde's situational dice from skills").toEqual([]);
     expect(fromSkills(totals.cm.situational), "the vs Undead bonus stays situational").toEqual([
