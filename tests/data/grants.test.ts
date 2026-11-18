@@ -370,6 +370,78 @@ rule(
 );
 
 rule(
+  { req: ["EQ-4", "NF-3", "GR-3"], m: "M4" },
+  "an entry stored as equipped where it no longer fits, as two offline phones can leave it, counts as unequipped",
+  async () => {
+    const { w, bram, aldric, id } = await bramWithAldric();
+    // Phone A changed the helm to fit Neck while phone B had it in Head: both changes kept (NF-3).
+    Object.assign(w.db.entries.get(id("aldric-helm"))!, { slotKind: "neck" });
+    const sheet = await bram.sheet(aldric.character.id);
+    expect(
+      sheet.equipped.some((q) => q.entryId === id("aldric-helm")),
+      "Hawkeye Helm listed as equipped in Head",
+    ).toBe(false);
+    expect((await bram.totals(aldric.character.id)).cm.value, "Aldric's CM without the helm's +15").toBe(155);
+    expect((await bram.equip(id("aldric-helm"), "neck")).outcome, "equipping the helm in Neck").toBe("allowed");
+  },
+);
+
+rule(
+  { req: ["IN-8", "GR-2"], m: "M4" },
+  "an edit's grants are the entry's own however they're written, and anything else is refused, naming grants",
+  async () => {
+    const { bram, id } = await bramWithAldric();
+    const sword = await bram.entry(id("aldric-sword"));
+    const own = sword.category === "weapons" ? sword.grants! : [];
+    const same = own.map((g) => ({ ...g, condition: undefined }));
+    const edited = await bram.updateEntry(id("aldric-sword"), { notes: "Oiled", grants: same });
+    expect(edited.notes, "Duskfang's notes, sent with its own grants").toBe("Oiled");
+    for (const [what, grants] of [
+      ["a list holding nothing", [null]],
+      ["text", "lots"],
+    ] as const) {
+      const attempt = bram.updateEntry(id("aldric-sword"), { grants } as never);
+      await expect(attempt, `an edit with grants as ${what}`).rejects.toThrow(ValidationError);
+      await expect(attempt, `the refusal of grants as ${what}`).rejects.toMatchObject({ field: "grants" });
+    }
+  },
+);
+
+rule(
+  { req: ["IN-15", "EQ-8"], m: "M4" },
+  "after Undo brings back an entry unequipped, the alert no longer blames its deletion",
+  async () => {
+    const { w, bram, aldric, id } = await bramWithAldric();
+    const characterId = aldric.character.id;
+    const cloak = await bram.addEntry(characterId, {
+      category: "armor",
+      name: "Cloak of the Wanderer",
+      slotKind: "shoulder",
+      grants: [{ kind: "slots", slotKind: "back", amount: 1 }],
+    });
+    const pack = await bram.addEntry(characterId, { category: "armor", name: "Traveller's Pack", slotKind: "back" });
+    const mantle = await bram.addEntry(characterId, { category: "armor", name: "Felt Mantle", slotKind: "shoulder" });
+    for (const [entryId, slot] of [
+      [cloak.id, "shoulder"],
+      [id("aldric-cloak"), "back"],
+      [pack.id, "back"],
+    ] as const) {
+      await bram.equip(entryId, slot);
+    }
+    const deleted = await bram.deleteEntry(cloak.id);
+    expect((await bram.alerts(characterId))[0]?.lost?.reason, "the Back alert's cause after deleting").toBe("deleted");
+    await bram.equip(mantle.id, "shoulder");
+    w.clock.advanceSeconds(5);
+    await deleted.undo();
+    const [alert] = await bram.alerts(characterId);
+    expect([alert?.scope, alert?.lost], "the Back alert after Undo").toEqual([
+      { type: "slot-kind", id: "back" },
+      undefined,
+    ]);
+  },
+);
+
+rule(
   { req: ["IN-8", "GR-2"], m: "M4" },
   "an edit that sends back no grants for an entry without any is fine",
   async () => {
