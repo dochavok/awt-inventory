@@ -63,10 +63,10 @@ Each is a CI job, and all five are required checks on `main`:
 
 | CI job | Command | What it checks |
 |---|---|---|
-| `lint` | `npm run lint` | ESLint, Prettier and `tsc`; then, once `functions/` exists, the Cloud Functions build (`npm run build` there, the same one the deploy runs) |
+| `lint` | `npm run lint` | ESLint, Prettier and `tsc`. CI's `lint` job also builds `functions/` (`npm run build` there, the same one the deploy runs); `npm run lint` alone doesn't |
 | `test` | `npm test` | Vitest: rule scenarios, property tests, data layer, harness (`tests/meta`), and the coverage table |
 | `access-rules` | `npm run test:access` | Firestore rules and offline sync in the emulator (needs Java 21) |
-| `browser` | `npm run test:browser` | Playwright on iPhone (WebKit) and Android (Chromium) profiles, against the emulators it starts itself (needs Java 21) |
+| `browser` | `npm run test:browser` | Playwright on iPhone (WebKit) and Android (Chromium) profiles, against the emulators it starts itself (needs Java 21); one made-up player signs up first to warm everything up (`tests/support/browser-warm-up.ts`, TF-13) |
 | `test-change-rule` | `npm run check:test-changes -- --base origin/main` | The test-change rule (TF-7), run in CI as it is on `main` (`test-change-rule.yml`); see `scripts/test-change-lib.ts` |
 
 - **Tags and milestones (TF-4, TF-5):** declare every test with `rule()`
@@ -82,13 +82,19 @@ Each is a CI job, and all five are required checks on `main`:
 - **Coverage (TF-4):** after adding or retagging tests, run
   `npm run coverage:write` and commit `tests/COVERAGE.md`; `npm test` fails if
   it's stale.
+- **Docs examples (DOC-4):** after changing what an example shows (the
+  sample in `docs/sample/`, or the code that makes the output), run
+  `npm run docs:write` and commit the pages it updates; `npm test` fails if
+  they're stale.
 - **Scenarios (TF-9):** YAML in `tests/scenarios/`, checked against a strict
   schema (`tests/support/scenarios.ts`); IDs are permanent.
 - **On this PC:** Norton quarantined Playwright's WebKit, so run browser tests
   locally with `npx playwright test --project android --workers 2`; CI runs
   both phones. Use 2 workers: Playwright's default here is 6, and on a fresh
   build that overloads this PC and tests time out (2 of 3 runs failed at 6
-  workers, none at 2). CI's runners already use 2.
+  workers, none at 2). CI's runners already use 2. The warm-up (TF-13) stopped
+  the first test on each worker timing out on a fresh build (2 of 3 full runs
+  failed without it, none of 3 with it).
 
 ## Other conventions
 
