@@ -1,5 +1,6 @@
 // Grants through the data layer (GR-2, GR-5, TI-4, TI-5): which sources can
 // carry them, and that totals follow every change at once.
+// Also equipping through the store (EQ-2, EQ-4, EQ-8) and the checks on each grant (GR-1).
 
 import { expect } from "vitest";
 import { ValidationError } from "../../src/errors";
@@ -148,6 +149,119 @@ rule(
     await bram.setTitleScope(title.id, { level: "character", characterId: isolde.character.id });
     expect((await bram.totals(aldric.character.id)).cm.value, "Aldric's CM without the title").toBe(170);
     expect((await bram.totals(isolde.character.id)).cm.value, "Isolde's CM with the title").toBe(23);
+  },
+);
+
+rule({ req: ["EQ-2"], m: "M4" }, "a blocked equip changes nothing, and says what's in the way", async () => {
+  const { bram, aldric } = await bramWithAldric();
+  const mail = await bram.addEntry(aldric.character.id, { category: "armor", name: "Chain Shirt", slotKind: "chest" });
+  const before = (await bram.sheet(aldric.character.id)).equipped;
+  const result = await bram.equip(mail.id, "chest");
+  expect([result.outcome, result.block?.reason], "equipping a second chest piece").toEqual(["blocked", "slot-full"]);
+  expect(result.block?.message, "the block message").toContain("Ironclad Plate");
+  expect((await bram.sheet(aldric.character.id)).equipped, "what Aldric has equipped afterwards").toEqual(before);
+});
+
+rule(
+  { req: ["IN-8", "GR-5", "EQ-4"], m: "M4" },
+  "editing an equipped entry keeps its grants and where it's equipped",
+  async () => {
+    const { bram, aldric, id } = await bramWithAldric();
+    await bram.updateEntry(id("aldric-sword"), { notes: "Freshly sharpened", name: "Duskfang the Keen" });
+    const sheet = await bram.sheet(aldric.character.id);
+    expect(sheet.equipped.find((q) => q.entryId === id("aldric-sword"))?.slot, "where Duskfang is after the edit").toBe(
+      "main-hand",
+    );
+    expect((await bram.totals(aldric.character.id)).cm.value, "Aldric's CM after editing Duskfang").toBe(170);
+  },
+);
+
+rule(
+  { req: ["GR-1", "GR-2"], m: "M4" },
+  "a grant that isn't one of the kinds, or has a bad amount, die, slot kind or rarity, is refused, naming the grant",
+  async () => {
+    const { bram, id } = await bramWithAldric();
+    const sword = { entryId: id("aldric-sword") };
+    for (const [what, grant] of [
+      ["a made-up kind", { kind: "xp", amount: 3 }],
+      ["CM +0", { kind: "cm", amount: 0 }],
+      ["CM +1.5", { kind: "cm", amount: 1.5 }],
+      ["a die that isn't dice", { kind: "die", die: "lots" }],
+      ["a slot kind not in the reference data", { kind: "slots", slotKind: "wings", amount: 1 }],
+      ["a retired slot kind", { kind: "slots", slotKind: "cape", amount: 1 }],
+      ["a rarity not in the reference data", { kind: "allowance", rarity: "shiny", amount: 1 }],
+      ["a made-up permission", { kind: "permission", permission: "flying" }],
+    ] as const) {
+      const attempt = bram.addGrant(sword, grant as never);
+      await expect(attempt, `a grant with ${what}`).rejects.toThrow(ValidationError);
+      await expect(attempt, `the refusal of ${what}`).rejects.toMatchObject({ field: "grants" });
+    }
+    const fine = await bram.addGrant(sword, { kind: "die", die: "1d8", condition: "vs undead" });
+    expect([fine.kind, fine.condition], "a situational 1d8 die").toEqual(["die", "vs undead"]);
+  },
+);
+
+rule({ req: ["GR-2"], m: "M4" }, "a consumable added with grants is refused, and the refusal says why", async () => {
+  const { bram, aldric } = await bramWithAldric();
+  const attempt = bram.addEntry(aldric.character.id, {
+    category: "consumables",
+    name: "Tonic of Fury",
+    grants: [{ kind: "cm", amount: 7 }],
+  } as never);
+  await expect(attempt, "adding a consumable with a grant").rejects.toThrow(ValidationError);
+  await expect(attempt, "the refusal").rejects.toMatchObject({ field: "grants" });
+  await expect(attempt, "the refusal").rejects.toThrow(/Consumables/);
+});
+
+rule(
+  { req: ["EQ-8", "IN-14"], m: "M4" },
+  "trading the cloak that gave a second Back slot raises an alert naming the cloak and the trade",
+  async () => {
+    const { bram, aldric, id } = await bramWithAldric();
+    const cloak = await bram.addEntry(aldric.character.id, {
+      category: "items",
+      name: "Cloak of the Wanderer",
+      arcane: true,
+      grants: [{ kind: "slots", slotKind: "back", amount: 1 }],
+    });
+    const pack = await bram.addEntry(aldric.character.id, {
+      category: "armor",
+      name: "Traveller's Pack",
+      slotKind: "back",
+    });
+    for (const [entry, slot] of [
+      [cloak.id, "arcane"],
+      [id("aldric-cloak"), "back"],
+      [pack.id, "back"],
+    ] as const) {
+      expect((await bram.equip(entry, slot)).outcome, `equipping ${entry} in ${slot}`).toBe("allowed");
+    }
+    await bram.markTraded(cloak.id, { kind: "traded" });
+    const [alert, ...more] = await bram.alerts(aldric.character.id);
+    expect(more, "other alerts").toEqual([]);
+    expect(alert && [alert.scope, alert.equipped, alert.allowed, alert.lost?.reason], "Aldric's Back alert").toEqual([
+      { type: "slot-kind", id: "back" },
+      2,
+      1,
+      "traded",
+    ]);
+    expect(alert!.message, "the alert names the traded cloak").toContain("Cloak of the Wanderer");
+    expect((await bram.lastChange(aldric.character.id))?.reason, "Aldric's last change").toBe("traded");
+  },
+);
+
+rule(
+  { req: ["IN-15", "EQ-4", "GR-5"], m: "M4" },
+  "undoing the delete of an equipped entry brings it back where it was, with its grants",
+  async () => {
+    const { w, bram, aldric, id } = await bramWithAldric();
+    const deleted = await bram.deleteEntry(id("aldric-plate"));
+    expect((await bram.totals(aldric.character.id)).cm.value, "Aldric's CM without Ironclad Plate").toBe(140);
+    w.clock.advanceSeconds(5);
+    await deleted.undo();
+    const chest = (await bram.sheet(aldric.character.id)).equipped.find((q) => q.slot === "chest");
+    expect(chest?.entryId, "what's in Aldric's Chest slot after Undo").toBe(id("aldric-plate"));
+    expect((await bram.totals(aldric.character.id)).cm.value, "Aldric's CM after Undo").toBe(170);
   },
 );
 

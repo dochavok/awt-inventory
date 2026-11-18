@@ -725,3 +725,58 @@ rule(
     await expectAllowed(together.commit(), "Bram adding Wren and her first entry in one write");
   },
 );
+
+// ---------------------------------------------------------------- grants and equipping (M4)
+//   entries carry `slot` (where one is equipped, EQ-4) and `grants` (GR-2);
+//   characters carry `manualGrants` (GR-2); titles carry `grants` (TI-5)
+
+const aGrant = (i: number) => ({ id: `g${i}`, kind: "cm", amount: 1 });
+
+rule(
+  { req: ["PV-1", "TF-11", "EQ-4", "GR-2"], m: "M4" },
+  "only Bram can equip Aldric's entries and give them grants",
+  () => ownerOnly(`${character()}/entries/aldric-sword`, { slot: "main-hand", grants: [aGrant(1)] }, "entry Duskfang"),
+);
+
+rule({ req: ["PV-1", "TF-11", "GR-2"], m: "M4" }, "only Bram can keep manual grants on Aldric", () =>
+  ownerOnly(
+    character(),
+    { manualGrants: [{ id: "m1", reason: "DM ruling, Faire 2026", grants: [aGrant(1)] }] },
+    "character Aldric's manual grants",
+  ),
+);
+
+rule({ req: ["PV-1", "TF-11", "TI-5"], m: "M4" }, "only Bram can give his titles grants", () =>
+  ownerOnly(`users/${uid("bram")}/titles/t-forest`, { grants: [aGrant(1)] }, "title's grants"),
+);
+
+rule(
+  { req: ["NF-6", "TF-11", "GR-2", "EQ-4"], m: "M4" },
+  "the server's limits on slots, grant lists and manual grants are the app's",
+  async () => {
+    await seedAldric();
+    const mine = signedIn("bram").firestore();
+    await atTheLimit("an entry's slot", LIMITS.shortText, (slot) =>
+      mine.doc(`${character()}/entries/aldric-sword`).set({ slot }, { merge: true }),
+    );
+    const grants = (n: number) => Array.from({ length: n }, (_, i) => aGrant(i));
+    const lists: [string, string, (n: number) => Record<string, unknown>][] = [
+      ["an entry's grants", `${character()}/entries/aldric-sword`, (n) => ({ grants: grants(n) })],
+      ["a title's grants", `users/${bram()}/titles/t-forest`, (n) => ({ grants: grants(n) })],
+      [
+        "Aldric's manual grants",
+        character(),
+        (n) => ({ manualGrants: Array.from({ length: n }, (_, i) => ({ id: `m${i}`, reason: "R", grants: [] })) }),
+      ],
+    ];
+    for (const [what, path, data] of lists) {
+      const max = what === "Aldric's manual grants" ? LIMITS.manualGrants : LIMITS.grantsPerSource;
+      await expectAllowed(mine.doc(path).set(data(max), { merge: true }), `${what}, ${max} of them`);
+      await expectRefused(mine.doc(path).set(data(max + 1), { merge: true }), `${what}, ${max + 1} of them`);
+    }
+    await expectRefused(
+      mine.doc(character()).set({ manualGrants: "not a list" }, { merge: true }),
+      "Aldric's manual grants as text",
+    );
+  },
+);
