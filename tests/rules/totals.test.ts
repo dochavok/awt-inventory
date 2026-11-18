@@ -4,7 +4,7 @@
 // level chart is read rather than built in (TF-3).
 
 import { expect } from "vitest";
-import { computeTotals, type SkillEntry, type SourceRef } from "../../src/rules";
+import { computeTotals, type Grant, type SkillEntry, type SourceRef } from "../../src/rules";
 import { fixtureSheet, testReferenceData } from "../support/fixtures";
 import { rule } from "../support/rule";
 import { runScenarios } from "../support/scenarios";
@@ -262,6 +262,45 @@ rule(
       "Cinder Mark II 1d8",
       "Warden's Watch 1d6",
     ]);
+  },
+);
+
+rule(
+  { req: ["GR-1", "GR-2"], m: "M4" },
+  "groups and die-always count only from the skill list: on an entry, title or manual grant they're ignored",
+  () => {
+    // Bad data, as if written past the app's checks: grouped grants and die-always on Isolde's own sources.
+    const sheet = isoldeWith("cinder-mark-ii");
+    const orb = sheet.entries.find((e) => e.id === "isolde-orb")!;
+    if (orb.category === "items") {
+      orb.grants = [
+        ...(orb.grants ?? []),
+        { id: "g-orb-die", kind: "die", die: "1d12", condition: "made up", group: "cinder-die" } as Grant,
+      ];
+    }
+    sheet.titles.push({
+      id: "t-x-cinder",
+      name: "Made-up Title",
+      scope: { level: "player" },
+      grants: [{ id: "g-t-mit", kind: "mitigation", amount: 1, group: "cinder-ward" } as Grant],
+    });
+    sheet.manualGrants.push({
+      id: "m-x-always",
+      reason: "Made-up ruling",
+      grants: [{ id: "g-m-always", kind: "die-always", group: "cinder-die" } as unknown as Grant],
+    });
+    const before = computeTotals(isoldeWith("cinder-mark-ii"), testReferenceData());
+    const totals = computeTotals(sheet, testReferenceData());
+    expect(fromSkills(totals.dice.situational), "Isolde's situational dice from skills").toEqual([
+      "Cinder Mark II 1d8 when a spell adds the Cinder Die",
+    ]);
+    expect(
+      totals.dice.situational.filter((d) => d.source.type === "entry").map((d) => d.die),
+      "Isolde's situational dice from the Glass Orb",
+    ).toEqual(["1d12"]);
+    expect(fromSkills(totals.dice.extra), "Isolde's extra dice from skills").toEqual([]);
+    expect(totals.mitigation.value, "Isolde's mitigation with the title's +1").toBe(before.mitigation.value + 1);
+    expect(fromSkills(totals.mitigation.grants), "Isolde's mitigation lines from skills").toEqual(["Cinder Mark II 2"]);
   },
 );
 

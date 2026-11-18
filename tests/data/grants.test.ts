@@ -202,6 +202,30 @@ rule(
   },
 );
 
+rule(
+  { req: ["GR-1", "GR-2"], m: "M4" },
+  "a player's grant can't be in a group or make a group's die always count: only the skill list's can",
+  async () => {
+    const { bram, aldric, id } = await bramWithAldric();
+    const cases: [string, object, RegExp][] = [
+      ["a grouped die", { kind: "die", die: "1d12", group: "cinder-die" }, /group/],
+      ["a grouped bonus", { kind: "cm", amount: 9, group: "cm-vs-undead" }, /group/],
+      ["die-always", { kind: "die-always", group: "cinder-die" }, /die-always/],
+    ];
+    for (const [what, grant, names] of cases) {
+      const onEntry = bram.addGrant({ entryId: id("aldric-sword") }, grant as never);
+      await expect(onEntry, `${what} on Duskfang`).rejects.toThrow(ValidationError);
+      await expect(onEntry, `the refusal of ${what} on Duskfang`).rejects.toMatchObject({ field: "grants" });
+      await expect(onEntry, `the refusal of ${what} on Duskfang`).rejects.toThrow(names);
+      const manual = bram.addManualGrant(aldric.character.id, "Made-up ruling", [grant as never]);
+      await expect(manual, `${what} as a manual grant`).rejects.toThrow(ValidationError);
+      await expect(manual, `the refusal of ${what} as a manual grant`).rejects.toThrow(names);
+    }
+    const cm = await bram.totals(aldric.character.id);
+    expect([cm.cm.value, cm.dice.extra.length], "Aldric's CM and extra dice after the refusals").toEqual([170, 1]);
+  },
+);
+
 rule({ req: ["GR-2"], m: "M4" }, "a consumable added with grants is refused, and the refusal says why", async () => {
   const { bram, aldric } = await bramWithAldric();
   const attempt = bram.addEntry(aldric.character.id, {
