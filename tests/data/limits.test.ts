@@ -138,6 +138,22 @@ rule({ req: ["NF-6"], m: "M2" }, "a character can have 1,000 entries, and the 1,
   expect((await bram.listEntries(id, "consumables")).length, "Rook's consumables").toBe(1000);
 });
 
+rule(
+  { req: ["NF-6", "IN-15"], m: "M4" },
+  "Undo can't take a character past 1,000 entries, and the refusal says so",
+  async () => {
+    const { bram, id } = await bramWithRook();
+    for (let i = 1; i <= 1000; i++) await bram.addEntry(id, { category: "consumables", name: `Tonic ${i}` });
+    const [first] = await bram.listEntries(id, "consumables");
+    const deleted = await bram.deleteEntry(first!.entry.id);
+    await bram.addEntry(id, { category: "consumables", name: "Tonic 1001" });
+    const attempt = deleted.undo();
+    await expect(attempt, "Undo with 1,000 entries again").rejects.toThrow(ValidationError);
+    await expect(attempt, "the refusal").rejects.toThrow(/1,?000/);
+    expect((await bram.listEntries(id, "consumables")).length, "Rook's consumables").toBe(1000);
+  },
+);
+
 rule({ req: ["NF-6", "IN-1"], m: "M2" }, "a quantity has a maximum: 999 is fine, a billion is refused", async () => {
   const { bram, id } = await bramWithRook();
   expect(

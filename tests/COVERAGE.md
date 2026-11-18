@@ -43,7 +43,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | IN-12 | Must | M2 | access/firestore-store.test.ts (1), access/offline.test.ts (2), browser/inventory.spec.ts (2), browser/search-export.spec.ts (2), data/inventory.test.ts (3) |
 | IN-13 | Must | M2 | access/firestore-store.test.ts (1), access/offline.test.ts (1), browser/inventory.spec.ts (1), data/inventory.test.ts (6) |
 | IN-14 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (2), data/grants.test.ts (3), data/inventory.test.ts (6) |
-| IN-15 | Must | M2 | access/firestore-store.test.ts (1), access/privacy.test.ts (1), browser/inventory.spec.ts (2), data/grants.test.ts (3), data/inventory.test.ts (3), data/skills.test.ts (1) |
+| IN-15 | Must | M2 | access/firestore-store.test.ts (1), access/privacy.test.ts (1), browser/inventory.spec.ts (2), data/grants.test.ts (3), data/inventory.test.ts (3), data/limits.test.ts (1), data/skills.test.ts (1) |
 | IN-16 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (2), data/inventory.test.ts (3) |
 | SK-1 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (1), data/skills.test.ts (1), rules/skills.test.ts (4) |
 | SK-1a | Must | M2 | browser/inventory.spec.ts (1), rules/skills.test.ts (4) |
@@ -116,7 +116,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | NF-3 | Must | M3 | access/firestore-store.test.ts (2), access/offline.test.ts (19), access/privacy.test.ts (4), browser/screens.spec.ts (5), browser/search-export.spec.ts (3), data/grants.test.ts (1), rules/equipping.test.ts (1) |
 | NF-4 | Must | M2+ | browser/screens.spec.ts (1), rules/speed.test.ts (1) |
 | NF-5 | Must | M2+ | ops/operations.test.ts (1) |
-| NF-6 | Must | M2+ | access/privacy.test.ts (4), data/grants.test.ts (1), data/inventory.test.ts (1), data/limits.test.ts (6) |
+| NF-6 | Must | M2+ | access/privacy.test.ts (4), data/grants.test.ts (1), data/inventory.test.ts (1), data/limits.test.ts (7) |
 | NF-7 | Must | M2+ | access/privacy.test.ts (1), ops/operations.test.ts (1) |
 | NF-8 | Must | M2+ | data/history.test.ts (2), platform/platform.test.ts (2) |
 | NF-9 | Should | M2+ | none |
