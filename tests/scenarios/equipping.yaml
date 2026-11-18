@@ -535,6 +535,27 @@
       outcome: blocked
       block: { reason: over-limit, about: back, occupants: [Spare Cloak, Traveller's Pack], mentions: [Back] }
 
+- id: over-limit-block-says-how-many
+  req: [EQ-8]
+  milestone: M4
+  title: With 3 things in 1 Back slot, a blocked equip says to unequip 2
+  given:
+    character: aldric
+    add:
+      entries:
+        - { id: x-pack, category: armor, name: Traveller's Pack, slotKind: back }
+        - { id: x-quiver, category: armor, name: Quiver, slotKind: back }
+        - { id: x-sling, category: armor, name: Sling Bag, slotKind: back }
+      equipped:
+        - { entryId: aldric-cloak, slot: back }
+        - { entryId: x-pack, slot: back }
+        - { entryId: x-quiver, slot: back }
+  equip: { entry: x-sling, slot: back }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: over-limit, about: back, mentions: ["3 equipped", "1 allowed", "Unequip 2"] }
+
 - id: alert-other-kinds-still-open
   req: [EQ-8]
   milestone: M4

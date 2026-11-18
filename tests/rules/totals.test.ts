@@ -90,6 +90,19 @@ rule(
   },
 );
 
+rule({ req: ["GR-4", "GR-12"], m: "M4" }, "a situational grant's condition is listed without stray spaces", () => {
+  const sheet = fixtureSheet("aldric");
+  sheet.manualGrants.push({
+    id: "m-spaced",
+    reason: "Spaced",
+    grants: [{ id: "g-spaced", kind: "cm", amount: 2, condition: "  vs Evil  " }],
+  });
+  const line = computeTotals(sheet, testReferenceData()).cm.situational.find(
+    (g) => g.source.type === "manual" && g.source.reason === "Spaced",
+  );
+  expect(line?.condition, "the condition on Aldric's spaced situational grant").toBe("vs Evil");
+});
+
 rule(
   { req: ["GR-7", "TF-3"], m: "M4" },
   "the class bonus comes from the reference data passed in, not a built-in chart",

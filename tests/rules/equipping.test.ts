@@ -103,6 +103,8 @@ rule({ req: ["EQ-1", "RD-3"], m: "M4" }, "a retired hand slot kind blocks a weap
     [result.outcome, result.block?.reason, result.block?.about],
     "equipping a dagger in a retired Off hand",
   ).toEqual(["blocked", "wrong-slot", "off-hand"]);
+  expect(result.block?.message, "the block names the dagger").toContain("Iron Dagger");
+  expect(result.block?.message, "the block names the Off hand").toContain("Off hand");
 });
 
 rule(
@@ -117,6 +119,25 @@ rule(
     });
     const back = slotState(sheet, testReferenceData()).kinds.find((k) => k.kind === "back");
     expect([back?.allowed, back?.slots.length], "Aldric's Back slots allowed and shown").toEqual([1, 1]);
+  },
+);
+
+rule(
+  { req: ["EQ-6", "GR-1"], m: "M4" },
+  "arcane slot grants that aren't a whole number of 1 or more add nothing and aren't listed",
+  () => {
+    const sheet = fixtureSheet("isolde");
+    sheet.manualGrants.push({
+      id: "m-bad",
+      reason: "Bad data",
+      grants: [
+        { id: "g-nan", kind: "arcane-slots", amount: Number.NaN },
+        { id: "g-inf", kind: "arcane-slots", amount: Number.POSITIVE_INFINITY },
+        { id: "g-neg", kind: "arcane-slots", amount: -2 },
+      ],
+    });
+    const { arcane } = slotState(sheet, testReferenceData());
+    expect([arcane.allowed, arcane.grants.length], "Isolde's arcane slots and their grant lines").toEqual([5, 0]);
   },
 );
 
