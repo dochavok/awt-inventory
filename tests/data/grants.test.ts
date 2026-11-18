@@ -184,6 +184,7 @@ rule(
     const sword = { entryId: id("aldric-sword") };
     for (const [what, grant] of [
       ["a made-up kind", { kind: "xp", amount: 3 }],
+      ["a kind named like a built-in", { kind: "toString", amount: 3 }],
       ["CM +0", { kind: "cm", amount: 0 }],
       ["CM +1.5", { kind: "cm", amount: 1.5 }],
       ["a die that isn't dice", { kind: "die", die: "lots" }],
@@ -271,6 +272,68 @@ rule(
 );
 
 rule(
+  { req: ["EQ-8"], m: "M4" },
+  "an alert's cause stays put when something that wasn't counting is traded or deleted, and goes once the alert clears",
+  async () => {
+    const { bram, aldric, id } = await bramWithAldric();
+    const characterId = aldric.character.id;
+    const cloak = await bram.addEntry(characterId, {
+      category: "items",
+      name: "Cloak of the Wanderer",
+      arcane: true,
+      grants: [{ kind: "slots", slotKind: "back", amount: 1 }],
+    });
+    const belt = await bram.addEntry(characterId, {
+      category: "items",
+      name: "Belt of Pockets",
+      arcane: true,
+      grants: [{ kind: "slots", slotKind: "belt", amount: 1 }],
+    });
+    const pack = await bram.addEntry(characterId, { category: "armor", name: "Traveller's Pack", slotKind: "back" });
+    await bram.equip(cloak.id, "arcane");
+    await bram.equip(id("aldric-cloak"), "back");
+    await bram.equip(pack.id, "back");
+    await bram.markTraded(cloak.id, { kind: "traded" });
+    // The belt isn't equipped, so deleting it takes no slot away.
+    await bram.deleteEntry(belt.id);
+    const [alert] = await bram.alerts(characterId);
+    expect(alert?.lost?.reason, "the Back alert's cause after deleting the unequipped belt").toBe("traded");
+    expect(alert?.message, "the Back alert still names the traded cloak").toContain("Cloak of the Wanderer");
+    await bram.unequip(pack.id);
+    expect(await bram.alerts(characterId), "Aldric's alerts once the pack is off").toEqual([]);
+    expect(await bram.lastChange(characterId), "the cause, once there's no alert").toBeUndefined();
+  },
+);
+
+rule(
+  { req: ["IN-15", "EQ-2"], m: "M4" },
+  "Undo brings an entry back unequipped when its slot has been taken",
+  async () => {
+    const { w, bram, aldric, id } = await bramWithAldric();
+    const characterId = aldric.character.id;
+    const deleted = await bram.deleteEntry(id("aldric-helm"));
+    const cap = await bram.addEntry(characterId, { category: "armor", name: "Felt Cap", slotKind: "head" });
+    expect((await bram.equip(cap.id, "head")).outcome, "equipping the Felt Cap").toBe("allowed");
+    w.clock.advanceSeconds(5);
+    await deleted.undo();
+    const head = (await bram.sheet(characterId)).equipped.filter((q) => q.slot === "head").map((q) => q.entryId);
+    expect(head, "what's in Aldric's Head slot after Undo").toEqual([cap.id]);
+    expect((await bram.entry(id("aldric-helm"))).category, "Hawkeye Helm, back in the inventory").toBe("armor");
+    expect(await bram.alerts(characterId), "Aldric's alerts").toEqual([]);
+  },
+);
+
+rule(
+  { req: ["IN-8", "GR-2"], m: "M4" },
+  "an edit that sends back no grants for an entry without any is fine",
+  async () => {
+    const { bram, id } = await bramWithAldric();
+    const lantern = await bram.updateEntry(id("aldric-lantern"), { notes: "Trimmed wick", grants: [] });
+    expect(lantern.notes, "the Hooded Lantern's notes").toBe("Trimmed wick");
+  },
+);
+
+rule(
   { req: ["IN-15", "EQ-4", "GR-5"], m: "M4" },
   "undoing the delete of an equipped entry brings it back where it was, with its grants",
   async () => {
@@ -321,6 +384,13 @@ rule(
         async ({ bram, id }) => {
           await bram.addGrant({ entryId: id("aldric-wolf") }, { kind: "slots", slotKind: "back", amount: 1 });
           return () => bram.setActive(id("aldric-wolf"), false);
+        },
+      ],
+      [
+        "unequipped",
+        async ({ bram, id }) => {
+          await bram.addGrant({ entryId: id("aldric-wolf") }, { kind: "slots", slotKind: "back", amount: 1 });
+          return () => bram.updateEntry(id("aldric-wolf"), { active: false });
         },
       ],
       [
