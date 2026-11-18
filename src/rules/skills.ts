@@ -6,6 +6,7 @@ import type {
   CharacterSheet,
   ClassName,
   Id,
+  MissingSkillLevel,
   Prerequisite,
   ReferenceData,
   Skill,
@@ -146,6 +147,18 @@ export function skillPicker(
     (isAvailable(c, skill) ? picker.available : picker.others).push(option);
   }
   return picker;
+}
+
+/** SK-6: levels up to the character's where the class's chart gives a skill but none has that Level gained. */
+export function recordCheck(sheet: CharacterSheet, ref: ReferenceData): MissingSkillLevel[] {
+  const { className, level } = sheet.character;
+  const recorded = new Set(sheet.entries.flatMap((e) => (e.category === "skills" ? [e.levelGained] : [])));
+  // The chart has each level once (checked when the reference data loads).
+  return ref.levelChart[className].levels
+    .filter((row) => row.skillGained && row.level <= level && !recorded.has(row.level))
+    .map((row) => row.level)
+    .sort((a, b) => a - b)
+    .map((n) => ({ level: n, message: `Level ${n}: no skill recorded` }));
 }
 
 /** The warnings for adding `skillId` to the character (SK-3). Empty when nothing is wrong. */

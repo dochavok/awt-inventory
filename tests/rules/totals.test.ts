@@ -74,6 +74,58 @@ rule(
 );
 
 rule(
+  { req: ["GR-4", "GR-12"], m: "M4" },
+  "a grant whose condition is blank counts, and its line has no condition",
+  () => {
+    const sheet = fixtureSheet("aldric");
+    sheet.manualGrants.push({
+      id: "m-blank",
+      reason: "Cleared box",
+      grants: [{ id: "g-blank", kind: "cm", amount: 5, condition: " " }],
+    });
+    const totals = computeTotals(sheet, testReferenceData());
+    expect(totals.cm.value, "Aldric's CM with a +5 whose condition is blank").toBe(175);
+    const line = totals.cm.grants.find((g) => g.source.type === "manual" && g.source.reason === "Cleared box");
+    expect(line && "condition" in line, "the blank-condition line carries a condition").toBe(false);
+  },
+);
+
+rule(
+  { req: ["GR-1", "GR-5"], m: "M4" },
+  "a grant amount that isn't a number in bad data is left out of Aldric's totals",
+  () => {
+    const sheet = fixtureSheet("aldric");
+    sheet.manualGrants.push({
+      id: "m-bad",
+      reason: "Bad data",
+      grants: [
+        { id: "g-nan", kind: "cm", amount: Number.NaN },
+        { id: "g-inf", kind: "mitigation", amount: Number.POSITIVE_INFINITY },
+      ],
+    });
+    const totals = computeTotals(sheet, testReferenceData());
+    expect([totals.cm.value, totals.mitigation.value], "Aldric's CM and mitigation").toEqual([170, 3]);
+    expect(
+      [...totals.cm.grants, ...totals.mitigation.grants].some((g) => g.source.type === "manual"),
+      "a line from the bad grant",
+    ).toBe(false);
+  },
+);
+
+rule({ req: ["GR-4", "GR-12"], m: "M4" }, "a situational grant's condition is listed without stray spaces", () => {
+  const sheet = fixtureSheet("aldric");
+  sheet.manualGrants.push({
+    id: "m-spaced",
+    reason: "Spaced",
+    grants: [{ id: "g-spaced", kind: "cm", amount: 2, condition: "  vs Evil  " }],
+  });
+  const line = computeTotals(sheet, testReferenceData()).cm.situational.find(
+    (g) => g.source.type === "manual" && g.source.reason === "Spaced",
+  );
+  expect(line?.condition, "the condition on Aldric's spaced situational grant").toBe("vs Evil");
+});
+
+rule(
   { req: ["GR-7", "TF-3"], m: "M4" },
   "the class bonus comes from the reference data passed in, not a built-in chart",
   () => {
