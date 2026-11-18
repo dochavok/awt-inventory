@@ -71,9 +71,11 @@ function addsTo(grant: Grant, scope: Id | "arcane"): grant is SlotGrant {
  * with how many whole slots each adds. GR-1's grants are +n, so bad data below 1 adds none.
  */
 function slotGrants(counted: SourcedGrant[], scope: Id | "arcane"): { g: SourcedGrant; amount: number }[] {
-  return counted.flatMap((g) =>
-    addsTo(g.grant, scope) && !isSituational(g.grant) ? [{ g, amount: Math.max(0, Math.trunc(g.grant.amount)) }] : [],
-  );
+  return counted.flatMap((g) => {
+    if (!addsTo(g.grant, scope) || isSituational(g.grant)) return [];
+    const amount = Number.isFinite(g.grant.amount) ? Math.trunc(g.grant.amount) : 0;
+    return amount > 0 ? [{ g, amount }] : [];
+  });
 }
 
 /** The arcane slots the level chart gives: the class's start plus each level's (EQ-6). */
@@ -260,7 +262,10 @@ export function checkEquip(sheet: CharacterSheet, ref: ReferenceData, entryId: I
   const misplaced = placementBlock(entry, name, target, kinds);
   if (misplaced) return misplaced;
   // RD-3: a retired slot kind (or one the reference data doesn't have) takes nothing new.
-  const gone = targetKinds(target).find((k) => k !== "arcane" && (!kinds.has(k) || kinds.get(k)!.retired === true));
+  const gone = targetKinds(target).find((k) => {
+    const kind = kinds.get(k);
+    return k !== "arcane" && (!kind || kind.retired === true);
+  });
   if (gone) {
     const slot = kindName(kinds, gone);
     return block("wrong-slot", gone, `The ${slot} slot is no longer used, so ${name} can't be equipped there.`);
@@ -283,7 +288,8 @@ export function checkEquip(sheet: CharacterSheet, ref: ReferenceData, entryId: I
   }
 
   const all = capacities(slotState(sheet, ref));
-  const needed = targetKinds(target).map((key) => all.find((c) => c.key === key)!);
+  // Every target kind is shown here: the check above blocked the retired and unknown ones.
+  const needed = targetKinds(target).flatMap((key) => all.filter((c) => c.key === key));
   const over = needed.find((c) => c.equipped > c.allowed);
   if (over) return block("over-limit", over.key, overLimitText(over.name, over.equipped, over.allowed), over.occupants);
 

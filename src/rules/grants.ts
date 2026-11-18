@@ -28,7 +28,8 @@ export function isSituational(grant: Grant): boolean {
 
 /** `{ condition }` when the grant is situational, so lines and dice carry a condition only then. */
 export function withCondition(grant: Grant): { condition?: string } {
-  return isSituational(grant) ? { condition: grant.condition! } : {};
+  const condition = grant.condition?.trim();
+  return condition ? { condition } : {};
 }
 
 /** A counted grant as a line in a total (GR-12). */

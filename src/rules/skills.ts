@@ -153,10 +153,10 @@ export function skillPicker(
 export function recordCheck(sheet: CharacterSheet, ref: ReferenceData): MissingSkillLevel[] {
   const { className, level } = sheet.character;
   const recorded = new Set(sheet.entries.flatMap((e) => (e.category === "skills" ? [e.levelGained] : [])));
-  const levels = ref.levelChart[className].levels
+  // The chart has each level once (checked when the reference data loads).
+  return ref.levelChart[className].levels
     .filter((row) => row.skillGained && row.level <= level && !recorded.has(row.level))
-    .map((row) => row.level);
-  return [...new Set(levels)]
+    .map((row) => row.level)
     .sort((a, b) => a - b)
     .map((n) => ({ level: n, message: `Level ${n}: no skill recorded` }));
 }
