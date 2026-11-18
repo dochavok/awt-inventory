@@ -4,4 +4,4 @@
 export * from "./types";
 export { skillPicker, skillWarnings, recordCheck } from "./skills";
 export { computeTotals } from "./totals";
-export { slotState, checkEquip, overLimitAlerts } from "./equipping";
+export { slotState, checkEquip, overLimitAlerts, fitsSlot } from "./equipping";

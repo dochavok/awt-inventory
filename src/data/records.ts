@@ -6,7 +6,7 @@
 
 import { AccessDeniedError, ConfirmationError, NotFoundError, RateLimitError, ValidationError } from "../errors";
 import { toStoredTime } from "../platform/time";
-import { checkEquip, computeTotals, overLimitAlerts, slotState } from "../rules";
+import { checkEquip, computeTotals, fitsSlot, overLimitAlerts, slotState } from "../rules";
 import { addsSlots, entryName as nameOf, titleApplies } from "../rules/grants";
 import { skillPicker as pickSkills, skillWarnings } from "../rules/skills";
 import type {
@@ -22,6 +22,7 @@ import type {
   NewGrant,
   SheetChange,
   SkillEntry,
+  SlotTarget,
   Title,
   TitleScope,
 } from "../rules/types";
@@ -65,10 +66,16 @@ const PLACEMENT = ["slotKind", "arcane", "hands"];
 
 /** Whether an edit's grants are the entry's own, whatever the order of their fields (an absent list is empty). */
 function sameGrants(given: unknown, kept: Grant[] | undefined): boolean {
-  if (!Array.isArray(given)) return false;
-  const canonical = (list: unknown[]) =>
-    JSON.stringify(list.map((g) => Object.entries(g as object).sort(([a], [b]) => a.localeCompare(b))));
-  return canonical(given) === canonical(kept ?? []);
+  if (!Array.isArray(given) || !given.every((g) => typeof g === "object" && g !== null)) return false;
+  const canonical = (list: object[]) =>
+    JSON.stringify(
+      list.map((g) =>
+        Object.entries(g)
+          .filter(([, v]) => v !== undefined)
+          .sort(([a], [b]) => a.localeCompare(b)),
+      ),
+    );
+  return canonical(given as object[]) === canonical(kept ?? []);
 }
 
 /** Newest first; records made together keep the order they were made in (HI-1). */
@@ -268,7 +275,16 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
   function countsNow(entry: StoredEntry): boolean {
     if (entry.category === "skills") return true;
     if (entry.category === "allies") return entry.active;
-    return entry.slot !== undefined;
+    return equippedAt(entry) !== undefined;
+  }
+
+  /**
+   * Where an entry is equipped: its stored slot, if the entry fits there. Two phones'
+   * changes merged (NF-3) can leave one stored in a slot it no longer fits (EQ-4), and it
+   * then counts as unequipped until it's equipped again.
+   */
+  function equippedAt(entry: StoredEntry): SlotTarget | undefined {
+    return entry.slot !== undefined && fitsSlot(plainEntry(entry), entry.slot, ref) ? entry.slot : undefined;
   }
 
   /** The character an entry's change can take slots from: its own, if the entry's slot grants count now. */
@@ -283,8 +299,19 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
   async function writeLosing(changes: Change[], reason: LossReason, characterIds: Id[]): Promise<void> {
     const titles = characterIds.length > 0 ? await myTitles() : [];
     const sheets = await Promise.all(characterIds.map((id) => sheetFor(id, titles)));
-    await write(changes);
+    // Kept before the write, so a screen that reads the alerts as the change lands sees its cause;
+    // put back as it was if the write fails.
+    const earlier = new Map(characterIds.map((id) => [id, lastChanges.get(id)]));
     for (const before of sheets) lastChanges.set(before.character.id, { before, reason });
+    try {
+      await write(changes);
+    } catch (error) {
+      for (const [id, change] of earlier) {
+        if (change) lastChanges.set(id, change);
+        else lastChanges.delete(id);
+      }
+      throw error;
+    }
   }
 
   /** The characters a title's grants count for (TI-5). */
@@ -340,7 +367,10 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     return {
       character: plainCharacter(stored),
       entries: entries.map(plainEntry),
-      equipped: entries.flatMap((e) => (e.slot === undefined ? [] : [{ entryId: e.id, slot: e.slot }])),
+      equipped: entries.flatMap((e) => {
+        const slot = equippedAt(e);
+        return slot === undefined ? [] : [{ entryId: e.id, slot }];
+      }),
       titles: applying(titles, stored.id),
       manualGrants: stored.manualGrants ?? [],
     };
@@ -638,7 +668,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       if (entry.grants !== undefined) next.grants = entry.grants;
       const gained = next.quantity - entry.quantity;
       const edited = changedFields(entry, next, ["id", "characterId", "quantity"]);
-      const changes = update("entry", entryId, edited);
+      const changes: Change[] = [];
       // Quantities are added to, not set, so changes made on two phones add up (NF-3).
       if (gained !== 0) changes.push({ op: "add-quantity", entryId, by: gained });
       // Where it came from is checked, and kept, only with a gain (IN-11).
@@ -647,8 +677,11 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       const deactivated = entry.category === "allies" && entry.active && next.category === "allies" && !next.active;
       // EQ-4: an edit to what an equipped entry fits unequips it.
       const refitted = stored.slot !== undefined && PLACEMENT.some((f) => f in edited);
-      if (refitted) changes.push(...update("entry", entryId, { slot: undefined }));
-      await writeLosing(changes, "unequipped", deactivated || refitted ? losingFrom(stored) : []);
+      await writeLosing(
+        [...update("entry", entryId, refitted ? { ...edited, slot: undefined } : edited), ...changes],
+        "unequipped",
+        deactivated || refitted ? losingFrom(stored) : [],
+      );
       return next;
     },
 
@@ -659,7 +692,10 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       // IN-9: equipped, or active for an ally; SE-3 can filter on it.
       const items: EntryListItem[] = (await storedEntriesOf(characterId))
         .filter((e) => e.category === category && matchesFilter(e, filter))
-        .map((e) => ({ entry: plainEntry(e), equipped: e.category === "allies" ? e.active : e.slot !== undefined }))
+        .map((e) => ({
+          entry: plainEntry(e),
+          equipped: e.category === "allies" ? e.active : equippedAt(e) !== undefined,
+        }))
         .filter((item) => filter.equipped === undefined || item.equipped === filter.equipped);
       return items.sort((a, b) => entryName(a.entry).localeCompare(entryName(b.entry)));
     },
@@ -782,14 +818,18 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
           if (clock.now().getTime() - deletedAt > UNDO_SECONDS * 1000) {
             throw new ValidationError("undo", `It's too late to undo deleting ${entryName(entry)}.`);
           }
-          // Back where it was equipped, if that's still allowed (EQ-2, EQ-7); otherwise unequipped.
+          // NF-6: Undo can't take the character past its entries, and the entry comes back where it
+          // was equipped only if that's still allowed (EQ-2, EQ-7); otherwise unequipped.
           const sheet = await sheetFor(entry.characterId);
+          checkCount(sheet.entries);
           const { slot, ...unequipped } = entry;
           const back: StoredEntry = { ...unequipped } as StoredEntry;
           if (slot !== undefined) {
             const withIt = { ...sheet, entries: [...sheet.entries, plainEntry(back)] };
             if (checkEquip(withIt, ref, entry.id, slot).outcome === "allowed") back.slot = slot;
           }
+          // The deletion no longer explains an alert: the entry is back.
+          lastChanges.delete(entry.characterId);
           await write([
             { op: "set-entry", value: back },
             ...records.map((h): Change => ({ op: "set-history", value: h })),

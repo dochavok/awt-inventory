@@ -237,6 +237,15 @@ function placementBlock(entry: Entry, name: string, target: SlotTarget, kinds: M
   }
 }
 
+/**
+ * Whether an entry can be in `target` at all, whatever's already there (EQ-2, EQ-3, EQ-7).
+ * The store uses it so an entry stored as equipped where it no longer fits (two phones'
+ * changes merged, NF-3) counts as unequipped.
+ */
+export function fitsSlot(entry: Entry, target: SlotTarget, ref: ReferenceData): boolean {
+  return placementBlock(entry, entryName(entry, ref), target, slotKinds(ref)) === null;
+}
+
 const isShield = (e: Entry) => e.category === "armor" && e.slotKind === "off-hand";
 
 /** EQ-8's count, e.g. "Back: 2 equipped, 1 allowed.", shared by the alert and the over-limit block. */
