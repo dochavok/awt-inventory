@@ -266,6 +266,118 @@ rule(
 );
 
 rule(
+  { req: ["EQ-8", "TI-2", "CH-2a", "EQ-4", "GR-3", "GR-5"], m: "M4" },
+  "every change that takes a slot away is named by the alert it raises",
+  async () => {
+    type Setup = Awaited<ReturnType<typeof bramWithAldric>>;
+    /** Aldric with two things in Back, the second allowed by `grant`; then `lose` takes that slot away. */
+    const cases: [string, (s: Setup) => Promise<() => Promise<unknown>>][] = [
+      [
+        "title-moved",
+        async ({ bram }) => {
+          const title = await bram.addTitle({
+            name: "Wanderer",
+            grants: [{ kind: "slots", slotKind: "back", amount: 1 }],
+          });
+          const isolde = await seedCharacter(bram, "isolde");
+          return () => bram.setTitleScope(title.id, { level: "character", characterId: isolde.character.id });
+        },
+      ],
+      [
+        "unequipped",
+        async ({ bram, aldric }) => {
+          const ring = await bram.addEntry(aldric.character.id, {
+            category: "items",
+            name: "Ring of Reach",
+            arcane: true,
+            grants: [{ kind: "slots", slotKind: "back", amount: 1 }],
+          });
+          await bram.equip(ring.id, "arcane");
+          return () => bram.unequip(ring.id);
+        },
+      ],
+      [
+        "unequipped",
+        async ({ bram, id }) => {
+          await bram.addGrant({ entryId: id("aldric-wolf") }, { kind: "slots", slotKind: "back", amount: 1 });
+          return () => bram.setActive(id("aldric-wolf"), false);
+        },
+      ],
+      [
+        "grant-removed",
+        async ({ bram, aldric }) => {
+          const manual = await bram.addManualGrant(aldric.character.id, "DM ruling", [
+            { kind: "slots", slotKind: "back", amount: 1 },
+          ]);
+          return () => bram.removeGrant(manual.grants[0]!.id);
+        },
+      ],
+    ];
+    for (const [reason, setUp] of cases) {
+      const s = await bramWithAldric();
+      const lose = await setUp(s);
+      const pack = await s.bram.addEntry(s.aldric.character.id, {
+        category: "armor",
+        name: "Traveller's Pack",
+        slotKind: "back",
+      });
+      await s.bram.equip(s.id("aldric-cloak"), "back");
+      expect((await s.bram.equip(pack.id, "back")).outcome, `a second Back item before ${reason}`).toBe("allowed");
+      await lose();
+      const alerts = await s.bram.alerts(s.aldric.character.id);
+      expect(
+        alerts.map((a) => [a.scope, a.equipped, a.allowed, a.lost?.reason]),
+        `Aldric's alerts after ${reason}`,
+      ).toEqual([[{ type: "slot-kind", id: "back" }, 2, 1, reason]]);
+    }
+  },
+);
+
+rule(
+  { req: ["EQ-8", "EQ-6", "CH-2a"], m: "M4" },
+  "lowering Isolde's level, or correcting her class, names that change in the arcane slots alert",
+  async () => {
+    for (const reason of ["level-lowered", "class-corrected"] as const) {
+      const w = world();
+      const bram = w.as("bram");
+      await seedProfile(bram, "bram");
+      const isolde = await seedCharacter(bram, "isolde", { full: true });
+      for (const name of ["Blue Bead", "Red Bead", "Green Bead", "White Bead"]) {
+        const bead = await bram.addEntry(isolde.character.id, { category: "items", name, arcane: true });
+        expect((await bram.equip(bead.id, "arcane")).outcome, `equipping ${name}`).toBe("allowed");
+      }
+      if (reason === "level-lowered") await bram.updateCharacter(isolde.character.id, { level: 8 });
+      else await bram.correctClass(isolde.character.id, "Warrior", { confirmed: true });
+      const [alert, ...more] = await bram.alerts(isolde.character.id);
+      expect(more, `other alerts after ${reason}`).toEqual([]);
+      expect([alert?.scope, alert?.lost?.reason], `Isolde's alert after ${reason}`).toEqual([
+        { type: "arcane" },
+        reason,
+      ]);
+    }
+  },
+);
+
+rule(
+  { req: ["GR-2", "NF-6"], m: "M4" },
+  "a source holds at most 50 grants and a character at most 50 manual grants, and the refusal says so",
+  async () => {
+    const { bram, aldric, id } = await bramWithAldric();
+    const sword = { entryId: id("aldric-sword") };
+    // Duskfang has 1 grant from the fixture: 49 more fill it.
+    for (let i = 0; i < 49; i++) await bram.addGrant(sword, { kind: "cm", amount: 1 });
+    const fiftyFirst = bram.addGrant(sword, { kind: "cm", amount: 1 });
+    await expect(fiftyFirst, "a 51st grant on Duskfang").rejects.toMatchObject({ field: "grants" });
+    await expect(fiftyFirst, "the refusal").rejects.toThrow(/50/);
+    for (let i = 0; i < 50; i++)
+      await bram.addManualGrant(aldric.character.id, `Ruling ${i}`, [{ kind: "cm", amount: 1 }]);
+    const manual = bram.addManualGrant(aldric.character.id, "One too many", [{ kind: "cm", amount: 1 }]);
+    await expect(manual, "a 51st manual grant on Aldric").rejects.toMatchObject({ field: "manualGrants" });
+    await expect(manual, "the refusal").rejects.toThrow(/50/);
+  },
+);
+
+rule(
   { req: ["TI-4", "EQ-8"], m: "M4" },
   "removing a title that gave a Back slot raises an over-limit alert naming the title",
   async () => {
