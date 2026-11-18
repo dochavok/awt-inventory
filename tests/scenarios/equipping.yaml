@@ -554,7 +554,7 @@
   expect:
     equip:
       outcome: blocked
-      block: { reason: over-limit, about: back, mentions: ["3 equipped", "1 allowed", "Unequip 2"] }
+      block: { reason: over-limit, about: back, mentions: ["3 equipped", "1 allowed", "Unequip 2 to clear the alert."] }
 
 - id: alert-other-kinds-still-open
   req: [EQ-8]

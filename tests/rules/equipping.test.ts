@@ -134,6 +134,7 @@ rule(
         { id: "g-nan", kind: "arcane-slots", amount: Number.NaN },
         { id: "g-inf", kind: "arcane-slots", amount: Number.POSITIVE_INFINITY },
         { id: "g-neg", kind: "arcane-slots", amount: -2 },
+        { id: "g-half", kind: "arcane-slots", amount: 1.5 },
       ],
     });
     const { arcane } = slotState(sheet, testReferenceData());

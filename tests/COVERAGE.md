@@ -60,11 +60,11 @@ Tests shows each file with the number of its tests that name the requirement.
 | HI-3 | Must | M2 | app/dates.test.ts (1), browser/inventory.spec.ts (1), data/characters.test.ts (1), data/history.test.ts (3), data/inventory.test.ts (1) |
 | HI-4 | Must | M2 | access/accounts.test.ts (2), access/privacy.test.ts (4), data/characters.test.ts (1), data/history.test.ts (2), data/inventory.test.ts (1) |
 | HI-5 | Should | M3 | browser/inventory.spec.ts (1), data/history.test.ts (1), data/privacy.test.ts (1) |
-| GR-1 | Must | M4 | data/grants.test.ts (1), rules/equipping.test.ts (4), rules/totals.test.ts (1) |
+| GR-1 | Must | M4 | data/grants.test.ts (1), rules/equipping.test.ts (4), rules/totals.test.ts (2) |
 | GR-2 | Must | M4 | data/grants.test.ts (3), data/search-export.test.ts (1), rules/totals.test.ts (1) |
 | GR-3 | Must | M4 | data/grants.test.ts (1), rules/totals.test.ts (14) |
 | GR-4 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (7) |
-| GR-5 | Must | M4 | data/grants.test.ts (3), properties/totals.test.ts (1), rules/equipping.test.ts (1), rules/totals.test.ts (3) |
+| GR-5 | Must | M4 | data/grants.test.ts (3), properties/totals.test.ts (1), rules/equipping.test.ts (1), rules/totals.test.ts (4) |
 | GR-6 | Should | M5 | rules/totals.test.ts (2) |
 | GR-7 | Must | M4 | rules/totals.test.ts (6) |
 | GR-8 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (3) |

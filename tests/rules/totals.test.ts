@@ -90,6 +90,28 @@ rule(
   },
 );
 
+rule(
+  { req: ["GR-1", "GR-5"], m: "M4" },
+  "a grant amount that isn't a number in bad data is left out of Aldric's totals",
+  () => {
+    const sheet = fixtureSheet("aldric");
+    sheet.manualGrants.push({
+      id: "m-bad",
+      reason: "Bad data",
+      grants: [
+        { id: "g-nan", kind: "cm", amount: Number.NaN },
+        { id: "g-inf", kind: "mitigation", amount: Number.POSITIVE_INFINITY },
+      ],
+    });
+    const totals = computeTotals(sheet, testReferenceData());
+    expect([totals.cm.value, totals.mitigation.value], "Aldric's CM and mitigation").toEqual([170, 3]);
+    expect(
+      [...totals.cm.grants, ...totals.mitigation.grants].some((g) => g.source.type === "manual"),
+      "a line from the bad grant",
+    ).toBe(false);
+  },
+);
+
 rule({ req: ["GR-4", "GR-12"], m: "M4" }, "a situational grant's condition is listed without stray spaces", () => {
   const sheet = fixtureSheet("aldric");
   sheet.manualGrants.push({
