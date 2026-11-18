@@ -4,7 +4,7 @@
 // level chart is read rather than built in (TF-3).
 
 import { expect } from "vitest";
-import { computeTotals, type Grant, type SkillEntry, type SourceRef } from "../../src/rules";
+import { computeTotals, slotState, type Grant, type SkillEntry, type SourceRef } from "../../src/rules";
 import { fixtureSheet, testReferenceData } from "../support/fixtures";
 import { rule } from "../support/rule";
 import { runScenarios } from "../support/scenarios";
@@ -349,6 +349,36 @@ rule(
     expect(totals.cm.value - before.cm.value, "what the Cinder Marks add to Isolde's CM").toBe(5);
     expect(totals.hearts.value - before.hearts.value, "what the Cinder Marks add to Isolde's max hearts").toBe(3);
     expect(fromSkills(totals.hearts.grants), "skill lines in Isolde's max hearts").toEqual(["Cinder Mark II 3"]);
+  },
+);
+
+rule(
+  { req: ["GR-1", "EQ-5"], m: "M4" },
+  "a group's slot grants for different slot kinds, or allowances for different rarities, don't replace each other",
+  () => {
+    // An edited list: the Cinder Marks also give grouped slots and allowances, each for something different.
+    const ref = testReferenceData();
+    const grantsOf = (skill: string) => ref.skillGrants.find((g) => g.skill === skill)!.grants;
+    grantsOf("cinder-mark-i").push(
+      { id: "sg-x-neck", kind: "slots", slotKind: "neck", amount: 1, group: "cinder-gift" },
+      { id: "sg-x-cursed", kind: "allowance", rarity: "cursed", amount: 1, group: "cinder-gift" },
+    );
+    grantsOf("cinder-mark-ii").push(
+      { id: "sg-x-back", kind: "slots", slotKind: "back", amount: 2, group: "cinder-gift" },
+      { id: "sg-x-legendary", kind: "allowance", rarity: "legendary", amount: 2, group: "cinder-gift" },
+    );
+    const sheet = isoldeWith("cinder-mark-i", "cinder-mark-ii");
+    const before = slotState(isoldeWith(), ref);
+    const after = slotState(sheet, ref);
+    const allowed = (s: typeof after, kind: string) => s.kinds.find((k) => k.kind === kind)!.allowed;
+    const rarity = (s: typeof after, id: string) => s.rarities.find((r) => r.rarity === id)?.allowed;
+    expect(allowed(after, "neck") - allowed(before, "neck"), "Isolde's extra Neck slots").toBe(1);
+    expect(allowed(after, "back") - allowed(before, "back"), "Isolde's extra Back slots").toBe(2);
+    expect((rarity(after, "cursed") ?? 0) - (rarity(before, "cursed") ?? 0), "Isolde's extra Cursed allowance").toBe(1);
+    expect(
+      (rarity(after, "legendary") ?? 0) - (rarity(before, "legendary") ?? 0),
+      "Isolde's extra Legendary allowance",
+    ).toBe(2);
   },
 );
 

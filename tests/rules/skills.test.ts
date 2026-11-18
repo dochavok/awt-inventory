@@ -292,6 +292,26 @@ rule(
   },
 );
 
+rule(
+  { req: ["SK-1a", "SK-3"], m: "M2" },
+  "the tree the picker names for an available skill is the one with no warnings, if one has none",
+  () => {
+    // An edited list: Moonlit Step starts Bladework but needs Twin Fangs there (Aldric lacks it),
+    // and needs nothing in Bulwark.
+    const edited = testReferenceData();
+    edited.skills.find((s) => s.id === "moonlit-step")!.trees = [
+      { tree: "bladework", starting: true, prerequisites: { skill: "twin-fangs" } },
+      { tree: "bulwark" },
+    ];
+    const picker = moonlit(skillPicker(fixtureSheet("aldric"), edited, { allTrees: false }));
+    expect(
+      picker.available.map((o) => o.tree),
+      "the tree the picker names for Moonlit Step",
+    ).toEqual(["bulwark"]);
+    expect(skillWarnings(fixtureSheet("aldric"), edited, "moonlit-step"), "Aldric's warnings").toEqual([]);
+  },
+);
+
 rule({ req: ["SK-1", "RD-3"], m: "M2" }, "a retired tree no longer makes a skill in several trees available", () => {
   const retired = testReferenceData();
   retired.trees.find((t) => t.id === "arcana")!.retired = true;
