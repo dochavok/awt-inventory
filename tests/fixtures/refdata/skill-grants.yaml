@@ -32,3 +32,16 @@
   grants: [{ id: sg-wardens-oath-1, kind: allowance, rarity: legendary, amount: 1 }]
 - skill: wardens-watch
   grants: [{ id: sg-wardens-watch-1, kind: die, die: 1d6 }]
+# Grouped grants (GR-1): within a group only the largest is used.
+- skill: cinder-mark-i
+  grants:
+    - { id: sg-cinder-mark-i-1, kind: die, die: 1d4, condition: when a spell adds the Cinder Die, group: cinder-die }
+    - { id: sg-cinder-mark-i-2, kind: cm, amount: 2, condition: vs Undead, group: cm-vs-undead }
+    - { id: sg-cinder-mark-i-3, kind: mitigation, amount: 1, group: cinder-ward }
+- skill: cinder-mark-ii
+  grants:
+    - { id: sg-cinder-mark-ii-1, kind: die, die: 1d8, condition: when a spell adds the Cinder Die, group: cinder-die }
+    - { id: sg-cinder-mark-ii-2, kind: cm, amount: 5, condition: vs Undead, group: cm-vs-undead }
+    - { id: sg-cinder-mark-ii-3, kind: mitigation, amount: 2, group: cinder-ward }
+- skill: cinder-focus
+  grants: [{ id: sg-cinder-focus-1, kind: die-always, group: cinder-die }]

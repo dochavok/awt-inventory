@@ -277,6 +277,30 @@ rule(
   },
 );
 
+rule(
+  { req: ["EX-1", "GR-7", "GR-11"], q: ["Q12"], m: "M4" },
+  "a Rogue's Stealth Bonus with dice is shown on the sheet as dice plus its number, and its dice with the combat dice",
+  async () => {
+    const w = world();
+    const row = w.ref.levelChart.Rogue.levels.find((l) => l.level === 8)!;
+    row.classBonusDice = "1d4";
+    row.dice = "1d20 + 1d4";
+    const cass = w.as("cass");
+    await seedProfile(cass, "cass");
+    const brin = await seedCharacter(cass, "brin");
+    const page = (
+      await cass.printableSheet({ characterIds: [brin.character.id], includeSkillText: false, paper: "letter" })
+    ).characters[0]!;
+    const total = (label: string) => page.totals?.find((t) => t.label === label);
+    expect(total("CM")?.value, "Brin's CM on the sheet").toBe(16);
+    expect(
+      total("CM")?.lines.map((l) => [l.label, l.value]),
+      "Brin's CM lines on the sheet",
+    ).toEqual([["Stealth Bonus", "1d4 + 16"]]);
+    expect(total("Combat dice")?.value, "Brin's combat dice on the sheet").toBe("1d20 + 1d4 + 1d4 (Stealth Bonus)");
+  },
+);
+
 rule({ req: ["EX-1"], m: "M3" }, "the PDF prints on Letter or A4 paper", async () => {
   const { bram, aldric } = await bramWithTwo();
   for (const [paper, size] of [

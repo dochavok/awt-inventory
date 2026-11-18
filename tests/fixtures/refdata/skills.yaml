@@ -88,3 +88,20 @@ skills:
   # Warden (prestige: Warrior and Rogue, level 21 and up)
   - { id: wardens-oath, name: Warden's Oath, tree: warden, usage: passive, tier: legendary }
   - { id: wardens-watch, name: Warden's Watch, tree: warden, usage: passive, tier: normal, prerequisites: { skill: wardens-oath } }
+
+  # One made-up card printed in two trees (RD-1, SK-1a, SK-2, SK-3): a starting
+  # skill in Arcana, and in Shadowcraft once the character has Quick Fingers.
+  - id: moonlit-step
+    name: Moonlit Step
+    trees:
+      - { tree: arcana, starting: true }
+      - tree: shadowcraft
+        prerequisites: { skill: quick-fingers }
+    usage: 1/combat
+    tier: normal
+
+  # A growing die and growing bonuses (GR-1 groups): each Cinder Mark replaces
+  # the one before, and Cinder Focus makes the Cinder Die always count.
+  - { id: cinder-mark-i, name: Cinder Mark I, tree: arcana, usage: passive, tier: normal, prerequisites: { skill: spark } }
+  - { id: cinder-mark-ii, name: Cinder Mark II, tree: arcana, usage: passive, tier: normal, prerequisites: { skill: cinder-mark-i } }
+  - { id: cinder-focus, name: Cinder Focus, tree: arcana, usage: passive, tier: epic, prerequisites: { skill: cinder-mark-ii } }

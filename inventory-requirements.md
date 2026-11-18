@@ -193,7 +193,7 @@ Skills and spells aren't typed in. They're picked from the skill list in the ref
 - the character's level is below the tree's entry level (such as 51 for prestige trees);
 - the character already has it, and the skill can't be taken more than once. Skills that can be taken several times (such as Toughness, up to 5) are counted, and the warning appears only above their limit.
 
-A skill in several trees is checked against each of them, and the app gives the warnings of the tree that has the fewest.
+A skill in several trees is checked against each of them, and the app gives the warnings of the tree that has the fewest. If several trees tie, a tree open to the character's class comes first, then the skill list's order.
 
 **SK-4 · Must · M2: Removing.** A skill can be hard-deleted, like any entry (IN-15). Skills can't be marked used or traded.
 
