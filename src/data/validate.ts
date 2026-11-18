@@ -11,8 +11,9 @@ import {
   type ClassName,
   type HowGained,
   type ItemEntry,
+  EFFECTS,
+  PERMISSIONS,
   type NewGrant,
-  type Permission,
   type ReferenceData,
 } from "../rules/types";
 import { toStoredTime } from "../platform/time";
@@ -307,8 +308,11 @@ export function grantsAllowed(category: Category): void {
   }
 }
 
-const PERMISSIONS: readonly Permission[] = ["weapon-use", "ranged-weapon-use", "armor-use", "dual-wielding"];
-const EFFECTS = ["resistance", "immunity", "cr-bonus"] as const;
+/** NF-6: refuses `count` of something above its `max`, e.g. "One source can have at most 50 grants." */
+export function atMost(count: number, max: number, field: string, owner: string, things: string): void {
+  if (count > max) throw new ValidationError(field, `${owner} can have at most ${max} ${things}.`);
+}
+
 /** Dice notation for one die, e.g. 1d6 (GR-1, GR-11). */
 const DIE = /^[1-9]\d?d[1-9]\d{0,2}$/;
 
@@ -390,8 +394,6 @@ export function grant(input: unknown, ref: ReferenceData): NewGrant {
 export function grantList(input: unknown, ref: ReferenceData): NewGrant[] {
   if (input === undefined || input === null) return [];
   if (!Array.isArray(input)) throw new ValidationError("grants", "Grants must be a list.");
-  if (input.length > LIMITS.grantsPerSource) {
-    throw new ValidationError("grants", `One source can have at most ${LIMITS.grantsPerSource} grants.`);
-  }
+  atMost(input.length, LIMITS.grantsPerSource, "grants", "One source", "grants");
   return input.map((g) => grant(g, ref));
 }

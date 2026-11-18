@@ -12,6 +12,7 @@ import type {
   ReferenceData,
   SlotTarget,
   SourceRef,
+  TitleScope,
 } from "./types";
 
 /** A grant that counts, with where it comes from. */
@@ -52,6 +53,16 @@ export function entryName(entry: Entry, ref: ReferenceData): string {
   return entry.category === "skills"
     ? (ref.skills.find((s) => s.id === entry.skillId)?.name ?? entry.skillId)
     : entry.name;
+}
+
+/** TI-2, TI-5: a player-level title applies to every character, a character-level one to its own. */
+export function titleApplies(scope: TitleScope, characterId: Id): boolean {
+  return scope.level === "player" || scope.characterId === characterId;
+}
+
+/** A grant that adds slots, to a slot kind or the arcane slots: the only kind whose loss can raise an alert (EQ-8). */
+export function addsSlots(grant: Grant): boolean {
+  return grant.kind === "slots" || grant.kind === "arcane-slots";
 }
 
 /** Where each equipped entry is, by entry ID (the first place listed, EQ-4). */
@@ -99,8 +110,9 @@ export function countedGrants(sheet: CharacterSheet, ref: ReferenceData): Source
     if (group) add(entry.grants, { type: "entry", id: entry.id, name: entry.name, category: entry.category }, group);
   }
   for (const title of sheet.titles) {
-    const applies = title.scope.level === "player" || title.scope.characterId === sheet.character.id;
-    if (applies) add(title.grants, { type: "title", id: title.id, name: title.name }, "titles");
+    if (titleApplies(title.scope, sheet.character.id)) {
+      add(title.grants, { type: "title", id: title.id, name: title.name }, "titles");
+    }
   }
   for (const manual of sheet.manualGrants) {
     add(manual.grants, { type: "manual", id: manual.id, reason: manual.reason }, "other");

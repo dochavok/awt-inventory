@@ -5,6 +5,7 @@
 import { countedGrants, grantLine, isSituational, withCondition, type SourcedGrant } from "./grants";
 import {
   BREAKDOWN_ORDER,
+  PERMISSIONS,
   type BreakdownGroup,
   type CharacterSheet,
   type ClassBonusName,
@@ -23,8 +24,6 @@ const CLASS_BONUS_NAMES: Record<ClassName, ClassBonusName> = {
   Mage: "Arcane Bonus",
   Rogue: "Stealth Bonus",
 };
-
-const PERMISSION_ORDER: readonly Permission[] = ["weapon-use", "ranged-weapon-use", "armor-use", "dual-wielding"];
 
 /** The chart row for a class and level: the highest row at or below the level, else the lowest. */
 function levelRow(ref: ReferenceData, className: ClassName, level: number): LevelRow {
@@ -92,7 +91,7 @@ export function computeTotals(sheet: CharacterSheet, ref: ReferenceData): Totals
     mitigation: total(counted, "mitigation"),
     hearts: total(counted, "hearts", { group: "level-chart", amount: row.hearts }),
     dice: { base: row.dice, extra, situational: situationalDice },
-    permissions: PERMISSION_ORDER.flatMap((permission) => {
+    permissions: PERMISSIONS.flatMap((permission) => {
       const sources = permissions.get(permission);
       return sources ? [{ permission, sources }] : [];
     }),

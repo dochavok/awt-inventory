@@ -19,7 +19,13 @@ export const CATEGORIES: readonly Category[] = [
   "components",
 ];
 
-export type Permission = "weapon-use" | "ranged-weapon-use" | "armor-use" | "dual-wielding";
+/** GR-1's permissions, in the order they're listed. */
+export const PERMISSIONS = ["weapon-use", "ranged-weapon-use", "armor-use", "dual-wielding"] as const;
+export type Permission = (typeof PERMISSIONS)[number];
+
+/** GR-6's effects. */
+export const EFFECTS = ["resistance", "immunity", "cr-bonus"] as const;
+export type Effect = (typeof EFFECTS)[number];
 
 // ---------------------------------------------------------------- grants (8.1)
 
@@ -40,7 +46,7 @@ export type Grant = GrantBase &
     | { kind: "arcane-slots"; amount: number }
     | { kind: "allowance"; rarity: Id; amount: number }
     | { kind: "permission"; permission: Permission }
-    | { kind: "effect"; effect: "resistance" | "immunity" | "cr-bonus"; text: string }
+    | { kind: "effect"; effect: Effect; text: string }
   );
 
 export type GrantKind = Grant["kind"];
@@ -344,7 +350,7 @@ export interface Totals {
   dice: { base: string; extra: ExtraDie[]; situational: ExtraDie[] };
   permissions: { permission: Permission; sources: SourceRef[] }[];
   /** GR-6: resistances, immunities and CR bonuses that apply now. */
-  effects: { effect: "resistance" | "immunity" | "cr-bonus"; text: string; source: SourceRef; condition?: string }[];
+  effects: { effect: Effect; text: string; source: SourceRef; condition?: string }[];
 }
 
 // ---------------------------------------------------------------- slots and equipping (9)
