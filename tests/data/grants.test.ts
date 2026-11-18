@@ -251,6 +251,26 @@ rule(
 );
 
 rule(
+  { req: ["IN-14", "EQ-4"], m: "M4" },
+  "trading part of an equipped stack unequips what's left, as trading always does",
+  async () => {
+    const { bram, aldric } = await bramWithAldric();
+    const daggers = await bram.addEntry(aldric.character.id, {
+      category: "weapons",
+      name: "Iron Dagger",
+      quantity: 2,
+      hands: 1,
+      range: "melee",
+    });
+    expect((await bram.equip(daggers.id, "off-hand")).outcome, "equipping the daggers").toBe("allowed");
+    await bram.markTraded(daggers.id, { kind: "traded", quantity: 1 });
+    const offHand = (await bram.sheet(aldric.character.id)).equipped.filter((q) => q.slot === "off-hand");
+    expect(offHand, "what's in Aldric's Off hand after trading one dagger").toEqual([]);
+    expect((await bram.entry(daggers.id)).quantity, "daggers left").toBe(1);
+  },
+);
+
+rule(
   { req: ["IN-15", "EQ-4", "GR-5"], m: "M4" },
   "undoing the delete of an equipped entry brings it back where it was, with its grants",
   async () => {

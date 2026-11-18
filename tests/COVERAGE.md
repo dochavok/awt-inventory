@@ -42,7 +42,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | IN-11 | Should | M3 | access/privacy.test.ts (2), browser/inventory.spec.ts (2), data/inventory.test.ts (3), data/limits.test.ts (1) |
 | IN-12 | Must | M2 | access/firestore-store.test.ts (1), access/offline.test.ts (2), browser/inventory.spec.ts (2), browser/search-export.spec.ts (2), data/inventory.test.ts (3) |
 | IN-13 | Must | M2 | access/firestore-store.test.ts (1), access/offline.test.ts (1), browser/inventory.spec.ts (1), data/inventory.test.ts (6) |
-| IN-14 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (2), data/grants.test.ts (2), data/inventory.test.ts (6) |
+| IN-14 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (2), data/grants.test.ts (3), data/inventory.test.ts (6) |
 | IN-15 | Must | M2 | access/firestore-store.test.ts (1), access/privacy.test.ts (1), browser/inventory.spec.ts (2), data/grants.test.ts (1), data/inventory.test.ts (3), data/skills.test.ts (1) |
 | IN-16 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (2), data/inventory.test.ts (3) |
 | SK-1 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (1), data/skills.test.ts (1), rules/skills.test.ts (4) |
@@ -75,7 +75,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | EQ-1 | Must | M4 | data/inventory.test.ts (1), rules/equipping.test.ts (10) |
 | EQ-2 | Must | M4 | access/firestore-store.test.ts (1), data/grants.test.ts (1), properties/equipping.test.ts (1), rules/equipping.test.ts (5) |
 | EQ-3 | Must | M4 | properties/equipping.test.ts (1), rules/equipping.test.ts (11) |
-| EQ-4 | Must | M4 | access/firestore-store.test.ts (1), access/privacy.test.ts (2), data/grants.test.ts (4), data/inventory.test.ts (1), data/search-export.test.ts (1), rules/equipping.test.ts (3) |
+| EQ-4 | Must | M4 | access/firestore-store.test.ts (1), access/privacy.test.ts (2), data/grants.test.ts (5), data/inventory.test.ts (1), data/search-export.test.ts (1), rules/equipping.test.ts (3) |
 | EQ-5 | Must | M4 | rules/equipping.test.ts (3) |
 | EQ-6 | Must | M4 | data/grants.test.ts (1), rules/equipping.test.ts (8) |
 | EQ-7 | Must | M4 | properties/equipping.test.ts (1), rules/equipping.test.ts (7) |
