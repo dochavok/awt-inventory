@@ -146,7 +146,7 @@ function warningsFor(c: Context, skill: Skill, placement: SkillPlacement, tree: 
 }
 
 interface Judged {
-  /** The tree the answer comes from: the one that allows it, or the one with the fewest warnings. */
+  /** The tree named: one with no warnings, else the own tree the skill starts, else the one with the fewest. */
   tree: Id;
   available: boolean;
   warnings: SkillWarning[];
@@ -157,7 +157,8 @@ interface Judged {
  * class and level allow, prerequisites met, not taken as often as allowed, or
  * a starting skill of the character's own tree). Its warnings are the tree's
  * with the fewest, ties going to the first in `ranked` order. The tree named is
- * one with no warnings if there is one, so it matches the warnings.
+ * one with no warnings if there is one; else the own tree it starts, if any
+ * (its warnings may then be another tree's, the fewest); else the fewest's.
  */
 function judge(c: Context, skill: Skill, trees = ranked(c, skill)): Judged {
   const notTaken = (c.taken.get(skill.id) ?? 0) === 0;
@@ -167,6 +168,7 @@ function judge(c: Context, skill: Skill, trees = ranked(c, skill)): Judged {
     const warnings = warningsFor(c, skill, placement, tree);
     if (starts === undefined && placement.starting && own && notTaken) starts = tree.id;
     if (!fewest || warnings.length < fewest.warnings.length) fewest = { tree: tree.id, warnings };
+    if (warnings.length === 0) break; // nothing can do better
   }
   // Only bad data has a skill in no tree (the schema refuses it).
   if (!fewest) throw new NotFoundError("skill tree", `for ${skill.id}`);

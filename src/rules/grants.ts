@@ -111,7 +111,8 @@ interface Collected extends Omit<SourcedGrant, "grant"> {
 const groupOf = (c: Collected): Id | undefined => (c.skillList ? c.grant.group : undefined);
 
 /**
- * GR-1's groups: within a group (of one kind) only the largest grant is kept,
+ * GR-1's groups: within a group (of one kind, and for slots or an allowance
+ * one slot kind or rarity: one growing bonus) only the largest grant is kept,
  * whatever order the sheet lists them in. A grouped die that a `die-always`
  * grant names loses its condition, so it counts (GR-4's exception), and the
  * `die-always` grants themselves go.

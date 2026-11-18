@@ -111,7 +111,10 @@ export const skillsFile = z.strictObject({
 });
 
 const grantBase = { id, condition: z.string().optional() };
-/** GR-1: grants of the same kind in a group: only the largest is used. Not on permissions or effects. */
+/**
+ * GR-1: grants of the same kind in a group (for slots or an allowance, the same slot kind or rarity):
+ * only the largest is used. Not on permissions or effects.
+ */
 const grouped = { ...grantBase, group: id.optional() };
 
 const grant = z.discriminatedUnion("kind", [

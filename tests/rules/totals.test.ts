@@ -382,6 +382,29 @@ rule(
   },
 );
 
+rule(
+  { req: ["GR-1", "EQ-5"], m: "M4" },
+  "a group's slot grants for the same slot kind, or allowances for the same rarity, keep only the largest",
+  () => {
+    const ref = testReferenceData();
+    const grantsOf = (skill: string) => ref.skillGrants.find((g) => g.skill === skill)!.grants;
+    grantsOf("cinder-mark-i").push(
+      { id: "sg-x-neck-1", kind: "slots", slotKind: "neck", amount: 1, group: "cinder-gift" },
+      { id: "sg-x-legendary-1", kind: "allowance", rarity: "legendary", amount: 1, group: "cinder-gift" },
+    );
+    grantsOf("cinder-mark-ii").push(
+      { id: "sg-x-neck-2", kind: "slots", slotKind: "neck", amount: 2, group: "cinder-gift" },
+      { id: "sg-x-legendary-2", kind: "allowance", rarity: "legendary", amount: 2, group: "cinder-gift" },
+    );
+    const before = slotState(isoldeWith(), ref);
+    const after = slotState(isoldeWith("cinder-mark-i", "cinder-mark-ii"), ref);
+    const neck = (s: typeof after) => s.kinds.find((k) => k.kind === "neck")!.allowed;
+    const legendary = (s: typeof after) => s.rarities.find((r) => r.rarity === "legendary")?.allowed ?? 0;
+    expect(neck(after) - neck(before), "Isolde's extra Neck slots (the larger only)").toBe(2);
+    expect(legendary(after) - legendary(before), "Isolde's extra Legendary allowance (the larger only)").toBe(2);
+  },
+);
+
 rule({ req: ["GR-1", "GR-11"], m: "M4" }, "die-always adds nothing without a die in its group", () => {
   const totals = computeTotals(isoldeWith("cinder-focus"), testReferenceData());
   expect(totals.dice.extra, "Isolde's extra dice with only Cinder Focus").toEqual([]);
