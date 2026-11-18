@@ -60,6 +60,14 @@ function plainCharacter(stored: StoredCharacter): Character {
   return character;
 }
 
+/** Whether an edit's grants are the entry's own, whatever the order of their fields (an absent list is empty). */
+function sameGrants(given: unknown, kept: Grant[] | undefined): boolean {
+  if (!Array.isArray(given)) return false;
+  const canonical = (list: unknown[]) =>
+    JSON.stringify(list.map((g) => Object.entries(g as object).sort(([a], [b]) => a.localeCompare(b))));
+  return canonical(given) === canonical(kept ?? []);
+}
+
 /** Newest first; records made together keep the order they were made in (HI-1). */
 const newestFirst = (a: StoredRecord, b: StoredRecord) => b.record.date.localeCompare(a.record.date) || b.seq - a.seq;
 
@@ -253,18 +261,27 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
   /** Whether losing these grants can take slots away, the only way a change raises an alert (EQ-8). */
   const losesSlots = (grants: Grant[] | undefined) => grants?.some(addsSlots) === true;
 
+  /** Whether an entry's grants count now (GR-3): a skill's always, others while equipped or active. */
+  function countsNow(entry: StoredEntry): boolean {
+    if (entry.category === "skills") return true;
+    if (entry.category === "allies") return entry.active;
+    return entry.slot !== undefined;
+  }
+
+  /** The character an entry's change can take slots from: its own, if the entry's slot grants count now. */
+  const losingFrom = (entry: StoredEntry): Id[] =>
+    countsNow(entry) && losesSlots(grantsOf(entry)) ? [entry.characterId] : [];
+
   /**
-   * Writes `changes`. First, for each of `characterIds` (the characters the change can
-   * take slots from), keeps the sheet as it was and why it changes, so an alert can name
-   * the slot lost (EQ-8).
+   * Writes `changes`. For each of `characterIds` (the characters the change can take
+   * slots from), keeps the sheet as it was and why it changed, so an alert can name the
+   * slot lost (EQ-8); kept once the write has been made.
    */
   async function writeLosing(changes: Change[], reason: LossReason, characterIds: Id[]): Promise<void> {
-    if (characterIds.length > 0) {
-      const titles = await myTitles();
-      const sheets = await Promise.all(characterIds.map((id) => sheetFor(id, titles)));
-      for (const before of sheets) lastChanges.set(before.character.id, { before, reason });
-    }
+    const titles = characterIds.length > 0 ? await myTitles() : [];
+    const sheets = await Promise.all(characterIds.map((id) => sheetFor(id, titles)));
     await write(changes);
+    for (const before of sheets) lastChanges.set(before.character.id, { before, reason });
   }
 
   /** The characters a title's grants count for (TI-5). */
@@ -604,7 +621,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
         throw new ValidationError("category", "An entry's category can't change.");
       }
       // Grants are added and removed one at a time (addGrant, removeGrant); an edit keeps them.
-      if (patch.grants !== undefined && JSON.stringify(patch.grants) !== JSON.stringify(entry.grants)) {
+      if (patch.grants !== undefined && !sameGrants(patch.grants, entry.grants)) {
         throw new ValidationError("grants", "Add or remove grants one at a time, not by editing the entry.");
       }
       const { id: _id, characterId: _c, ...current } = entry;
@@ -621,7 +638,9 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       if (gained !== 0) changes.push({ op: "add-quantity", entryId, by: gained });
       // Where it came from is checked, and kept, only with a gain (IN-11).
       if (gained > 0) changes.push(acquired(next, gained, gainOptions(options)).change);
-      await write(changes);
+      // An ally made inactive by an edit stops granting, as with setActive (GR-3, EQ-8).
+      const deactivated = entry.category === "allies" && entry.active && next.category === "allies" && !next.active;
+      await writeLosing(changes, "unequipped", deactivated ? losingFrom(entry) : []);
       return next;
     },
 
@@ -730,7 +749,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
           ...(stored.slot !== undefined ? update("entry", entryId, { slot: undefined }) : []),
         ],
         kind,
-        losesSlots(grantsOf(entry)) ? [entry.characterId] : [],
+        losingFrom(stored),
       );
       return traded.record;
     },
@@ -745,7 +764,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
           ...records.map((h): Change => ({ op: "delete", kind: "history", id: h.record.id })),
         ],
         "deleted",
-        losesSlots(grantsOf(entry)) ? [entry.characterId] : [],
+        losingFrom(entry),
       );
       const deletedAt = clock.now().getTime();
       let undone = false;
@@ -755,9 +774,16 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
           if (clock.now().getTime() - deletedAt > UNDO_SECONDS * 1000) {
             throw new ValidationError("undo", `It's too late to undo deleting ${entryName(entry)}.`);
           }
-          await ownCharacter(entry.characterId);
+          // Back where it was equipped, if that's still allowed (EQ-2, EQ-7); otherwise unequipped.
+          const sheet = await sheetFor(entry.characterId);
+          const { slot, ...unequipped } = entry;
+          const back: StoredEntry = { ...unequipped } as StoredEntry;
+          if (slot !== undefined) {
+            const withIt = { ...sheet, entries: [...sheet.entries, plainEntry(back)] };
+            if (checkEquip(withIt, ref, entry.id, slot).outcome === "allowed") back.slot = slot;
+          }
           await write([
-            { op: "set-entry", value: entry },
+            { op: "set-entry", value: back },
             ...records.map((h): Change => ({ op: "set-history", value: h })),
           ]);
           undone = true;
@@ -871,25 +897,23 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
         const losing = losesSlots([find(title.grants)!]) ? await charactersUnder(title.scope) : [];
         return writeLosing(update("title", title.id, { grants: without(title.grants) }), "grant-removed", losing);
       }
-      const characters = await backend.characters();
-      const entries = await Promise.all(characters.map((c) => storedEntriesOf(c.id)));
-      for (const [i, character] of characters.entries()) {
+      const characters = await storedCharacters();
+      for (const character of characters) {
         const manual = character.manualGrants ?? [];
-        const inManual = manual.map((m) => find(m.grants)).find((g) => g !== undefined);
-        // A skill's grants are the skill list's (SK-7), so they can't be removed here.
-        const entry = entries[i]!.find((e) => e.category !== "skills" && find(grantsOf(e)));
-        const grant = inManual ?? (entry && find(grantsOf(entry)));
+        const grant = manual.map((m) => find(m.grants)).find((g) => g !== undefined);
         if (!grant) continue;
+        // A manual grant left with nothing in it goes too.
+        const kept = manual.map((m) => ({ ...m, grants: without(m.grants) })).filter((m) => m.grants.length > 0);
         const losing = losesSlots([grant]) ? [character.id] : [];
-        if (inManual) {
-          // A manual grant left with nothing in it goes too.
-          const kept = manual.map((m) => ({ ...m, grants: without(m.grants) })).filter((m) => m.grants.length > 0);
-          return writeLosing(update("character", character.id, { manualGrants: kept }), "grant-removed", losing);
-        }
-        const grants = without(grantsOf(entry!));
-        return writeLosing(update("entry", entry!.id, { grants }), "grant-removed", losing);
+        return writeLosing(update("character", character.id, { manualGrants: kept }), "grant-removed", losing);
       }
-      throw new NotFoundError("grant", grantId);
+      // Only then the entries, which take the most reading. A skill's grants are the skill
+      // list's (SK-7), so they can't be removed here.
+      const entries = (await Promise.all(characters.map((c) => storedEntriesOf(c.id)))).flat();
+      const entry = entries.find((e) => e.category !== "skills" && find(grantsOf(e)));
+      if (!entry) throw new NotFoundError("grant", grantId);
+      const losing = losesSlots([find(grantsOf(entry))!]) && countsNow(entry) ? [entry.characterId] : [];
+      return writeLosing(update("entry", entry.id, { grants: without(grantsOf(entry)) }), "grant-removed", losing);
     },
 
     async equip(entryId, target) {
@@ -902,8 +926,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     async unequip(entryId) {
       const entry = await storedEntry(entryId);
       if (entry.slot === undefined) return;
-      const losing = losesSlots(grantsOf(entry)) ? [entry.characterId] : [];
-      await writeLosing(update("entry", entryId, { slot: undefined }), "unequipped", losing);
+      await writeLosing(update("entry", entryId, { slot: undefined }), "unequipped", losingFrom(entry));
     },
 
     async setActive(entryId, active) {
@@ -914,8 +937,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       if (typeof active !== "boolean") throw new ValidationError("active", "Active is either on or off.");
       if (entry.active === active) return;
       // An ally made inactive stops granting (GR-3), like an unequipped entry.
-      const losing = !active && losesSlots(entry.grants) ? [entry.characterId] : [];
-      await writeLosing(update("entry", entryId, { active }), "unequipped", losing);
+      await writeLosing(update("entry", entryId, { active }), "unequipped", active ? [] : losingFrom(entry));
     },
 
     async totals(characterId) {
@@ -923,10 +945,13 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     },
 
     async alerts(characterId) {
-      return overLimitAlerts(await sheetFor(characterId), ref, lastChanges.get(characterId));
+      const alerts = overLimitAlerts(await sheetFor(characterId), ref, lastChanges.get(characterId));
+      // With nothing over its limit, the cause is done with: a later alert has a cause of its own.
+      if (alerts.length === 0) lastChanges.delete(characterId);
+      return alerts;
     },
 
-    sheet: sheetFor,
+    sheet: (characterId) => sheetFor(characterId),
 
     async lastChange(characterId) {
       await ownCharacter(characterId);

@@ -340,7 +340,7 @@ export function grant(input: unknown, ref: ReferenceData): NewGrant {
   }
   const g = input as Record<string, unknown>;
   const kind = g.kind as NewGrant["kind"];
-  if (typeof kind !== "string" || !(kind in GRANT_FIELDS)) {
+  if (typeof kind !== "string" || !Object.hasOwn(GRANT_FIELDS, kind)) {
     throw new ValidationError("grants", `${String(g.kind)} isn't a kind of grant.`);
   }
   const allowed = new Set(["kind", "condition", "id", ...GRANT_FIELDS[kind]]);
