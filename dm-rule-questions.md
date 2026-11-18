@@ -43,6 +43,11 @@ Only one Legendary item can normally be equipped at a time.
 **Q9. Which weapon groups does Weapon Focus recognise?**
 Weapon Focus gives a bonus "with a specific weapon group". Is a group a single weapon type (sword) or a wider family (blades, covering swords and daggers)? Is there an official list?
 
+## Class bonuses
+
+**Q12. Which class bonuses are added to combat rolls?**
+The level chart gives each class a bonus: Combat Bonus (Warrior), Arcane Bonus (Mage) and Stealth Bonus (Rogue). From level 10, the Rogue's Stealth Bonus is dice plus 3 (e.g. 1d4 + 3). Is only the Warrior's Combat Bonus added to combat rolls, or does every class add its own bonus? Until this is answered, the app adds every class's bonus to CM, and a Rogue's Stealth Bonus dice are rolled along with the combat dice.
+
 ## Familiars, allies and minions
 
 **Q11. What are the rules for familiars, allies and minions?**

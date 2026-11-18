@@ -79,6 +79,7 @@
 
 - id: cm-zero-lines-hidden-in-order
   req: [GR-8]
+  q: [Q12]
   milestone: M4
   title: Isolde's CM shows only her non-zero lines, in order (class bonus, Skills, Items)
   given: { character: isolde }
@@ -141,6 +142,7 @@
 
 - id: grants-stop-when-arcane-item-unequipped
   req: [GR-3]
+  q: [Q12]
   milestone: M4
   title: Taking Isolde's Glass Orb out of its arcane slot removes its +1 (CM 20, no Items line)
   given:
@@ -352,6 +354,7 @@
 
 - id: every-kind-of-grant
   req: [GR-1, GR-3]
+  q: [Q12]
   milestone: M4
   title: One manual grant of each kind changes the matching total, slot count, allowance or permission
   given:

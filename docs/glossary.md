@@ -1,6 +1,6 @@
 # Glossary
 
-reviewed: 2026-11-12
+reviewed: 2026-11-18
 
 The words the app uses, and what they mean in it.
 
@@ -20,11 +20,11 @@ The words the app uses, and what they mean in it.
 | **Permission** | Whether a character may equip a kind of thing: Weapon Use, Ranged Weapon Use, Armor Use, Dual Wielding. |
 | **Grant** | Something a source adds to a character: CM, mitigation, hearts, an extra die, extra slots, an allowance, a permission, or an effect such as a resistance. |
 | **Source** | What a grant comes from: an entry (only while equipped or active), a skill, a title, or a manual grant with a reason. |
-| **Situational** | A grant with a condition, such as "vs Evil". Listed with its source, never added to a total. |
-| **Class bonus** | Combat Bonus (Warrior), Arcane Bonus (Mage) or Stealth Bonus (Rogue), from the level chart. Part of CM, and shown on its own. |
+| **Situational** | A grant with a condition, such as "vs Evil". Listed with its source, never added to a total. The one exception: a skill can make a growing die (such as a Holy Die) always count. |
+| **Class bonus** | Combat Bonus (Warrior), Arcane Bonus (Mage) or Stealth Bonus (Rogue), from the level chart. Part of CM, and shown on its own. From level 10, a Rogue's Stealth Bonus is dice plus a number, such as 1d4 + 3: the number counts in CM, and the dice are rolled with the combat dice. |
 | **CM** | Combat modifier: the class bonus plus every CM grant that counts. Shown with where it comes from. |
 | **Mitigation** | Hearts of damage taken off each hit. Grants from every source add up. |
-| **Combat dice** | The dice a character rolls in combat: the level chart's, plus extra dice from grants, each with its source. |
+| **Combat dice** | The dice a character rolls in combat: the level chart's (such as 1d20 + 1d4), plus extra dice from grants, each with its source. |
 | **Title** | An honour from the game, with a name and a description. Applies to all your characters unless you make it one character's. Patreon tiers are titles too. |
 | **Skill list** | The game's skills and spells, which skills are picked from, never typed in. |
 | **Item family** | An optional group an item belongs to by origin or theme, across categories. Typed by you, with suggestions. |

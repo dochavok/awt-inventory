@@ -87,6 +87,37 @@ rule(
 );
 
 rule(
+  { req: ["TF-10", "GR-1", "GR-4", "GR-11"], m: "M4" },
+  "the order entries, titles and grants were added in doesn't change which situational grants and dice are listed",
+  () => {
+    const listed = (t: Totals) =>
+      [
+        ...t.cm.situational,
+        ...t.mitigation.situational,
+        ...t.hearts.situational,
+        ...t.dice.extra,
+        ...t.dice.situational,
+      ]
+        .map((x) => JSON.stringify(x))
+        .sort();
+    fc.assert(
+      fc.property(
+        sheetArb(ref).chain((sheet) =>
+          fc.tuple(fc.constant(sheet), fc.shuffledSubarray(sheet.entries, { minLength: sheet.entries.length })),
+        ),
+        ([sheet, entries]) => {
+          const shuffled = { ...sheet, entries };
+          expect(listed(computeTotals(shuffled, ref)), "situational grants and dice").toEqual(
+            listed(computeTotals(sheet, ref)),
+          );
+        },
+      ),
+      RUNS,
+    );
+  },
+);
+
+rule(
   { req: ["TF-10"], m: "M4" },
   "the order entries, titles and grants were added in doesn't change any total or slot count",
   () => {

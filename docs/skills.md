@@ -1,12 +1,14 @@
 # Skills
 
-reviewed: 2026-11-12
+reviewed: 2026-11-18
 
 Skills and spells aren't typed in: you pick them from the game's skill list. On this page, "skill" covers spells too.
 
 ## Adding a skill
 
 Open **Skills** from the character's page. Under **Add a skill**, search the list by name; **Show every tree** adds the trees of the other classes. The list first offers the skills the character can take now: their prerequisites are on the character, they're in a tree the character's class and level allow, and the character hasn't taken them as often as allowed. Every other skill is listed below, under its own heading.
+
+Some skills are printed in several trees, sometimes with different prerequisites in each. Such a skill is listed once, and it's offered first if any of its trees allows it.
 
 With each skill you record **how it was gained** (Starting, Level-up, Quest, Trained under the old system, or Other), the **level** it was gained at, and any notes.
 
@@ -19,11 +21,13 @@ The app warns you, but still lets you add the skill, when:
 - the character's level is below the tree's entry level;
 - the character already has the skill and can't take it again. Skills that can be taken several times are counted, and the warning appears only above their limit.
 
+For a skill in several trees, you see the warnings of the tree that gives the fewest; if two give as many, the warnings of a tree of the character's own class.
+
 DMs sometimes allow these, so the decision is yours. See [Troubleshooting](troubleshooting.md).
 
 ## What's shown
 
-Each of a character's skills shows its name, tree, usage (passive, 1/combat, 1/day…) and tier, from the skill list, with your own fields.
+Each of a character's skills shows its name, tree (every tree, for a skill in several), usage (passive, 1/combat, 1/day…) and tier, from the skill list, with your own fields.
 
 ## Removing a skill
 

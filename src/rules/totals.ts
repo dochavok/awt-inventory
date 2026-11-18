@@ -15,6 +15,7 @@ import {
   type LevelRow,
   type Permission,
   type ReferenceData,
+  type SourceRef,
   type Total,
   type Totals,
 } from "./types";
@@ -63,13 +64,29 @@ function total(counted: SourcedGrant[], kind: AmountKind, chart?: { group: Break
   };
 }
 
+/** A grant's source as the app names it: an entry, skill or title by name, a manual grant by its reason. */
+export function sourceName(source: SourceRef): string {
+  return source.type === "manual" ? source.reason : source.type === "level-chart" ? "Level chart" : source.name;
+}
+
+/** GR-7: the class bonus as shown: its number, or with dice always both, e.g. "1d4 + 3". */
+export function classBonusShown(classBonus: Totals["classBonus"]): number | string {
+  return classBonus.dice ? `${classBonus.dice} + ${classBonus.value}` : classBonus.value;
+}
+
+/** GR-11: where an extra die comes from; the level chart's own is the class bonus's (e.g. Stealth Bonus). */
+export function dieSourceName(die: ExtraDie, classBonus: Totals["classBonus"]): string {
+  return die.source.type === "level-chart" ? classBonus.name : sourceName(die.source);
+}
+
 /** Class bonus, CM, mitigation, hearts, dice, permissions and effects (GR-1 to GR-12, EQ-9, GR-6). */
 export function computeTotals(sheet: CharacterSheet, ref: ReferenceData): Totals {
   const { className, level } = sheet.character;
   const row = levelRow(ref, className, level);
   const counted = countedGrants(sheet, ref);
 
-  const extra: ExtraDie[] = [];
+  // GR-8, GR-11: the class bonus's dice (a Rogue's Stealth Bonus) are rolled with the combat dice, listed first.
+  const extra: ExtraDie[] = row.classBonusDice ? [{ die: row.classBonusDice, source: { type: "level-chart" } }] : [];
   const situationalDice: ExtraDie[] = [];
   const permissions = new Map<Permission, Totals["permissions"][number]["sources"]>();
   const effects: Totals["effects"] = [];
@@ -86,7 +103,11 @@ export function computeTotals(sheet: CharacterSheet, ref: ReferenceData): Totals
   }
 
   return {
-    classBonus: { name: CLASS_BONUS_NAMES[className], value: row.classBonus },
+    classBonus: {
+      name: CLASS_BONUS_NAMES[className],
+      value: row.classBonus,
+      ...(row.classBonusDice ? { dice: row.classBonusDice } : {}),
+    },
     cm: total(counted, "cm", { group: "class-bonus", amount: row.classBonus }),
     mitigation: total(counted, "mitigation"),
     hearts: total(counted, "hearts", { group: "level-chart", amount: row.hearts }),

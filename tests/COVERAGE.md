@@ -45,12 +45,12 @@ Tests shows each file with the number of its tests that name the requirement.
 | IN-14 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (2), data/grants.test.ts (3), data/inventory.test.ts (6) |
 | IN-15 | Must | M2 | access/firestore-store.test.ts (1), access/privacy.test.ts (1), browser/inventory.spec.ts (2), data/grants.test.ts (3), data/inventory.test.ts (3), data/limits.test.ts (1), data/skills.test.ts (1) |
 | IN-16 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (2), data/inventory.test.ts (3) |
-| SK-1 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (1), data/skills.test.ts (1), rules/skills.test.ts (4) |
-| SK-1a | Must | M2 | browser/inventory.spec.ts (1), rules/skills.test.ts (4) |
-| SK-2 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (1), browser/search-export.spec.ts (1), data/search-export.test.ts (1), data/skills.test.ts (3) |
-| SK-3 | Must | M2 | browser/inventory.spec.ts (1), data/skills.test.ts (1), docs/docs.test.ts (1), rules/skills.test.ts (8) |
+| SK-1 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (1), data/skills.test.ts (1), rules/skills.test.ts (7) |
+| SK-1a | Must | M2 | browser/inventory.spec.ts (1), data/skills.test.ts (1), refdata/refdata.test.ts (1), rules/skills.test.ts (8) |
+| SK-2 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (1), browser/search-export.spec.ts (1), data/search-export.test.ts (1), data/skills.test.ts (4) |
+| SK-3 | Must | M2 | browser/inventory.spec.ts (1), data/skills.test.ts (1), docs/docs.test.ts (1), rules/skills.test.ts (14) |
 | SK-4 | Must | M2 | browser/inventory.spec.ts (1), data/skills.test.ts (2) |
-| SK-5 | Must | M2 | browser/inventory.spec.ts (1), data/skills.test.ts (3) |
+| SK-5 | Must | M2 | browser/inventory.spec.ts (1), data/skills.test.ts (4) |
 | SK-6 | Should | M4 | rules/skills.test.ts (2) |
 | SK-7 | Should | M4 | rules/equipping.test.ts (5) |
 | SK-8 | Must | M2 | data/skills.test.ts (1) |
@@ -60,19 +60,19 @@ Tests shows each file with the number of its tests that name the requirement.
 | HI-3 | Must | M2 | app/dates.test.ts (1), browser/inventory.spec.ts (1), data/characters.test.ts (1), data/history.test.ts (3), data/inventory.test.ts (1) |
 | HI-4 | Must | M2 | access/accounts.test.ts (2), access/privacy.test.ts (4), data/characters.test.ts (1), data/history.test.ts (2), data/inventory.test.ts (1) |
 | HI-5 | Should | M3 | browser/inventory.spec.ts (1), data/history.test.ts (1), data/privacy.test.ts (1) |
-| GR-1 | Must | M4 | data/grants.test.ts (2), rules/equipping.test.ts (4), rules/totals.test.ts (2) |
-| GR-2 | Must | M4 | access/firestore-store.test.ts (1), access/privacy.test.ts (3), data/grants.test.ts (8), data/search-export.test.ts (1), rules/totals.test.ts (1) |
+| GR-1 | Must | M4 | data/grants.test.ts (3), properties/totals.test.ts (1), refdata/refdata.test.ts (2), rules/equipping.test.ts (4), rules/totals.test.ts (15) |
+| GR-2 | Must | M4 | access/firestore-store.test.ts (1), access/privacy.test.ts (3), data/grants.test.ts (9), data/search-export.test.ts (1), rules/totals.test.ts (2) |
 | GR-3 | Must | M4 | data/grants.test.ts (3), rules/totals.test.ts (14) |
-| GR-4 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (7) |
+| GR-4 | Must | M4 | properties/totals.test.ts (2), rules/totals.test.ts (9) |
 | GR-5 | Must | M4 | access/firestore-store.test.ts (1), data/grants.test.ts (6), properties/totals.test.ts (1), rules/equipping.test.ts (1), rules/totals.test.ts (4) |
 | GR-6 | Should | M5 | rules/totals.test.ts (2) |
-| GR-7 | Must | M4 | rules/totals.test.ts (6) |
-| GR-8 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (3) |
-| GR-9 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (2) |
-| GR-10 | Should | M4 | properties/totals.test.ts (1), rules/totals.test.ts (2) |
-| GR-11 | Must | M4 | rules/totals.test.ts (4) |
-| GR-12 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (9) |
-| EQ-1 | Must | M4 | data/inventory.test.ts (1), rules/equipping.test.ts (10) |
+| GR-7 | Must | M4 | data/search-export.test.ts (1), rules/totals.test.ts (8) |
+| GR-8 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (5) |
+| GR-9 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (4) |
+| GR-10 | Should | M4 | properties/totals.test.ts (1), rules/totals.test.ts (3) |
+| GR-11 | Must | M4 | data/search-export.test.ts (1), properties/totals.test.ts (1), rules/totals.test.ts (12) |
+| GR-12 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (11) |
+| EQ-1 | Must | M4 | data/inventory.test.ts (1), rules/equipping.test.ts (10), rules/totals.test.ts (2) |
 | EQ-2 | Must | M4 | access/firestore-store.test.ts (1), data/grants.test.ts (2), properties/equipping.test.ts (1), rules/equipping.test.ts (5) |
 | EQ-3 | Must | M4 | properties/equipping.test.ts (1), rules/equipping.test.ts (11) |
 | EQ-4 | Must | M4 | access/firestore-store.test.ts (1), access/privacy.test.ts (2), data/grants.test.ts (7), data/inventory.test.ts (1), data/search-export.test.ts (1), rules/equipping.test.ts (3) |
@@ -86,7 +86,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | SE-1 | Must | M3 | access/firestore-store.test.ts (1), browser/search-export.spec.ts (1), data/privacy.test.ts (1), data/search-export.test.ts (9) |
 | SE-2 | Must | M3 | browser/search-export.spec.ts (2), data/privacy.test.ts (1), data/search-export.test.ts (3) |
 | SE-3 | Should | M3 | browser/search-export.spec.ts (4), data/privacy.test.ts (1), data/search-export.test.ts (2) |
-| EX-1 | Must | M3 | browser/search-export.spec.ts (5), data/privacy.test.ts (1), data/search-export.test.ts (6) |
+| EX-1 | Must | M3 | browser/search-export.spec.ts (5), data/privacy.test.ts (1), data/search-export.test.ts (7) |
 | EX-2 | Must | M3 | browser/search-export.spec.ts (2), data/search-export.test.ts (2) |
 | EX-3 | Must | M3 | browser/search-export.spec.ts (1), data/search-export.test.ts (2) |
 | EX-4 | Must | M3 | access/firestore-store.test.ts (1), browser/search-export.spec.ts (2), data/search-export.test.ts (5) |
@@ -103,10 +103,10 @@ Tests shows each file with the number of its tests that name the requirement.
 | QS-1 | Could | M6 | none |
 | DA-1 | Could | M6 | none |
 | AL-1 | Could | M6 | none |
-| RD-1 | Must | M2 | refdata/refdata.test.ts (1) |
+| RD-1 | Must | M2 | refdata/refdata.test.ts (6) |
 | RD-2 | Must | M2 | data/skills.test.ts (1), refdata/refdata.test.ts (2) |
-| RD-3 | Must | M2 | data/inventory.test.ts (2), data/skills.test.ts (3), refdata/refdata.test.ts (1), rules/equipping.test.ts (3), rules/skills.test.ts (1) |
-| RD-4 | Must | M2 | refdata/refdata.test.ts (9) |
+| RD-3 | Must | M2 | data/inventory.test.ts (2), data/skills.test.ts (4), refdata/refdata.test.ts (1), rules/equipping.test.ts (3), rules/skills.test.ts (2) |
+| RD-4 | Must | M2 | refdata/refdata.test.ts (13) |
 | RD-5 | Must | M2 | data/characters.test.ts (1), refdata/refdata.test.ts (2) |
 | RD-6 | Must | M2 | refdata/refdata.test.ts (1) |
 | RD-7 | Must | M2 | data/skills.test.ts (1), refdata/refdata.test.ts (1) |
@@ -133,7 +133,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | TF-7 | Must | M1 | meta/restore.test.ts (4), meta/test-change-check-more.test.ts (8), meta/test-change-check.test.ts (15) |
 | TF-8 | Must | M1 | meta/harness.test.ts (2) |
 | TF-9 | Must | M1 | meta/scenarios.test.ts (3), meta/test-change-check.test.ts (1) |
-| TF-10 | Must | M1 | properties/equipping.test.ts (3), properties/totals.test.ts (4) |
+| TF-10 | Must | M1 | properties/equipping.test.ts (3), properties/totals.test.ts (5) |
 | TF-11 | Must | M1 | access/privacy.test.ts (33) |
 | TF-12 | Must | M2+ | checked in review (TF-4) |
 | TF-13 | Should | M3 | browser/characters.spec.ts (7), browser/inventory.spec.ts (7), browser/search-export.spec.ts (6) |

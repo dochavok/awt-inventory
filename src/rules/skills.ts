@@ -12,6 +12,7 @@ import type {
   Skill,
   SkillOption,
   SkillPicker,
+  SkillPlacement,
   SkillTree,
   SkillWarning,
 } from "./types";
@@ -68,17 +69,46 @@ function context(sheet: CharacterSheet, ref: ReferenceData): Context {
   };
 }
 
-function treeOf(c: Context, skill: Skill): SkillTree {
-  const tree = c.trees.get(skill.tree);
-  if (!tree) throw new NotFoundError("skill tree", skill.tree);
+/** A skill's place in each of its trees (RD-1): its `trees`, or its one `tree`. */
+export function placements(skill: Skill): SkillPlacement[] {
+  if (skill.trees) return skill.trees;
+  if (skill.tree === undefined) return [];
+  const one: SkillPlacement = { tree: skill.tree };
+  if (skill.starting !== undefined) one.starting = skill.starting;
+  if (skill.prerequisites !== undefined) one.prerequisites = skill.prerequisites;
+  return [one];
+}
+
+function treeOf(c: Context, placement: SkillPlacement): SkillTree {
+  const tree = c.trees.get(placement.tree);
+  if (!tree) throw new NotFoundError("skill tree", placement.tree);
   return tree;
 }
 
-function warningsFor(c: Context, skill: Skill): SkillWarning[] {
+/**
+ * The placements that count, in the order SK-3 prefers them: those in trees
+ * open to the character's class first, then the skill list's order. A retired
+ * tree's placement counts only if every tree is retired (RD-3).
+ */
+function ranked(c: Context, skill: Skill): { placement: SkillPlacement; tree: SkillTree; own: boolean }[] {
+  const all = placements(skill).map((placement) => {
+    const tree = treeOf(c, placement);
+    return { placement, tree, own: tree.classes.includes(c.sheet.character.className) };
+  });
+  const live = all.filter((p) => !p.tree.retired);
+  const list = live.length > 0 ? live : all;
+  return [...list.filter((p) => p.own), ...list.filter((p) => !p.own)];
+}
+
+/** RD-3: a skill that's retired, or whose trees all are, isn't newly offered or added. */
+function retiredSkill(skill: Skill, tree: (id: Id) => SkillTree | undefined): boolean {
+  return skill.retired === true || placements(skill).every((p) => tree(p.tree)?.retired);
+}
+
+function warningsFor(c: Context, skill: Skill, placement: SkillPlacement, tree: SkillTree): SkillWarning[] {
   const { character } = c.sheet;
-  const tree = treeOf(c, skill);
   const warnings: SkillWarning[] = [];
-  const missing = skill.prerequisites && unmet(skill.prerequisites, (id) => (c.taken.get(id) ?? 0) > 0);
+  const missing = placement.prerequisites && unmet(placement.prerequisites, (id) => (c.taken.get(id) ?? 0) > 0);
   if (missing) {
     warnings.push({
       reason: "missing-prerequisite",
@@ -115,12 +145,36 @@ function warningsFor(c: Context, skill: Skill): SkillWarning[] {
   return warnings;
 }
 
-/** SK-1a: in a tree the class and level allow, prerequisites met, not taken as often as allowed. */
-function isAvailable(c: Context, skill: Skill): boolean {
-  const tree = treeOf(c, skill);
-  const ownTree = tree.classes.includes(c.sheet.character.className);
-  if (skill.starting && ownTree && (c.taken.get(skill.id) ?? 0) === 0) return true;
-  return warningsFor(c, skill).length === 0;
+interface Judged {
+  /** The tree named: one with no warnings, else the own tree the skill starts, else the one with the fewest. */
+  tree: Id;
+  available: boolean;
+  warnings: SkillWarning[];
+}
+
+/**
+ * SK-1a, SK-3: a skill is available if any of its trees allows it (one the
+ * class and level allow, prerequisites met, not taken as often as allowed, or
+ * a starting skill of the character's own tree). Its warnings are the tree's
+ * with the fewest, ties going to the first in `ranked` order. The tree named is
+ * one with no warnings if there is one; else the own tree it starts, if any
+ * (its warnings may then be another tree's, the fewest); else the fewest's.
+ */
+function judge(c: Context, skill: Skill, trees = ranked(c, skill)): Judged {
+  const notTaken = (c.taken.get(skill.id) ?? 0) === 0;
+  let starts: Id | undefined;
+  let fewest: { tree: Id; warnings: SkillWarning[] } | undefined;
+  for (const { placement, tree, own } of trees) {
+    const warnings = warningsFor(c, skill, placement, tree);
+    if (starts === undefined && placement.starting && own && notTaken) starts = tree.id;
+    if (!fewest || warnings.length < fewest.warnings.length) fewest = { tree: tree.id, warnings };
+    if (warnings.length === 0) break; // nothing can do better
+  }
+  // Only bad data has a skill in no tree (the schema refuses it).
+  if (!fewest) throw new NotFoundError("skill tree", `for ${skill.id}`);
+  const clean = fewest.warnings.length === 0 ? fewest.tree : undefined;
+  const allows = clean ?? starts;
+  return { tree: allows ?? fewest.tree, available: allows !== undefined, warnings: fewest.warnings };
 }
 
 /** The skill picker's two lists (SK-1, SK-1a). `query` searches by name, ignoring case. */
@@ -133,20 +187,26 @@ export function skillPicker(
   const query = options.query?.trim().toLowerCase() ?? "";
   const picker: SkillPicker = { available: [], others: [] };
   const offered = ref.skills
-    .filter((s) => !s.retired && !treeOf(c, s).retired)
-    .filter((s) => options.allTrees || treeOf(c, s).classes.includes(sheet.character.className))
-    .filter((s) => s.name.toLowerCase().includes(query))
-    .sort((a, b) => a.name.localeCompare(b.name));
-  for (const skill of offered) {
+    .filter((s) => s.name.toLowerCase().includes(query) && !retiredSkill(s, (id) => c.trees.get(id)))
+    .map((skill) => ({ skill, trees: ranked(c, skill) }))
+    .filter(({ trees }) => trees.some((p) => options.allTrees || p.own))
+    .sort((a, b) => a.skill.name.localeCompare(b.skill.name));
+  for (const { skill, trees } of offered) {
+    const judged = judge(c, skill, trees);
     const option: SkillOption = {
       skillId: skill.id,
       name: skill.name,
-      tree: skill.tree,
+      tree: judged.tree,
       taken: c.taken.get(skill.id) ?? 0,
     };
-    (isAvailable(c, skill) ? picker.available : picker.others).push(option);
+    (judged.available ? picker.available : picker.others).push(option);
   }
   return picker;
+}
+
+/** RD-3: a skill that's retired, or whose trees all are, can't be newly added. */
+export function skillRetired(skill: Skill, ref: ReferenceData): boolean {
+  return retiredSkill(skill, (id) => ref.trees.find((t) => t.id === id));
 }
 
 /** SK-6: levels up to the character's where the class's chart gives a skill but none has that Level gained. */
@@ -165,5 +225,5 @@ export function recordCheck(sheet: CharacterSheet, ref: ReferenceData): MissingS
 export function skillWarnings(sheet: CharacterSheet, ref: ReferenceData, skillId: Id): SkillWarning[] {
   const skill = ref.skills.find((s) => s.id === skillId);
   if (!skill) throw new NotFoundError("skill", skillId);
-  return warningsFor(context(sheet, ref), skill);
+  return judge(context(sheet, ref), skill).warnings;
 }

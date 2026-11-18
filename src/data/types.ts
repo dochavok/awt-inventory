@@ -199,7 +199,8 @@ export interface SheetDocument {
     name: string;
     className: ClassName;
     level: number;
-    totals?: { label: string; value: number | string; lines: { label: string; value: number }[] }[];
+    /** A line's value is a number, or for a class bonus with dice "1d4 + 3" (GR-7). */
+    totals?: { label: string; value: number | string; lines: { label: string; value: number | string }[] }[];
     equipped: { slot: string; entry: string }[];
     categories: { category: Category; entries: { name: string; quantity: number }[] }[];
     skills: { name: string; usage: string; tier: SkillTier; text?: string }[];

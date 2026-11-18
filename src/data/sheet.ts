@@ -3,6 +3,7 @@
 
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { formatLocal, localDay } from "../platform/time";
+import { classBonusShown, dieSourceName } from "../rules/totals";
 import type {
   BreakdownGroup,
   Character,
@@ -11,7 +12,6 @@ import type {
   ReferenceData,
   SkillEntry,
   SlotState,
-  SourceRef,
   Title,
   Total,
   Totals,
@@ -48,19 +48,16 @@ const GROUP_LABELS: Record<Exclude<BreakdownGroup, "class-bonus">, string> = {
   other: "Other",
 };
 
-/** A source as the sheet names it: an entry, skill or title by name, a manual grant by its reason. */
-function sourceLabel(source: SourceRef): string {
-  return source.type === "manual" ? source.reason : source.type === "level-chart" ? "Level chart" : source.name;
-}
-
 /** EX-1: CM, mitigation, max hearts and combat dice, each with its breakdown (GR-8 to GR-11). */
 function sheetTotals(totals: Totals): NonNullable<SheetPage["totals"]> {
+  const { classBonus } = totals;
   const lines = (total: Total) =>
-    total.lines.map((l) => ({
-      label: l.group === "class-bonus" ? totals.classBonus.name : GROUP_LABELS[l.group],
-      value: l.value,
-    }));
-  const extra = totals.dice.extra.map((d) => ` + ${d.die} (${sourceLabel(d.source)})`).join("");
+    total.lines.map((l) =>
+      l.group === "class-bonus"
+        ? { label: classBonus.name, value: classBonusShown(classBonus) }
+        : { label: GROUP_LABELS[l.group], value: l.value },
+    );
+  const extra = totals.dice.extra.map((d) => ` + ${d.die} (${dieSourceName(d, classBonus)})`).join("");
   return [
     { label: "CM", value: totals.cm.value, lines: lines(totals.cm) },
     { label: "Mitigation", value: totals.mitigation.value, lines: lines(totals.mitigation) },

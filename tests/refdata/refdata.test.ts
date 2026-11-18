@@ -176,6 +176,124 @@ rule({ req: ["RD-7"], m: "M2" }, "a maintainer note on a skill or tree is valid 
 });
 
 rule(
+  { req: ["RD-1", "RD-4"], m: "M2" },
+  "combat dice can be several dice, and a class bonus can have dice; anything else is a problem naming the field",
+  () => {
+    const withDice = edited("level-chart.yaml", (chart) => {
+      for (const row of chart.Rogue.levels.filter((l: any) => l.level >= 10)) {
+        row.dice = "2d20 + 1d4";
+        row.classBonusDice = "1d4";
+      }
+    });
+    expect(problemsFor(withDice), "problems with Rogue dice like 2d20 + 1d4 and a 1d4 class bonus").toEqual([]);
+    const row = loadReferenceData(withDice).levelChart.Rogue.levels.find((l) => l.level === 12);
+    expect([row?.dice, row?.classBonusDice], "Rogue 12's combat dice and class bonus dice").toEqual([
+      "2d20 + 1d4",
+      "1d4",
+    ]);
+    const cases: [string, (row: any) => void, RegExp][] = [
+      ["dice run together", (r) => (r.dice = "2d20+1d4"), /level-chart\.yaml.*dice/],
+      ["dice ending in a plus", (r) => (r.dice = "2d20 + "), /level-chart\.yaml.*dice/],
+      ["a class bonus die in words", (r) => (r.classBonusDice = "four"), /level-chart\.yaml.*classBonusDice/],
+      ["class bonus dice with a number added", (r) => (r.classBonusDice = "1d4 + 3"), /classBonusDice/],
+    ];
+    for (const [what, change, pattern] of cases) {
+      const files = edited("level-chart.yaml", (chart) => change(chart.Rogue.levels[0]));
+      expect(problemsFor(files).join("\n"), `problems with ${what}`).toMatch(pattern);
+    }
+  },
+);
+
+rule({ req: ["RD-1", "SK-1a"], m: "M2" }, "a skill in several trees is read with its own place in each", () => {
+  expect(problemsFor(testFiles()), "problems in the test reference data").toEqual([]);
+  const step = loadReferenceData(testFiles()).skills.find((s) => s.id === "moonlit-step");
+  expect(step?.trees, "Moonlit Step's trees").toEqual([
+    { tree: "arcana", starting: true },
+    { tree: "shadowcraft", prerequisites: { skill: "quick-fingers" } },
+  ]);
+});
+
+rule(
+  { req: ["RD-1", "RD-4"], m: "M2" },
+  "a skill in several trees must name each tree once, trees and prerequisites that exist, and no tree of its own",
+  () => {
+    const step = (d: any) => d.skills.find((s: any) => s.id === "moonlit-step");
+    const cases: [string, (d: any) => void, RegExp][] = [
+      ["an unknown tree", (d) => (step(d).trees[1].tree = "nowhere"), /moonlit-step.*nowhere/],
+      [
+        "an unknown prerequisite in one tree",
+        (d) => (step(d).trees[1].prerequisites = { skill: "made-up" }),
+        /moonlit-step.*made-up/,
+      ],
+      ["the same tree twice", (d) => (step(d).trees[1].tree = "arcana"), /moonlit-step.*arcana/],
+      ["a tree as well as trees", (d) => (step(d).tree = "arcana"), /moonlit-step/],
+      ["a starting flag outside its trees", (d) => (step(d).starting = true), /moonlit-step/],
+      ["no tree at all", (d) => delete step(d).trees, /moonlit-step/],
+      ["an empty list of trees", (d) => (step(d).trees = []), /moonlit-step/],
+    ];
+    for (const [what, change, pattern] of cases) {
+      expect(problemsFor(edited("skills.yaml", change)).join("\n"), `problems with ${what}`).toMatch(pattern);
+    }
+  },
+);
+
+rule(
+  { req: ["RD-1", "GR-1", "RD-4"], m: "M4" },
+  "a skill's grant can be in a group, and die-always names a group whose die always counts",
+  () => {
+    const grants = (skill: string) => loadReferenceData(testFiles()).skillGrants.find((g) => g.skill === skill)?.grants;
+    expect(grants("cinder-mark-ii")?.[0], "Cinder Mark II's die").toMatchObject({ die: "1d8", group: "cinder-die" });
+    expect(grants("cinder-focus"), "Cinder Focus's grants").toEqual([
+      { id: "sg-cinder-focus-1", kind: "die-always", group: "cinder-die" },
+    ]);
+    const of = (list: any[], skill: string) => list.find((g: any) => g.skill === skill).grants;
+    const cases: [string, (list: any[]) => void, RegExp][] = [
+      [
+        "a group on a permission",
+        (list) => (of(list, "blade-basics")[0].group = "cinder-die"),
+        /skill-grants\.yaml sg-blade-basics-1: .*group/,
+      ],
+      ["a group on an effect", (list) => (of(list, "night-eyes")[0].group = "cinder-die"), /night-eyes.*group/],
+      ["die-always without a group", (list) => delete of(list, "cinder-focus")[0].group, /cinder-focus.*group/],
+      [
+        "die-always for a group no die is in",
+        (list) => (of(list, "cinder-focus")[0].group = "cinder-dye"),
+        /cinder-focus.*cinder-dye/,
+      ],
+      ["a group that isn't an ID", (list) => (of(list, "cinder-mark-i")[0].group = "Cinder Die"), /cinder-mark-i/],
+    ];
+    for (const [what, change, pattern] of cases) {
+      expect(problemsFor(edited("skill-grants.yaml", change)).join("\n"), `problems with ${what}`).toMatch(pattern);
+    }
+  },
+);
+
+rule(
+  { req: ["RD-1", "GR-1", "RD-4"], m: "M4" },
+  "each problem with class bonus dice, groups or die-always names its file and the exact entry",
+  () => {
+    const skillGrants = (change: (list: any[]) => void) => problemsFor(edited("skill-grants.yaml", change)).join("\n");
+    const of = (list: any[], skill: string) => list.find((g: any) => g.skill === skill).grants;
+    expect(
+      skillGrants((list) => (of(list, "cinder-focus")[0].condition = "1/combat")),
+      "problems with die-always given a condition",
+    ).toMatch(/^skill-grants\.yaml sg-cinder-focus-1: .*condition/m);
+    expect(
+      skillGrants((list) => (of(list, "cinder-mark-i")[0].group = "Cinder Die")),
+      "problems with a group that isn't an ID",
+    ).toMatch(/^skill-grants\.yaml sg-cinder-mark-i-1: .*group/m);
+    expect(
+      skillGrants((list) => (of(list, "night-eyes")[0].group = "cinder-die")),
+      "problems with a group on an effect",
+    ).toMatch(/^skill-grants\.yaml sg-night-eyes-1: .*group/m);
+    const chart = edited("level-chart.yaml", (c) => (c.Rogue.levels[0].classBonusDice = "1d4 + 3"));
+    expect(problemsFor(chart).join("\n"), "problems with class bonus dice with a number added").toMatch(
+      /^level-chart\.yaml: Rogue\.levels\.0\.classBonusDice/m,
+    );
+  },
+);
+
+rule(
   { req: ["RD-6", "RD-4"], m: "M2" },
   "the app's own reference data in data/ is complete and has no problems",
   () => {

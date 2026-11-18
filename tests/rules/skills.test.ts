@@ -201,6 +201,186 @@ rule(
   },
 );
 
+// Moonlit Step is one card in two trees: a starting skill in Arcana (Mage), and
+// in Shadowcraft (Rogue) after Quick Fingers.
+
+function withSkill(sheet: CharacterSheet, skillId: string): CharacterSheet {
+  sheet.entries.push({
+    id: `x-${skillId}`,
+    characterId: sheet.character.id,
+    category: "skills",
+    skillId,
+    howGained: "level-up",
+    levelGained: sheet.character.level,
+    quantity: 1,
+  });
+  return sheet;
+}
+
+const moonlit = (picker: ReturnType<typeof skillPicker>) => ({
+  available: picker.available.filter((o) => o.skillId === "moonlit-step"),
+  others: picker.others.filter((o) => o.skillId === "moonlit-step"),
+});
+
+rule(
+  { req: ["SK-1a", "SK-1"], m: "M2" },
+  "a skill in several trees is listed once, and is available if any of its trees allows it",
+  () => {
+    const isolde = moonlit(skillPicker(fixtureSheet("isolde"), ref, { allTrees: true }));
+    expect(
+      [isolde.available.length, isolde.others.length],
+      "Moonlit Step in Isolde's lists (available, others)",
+    ).toEqual([1, 0]);
+    expect(isolde.available[0]!.tree, "the tree that lets Isolde take Moonlit Step").toBe("arcana");
+
+    const brin = moonlit(skillPicker(fixtureSheet("brin"), ref, { allTrees: true }));
+    expect([brin.available.length, brin.others.length], "Moonlit Step in Brin's lists, without Quick Fingers").toEqual([
+      0, 1,
+    ]);
+    const ready = moonlit(skillPicker(withSkill(fixtureSheet("brin"), "quick-fingers"), ref, { allTrees: true }));
+    expect([ready.available.length, ready.others.length], "Moonlit Step in Brin's lists, with Quick Fingers").toEqual([
+      1, 0,
+    ]);
+    expect(ready.available[0]!.tree, "the tree that lets Brin take Moonlit Step").toBe("shadowcraft");
+  },
+);
+
+rule({ req: ["SK-1"], m: "M2" }, "a skill in several trees is in a character's own list if any tree is his", () => {
+  const offered = (sheet: CharacterSheet) => {
+    const picker = moonlit(skillPicker(sheet, ref, { allTrees: false }));
+    return picker.available.length + picker.others.length;
+  };
+  expect(offered(fixtureSheet("isolde")), "Moonlit Step in Isolde's own trees (Arcana)").toBe(1);
+  expect(offered(fixtureSheet("brin")), "Moonlit Step in Brin's own trees (Shadowcraft)").toBe(1);
+  expect(offered(fixtureSheet("aldric")), "Moonlit Step in Aldric's own trees (neither)").toBe(0);
+});
+
+rule(
+  { req: ["SK-1a", "SK-3"], m: "M2" },
+  "a skill in two of a character's own trees is available when the second allows it",
+  () => {
+    // An edited list: Moonlit Step in Bladework (after Twin Fangs, which Aldric lacks) and Bulwark (no prerequisite).
+    const edited = testReferenceData();
+    edited.skills.find((s) => s.id === "moonlit-step")!.trees = [
+      { tree: "bladework", prerequisites: { skill: "twin-fangs" } },
+      { tree: "bulwark" },
+    ];
+    const picker = moonlit(skillPicker(fixtureSheet("aldric"), edited, { allTrees: false }));
+    expect(
+      picker.available.map((o) => o.tree),
+      "the tree that lets Aldric take Moonlit Step",
+    ).toEqual(["bulwark"]);
+    expect(picker.others, "Moonlit Step among Aldric's other skills").toEqual([]);
+    expect(skillWarnings(fixtureSheet("aldric"), edited, "moonlit-step"), "Aldric's warnings").toEqual([]);
+  },
+);
+
+rule(
+  { req: ["SK-1a", "SK-3"], m: "M2" },
+  "a skill in several trees already taken is no longer available, and warns once that it's taken",
+  () => {
+    const isolde = withSkill(fixtureSheet("isolde"), "moonlit-step");
+    const picker = moonlit(skillPicker(isolde, ref, { allTrees: true }));
+    expect([picker.available.length, picker.others.length], "Moonlit Step in Isolde's lists once she has it").toEqual([
+      0, 1,
+    ]);
+    expect(picker.others[0]!.taken, "how many times Isolde has Moonlit Step").toBe(1);
+    expect(
+      skillWarnings(isolde, ref, "moonlit-step").map((w) => w.reason),
+      "Isolde's warnings for a second Moonlit Step",
+    ).toEqual(["already-taken"]);
+  },
+);
+
+rule(
+  { req: ["SK-1a", "SK-3"], m: "M2" },
+  "the tree the picker names for an available skill is the one with no warnings, if one has none",
+  () => {
+    // An edited list: Moonlit Step starts Bladework but needs Twin Fangs there (Aldric lacks it),
+    // and needs nothing in Bulwark.
+    const edited = testReferenceData();
+    edited.skills.find((s) => s.id === "moonlit-step")!.trees = [
+      { tree: "bladework", starting: true, prerequisites: { skill: "twin-fangs" } },
+      { tree: "bulwark" },
+    ];
+    const picker = moonlit(skillPicker(fixtureSheet("aldric"), edited, { allTrees: false }));
+    expect(
+      picker.available.map((o) => o.tree),
+      "the tree the picker names for Moonlit Step",
+    ).toEqual(["bulwark"]);
+    expect(skillWarnings(fixtureSheet("aldric"), edited, "moonlit-step"), "Aldric's warnings").toEqual([]);
+  },
+);
+
+rule({ req: ["SK-1", "RD-3"], m: "M2" }, "a retired tree no longer makes a skill in several trees available", () => {
+  const retired = testReferenceData();
+  retired.trees.find((t) => t.id === "arcana")!.retired = true;
+  const isolde = moonlit(skillPicker(fixtureSheet("isolde"), retired, { allTrees: true }));
+  expect([isolde.available.length, isolde.others.length], "Moonlit Step in Isolde's lists with Arcana retired").toEqual(
+    [0, 1],
+  );
+  const own = moonlit(skillPicker(fixtureSheet("isolde"), retired, { allTrees: false }));
+  expect(own.available.length + own.others.length, "Moonlit Step in Isolde's own trees with Arcana retired").toBe(0);
+});
+
+rule({ req: ["SK-3"], m: "M2" }, "a skill in several trees gives the warnings of the tree with the fewest", () => {
+  expect(reasons(fixtureSheet("isolde"), "moonlit-step"), "Isolde's warnings (Arcana: none)").toEqual([]);
+  // Aldric: Arcana gives one warning (another class), Shadowcraft two (another class, Quick Fingers).
+  const aldric = skillWarnings(fixtureSheet("aldric"), ref, "moonlit-step");
+  expect(
+    aldric.map((w) => w.reason),
+    "Aldric's warnings for Moonlit Step",
+  ).toEqual(["other-class"]);
+  expect(aldric[0]!.message, "Aldric's warning").toContain("Arcana");
+});
+
+rule(
+  { req: ["SK-3"], m: "M2" },
+  "when a skill's trees tie on warnings, the tree open to the character's class is used",
+  () => {
+    // Brin: Arcana gives one warning (another class), Shadowcraft one (Quick Fingers missing).
+    const brin = skillWarnings(fixtureSheet("brin"), ref, "moonlit-step");
+    expect(
+      brin.map((w) => [w.reason, w.skillIds]),
+      "Brin's warnings for Moonlit Step",
+    ).toEqual([["missing-prerequisite", ["quick-fingers"]]]);
+    // The same tie with Shadowcraft listed first gives the same answer.
+    const swapped = testReferenceData();
+    const step = swapped.skills.find((s) => s.id === "moonlit-step")!;
+    step.trees = [...step.trees!].reverse();
+    expect(
+      skillWarnings(fixtureSheet("brin"), swapped, "moonlit-step").map((w) => w.reason),
+      "Brin's warnings with Shadowcraft listed first",
+    ).toEqual(["missing-prerequisite"]);
+  },
+);
+
+rule(
+  { req: ["SK-3"], m: "M2" },
+  "when trees tie and none is the character's class's, the skill list's order decides",
+  () => {
+    // Aldric (Warrior) with an edited list: Moonlit Step in Shadowcraft (needs Quick Fingers)
+    // and Arcana (needs Spark): each gives two warnings, another class and a prerequisite.
+    const edited = testReferenceData();
+    const step = edited.skills.find((s) => s.id === "moonlit-step")!;
+    step.trees = [
+      { tree: "shadowcraft", prerequisites: { skill: "quick-fingers" } },
+      { tree: "arcana", prerequisites: { skill: "spark" } },
+    ];
+    const first = skillWarnings(fixtureSheet("aldric"), edited, "moonlit-step");
+    expect(
+      first.flatMap((w) => w.skillIds),
+      "skills named in Aldric's warnings, Shadowcraft first",
+    ).toEqual(["quick-fingers", "moonlit-step"]);
+    step.trees.reverse();
+    const second = skillWarnings(fixtureSheet("aldric"), edited, "moonlit-step");
+    expect(
+      second.flatMap((w) => w.skillIds),
+      "skills named in Aldric's warnings, Arcana first",
+    ).toEqual(["spark", "moonlit-step"]);
+  },
+);
+
 rule(
   { req: ["SK-6"], m: "M4" },
   "the record check lists Aldric's levels where the chart gives a skill but none was recorded",

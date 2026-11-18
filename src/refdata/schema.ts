@@ -9,10 +9,16 @@ const name = z.string().trim().min(1);
 const count = z.number().int().min(0);
 const retired = z.boolean().optional();
 
+/** One die, e.g. 1d8, as a grant gives it (GR-1). */
+const oneDie = z.string().regex(/^\d+d\d+$/);
+/** One or more dice, e.g. 3d20, or 1d20 + 1d4 (RD-1). */
+const dice = z.string().regex(/^\d+d\d+( \+ \d+d\d+)*$/, "dice are written like 3d20, or 1d20 + 1d4 for several");
+
 const levelRow = z.strictObject({
   level: z.number().int().min(1),
   classBonus: z.number().int(),
-  dice: z.string().regex(/^\d+d\d+$/, "dice are written like 3d20"),
+  classBonusDice: dice.optional(),
+  dice,
   hearts: count,
   skillGained: z.boolean(),
   arcaneSlot: z.boolean(),
@@ -65,33 +71,62 @@ export const skillsFile = z.strictObject({
     }),
   ),
   skills: z.array(
-    z.strictObject({
-      id,
-      name,
-      tree: id,
-      usage: name,
-      tier: z.enum(["normal", "epic", "legendary"]),
-      text: z.string().optional(),
-      prerequisites: prerequisite.optional(),
-      maxTimes: z.number().int().min(1).optional(),
-      starting: z.boolean().optional(),
-      replacedBy: z.array(id).min(1).optional(),
-      maintainerNote,
-      retired,
-    }),
+    z
+      .strictObject({
+        id,
+        name,
+        // One tree (with starting and prerequisites), or `trees` for a card printed in several (RD-1).
+        tree: id.optional(),
+        trees: z
+          .array(z.strictObject({ tree: id, starting: z.boolean().optional(), prerequisites: prerequisite.optional() }))
+          .min(1)
+          .optional(),
+        usage: name,
+        tier: z.enum(["normal", "epic", "legendary"]),
+        text: z.string().optional(),
+        prerequisites: prerequisite.optional(),
+        maxTimes: z.number().int().min(1).optional(),
+        starting: z.boolean().optional(),
+        replacedBy: z.array(id).min(1).optional(),
+        maintainerNote,
+        retired,
+      })
+      .superRefine((skill, ctx) => {
+        if (skill.trees === undefined) {
+          if (skill.tree === undefined)
+            ctx.addIssue({ code: "custom", path: ["tree"], message: "a skill needs a tree" });
+          return;
+        }
+        for (const field of ["tree", "starting", "prerequisites"] as const) {
+          if (skill[field] !== undefined) {
+            ctx.addIssue({
+              code: "custom",
+              path: [field],
+              message: `a skill with trees gives ${field === "tree" ? "each tree" : `its ${field}`} in its trees instead`,
+            });
+          }
+        }
+      }),
   ),
 });
 
 const grantBase = { id, condition: z.string().optional() };
+/**
+ * GR-1: grants of the same kind in a group (for slots or an allowance, the same slot kind or rarity):
+ * only the largest is used. Not on permissions or effects.
+ */
+const grouped = { ...grantBase, group: id.optional() };
 
 const grant = z.discriminatedUnion("kind", [
-  z.strictObject({ ...grantBase, kind: z.literal("cm"), amount: z.number().int() }),
-  z.strictObject({ ...grantBase, kind: z.literal("mitigation"), amount: z.number().int() }),
-  z.strictObject({ ...grantBase, kind: z.literal("hearts"), amount: z.number().int() }),
-  z.strictObject({ ...grantBase, kind: z.literal("die"), die: z.string().regex(/^\d+d\d+$/) }),
-  z.strictObject({ ...grantBase, kind: z.literal("slots"), slotKind: id, amount: z.number().int() }),
-  z.strictObject({ ...grantBase, kind: z.literal("arcane-slots"), amount: z.number().int() }),
-  z.strictObject({ ...grantBase, kind: z.literal("allowance"), rarity: id, amount: z.number().int() }),
+  z.strictObject({ ...grouped, kind: z.literal("cm"), amount: z.number().int() }),
+  z.strictObject({ ...grouped, kind: z.literal("mitigation"), amount: z.number().int() }),
+  z.strictObject({ ...grouped, kind: z.literal("hearts"), amount: z.number().int() }),
+  z.strictObject({ ...grouped, kind: z.literal("die"), die: oneDie }),
+  z.strictObject({ ...grouped, kind: z.literal("slots"), slotKind: id, amount: z.number().int() }),
+  z.strictObject({ ...grouped, kind: z.literal("arcane-slots"), amount: z.number().int() }),
+  z.strictObject({ ...grouped, kind: z.literal("allowance"), rarity: id, amount: z.number().int() }),
+  // GR-1: the group's die always counts in the combat dice.
+  z.strictObject({ id, kind: z.literal("die-always"), group: id }),
   z.strictObject({
     ...grantBase,
     kind: z.literal("permission"),

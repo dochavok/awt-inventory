@@ -193,7 +193,9 @@ export interface CharacterSheet {
 export interface LevelRow {
   level: number;
   classBonus: number;
-  /** Dice notation, e.g. "3d20". */
+  /** Dice added to the class bonus, e.g. "1d4" for a Rogue's Stealth Bonus from level 10 (GR-7, RD-1). */
+  classBonusDice?: string;
+  /** Dice notation, e.g. "3d20", or "1d20 + 1d4" for several. */
   dice: string;
   hearts: number;
   skillGained: boolean;
@@ -247,10 +249,25 @@ export type SkillTier = "normal" | "epic" | "legendary";
 
 export const SKILL_TIER_NAMES: Record<SkillTier, string> = { normal: "Normal", epic: "Epic", legendary: "Legendary" };
 
+/** A skill's place in one of its trees (RD-1): whether it starts that tree, and what it needs there. */
+export interface SkillPlacement {
+  tree: Id;
+  /** A starting skill of its tree counts as available (SK-1a). */
+  starting?: boolean;
+  prerequisites?: Prerequisite;
+}
+
+/**
+ * A skill from the skill list. A skill in one tree has `tree`, with `starting`
+ * and `prerequisites` for that tree; one in several has `trees` instead, a
+ * placement for each (RD-1). `placements()` in skills.ts reads either.
+ */
 export interface Skill extends Retirable {
   id: Id;
   name: string;
-  tree: Id;
+  tree?: Id;
+  /** Every tree a skill printed in several is in, in the skill list's order. */
+  trees?: SkillPlacement[];
   usage: string;
   tier: SkillTier;
   /** Card text. Absent unless the game's owner agrees (SK-2, RD-8). */
@@ -264,9 +281,15 @@ export interface Skill extends Retirable {
   maintainerNote?: string;
 }
 
+/**
+ * A grant in the skill list (SK-7). It may belong to a group, in which only the
+ * largest grant is used; `die-always` makes a group's die always count (GR-1).
+ */
+export type SkillGrant = (Grant & { group?: Id }) | { id: Id; kind: "die-always"; group: Id };
+
 export interface SkillGrants {
   skill: Id;
-  grants: Grant[];
+  grants: SkillGrant[];
 }
 
 export interface ReferenceData {
@@ -334,6 +357,7 @@ export interface Total {
   situational: GrantLine[];
 }
 
+/** An extra die (GR-11). One whose source is the level chart is the class bonus's dice (GR-7). */
 export interface ExtraDie {
   die: string;
   source: SourceRef;
@@ -343,7 +367,8 @@ export interface ExtraDie {
 export type ClassBonusName = "Combat Bonus" | "Arcane Bonus" | "Stealth Bonus";
 
 export interface Totals {
-  classBonus: { name: ClassBonusName; value: number };
+  /** `dice` where the chart gives them: rolled with the combat dice, while `value` counts in CM (GR-7, GR-8). */
+  classBonus: { name: ClassBonusName; value: number; dice?: string };
   cm: Total;
   mitigation: Total;
   hearts: Total;

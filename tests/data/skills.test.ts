@@ -144,6 +144,48 @@ rule({ req: ["SK-5", "RD-3"], m: "M2" }, "a skill in a retired tree can't be new
   ).not.toContain("twin-fangs");
 });
 
+async function bramWithIsolde() {
+  const w = world();
+  const bram = w.as("bram");
+  await seedProfile(bram, "bram");
+  const isolde = await seedCharacter(bram, "isolde");
+  return { w, bram, id: isolde.character.id };
+}
+
+rule(
+  { req: ["SK-2", "SK-1a"], m: "M2" },
+  "a skill in several trees shows every tree, in the list's order",
+  async () => {
+    const { bram, id } = await bramWithIsolde();
+    const { entry, warnings } = await bram.addSkill(id, {
+      skillId: "moonlit-step",
+      howGained: "level-up",
+      levelGained: 13,
+    });
+    expect(warnings, "Isolde's warnings for Moonlit Step").toEqual([]);
+    const shown = (await bram.skills(id)).find((s) => s.entryId === entry.id);
+    expect(shown, "Isolde's Moonlit Step").toMatchObject({ name: "Moonlit Step", tree: "Arcana, Shadowcraft" });
+  },
+);
+
+rule(
+  { req: ["SK-5", "RD-3"], m: "M2" },
+  "a skill in several trees can be added while one of its trees isn't retired, and not once all are",
+  async () => {
+    const { w, bram, id } = await bramWithIsolde();
+    w.ref.trees.find((t) => t.id === "arcana")!.retired = true;
+    const { entry } = await bram.addSkill(id, { skillId: "moonlit-step", howGained: "other", levelGained: 13 });
+    expect(
+      (await bram.skills(id)).map((s) => s.entryId),
+      "Isolde's skills with Arcana retired",
+    ).toContain(entry.id);
+    w.ref.trees.find((t) => t.id === "shadowcraft")!.retired = true;
+    const attempt = bram.addSkill(id, { skillId: "moonlit-step", howGained: "other", levelGained: 13 });
+    await expect(attempt, "adding Moonlit Step with both its trees retired").rejects.toThrow(ValidationError);
+    await expect(attempt, "adding Moonlit Step with both its trees retired").rejects.toThrow(/Moonlit Step/);
+  },
+);
+
 rule(
   { req: ["SK-8", "RD-2"], m: "M2" },
   "characters keep skills by ID, so renaming a skill in the list renames it on the character",

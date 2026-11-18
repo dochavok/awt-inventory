@@ -8,7 +8,7 @@ import { AccessDeniedError, ConfirmationError, NotFoundError, RateLimitError, Va
 import { toStoredTime } from "../platform/time";
 import { checkEquip, computeTotals, fitsSlot, overLimitAlerts, slotState } from "../rules";
 import { addsSlots, entryName as nameOf, titleApplies } from "../rules/grants";
-import { skillPicker as pickSkills, skillWarnings } from "../rules/skills";
+import { placements, skillPicker as pickSkills, skillRetired, skillWarnings } from "../rules/skills";
 import type {
   CharacterSheet,
   Character,
@@ -22,6 +22,7 @@ import type {
   NewGrant,
   SheetChange,
   SkillEntry,
+  SkillGrant,
   SlotTarget,
   Title,
   TitleScope,
@@ -263,13 +264,16 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
   const lastChanges = new Map<Id, SheetChange>();
 
   /** An entry's grants: its own, or a skill's from the skill list (SK-7). */
-  function grantsOf(entry: Entry): Grant[] | undefined {
+  /** The grants the user gave an entry (GR-2); a skill has none of its own. */
+  const ownGrants = (entry: Entry): Grant[] | undefined => (entry.category === "skills" ? undefined : entry.grants);
+
+  function grantsOf(entry: Entry): SkillGrant[] | undefined {
     if (entry.category === "skills") return ref.skillGrants.find((s) => s.skill === entry.skillId)?.grants;
-    return entry.grants;
+    return ownGrants(entry);
   }
 
   /** Whether losing these grants can take slots away, the only way a change raises an alert (EQ-8). */
-  const losesSlots = (grants: Grant[] | undefined) => grants?.some(addsSlots) === true;
+  const losesSlots = (grants: SkillGrant[] | undefined) => grants?.some(addsSlots) === true;
 
   /** Whether an entry's grants count now (GR-3): a skill's always, others while equipped or active. */
   function countsNow(entry: StoredEntry): boolean {
@@ -358,12 +362,13 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
 
   function skillView(entry: SkillEntry): SkillView {
     const skill = ref.skills.find((s) => s.id === entry.skillId);
-    const tree = ref.trees.find((t) => t.id === skill?.tree);
+    // SK-2: every tree, for a skill in several, in the skill list's order.
+    const trees = (skill ? placements(skill) : []).map((p) => ref.trees.find((t) => t.id === p.tree)?.name ?? p.tree);
     const view: SkillView = {
       entryId: entry.id,
       skillId: entry.skillId,
       name: skill?.name ?? entry.skillId,
-      tree: tree?.name ?? skill?.tree ?? "",
+      tree: trees.join(", "),
       usage: skill?.usage ?? "",
       tier: skill?.tier ?? "normal",
       howGained: entry.howGained,
@@ -885,8 +890,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       const sheet = await sheetFor(characterId);
       const skill = ref.skills.find((s) => s.id === input.skillId);
       if (!skill) throw new NotFoundError("skill", input.skillId);
-      const tree = ref.trees.find((t) => t.id === skill.tree);
-      if (skill.retired || tree?.retired) {
+      if (skillRetired(skill, ref)) {
         throw new ValidationError("skillId", `${skill.name} has been retired and can't be added.`);
       }
       const entry: SkillEntry = {
@@ -924,7 +928,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       if ("entryId" in target) {
         const entry = await ownEntry(target.entryId);
         check.grantsAllowed(entry.category);
-        source = { kind: "entry", id: entry.id, grants: grantsOf(entry) };
+        source = { kind: "entry", id: entry.id, grants: ownGrants(entry) };
       } else if ("titleId" in target) {
         const title = await ownTitle(target.titleId);
         source = { kind: "title", id: title.id, grants: title.grants };
@@ -981,11 +985,11 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       // Only then the entries, which take the most reading. A skill's grants are the skill
       // list's (SK-7), so they can't be removed here.
       const entries = (await Promise.all(characters.map((c) => storedEntriesOf(c.id)))).flat();
-      const entry = entries.find((e) => e.category !== "skills" && find(grantsOf(e)));
+      const entry = entries.find((e) => find(ownGrants(e)));
       if (!entry) throw new NotFoundError("grant", grantId);
-      const losing = losesSlots([find(grantsOf(entry))!]) && countsNow(entry) ? [entry.characterId] : [];
+      const losing = losesSlots([find(ownGrants(entry))!]) && countsNow(entry) ? [entry.characterId] : [];
       return void (await writeLosing(
-        update("entry", entry.id, { grants: without(grantsOf(entry)) }),
+        update("entry", entry.id, { grants: without(ownGrants(entry)) }),
         "grant-removed",
         losing,
       ));

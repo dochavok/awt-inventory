@@ -121,7 +121,7 @@ rule(
 );
 
 rule(
-  { req: ["TI-5", "GR-3"], m: "M4" },
+  { req: ["TI-5", "GR-3"], q: ["Q12"], m: "M4" },
   "a player-level title's grant applies to all of Bram's characters, including new ones",
   async () => {
     const { bram, aldric } = await bramWithAldric();
@@ -140,7 +140,7 @@ rule(
 );
 
 rule(
-  { req: ["TI-5", "TI-2"], m: "M4" },
+  { req: ["TI-5", "TI-2"], q: ["Q12"], m: "M4" },
   "a title switched to character-level for Isolde stops counting for Aldric",
   async () => {
     const { bram, aldric } = await bramWithAldric();
@@ -199,6 +199,30 @@ rule(
     }
     const fine = await bram.addGrant(sword, { kind: "die", die: "1d8", condition: "vs undead" });
     expect([fine.kind, fine.condition], "a situational 1d8 die").toEqual(["die", "vs undead"]);
+  },
+);
+
+rule(
+  { req: ["GR-1", "GR-2"], m: "M4" },
+  "a player's grant can't be in a group or make a group's die always count: only the skill list's can",
+  async () => {
+    const { bram, aldric, id } = await bramWithAldric();
+    const cases: [string, object, RegExp][] = [
+      ["a grouped die", { kind: "die", die: "1d12", group: "cinder-die" }, /group/],
+      ["a grouped bonus", { kind: "cm", amount: 9, group: "cm-vs-undead" }, /group/],
+      ["die-always", { kind: "die-always", group: "cinder-die" }, /die-always/],
+    ];
+    for (const [what, grant, names] of cases) {
+      const onEntry = bram.addGrant({ entryId: id("aldric-sword") }, grant as never);
+      await expect(onEntry, `${what} on Duskfang`).rejects.toThrow(ValidationError);
+      await expect(onEntry, `the refusal of ${what} on Duskfang`).rejects.toMatchObject({ field: "grants" });
+      await expect(onEntry, `the refusal of ${what} on Duskfang`).rejects.toThrow(names);
+      const manual = bram.addManualGrant(aldric.character.id, "Made-up ruling", [grant as never]);
+      await expect(manual, `${what} as a manual grant`).rejects.toThrow(ValidationError);
+      await expect(manual, `the refusal of ${what} as a manual grant`).rejects.toThrow(names);
+    }
+    const cm = await bram.totals(aldric.character.id);
+    expect([cm.cm.value, cm.dice.extra.length], "Aldric's CM and extra dice after the refusals").toEqual([170, 1]);
   },
 );
 

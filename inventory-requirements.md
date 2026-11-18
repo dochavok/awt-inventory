@@ -182,9 +182,9 @@ Skills and spells aren't typed in. They're picked from the skill list in the ref
 
 **SK-1 · Must · M2: Adding a skill.** The user picks a skill from the skill list, searching by name. By default the list shows the trees open to the character's class; the user can switch to all trees. The user also records **How gained** (Starting, Level-up, Quest, Trained under the old system, or Other), **Level gained**, and optional notes.
 
-**SK-1a · Must · M2: Available skills first.** The picker first offers the skills the character can take **now**: those whose prerequisites are all on the character, in a tree the character's class and level allow, and not already taken as often as allowed. Starting skills of the character's own trees count as available. Every other skill is listed below them, under a separate heading, and choosing one gives the warnings in SK-3.
+**SK-1a · Must · M2: Available skills first.** The picker first offers the skills the character can take **now**: those whose prerequisites are all on the character, in a tree the character's class and level allow, and not already taken as often as allowed. Starting skills of the character's own trees count as available. Every other skill is listed below them, under a separate heading, and choosing one gives the warnings in SK-3. A skill in several trees is listed once. It's available if any of its trees allows it as above.
 
-**SK-2 · Must · M2: What's shown.** A character's skill shows its name, tree, usage (passive, 1/combat, 1/day, task…), tier (normal, Epic, Legendary) and card text, all from the skill list, plus the user's own fields. Card text is shown only if the game's owner agrees (Q10). Otherwise, the name, tree and tags are shown without the text.
+**SK-2 · Must · M2: What's shown.** A character's skill shows its name, tree (every tree, for a skill in several), usage (passive, 1/combat, 1/day, task…), tier (normal, Epic, Legendary) and card text, all from the skill list, plus the user's own fields. Card text is shown only if the game's owner agrees (Q10). Otherwise, the name, tree and tags are shown without the text.
 
 **SK-3 · Must · M2: Warnings, not blocks.** When the user adds a skill, the app warns, but still allows it, if:
 
@@ -192,6 +192,8 @@ Skills and spells aren't typed in. They're picked from the skill list in the ref
 - the skill is from another class's tree;
 - the character's level is below the tree's entry level (such as 51 for prestige trees);
 - the character already has it, and the skill can't be taken more than once. Skills that can be taken several times (such as Toughness, up to 5) are counted, and the warning appears only above their limit.
+
+A skill in several trees is checked against each of them, and the app gives the warnings of the tree that has the fewest. If several trees tie, a tree open to the character's class comes first, then the skill list's order.
 
 **SK-4 · Must · M2: Removing.** A skill can be hard-deleted, like any entry (IN-15). Skills can't be marked used or traded.
 
@@ -249,6 +251,8 @@ A character's totals are never typed in. They're worked out from the level chart
 - +n allowance for a rarity (e.g. +1 Legendary)
 - a permission (Weapon Use, Ranged Weapon Use, Armor Use, Dual Wielding)
 
+A grant in the skill list (SK-7) can belong to a **group**, such as the Holy Die or the bonus vs Evil. Within a group only the largest grant is used (for dice, the one with the highest roll): a larger die or bonus replaces a smaller one, as the level chart's dice do, and the smaller ones aren't listed. A group is one growing die or bonus, such as the Holy Die from Devotion I, II and III. A grant outside the group, such as another skill's own extra 1d6, is added as usual, alongside the group's largest. Only the skill list's grants are grouped. An item's, title's or manual grant always adds up, so two equipped Back items both add their CM. A group is set on each of a skill's grants, since one skill can grow two things (Devotion I's bonus vs Evil and its Holy Die). For slots and allowances, a group's grants replace each other only for the same slot kind or rarity. A grouped die is situational (GR-4) unless one of the character's skills makes that group's die always count (e.g. Divine Instrument for the Holy Die). It's then listed among the combat dice (GR-11), with its source.
+
 **GR-2 · Must · M4: Sources.** The user can add grants to any entry in Weapons, Armor, Items or Familiars/Allies, and to any title. Skills get their grants from the skill list (SK-7). A **manual grant**, with a reason (e.g. "DM ruling, Faire 2026"), can be added directly to a character. One source can have several grants.
 
 **GR-3 · Must · M4: When grants count.**
@@ -258,7 +262,7 @@ A character's totals are never typed in. They're worked out from the level chart
 - A title's grants count for every character if it's player-level, or for its one character if it's character-level (TI-5).
 - Consumables and components never give grants.
 
-**GR-4 · Must · M4: Situational grants.** Any grant can have a condition in free text ("vs Evil", "ranged weapons only", "1/combat"). It's then **situational**: listed with its source and condition, but never added to a total.
+**GR-4 · Must · M4: Situational grants.** Any grant can have a condition in free text ("vs Evil", "ranged weapons only", "1/combat"). It's then **situational**: listed with its source and condition, but never added to a total. The one exception is a grouped die that a skill makes always count (GR-1).
 
 **GR-5 · Must · M4: Always worked out.** Totals, slot counts and allowances are recalculated from the grants on every change. Nothing that comes from a grant is stored as a number to keep up to date by hand. So trading, unequipping or deleting a source removes its grants immediately.
 
@@ -266,16 +270,16 @@ A character's totals are never typed in. They're worked out from the level chart
 
 ### 8.2 Totals
 
-**GR-7 · Must · M4: Class bonus.** The character's class bonus comes from the level chart for its class and level, under the class's own name: Combat Bonus (Warrior), Arcane Bonus (Mage), Stealth Bonus (Rogue). It's shown on its own line.
+**GR-7 · Must · M4: Class bonus.** The character's class bonus comes from the level chart for its class and level, under the class's own name: Combat Bonus (Warrior), Arcane Bonus (Mage), Stealth Bonus (Rogue). It's shown on its own line. From level 10, a Rogue's Stealth Bonus is dice plus a number, and it's always shown that way, never as one number: e.g. *Stealth Bonus 1d4 + 3*.
 
-**GR-8 · Must · M4: CM.** Total CM is the class bonus plus every CM grant that counts and isn't situational. It's shown with one line per source, in this order: class bonus, Armor, Weapons, Skills, Ally, Items, Titles, Other (manual). Lines that are zero are hidden.
+**GR-8 · Must · M4: CM.** Total CM is the class bonus plus every CM grant that counts and isn't situational. It's shown with one line per source, in this order: class bonus, Armor, Weapons, Skills, Ally, Items, Titles, Other (manual). Lines that are zero are hidden. The class bonus's number counts in the total; its dice, if it has any, are rolled with the combat dice (GR-11). Until Q12 is answered, every class's bonus counts in CM.
 *Example:* Combat Bonus 63, Armor 71, Weapons 15, Skills 11, Ally 10 → **Total CM 170**.
 
 **GR-9 · Must · M4: Mitigation.** Total mitigation is the sum of every mitigation grant that counts and isn't situational, with no maximum, shown with the same breakdown by source.
 
 **GR-10 · Should · M4: Hearts.** Max hearts are the level chart's hearts for the class and level, plus heart grants, shown with the same breakdown.
 
-**GR-11 · Must · M4: Combat dice.** The level chart's combat dice for the level, then each extra die listed with its source, e.g. *3d20 + 1d8 · + 1d6 (Shadow, familiar)*. Dice aren't merged into one expression.
+**GR-11 · Must · M4: Combat dice.** The level chart's combat dice for the level, as the chart gives them (e.g. *1d20 + 1d4*), then each extra die listed with its source, e.g. *3d20 + 1d8 + 1d6 (Shadow, familiar)*. A Rogue's Stealth Bonus dice are listed the same way, e.g. *1d20 + 1d4 + 1d4 (Stealth Bonus)*. Dice aren't merged into one expression: each extra die keeps its own source in brackets.
 
 **GR-12 · Must · M4: Where it comes from.** For each total, the user can open a list of every grant in it: the source, its category and the amount. Situational grants are listed separately under each total they would affect.
 
@@ -412,14 +416,14 @@ The game's fixed lists are data files in the repository, not part of the code or
 **RD-1 · Must · M2: The files.**
 
 - **Level chart:**
-  - for each class and level: the class bonus, combat dice, max hearts, whether a skill or spell is gained, and whether an arcane slot is gained;
+  - for each class and level: the class bonus (a number, plus dice where the chart gives them, as for a Rogue's Stealth Bonus from level 10), combat dice (one or more dice, e.g. 3d20, or 1d20 + 1d4 from level 11), max hearts, whether a skill or spell is gained, and whether an arcane slot is gained;
   - for each class: its starting number of arcane slots;
   - *source:* the AWT level chart (PDF).
 - **Paper-doll slot kinds,** including Main hand and Off hand.
 - **Rarities:** each with an optional equipped limit and an optional minimum level (EQ-10, EQ-11).
 - **Item families (suggestions only):** common families with other names players use (e.g. *Will Passion* for Passion, *hotdog* for Glizzy) and a short description. They're offered as suggestions; players can type any family.
 - **Component tiers and acquisition sources (suggestions only):** common values offered as suggestions (IN-7, IN-11). Players can type their own.
-- **Skill list:** each skill with its name, tree and kind of tree, the classes the tree is open to, the tree's entry requirement, usage, tier, card text, prerequisites ("A and B", "A or B"), how many times it can be taken, and *retired* or *replaced by* where they apply.
+- **Skill list:** each tree with its kind, the classes it's open to and its entry requirement; and each skill with its name, usage, tier, card text, how many times it can be taken, and *retired* or *replaced by* where they apply. A skill is in one tree, or in several when the same card is printed in several trees. In each of its trees it has its own prerequisites ("A and B", "A or B"), and it may be one of that tree's starting skills.
 - **Skill grants:** each skill's unconditional grants and permissions (SK-7), by skill ID.
 
 **RD-2 · Must · M2: Permanent IDs.** Every entry in every file has a permanent ID separate from its display name. Users' records store IDs, so renaming never breaks them.
@@ -591,6 +595,7 @@ Each milestone from M2 on is done when all of its tests from M1 pass, with no te
 - Q7: Divine and Mythic limits
 - Q9: weapon groups
 - Q11: familiars, allies and minions
+- Q12: which class bonuses are added to rolls
 
 **Waiting on the game's owner:** Q10, whether the app may show the skill and spell card text and use the level chart, and whether both may be published in the public repository (RD-8). The real reference data can't be committed until then.
 
