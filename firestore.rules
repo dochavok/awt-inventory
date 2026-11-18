@@ -76,7 +76,7 @@ service cloud.firestore {
     function freshCharacter() {
       let changed = changedKeys();
       return fresh(changed, 'name') && fresh(changed, 'className') && fresh(changed, 'level')
-        && fresh(changed, 'notes') && fresh(changed, 'retired');
+        && fresh(changed, 'notes') && fresh(changed, 'retired') && fresh(changed, 'manualGrants');
     }
 
     function freshTitle() {
@@ -92,7 +92,8 @@ service cloud.firestore {
         && fresh(changed, 'range') && fresh(changed, 'weaponGroup') && fresh(changed, 'extraDamage')
         && fresh(changed, 'slotKind') && fresh(changed, 'arcane') && fresh(changed, 'allyType')
         && fresh(changed, 'hearts') && fresh(changed, 'active') && fresh(changed, 'tier')
-        && fresh(changed, 'howGained') && fresh(changed, 'levelGained') && fresh(changed, 'grants');
+        && fresh(changed, 'howGained') && fresh(changed, 'levelGained') && fresh(changed, 'grants')
+        && fresh(changed, 'slot');
     }
 
     // PV-2: a profile holds only the display name and the sign-in email.
@@ -112,18 +113,24 @@ service cloud.firestore {
         && shortList(data, 'grants');
     }
 
+    // GR-2: manual grants live on their character, at most 50 (LIMITS.manualGrants).
     function validCharacter() {
       let data = request.resource.data;
-      return data.keys().hasOnly(['name', 'className', 'level', 'notes', 'retired', 'edited']) && edits(data)
+      return data.keys().hasOnly(['name', 'className', 'level', 'notes', 'retired', 'manualGrants', 'edited'])
+        && edits(data)
         && text(data, 'name', 100) && text(data, 'className', 20) && wholeNumber(data, 'level')
-        && text(data, 'notes', 10000) && (!('retired' in data) || data.retired is bool);
+        && text(data, 'notes', 10000) && (!('retired' in data) || data.retired is bool)
+        && shortList(data, 'manualGrants');
     }
 
+    // EQ-4: `slot` is where the entry is equipped, one place at most. Grants: at most 50
+    // (LIMITS.grantsPerSource), the same for titles.
     function validEntry() {
       let data = request.resource.data;
       return data.keys().hasOnly(['category', 'name', 'quantity', 'description', 'notes', 'itemFamily', 'grants',
           'rarity', 'hands', 'range', 'weaponGroup', 'extraDamage', 'slotKind', 'arcane', 'allyType', 'hearts',
-          'active', 'tier', 'skillId', 'howGained', 'levelGained', 'edited']) && edits(data)
+          'active', 'tier', 'skillId', 'howGained', 'levelGained', 'slot', 'edited']) && edits(data)
+        && text(data, 'slot', 100)
         && text(data, 'category', 20) && text(data, 'name', 100) && wholeNumber(data, 'quantity')
         && text(data, 'description', 10000) && text(data, 'notes', 10000) && text(data, 'itemFamily', 100)
         && text(data, 'rarity', 100) && text(data, 'range', 20) && text(data, 'weaponGroup', 100)

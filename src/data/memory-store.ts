@@ -42,7 +42,7 @@ export class MemoryDatabase {
 
 const copy = <T>(value: T): T => structuredClone(value);
 
-const PREFIX = { character: "c", entry: "e", history: "h", title: "t", report: "r" } as const;
+const PREFIX = { character: "c", entry: "e", history: "h", title: "t", report: "r", grant: "g" } as const;
 
 function memoryBackend(db: MemoryDatabase, context: Pick<StoreContext, "currentUid">): Backend {
   const uid = () => requireUid(context);

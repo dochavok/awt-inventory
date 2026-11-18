@@ -249,6 +249,33 @@ rule(
   },
 );
 
+rule(
+  { req: ["GR-2", "GR-5", "EQ-2", "EQ-4", "TI-5"], m: "M4" },
+  "through Firestore, grants and equipping change Aldric's totals, and a new phone sees the same",
+  async () => {
+    const bram = await signedUp("bram");
+    const aldric = await seedCharacter(bram.store, "aldric", { full: true });
+    const id = aldric.character.id;
+    expect((await bram.store.totals(id)).cm.value, "Aldric's CM with the fixture's grants and equipment").toBe(170);
+    await bram.store.addManualGrant(id, "DM ruling, Faire 2026", [{ kind: "cm", amount: 5 }]);
+    await bram.store.addTitle({ name: "Wanderer", grants: [{ kind: "slots", slotKind: "back", amount: 1 }] });
+    const cloak = aldric.entries.get("aldric-cloak")!.id;
+    expect((await bram.store.equip(cloak, "back")).outcome, "equipping the Spare Cloak").toBe("allowed");
+    await bram.store.unequip(aldric.entries.get("aldric-sword")!.id);
+    // 170 + 5 (manual) + 5 (Spare Cloak) - 15 (Duskfang)
+    expect((await bram.store.totals(id)).cm.value, "Aldric's CM after the changes").toBe(165);
+    await synced(bram);
+    const other = phone("bram");
+    const sheet = await other.store.sheet(id);
+    expect(
+      sheet.equipped.map((q) => q.slot).sort(),
+      "where Aldric's entries are equipped, read on a new phone",
+    ).toEqual(["arcane", "back", "boot", "chest", "glove-arm", "head"]);
+    expect((await other.store.totals(id)).cm.value, "Aldric's CM on a new phone").toBe(165);
+    expect(JSON.stringify(await other.store.exportJson()), "the export, without edit times").not.toContain("edited");
+  },
+);
+
 /** The IDs of the documents in one of Bram's collections, read from the server by a new phone of his. */
 async function storedIds(path: string): Promise<string[]> {
   return (await device("bram").collection(path).get()).docs.map((d) => d.id).sort();

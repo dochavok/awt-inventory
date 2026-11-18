@@ -417,6 +417,29 @@ rule(
   },
 );
 
+rule({ req: ["EX-4", "EQ-4"], m: "M4" }, "the JSON export lists where each equipped entry is", async () => {
+  const { bram } = await bramWithTwo({ full: true });
+  const out = (await bram.exportJson()).characters.find((c) => c.character.name === "Aldric")!;
+  const names = new Map(out.entries.map((e) => [e.id, e.category === "skills" ? e.skillId : e.name]));
+  expect(
+    out.equipped.map((q) => [names.get(q.entryId), q.slot]).sort(),
+    "Aldric's equipped entries in the export",
+  ).toEqual(
+    [
+      ["Amber Charm", "arcane"],
+      ["Duskfang", "main-hand"],
+      ["Ember Gauntlets", "glove-arm"],
+      ["Hawkeye Helm", "head"],
+      ["Ironclad Plate", "chest"],
+      ["Stridewalk Boots", "boot"],
+    ].sort(),
+  );
+  expect(
+    out.entries.some((e) => "slot" in e),
+    "an entry in the export carrying its slot itself",
+  ).toBe(false);
+});
+
 rule(
   { req: ["EX-4"], m: "M3" },
   "the JSON export's field names are fixed for every kind of record, so a rename can't slip through",

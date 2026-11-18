@@ -4,28 +4,29 @@
 //
 // Methods for later milestones throw NotImplementedError naming the milestone.
 
-import {
-  AccessDeniedError,
-  ConfirmationError,
-  NotFoundError,
-  NotImplementedError,
-  RateLimitError,
-  ValidationError,
-} from "../errors";
+import { AccessDeniedError, ConfirmationError, NotFoundError, RateLimitError, ValidationError } from "../errors";
 import { toStoredTime } from "../platform/time";
+import { checkEquip, computeTotals, fitsSlot, overLimitAlerts, slotState } from "../rules";
+import { addsSlots, entryName as nameOf, titleApplies } from "../rules/grants";
 import { skillPicker as pickSkills, skillWarnings } from "../rules/skills";
 import type {
   CharacterSheet,
   Character,
   ClassName,
   Entry,
+  Grant,
   Id,
   ItemEntry,
+  LossReason,
+  ManualGrant,
+  NewGrant,
+  SheetChange,
   SkillEntry,
+  SlotTarget,
   Title,
   TitleScope,
 } from "../rules/types";
-import type { Backend, Change, NotMine, StoredRecord } from "./backend";
+import type { Backend, Change, NotMine, StoredCharacter, StoredEntry, StoredRecord } from "./backend";
 import { matchesFilter, searchEntries } from "./search";
 import { buildSheet, byName, renderPdf } from "./sheet";
 import { later as laterIn, requireUid, type InventoryStore, type StoreContext } from "./store";
@@ -49,8 +50,32 @@ export const UNDO_SECONDS = 10;
 /** EX-4: the JSON export's format version. */
 const EXPORT_FORMAT_VERSION = 1;
 
-function notYet(what: string, milestone: string): never {
-  throw NotImplementedError.stub(what, milestone);
+/** An entry or character as the app sees it: without what only the store keeps (backend.ts). */
+function plainEntry(stored: StoredEntry): Entry {
+  const { slot: _slot, ...entry } = stored;
+  return entry as Entry;
+}
+
+function plainCharacter(stored: StoredCharacter): Character {
+  const { manualGrants: _manual, ...character } = stored;
+  return character;
+}
+
+/** The fields that decide where an entry can be equipped (EQ-2, EQ-3, EQ-7). */
+const PLACEMENT = ["slotKind", "arcane", "hands"];
+
+/** Whether an edit's grants are the entry's own, whatever the order of their fields (an absent list is empty). */
+function sameGrants(given: unknown, kept: Grant[] | undefined): boolean {
+  if (!Array.isArray(given) || !given.every((g) => typeof g === "object" && g !== null)) return false;
+  const canonical = (list: object[]) =>
+    JSON.stringify(
+      list.map((g) =>
+        Object.entries(g)
+          .filter(([, v]) => v !== undefined)
+          .sort(([a], [b]) => a.localeCompare(b)),
+      ),
+    );
+  return canonical(given as object[]) === canonical(kept ?? []);
 }
 
 /** Newest first; records made together keep the order they were made in (HI-1). */
@@ -96,16 +121,26 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     return profile;
   }
 
-  async function ownCharacter(characterId: Id): Promise<Character> {
+  /** The character as stored, with its manual grants. */
+  async function storedCharacter(characterId: Id): Promise<StoredCharacter> {
     uid();
     return mine(await backend.character(characterId), "character", characterId, "That character isn't yours.");
   }
 
-  async function ownEntry(entryId: Id): Promise<Entry> {
+  async function ownCharacter(characterId: Id): Promise<Character> {
+    return plainCharacter(await storedCharacter(characterId));
+  }
+
+  /** The entry as stored, with where it's equipped; one used up or traded away isn't found. */
+  async function storedEntry(entryId: Id): Promise<StoredEntry> {
     uid();
     const entry = mine(await backend.entry(entryId), "entry", entryId, "That character isn't yours.");
     if (entry.quantity <= 0) throw new NotFoundError("entry", entryId);
     return entry;
+  }
+
+  async function ownEntry(entryId: Id): Promise<Entry> {
+    return plainEntry(await storedEntry(entryId));
   }
 
   async function ownTitle(titleId: Id): Promise<Title> {
@@ -113,9 +148,13 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     return mine(await backend.title(titleId), "title", titleId, "That title isn't yours.");
   }
 
-  async function myCharacters(): Promise<Character[]> {
+  async function storedCharacters(): Promise<StoredCharacter[]> {
     uid();
     return backend.characters();
+  }
+
+  async function myCharacters(): Promise<Character[]> {
+    return (await storedCharacters()).map(plainCharacter);
   }
 
   async function myTitles(): Promise<Title[]> {
@@ -123,20 +162,18 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     return backend.titles();
   }
 
+  /** A character's entries still in the inventory (quantity above 0), as stored. */
+  const storedEntriesOf = async (characterId: Id): Promise<StoredEntry[]> =>
+    (await backend.entries(characterId)).filter((e) => e.quantity > 0);
+
   /** A character's entries still in the inventory (quantity above 0). */
-  const entriesOf = async (characterId: Id) => (await backend.entries(characterId)).filter((e) => e.quantity > 0);
+  const entriesOf = async (characterId: Id) => (await storedEntriesOf(characterId)).map(plainEntry);
 
   const write = (changes: Change[]) => backend.write(changes);
 
   // ---------------------------------------------------------------- names and history
 
-  function skillName(skillId: Id): string {
-    return ref.skills.find((s) => s.id === skillId)?.name ?? skillId;
-  }
-
-  function entryName(entry: Entry): string {
-    return entry.category === "skills" ? skillName(entry.skillId) : entry.name;
-  }
+  const entryName = (entry: Entry) => nameOf(entry, ref);
 
   function snapshot(entry: ItemEntry, quantity: number): EntrySnapshot {
     const s: EntrySnapshot = { name: entry.name, category: entry.category, quantity };
@@ -202,8 +239,98 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     }
   }
 
-  function noGrants(grants: unknown): void {
-    if (Array.isArray(grants) && grants.length > 0) notYet(`${label} grants (GR-2)`, "M4");
+  // ---------------------------------------------------------------- grants (GR-1, GR-2)
+
+  /** Grants for a new source, checked and given their IDs. */
+  function newGrants(input: unknown): Grant[] {
+    return check.grantList(input, ref).map((g) => ({ ...g, id: backend.newId("grant") }) as Grant);
+  }
+
+  /** One more grant on a source that has `existing`, checked (GR-1) and within the limit (NF-6). */
+  function oneMore(existing: Grant[] | undefined, input: NewGrant): Grant[] {
+    const list = existing ?? [];
+    check.atMost(list.length + 1, check.LIMITS.grantsPerSource, "grants", "One source", "grants");
+    return [...list, { ...check.grant(input, ref), id: backend.newId("grant") } as Grant];
+  }
+
+  // ---------------------------------------------------------------- the last change (EQ-8)
+
+  /**
+   * The last change that may have lost a slot, per character, so an alert can name
+   * it. Kept on this phone for this session only: after the app is reopened, an alert
+   * shows without its cause (EQ-8 "where known").
+   */
+  const lastChanges = new Map<Id, SheetChange>();
+
+  /** An entry's grants: its own, or a skill's from the skill list (SK-7). */
+  function grantsOf(entry: Entry): Grant[] | undefined {
+    if (entry.category === "skills") return ref.skillGrants.find((s) => s.skill === entry.skillId)?.grants;
+    return entry.grants;
+  }
+
+  /** Whether losing these grants can take slots away, the only way a change raises an alert (EQ-8). */
+  const losesSlots = (grants: Grant[] | undefined) => grants?.some(addsSlots) === true;
+
+  /** Whether an entry's grants count now (GR-3): a skill's always, others while equipped or active. */
+  function countsNow(entry: StoredEntry): boolean {
+    if (entry.category === "skills") return true;
+    if (entry.category === "allies") return entry.active;
+    return equippedAt(entry) !== undefined;
+  }
+
+  /**
+   * Where an entry is equipped: its stored slot, if the entry fits there. Two phones'
+   * changes merged (NF-3) can leave one stored in a slot it no longer fits (EQ-4), and it
+   * then counts as unequipped until it's equipped again.
+   */
+  function equippedAt(entry: StoredEntry): SlotTarget | undefined {
+    return entry.slot !== undefined && fitsSlot(entry, entry.slot) ? entry.slot : undefined;
+  }
+
+  /** The character an entry's change can take slots from: its own, if the entry's slot grants count now. */
+  const losingFrom = (entry: StoredEntry): Id[] =>
+    countsNow(entry) && losesSlots(grantsOf(entry)) ? [entry.characterId] : [];
+
+  /**
+   * Writes `changes`. For each of `characterIds` (the characters the change can take
+   * slots from), keeps the sheet as it was and why it changed, so an alert can name the
+   * slot lost (EQ-8). Kept before the write, so a screen that reads the alerts as the
+   * change lands sees its cause, and put back as it was if the write fails. Returns the
+   * causes it kept, so whoever undoes the change can forget just those.
+   */
+  async function writeLosing(changes: Change[], reason: LossReason, characterIds: Id[]): Promise<SheetChange[]> {
+    const titles = characterIds.length > 0 ? await myTitles() : [];
+    const sheets = await Promise.all(characterIds.map((id) => sheetFor(id, titles)));
+    const kept = sheets.map((before) => ({
+      id: before.character.id,
+      earlier: lastChanges.get(before.character.id),
+      mine: { before, reason },
+    }));
+    for (const k of kept) lastChanges.set(k.id, k.mine);
+    try {
+      await write(changes);
+    } catch (error) {
+      // Only where it's still this change's cause: another change since keeps its own.
+      for (const k of kept) {
+        if (lastChanges.get(k.id) !== k.mine) continue;
+        if (k.earlier) lastChanges.set(k.id, k.earlier);
+        else lastChanges.delete(k.id);
+      }
+      throw error;
+    }
+    return kept.map((k) => k.mine);
+  }
+
+  /** Forgets `change` as its character's cause, if it still is (a later change keeps its own). */
+  function forget(change: SheetChange): void {
+    const id = change.before.character.id;
+    if (lastChanges.get(id) === change) lastChanges.delete(id);
+  }
+
+  /** The characters a title's grants count for (TI-5). */
+  async function charactersUnder(scope: TitleScope): Promise<Id[]> {
+    // A character-level title can outlive its character (CH-6 keeps it if the delete fails part-way).
+    return (await myCharacters()).map((c) => c.id).filter((id) => titleApplies(scope, id));
   }
 
   /** The class a correction changes to (CH-2a): a class, and not the one the character has. */
@@ -248,16 +375,35 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     return view;
   }
 
-  async function sheetOf(character: Character): Promise<CharacterSheet> {
-    const [entries, titles] = await Promise.all([entriesOf(character.id), myTitles()]);
-    return { character, entries, equipped: [], titles: applying(titles, character.id), manualGrants: [] };
+  /** The character as the rules core sees it: entries, where they're equipped, titles and manual grants. */
+  function sheetOf(stored: StoredCharacter, entries: StoredEntry[], titles: Title[]): CharacterSheet {
+    return {
+      character: plainCharacter(stored),
+      entries: entries.map(plainEntry),
+      equipped: entries.flatMap((e) => {
+        const slot = equippedAt(e);
+        return slot === undefined ? [] : [{ entryId: e.id, slot }];
+      }),
+      titles: applying(titles, stored.id),
+      manualGrants: stored.manualGrants ?? [],
+    };
+  }
+
+  /** sheetOf, read: `titles` are the user's titles where the caller has them already. */
+  async function sheetFor(characterId: Id, titles?: Title[]): Promise<CharacterSheet> {
+    const [stored, entries, all] = await Promise.all([
+      storedCharacter(characterId),
+      storedEntriesOf(characterId),
+      titles ?? myTitles(),
+    ]);
+    return sheetOf(stored, entries, all);
   }
 
   // ---------------------------------------------------------------- titles (TI)
 
   /** The titles that apply to a character: player-level ones and its own, by name. */
   function applying(titles: Title[], characterId: Id): Title[] {
-    return titles.filter((t) => t.scope.level === "player" || t.scope.characterId === characterId).sort(byName);
+    return titles.filter((t) => titleApplies(t.scope, characterId)).sort(byName);
   }
 
   async function checkScope(scope: TitleScope | undefined): Promise<TitleScope> {
@@ -367,7 +513,8 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
           }).change,
         );
       }
-      await write(changes);
+      // EQ-8: a lower level can mean fewer arcane slots.
+      await writeLosing(changes, "level-lowered", next.level < character.level ? [characterId] : []);
       return next;
     },
 
@@ -394,7 +541,9 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
         change: { from: character.className, to: className },
         summary: `Class corrected: ${character.className} → ${className}`,
       });
-      await write([corrected.change, ...update("character", characterId, { className })]);
+      await writeLosing([corrected.change, ...update("character", characterId, { className })], "class-corrected", [
+        characterId,
+      ]);
       return { ...character, className };
     },
 
@@ -426,12 +575,13 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     // ---------------------------------------------------------------- titles (TI)
     async addTitle(input) {
       uid();
-      noGrants(input.grants);
       const title: Title = {
         id: backend.newId("title"),
         name: check.requiredText("name", input.name, check.LIMITS.name),
         scope: await checkScope(input.scope),
       };
+      const grants = newGrants(input.grants);
+      if (grants.length > 0) title.grants = grants;
       const description = check.optionalText("description", input.description, check.LIMITS.description);
       if (description !== undefined) title.description = description;
       const earned = check.calendarDate("earned", input.earned);
@@ -461,13 +611,18 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     async setTitleScope(titleId, scope) {
       const title = await ownTitle(titleId);
       const checked = await checkScope(scope);
-      await write(update("title", titleId, { scope: checked }));
+      // EQ-8: the characters it no longer applies to lose its slots.
+      const losing = losesSlots(title.grants)
+        ? (await charactersUnder(title.scope)).filter((id) => !titleApplies(checked, id))
+        : [];
+      await writeLosing(update("title", titleId, { scope: checked }), "title-moved", losing);
       return { ...title, scope: checked };
     },
 
     async removeTitle(titleId) {
-      await ownTitle(titleId);
-      await write([{ op: "delete", kind: "title", id: titleId }]);
+      const title = await ownTitle(titleId);
+      const losing = losesSlots(title.grants) ? await charactersUnder(title.scope) : [];
+      await writeLosing([{ op: "delete", kind: "title", id: titleId }], "title-removed", losing);
     },
 
     async listTitles() {
@@ -491,24 +646,31 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     // ---------------------------------------------------------------- entries (IN)
     async addEntry(characterId, input, options = {}) {
       await ownCharacter(characterId);
-      noGrants((input as { grants?: unknown }).grants);
       const fields = check.itemEntry(input as unknown as Record<string, unknown>, ref);
+      const given = (input as { grants?: unknown }).grants;
+      if (Array.isArray(given) && given.length > 0) check.grantsAllowed(fields.category);
+      const grants = newGrants(given);
       checkCount(await entriesOf(characterId));
       const gain = gainOptions(options);
       const entry = { ...fields, id: backend.newId("entry", characterId), characterId } as ItemEntry;
+      if (grants.length > 0) entry.grants = grants;
       await write([{ op: "set-entry", value: entry }, acquired(entry, entry.quantity, gain).change]);
       return entry;
     },
 
     async updateEntry(entryId, patch, options = {}) {
-      const entry = await ownEntry(entryId);
+      const stored = await storedEntry(entryId);
+      const entry = plainEntry(stored);
       if (entry.category === "skills") {
         throw new ValidationError("category", `${entryName(entry)} is a skill; only its notes can change.`);
       }
       if (patch.category !== undefined && patch.category !== entry.category) {
         throw new ValidationError("category", "An entry's category can't change.");
       }
-      noGrants(patch.grants);
+      // Grants are added and removed one at a time (addGrant, removeGrant); an edit keeps them.
+      if (patch.grants !== undefined && !sameGrants(patch.grants, entry.grants)) {
+        throw new ValidationError("grants", "Add or remove grants one at a time, not by editing the entry.");
+      }
       const { id: _id, characterId: _c, ...current } = entry;
       // A field left undefined is unchanged; empty text, or null for a number, clears an optional one.
       const merged: Record<string, unknown> = { ...current };
@@ -516,13 +678,25 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       merged.category = entry.category;
       const fields = check.itemEntry(merged, ref, entry as unknown as Record<string, unknown>);
       const next = { ...fields, id: entry.id, characterId: entry.characterId } as ItemEntry;
+      if (entry.grants !== undefined) next.grants = entry.grants;
       const gained = next.quantity - entry.quantity;
-      const changes = update("entry", entryId, changedFields(entry, next, ["id", "characterId", "quantity"]));
+      const edited = changedFields(entry, next, ["id", "characterId", "quantity"]);
+      const changes: Change[] = [];
       // Quantities are added to, not set, so changes made on two phones add up (NF-3).
       if (gained !== 0) changes.push({ op: "add-quantity", entryId, by: gained });
       // Where it came from is checked, and kept, only with a gain (IN-11).
       if (gained > 0) changes.push(acquired(next, gained, gainOptions(options)).change);
-      await write(changes);
+      // An ally made inactive by an edit stops granting, as with setActive (GR-3, EQ-8).
+      const deactivated = entry.category === "allies" && entry.active && next.category === "allies" && !next.active;
+      // EQ-4: an edit to what an equipped entry fits unequips it.
+      // The stored slot, not equippedAt: a slot left that no longer fits is cleared too (its
+      // grants already didn't count, so losingFrom keeps no cause for it).
+      const refitted = stored.slot !== undefined && PLACEMENT.some((f) => f in edited);
+      await writeLosing(
+        [...update("entry", entryId, refitted ? { ...edited, slot: undefined } : edited), ...changes],
+        "unequipped",
+        deactivated || refitted ? losingFrom(stored) : [],
+      );
       return next;
     },
 
@@ -530,10 +704,14 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
 
     async listEntries(characterId, category, filter = {}) {
       await ownCharacter(characterId);
-      if (filter.equipped !== undefined) notYet(`${label}.listEntries equipped filter (SE-3)`, "M4");
-      const items: EntryListItem[] = (await entriesOf(characterId))
+      // IN-9: equipped, or active for an ally; SE-3 can filter on it.
+      const items: EntryListItem[] = (await storedEntriesOf(characterId))
         .filter((e) => e.category === category && matchesFilter(e, filter))
-        .map((entry) => ({ entry, equipped: entry.category === "allies" && entry.active }));
+        .map((e) => ({
+          entry: plainEntry(e),
+          equipped: e.category === "allies" ? e.active : equippedAt(e) !== undefined,
+        }))
+        .filter((item) => filter.equipped === undefined || item.equipped === filter.equipped);
       return items.sort((a, b) => entryName(a.entry).localeCompare(entryName(b.entry)));
     },
 
@@ -596,7 +774,8 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     },
 
     async markTraded(entryId, options) {
-      const entry = await ownEntry(entryId);
+      const stored = await storedEntry(entryId);
+      const entry = plainEntry(stored);
       if (entry.category === "skills") {
         throw new ValidationError("category", `${entryName(entry)} is a skill and can't be traded or given away.`);
       }
@@ -619,22 +798,33 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
         summary: `${kind === "traded" ? "Traded" : "Gave away"} ${quantity} × ${entry.name}`,
       });
       // At zero it leaves the inventory, but stays so a mistaken "used" can still be restored (IN-13).
-      // An active ally is made inactive before it's traded or given away (IN-14).
-      await write([
-        traded.change,
-        { op: "add-quantity", entryId, by: -quantity },
-        ...(entry.category === "allies" && entry.active ? update("entry", entryId, { active: false }) : []),
-      ]);
+      // An equipped entry is unequipped, and an active ally made inactive, before it's traded or
+      // given away (IN-14); its grants stop counting at once (GR-5), which may raise an alert (EQ-8).
+      await writeLosing(
+        [
+          traded.change,
+          { op: "add-quantity", entryId, by: -quantity },
+          ...(entry.category === "allies" && entry.active ? update("entry", entryId, { active: false }) : []),
+          ...(stored.slot !== undefined ? update("entry", entryId, { slot: undefined }) : []),
+        ],
+        kind,
+        losingFrom(stored),
+      );
       return traded.record;
     },
 
     async deleteEntry(entryId) {
-      const entry = await ownEntry(entryId);
+      // As stored, so Undo brings it back where it was equipped (IN-15).
+      const entry = await storedEntry(entryId);
       const records = (await backend.history(entry.characterId)).filter((h) => h.record.entryId === entryId);
-      await write([
-        { op: "delete", kind: "entry", id: entryId },
-        ...records.map((h): Change => ({ op: "delete", kind: "history", id: h.record.id })),
-      ]);
+      const causes = await writeLosing(
+        [
+          { op: "delete", kind: "entry", id: entryId },
+          ...records.map((h): Change => ({ op: "delete", kind: "history", id: h.record.id })),
+        ],
+        "deleted",
+        losingFrom(entry),
+      );
       const deletedAt = clock.now().getTime();
       let undone = false;
       return {
@@ -643,11 +833,22 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
           if (clock.now().getTime() - deletedAt > UNDO_SECONDS * 1000) {
             throw new ValidationError("undo", `It's too late to undo deleting ${entryName(entry)}.`);
           }
-          await ownCharacter(entry.characterId);
+          // NF-6: Undo can't take the character past its entries, and the entry comes back where it
+          // was equipped only if that's still allowed (EQ-2, EQ-7); otherwise unequipped.
+          const sheet = await sheetFor(entry.characterId);
+          checkCount(sheet.entries);
+          const { slot, ...unequipped } = entry;
+          const back: StoredEntry = { ...unequipped } as StoredEntry;
+          if (slot !== undefined) {
+            const withIt = { ...sheet, entries: [...sheet.entries, plainEntry(back)] };
+            if (checkEquip(withIt, ref, entry.id, slot).outcome === "allowed") back.slot = slot;
+          }
           await write([
-            { op: "set-entry", value: entry },
+            { op: "set-entry", value: back },
             ...records.map((h): Change => ({ op: "set-history", value: h })),
           ]);
+          // The deletion no longer explains an alert: the entry is back.
+          causes.forEach(forget);
           undone = true;
         },
       };
@@ -677,11 +878,11 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
 
     // ---------------------------------------------------------------- skills (SK)
     async skillPicker(characterId, options) {
-      return pickSkills(await sheetOf(await ownCharacter(characterId)), ref, options);
+      return pickSkills(await sheetFor(characterId), ref, options);
     },
 
     async addSkill(characterId, input) {
-      const character = await ownCharacter(characterId);
+      const sheet = await sheetFor(characterId);
       const skill = ref.skills.find((s) => s.id === input.skillId);
       if (!skill) throw new NotFoundError("skill", input.skillId);
       const tree = ref.trees.find((t) => t.id === skill.tree);
@@ -699,7 +900,6 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       };
       const notes = check.optionalText("notes", input.notes, check.LIMITS.notes);
       if (notes !== undefined) entry.notes = notes;
-      const sheet = await sheetOf(character);
       checkCount(sheet.entries);
       const warnings = skillWarnings(sheet, ref, skill.id);
       const gain = { date: now(), note: undefined, source: undefined, link: undefined };
@@ -718,12 +918,91 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     skillReplacements: later("skillReplacements", "M5"),
     acceptReplacement: later("acceptReplacement", "M5"),
 
-    // ---------------------------------------------------------------- grants and equipping (M4)
-    addGrant: later("addGrant", "M4"),
-    addManualGrant: later("addManualGrant", "M4"),
-    removeGrant: later("removeGrant", "M4"),
-    equip: later("equip", "M4"),
-    unequip: later("unequip", "M4"),
+    // ---------------------------------------------------------------- grants and equipping (GR, EQ)
+    async addGrant(target, input) {
+      let source: { kind: "entry" | "title"; id: Id; grants: Grant[] | undefined };
+      if ("entryId" in target) {
+        const entry = await ownEntry(target.entryId);
+        check.grantsAllowed(entry.category);
+        source = { kind: "entry", id: entry.id, grants: grantsOf(entry) };
+      } else if ("titleId" in target) {
+        const title = await ownTitle(target.titleId);
+        source = { kind: "title", id: title.id, grants: title.grants };
+      } else {
+        throw new ValidationError("target", "A grant goes on an entry or a title.");
+      }
+      const grants = oneMore(source.grants, input);
+      await write(update(source.kind, source.id, { grants }));
+      return grants.at(-1)!;
+    },
+
+    async addManualGrant(characterId, reason, input) {
+      const character = await storedCharacter(characterId);
+      const manual = character.manualGrants ?? [];
+      check.atMost(manual.length + 1, check.LIMITS.manualGrants, "manualGrants", "A character", "manual grants");
+      const grants = newGrants(input);
+      if (grants.length === 0) throw new ValidationError("grants", "A manual grant needs at least one grant.");
+      const added: ManualGrant = {
+        id: backend.newId("grant"),
+        reason: check.requiredText("reason", reason, check.LIMITS.shortText),
+        grants,
+      };
+      await write(update("character", characterId, { manualGrants: [...manual, added] }));
+      return added;
+    },
+
+    async removeGrant(grantId) {
+      const without = (grants: Grant[] = []) => grants.filter((g) => g.id !== grantId);
+      const find = (grants: Grant[] = []) => grants.find((g) => g.id === grantId);
+      // GR-5: a removed grant stops counting at once, which may raise an alert (EQ-8).
+      const title = (await myTitles()).find((t) => find(t.grants));
+      if (title) {
+        const losing = losesSlots([find(title.grants)!]) ? await charactersUnder(title.scope) : [];
+        return void (await writeLosing(
+          update("title", title.id, { grants: without(title.grants) }),
+          "grant-removed",
+          losing,
+        ));
+      }
+      const characters = await storedCharacters();
+      for (const character of characters) {
+        const manual = character.manualGrants ?? [];
+        const grant = manual.map((m) => find(m.grants)).find((g) => g !== undefined);
+        if (!grant) continue;
+        // A manual grant left with nothing in it goes too.
+        const kept = manual.map((m) => ({ ...m, grants: without(m.grants) })).filter((m) => m.grants.length > 0);
+        const losing = losesSlots([grant]) ? [character.id] : [];
+        return void (await writeLosing(
+          update("character", character.id, { manualGrants: kept }),
+          "grant-removed",
+          losing,
+        ));
+      }
+      // Only then the entries, which take the most reading. A skill's grants are the skill
+      // list's (SK-7), so they can't be removed here.
+      const entries = (await Promise.all(characters.map((c) => storedEntriesOf(c.id)))).flat();
+      const entry = entries.find((e) => e.category !== "skills" && find(grantsOf(e)));
+      if (!entry) throw new NotFoundError("grant", grantId);
+      const losing = losesSlots([find(grantsOf(entry))!]) && countsNow(entry) ? [entry.characterId] : [];
+      return void (await writeLosing(
+        update("entry", entry.id, { grants: without(grantsOf(entry)) }),
+        "grant-removed",
+        losing,
+      ));
+    },
+
+    async equip(entryId, target) {
+      const entry = await ownEntry(entryId);
+      const result = checkEquip(await sheetFor(entry.characterId), ref, entryId, target);
+      if (result.outcome === "allowed") await write(update("entry", entryId, { slot: target }));
+      return result;
+    },
+
+    async unequip(entryId) {
+      const entry = await storedEntry(entryId);
+      if (entry.slot === undefined) return;
+      await writeLosing(update("entry", entryId, { slot: undefined }), "unequipped", losingFrom(entry));
+    },
 
     async setActive(entryId, active) {
       const entry = await ownEntry(entryId);
@@ -731,17 +1010,30 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
         throw new ValidationError("category", `${entryName(entry)} isn't a familiar or ally, so it can't be active.`);
       }
       if (typeof active !== "boolean") throw new ValidationError("active", "Active is either on or off.");
-      if (entry.active !== active) await write(update("entry", entryId, { active }));
+      if (entry.active === active) return;
+      // An ally made inactive stops granting (GR-3), like an unequipped entry.
+      await writeLosing(update("entry", entryId, { active }), "unequipped", active ? [] : losingFrom(entry));
     },
 
-    totals: later("totals", "M4"),
-    alerts: later("alerts", "M4"),
-
-    async sheet(characterId) {
-      return sheetOf(await ownCharacter(characterId));
+    async totals(characterId) {
+      return computeTotals(await sheetFor(characterId), ref);
     },
 
-    lastChange: later("lastChange", "M4"),
+    async alerts(characterId) {
+      const cause = lastChanges.get(characterId);
+      const alerts = overLimitAlerts(await sheetFor(characterId), ref, cause);
+      // With nothing over its limit, the cause is done with: a later alert has a cause of its own.
+      // Unless a change made during the read has kept a new one.
+      if (alerts.length === 0 && cause) forget(cause);
+      return alerts;
+    },
+
+    sheet: (characterId) => sheetFor(characterId),
+
+    async lastChange(characterId) {
+      await ownCharacter(characterId);
+      return lastChanges.get(characterId);
+    },
 
     // ---------------------------------------------------------------- history (HI)
     async history(characterId, filter = {}) {
@@ -784,21 +1076,25 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
 
     async exportJson() {
       const profile = await ownProfile();
-      const characters = (await myCharacters()).sort(byName);
+      const [characters, titles] = await Promise.all([storedCharacters(), myTitles()]);
       const file: ExportFile = {
         formatVersion: EXPORT_FORMAT_VERSION,
         exportedAt: now(),
         profile: { displayName: profile.displayName },
         characters: await Promise.all(
-          characters.map(async (character) => ({
-            character,
-            entries: (await entriesOf(character.id)).sort((a, b) => entryName(a).localeCompare(entryName(b))),
-            equipped: [],
-            manualGrants: [],
-            history: (await backend.history(character.id)).sort(newestFirst).map((h) => h.record),
-          })),
+          characters.sort(byName).map(async (stored) => {
+            const [entries, history] = await Promise.all([storedEntriesOf(stored.id), backend.history(stored.id)]);
+            const sheet = sheetOf(stored, entries, titles);
+            return {
+              character: sheet.character,
+              entries: sheet.entries.sort((a, b) => entryName(a).localeCompare(entryName(b))),
+              equipped: sheet.equipped,
+              manualGrants: sheet.manualGrants,
+              history: history.sort(newestFirst).map((h) => h.record),
+            };
+          }),
         ),
-        titles: (await myTitles()).sort(byName),
+        titles: titles.sort(byName),
         todo: [],
       };
       return file;
@@ -848,18 +1144,25 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
 
   /** EX-1: one character, or every one that isn't retired. */
   async function printable(options: PrintOptions) {
-    let characters: Character[];
+    let characters: StoredCharacter[];
     if (options.characterIds === "all") {
-      characters = (await myCharacters()).filter((c) => c.retired !== true).sort(byName);
+      characters = (await storedCharacters()).filter((c) => c.retired !== true).sort(byName);
     } else {
-      characters = await Promise.all(options.characterIds.map(ownCharacter));
+      characters = await Promise.all(options.characterIds.map(storedCharacter));
     }
-    const [titles, entries] = await Promise.all([myTitles(), Promise.all(characters.map((c) => entriesOf(c.id)))]);
-    const pages = characters.map((character, i) => ({
-      character,
-      entries: entries[i]!,
-      titles: applying(titles, character.id),
-    }));
+    const [titles, entries] = await Promise.all([
+      myTitles(),
+      Promise.all(characters.map((c) => storedEntriesOf(c.id))),
+    ]);
+    const pages = characters
+      .map((stored, i) => sheetOf(stored, entries[i]!, titles))
+      .map((sheet) => ({
+        character: sheet.character,
+        entries: sheet.entries,
+        titles: sheet.titles,
+        totals: computeTotals(sheet, ref),
+        slots: slotState(sheet, ref),
+      }));
     return buildSheet(pages, ref, {
       createdAt: now(),
       includeSkillText: options.includeSkillText === true,

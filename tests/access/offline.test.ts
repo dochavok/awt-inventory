@@ -54,6 +54,36 @@ async function setUp(user = "bram") {
 }
 
 rule(
+  { req: ["NF-3", "EQ-8"], m: "M4" },
+  "two offline phones each equipping something in Aldric's one Back slot end with an over-limit alert",
+  async () => {
+    const { a, b, characterId } = await setUp();
+    const cloak = (await a.store.listEntries(characterId, "armor")).find(
+      (e) => e.entry.category === "armor" && e.entry.name === "Spare Cloak",
+    )!.entry;
+    const pack = await a.store.addEntry(characterId, { category: "armor", name: "Traveller's Pack", slotKind: "back" });
+    await a.db.waitForPendingWrites();
+    await b.store.sheet(characterId);
+    await a.db.disableNetwork();
+    await b.db.disableNetwork();
+    expect((await a.store.equip(cloak.id, "back")).outcome, "phone A equipping the Spare Cloak offline").toBe(
+      "allowed",
+    );
+    expect((await b.store.equip(pack.id, "back")).outcome, "phone B equipping the Traveller's Pack offline").toBe(
+      "allowed",
+    );
+    await online(a);
+    await online(b);
+    const alerts = await a.store.alerts(characterId);
+    expect(
+      alerts.map((x) => [x.scope, x.equipped, x.allowed]),
+      "Aldric's alerts once both phones have synced",
+    ).toEqual([[{ type: "slot-kind", id: "back" }, 2, 1]]);
+    expect(alerts[0]!.message, "the alert names the Back slot").toContain("Back");
+  },
+);
+
+rule(
   { req: ["NF-3"], m: "M3" },
   "without signal, a phone can still view and search what it opened before",
   async () => {
