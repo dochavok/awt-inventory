@@ -275,6 +275,23 @@ rule(
   },
 );
 
+rule(
+  { req: ["SK-1a", "SK-3"], m: "M2" },
+  "a skill in several trees already taken is no longer available, and warns once that it's taken",
+  () => {
+    const isolde = withSkill(fixtureSheet("isolde"), "moonlit-step");
+    const picker = moonlit(skillPicker(isolde, ref, { allTrees: true }));
+    expect([picker.available.length, picker.others.length], "Moonlit Step in Isolde's lists once she has it").toEqual([
+      0, 1,
+    ]);
+    expect(picker.others[0]!.taken, "how many times Isolde has Moonlit Step").toBe(1);
+    expect(
+      skillWarnings(isolde, ref, "moonlit-step").map((w) => w.reason),
+      "Isolde's warnings for a second Moonlit Step",
+    ).toEqual(["already-taken"]);
+  },
+);
+
 rule({ req: ["SK-1", "RD-3"], m: "M2" }, "a retired tree no longer makes a skill in several trees available", () => {
   const retired = testReferenceData();
   retired.trees.find((t) => t.id === "arcana")!.retired = true;

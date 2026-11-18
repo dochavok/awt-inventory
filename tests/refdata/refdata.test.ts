@@ -269,6 +269,31 @@ rule(
 );
 
 rule(
+  { req: ["RD-1", "GR-1", "RD-4"], m: "M4" },
+  "each problem with class bonus dice, groups or die-always names its file and the exact entry",
+  () => {
+    const skillGrants = (change: (list: any[]) => void) => problemsFor(edited("skill-grants.yaml", change)).join("\n");
+    const of = (list: any[], skill: string) => list.find((g: any) => g.skill === skill).grants;
+    expect(
+      skillGrants((list) => (of(list, "cinder-focus")[0].condition = "1/combat")),
+      "problems with die-always given a condition",
+    ).toMatch(/^skill-grants\.yaml sg-cinder-focus-1: .*condition/m);
+    expect(
+      skillGrants((list) => (of(list, "cinder-mark-i")[0].group = "Cinder Die")),
+      "problems with a group that isn't an ID",
+    ).toMatch(/^skill-grants\.yaml sg-cinder-mark-i-1: .*group/m);
+    expect(
+      skillGrants((list) => (of(list, "night-eyes")[0].group = "cinder-die")),
+      "problems with a group on an effect",
+    ).toMatch(/^skill-grants\.yaml sg-night-eyes-1: .*group/m);
+    const chart = edited("level-chart.yaml", (c) => (c.Rogue.levels[0].classBonusDice = "1d4 + 3"));
+    expect(problemsFor(chart).join("\n"), "problems with class bonus dice with a number added").toMatch(
+      /^level-chart\.yaml: Rogue\.levels\.0\.classBonusDice/m,
+    );
+  },
+);
+
+rule(
   { req: ["RD-6", "RD-4"], m: "M2" },
   "the app's own reference data in data/ is complete and has no problems",
   () => {

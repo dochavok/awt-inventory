@@ -304,6 +304,54 @@ rule(
   },
 );
 
+rule({ req: ["GR-1", "GR-9", "GR-12"], m: "M4" }, "the largest in a group wins whatever order it was added in", () => {
+  const before = computeTotals(fixtureSheet("isolde"), testReferenceData()).mitigation.value;
+  const totals = computeTotals(isoldeWith("cinder-mark-ii", "cinder-mark-i"), testReferenceData());
+  expect(totals.mitigation.value - before, "what the Cinder Marks add, Mark II added first").toBe(2);
+  expect(fromSkills(totals.mitigation.grants), "skill lines in Isolde's mitigation").toEqual(["Cinder Mark II 2"]);
+  expect(fromSkills(totals.cm.situational), "skill lines under Isolde's CM, situational").toEqual([
+    "Cinder Mark II 5 vs Undead",
+  ]);
+  expect(fromSkills(totals.dice.situational), "Isolde's situational dice from skills").toEqual([
+    "Cinder Mark II 1d8 when a spell adds the Cinder Die",
+  ]);
+});
+
+rule({ req: ["GR-1", "GR-11"], m: "M4" }, "the largest die is by highest roll, not average: 1d10 beats 3d3", () => {
+  const ref = testReferenceData();
+  const dieOf = (skill: string) => ref.skillGrants.find((g) => g.skill === skill)!.grants[0]!;
+  const [first, second] = [dieOf("cinder-mark-i"), dieOf("cinder-mark-ii")];
+  if (first.kind === "die") first.die = "1d10";
+  if (second.kind === "die") second.die = "3d3";
+  const totals = computeTotals(isoldeWith("cinder-mark-i", "cinder-mark-ii"), ref);
+  expect(fromSkills(totals.dice.situational), "Isolde's situational dice with 1d10 against 3d3").toEqual([
+    "Cinder Mark I 1d10 when a spell adds the Cinder Die",
+  ]);
+});
+
+rule(
+  { req: ["GR-1", "GR-8", "GR-10"], m: "M4" },
+  "groups apply to CM and hearts that count, not only situational ones",
+  () => {
+    const ref = testReferenceData();
+    for (const [skill, cm, hearts] of [
+      ["cinder-mark-i", 2, 1],
+      ["cinder-mark-ii", 5, 3],
+    ] as const) {
+      const grants = ref.skillGrants.find((g) => g.skill === skill)!.grants;
+      const bonus = grants[1]!;
+      if (bonus.kind === "cm") delete bonus.condition;
+      grants.push({ id: `sg-x-${skill}-hearts`, kind: "hearts", amount: hearts, group: "cinder-heart" });
+      expect(bonus, `${skill}'s CM bonus`).toMatchObject({ amount: cm });
+    }
+    const before = computeTotals(fixtureSheet("isolde"), ref);
+    const totals = computeTotals(isoldeWith("cinder-mark-i", "cinder-mark-ii"), ref);
+    expect(totals.cm.value - before.cm.value, "what the Cinder Marks add to Isolde's CM").toBe(5);
+    expect(totals.hearts.value - before.hearts.value, "what the Cinder Marks add to Isolde's max hearts").toBe(3);
+    expect(fromSkills(totals.hearts.grants), "skill lines in Isolde's max hearts").toEqual(["Cinder Mark II 3"]);
+  },
+);
+
 rule({ req: ["GR-1", "GR-11"], m: "M4" }, "die-always adds nothing without a die in its group", () => {
   const totals = computeTotals(isoldeWith("cinder-focus"), testReferenceData());
   expect(totals.dice.extra, "Isolde's extra dice with only Cinder Focus").toEqual([]);
