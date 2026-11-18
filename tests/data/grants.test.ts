@@ -324,6 +324,52 @@ rule(
 );
 
 rule(
+  { req: ["EQ-4", "IN-8", "EQ-8"], m: "M4" },
+  "editing what an equipped entry fits unequips it, and an alert names the edit",
+  async () => {
+    const { bram, aldric, id } = await bramWithAldric();
+    const characterId = aldric.character.id;
+    const where = async (entryId: string) =>
+      (await bram.sheet(characterId)).equipped.find((q) => q.entryId === entryId)?.slot;
+    // Hawkeye Helm edited to fit Neck; Amber Charm edited to not arcane; Duskfang edited to two-handed.
+    for (const [fixtureId, patch, what] of [
+      ["aldric-helm", { slotKind: "neck" }, "Hawkeye Helm, now fitting Neck"],
+      ["aldric-charm", { arcane: false }, "Amber Charm, no longer arcane"],
+      ["aldric-sword", { hands: 2 }, "Duskfang, now two-handed"],
+    ] as const) {
+      await bram.updateEntry(id(fixtureId), patch);
+      expect(await where(id(fixtureId)), `where ${what} is equipped`).toBeUndefined();
+    }
+    const plate = await bram.updateEntry(id("aldric-plate"), { notes: "Polished" });
+    expect([plate.notes, await where(id("aldric-plate"))], "Ironclad Plate after an edit to its notes").toEqual([
+      "Polished",
+      "chest",
+    ]);
+    // A cloak that gives a second Back slot, edited to fit Neck while two things are in Back.
+    const cloak = await bram.addEntry(characterId, {
+      category: "armor",
+      name: "Cloak of the Wanderer",
+      slotKind: "shoulder",
+      grants: [{ kind: "slots", slotKind: "back", amount: 1 }],
+    });
+    const pack = await bram.addEntry(characterId, { category: "armor", name: "Traveller's Pack", slotKind: "back" });
+    for (const [entryId, slot] of [
+      [cloak.id, "shoulder"],
+      [id("aldric-cloak"), "back"],
+      [pack.id, "back"],
+    ] as const) {
+      expect((await bram.equip(entryId, slot)).outcome, `equipping ${entryId} in ${slot}`).toBe("allowed");
+    }
+    await bram.updateEntry(cloak.id, { slotKind: "neck" });
+    const alerts = await bram.alerts(characterId);
+    expect(
+      alerts.map((a) => [a.scope, a.equipped, a.allowed, a.lost?.reason]),
+      "Aldric's alerts after the cloak's edit",
+    ).toEqual([[{ type: "slot-kind", id: "back" }, 2, 1, "unequipped"]]);
+  },
+);
+
+rule(
   { req: ["IN-8", "GR-2"], m: "M4" },
   "an edit that sends back no grants for an entry without any is fine",
   async () => {
