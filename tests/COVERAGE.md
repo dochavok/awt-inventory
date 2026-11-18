@@ -60,10 +60,10 @@ Tests shows each file with the number of its tests that name the requirement.
 | HI-3 | Must | M2 | app/dates.test.ts (1), browser/inventory.spec.ts (1), data/characters.test.ts (1), data/history.test.ts (3), data/inventory.test.ts (1) |
 | HI-4 | Must | M2 | access/accounts.test.ts (2), access/privacy.test.ts (4), data/characters.test.ts (1), data/history.test.ts (2), data/inventory.test.ts (1) |
 | HI-5 | Should | M3 | browser/inventory.spec.ts (1), data/history.test.ts (1), data/privacy.test.ts (1) |
-| GR-1 | Must | M4 | data/grants.test.ts (1), rules/equipping.test.ts (2), rules/totals.test.ts (1) |
+| GR-1 | Must | M4 | data/grants.test.ts (1), rules/equipping.test.ts (3), rules/totals.test.ts (1) |
 | GR-2 | Must | M4 | data/grants.test.ts (3), data/search-export.test.ts (1), rules/totals.test.ts (1) |
 | GR-3 | Must | M4 | data/grants.test.ts (1), rules/totals.test.ts (14) |
-| GR-4 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (5) |
+| GR-4 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (6) |
 | GR-5 | Must | M4 | data/grants.test.ts (3), properties/totals.test.ts (1), rules/equipping.test.ts (1), rules/totals.test.ts (3) |
 | GR-6 | Should | M5 | rules/totals.test.ts (2) |
 | GR-7 | Must | M4 | rules/totals.test.ts (6) |
@@ -71,11 +71,11 @@ Tests shows each file with the number of its tests that name the requirement.
 | GR-9 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (2) |
 | GR-10 | Should | M4 | properties/totals.test.ts (1), rules/totals.test.ts (2) |
 | GR-11 | Must | M4 | rules/totals.test.ts (4) |
-| GR-12 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (7) |
-| EQ-1 | Must | M4 | data/inventory.test.ts (1), rules/equipping.test.ts (8) |
+| GR-12 | Must | M4 | properties/totals.test.ts (1), rules/totals.test.ts (8) |
+| EQ-1 | Must | M4 | data/inventory.test.ts (1), rules/equipping.test.ts (10) |
 | EQ-2 | Must | M4 | properties/equipping.test.ts (1), rules/equipping.test.ts (5) |
-| EQ-3 | Must | M4 | properties/equipping.test.ts (1), rules/equipping.test.ts (10) |
-| EQ-4 | Must | M4 | data/grants.test.ts (1), data/inventory.test.ts (1), rules/equipping.test.ts (2) |
+| EQ-3 | Must | M4 | properties/equipping.test.ts (1), rules/equipping.test.ts (11) |
+| EQ-4 | Must | M4 | data/grants.test.ts (1), data/inventory.test.ts (1), rules/equipping.test.ts (3) |
 | EQ-5 | Must | M4 | rules/equipping.test.ts (3) |
 | EQ-6 | Must | M4 | rules/equipping.test.ts (7) |
 | EQ-7 | Must | M4 | properties/equipping.test.ts (1), rules/equipping.test.ts (7) |
@@ -105,7 +105,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | AL-1 | Could | M6 | none |
 | RD-1 | Must | M2 | refdata/refdata.test.ts (1) |
 | RD-2 | Must | M2 | data/skills.test.ts (1), refdata/refdata.test.ts (2) |
-| RD-3 | Must | M2 | data/inventory.test.ts (2), data/skills.test.ts (3), refdata/refdata.test.ts (1), rules/equipping.test.ts (2), rules/skills.test.ts (1) |
+| RD-3 | Must | M2 | data/inventory.test.ts (2), data/skills.test.ts (3), refdata/refdata.test.ts (1), rules/equipping.test.ts (3), rules/skills.test.ts (1) |
 | RD-4 | Must | M2 | refdata/refdata.test.ts (9) |
 | RD-5 | Must | M2 | data/characters.test.ts (1), refdata/refdata.test.ts (2) |
 | RD-6 | Must | M2 | refdata/refdata.test.ts (1) |

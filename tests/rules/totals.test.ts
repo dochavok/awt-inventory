@@ -74,6 +74,23 @@ rule(
 );
 
 rule(
+  { req: ["GR-4", "GR-12"], m: "M4" },
+  "a grant whose condition is blank counts, and its line has no condition",
+  () => {
+    const sheet = fixtureSheet("aldric");
+    sheet.manualGrants.push({
+      id: "m-blank",
+      reason: "Cleared box",
+      grants: [{ id: "g-blank", kind: "cm", amount: 5, condition: " " }],
+    });
+    const totals = computeTotals(sheet, testReferenceData());
+    expect(totals.cm.value, "Aldric's CM with a +5 whose condition is blank").toBe(175);
+    const line = totals.cm.grants.find((g) => g.source.type === "manual" && g.source.reason === "Cleared box");
+    expect(line && "condition" in line, "the blank-condition line carries a condition").toBe(false);
+  },
+);
+
+rule(
   { req: ["GR-7", "TF-3"], m: "M4" },
   "the class bonus comes from the reference data passed in, not a built-in chart",
   () => {

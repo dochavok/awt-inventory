@@ -128,6 +128,22 @@
       outcome: blocked
       block: { reason: already-equipped, about: off-hand, mentions: [Iron Dagger, Off hand] }
 
+- id: two-hander-equipped-once
+  req: [EQ-4, EQ-3]
+  milestone: M4
+  title: A greatsword already held in both hands can't be equipped again, and the block says both hands
+  given:
+    character: aldric
+    remove: { equipped: [aldric-sword] }
+    add:
+      entries: [{ id: x-great, category: weapons, name: Greatsword, hands: 2, range: melee }]
+      equipped: [{ entryId: x-great, slot: both-hands }]
+  equip: { entry: x-great, slot: both-hands }
+  expect:
+    equip:
+      outcome: blocked
+      block: { reason: already-equipped, about: main-hand, mentions: [Greatsword, both hands] }
+
 - id: not-equippable
   req: [EQ-2, EQ-7]
   q: [Q4]
