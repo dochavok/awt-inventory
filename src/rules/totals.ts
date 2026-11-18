@@ -2,7 +2,7 @@
 // each with its breakdown and every grant in it (GR-7 to GR-12), plus the
 // permissions and effects that apply. Pure functions.
 
-import { countedGrants, isSituational, type SourcedGrant } from "./grants";
+import { countedGrants, grantLine, isSituational, withCondition, type SourcedGrant } from "./grants";
 import {
   BREAKDOWN_ORDER,
   type BreakdownGroup,
@@ -27,23 +27,13 @@ const CLASS_BONUS_NAMES: Record<ClassName, ClassBonusName> = {
 const PERMISSION_ORDER: readonly Permission[] = ["weapon-use", "ranged-weapon-use", "armor-use", "dual-wielding"];
 
 /** The chart row for a class and level: the highest row at or below the level, else the lowest. */
-export function levelRow(ref: ReferenceData, className: ClassName, level: number): LevelRow {
+function levelRow(ref: ReferenceData, className: ClassName, level: number): LevelRow {
   const rows = ref.levelChart[className].levels;
   let best: LevelRow | undefined;
   for (const row of rows) {
     if (row.level <= level && (!best || row.level > best.level)) best = row;
   }
   return best ?? rows.reduce((a, b) => (b.level < a.level ? b : a));
-}
-
-function line(g: SourcedGrant, amount: number): GrantLine {
-  return {
-    source: g.source,
-    group: g.group,
-    grantId: g.grant.id,
-    amount,
-    ...(g.grant.condition !== undefined ? { condition: g.grant.condition } : {}),
-  };
 }
 
 type AmountKind = "cm" | "mitigation" | "hearts";
@@ -55,12 +45,16 @@ function total(counted: SourcedGrant[], kind: AmountKind, chart?: { group: Break
   if (chart && chart.amount !== 0) grants.push({ source: { type: "level-chart" }, ...chart });
   for (const g of counted) {
     if (g.grant.kind !== kind) continue;
-    (isSituational(g.grant) ? situational : grants).push(line(g, g.grant.amount));
+    (isSituational(g.grant) ? situational : grants).push(grantLine(g, g.grant.amount));
   }
   const sums = new Map<BreakdownGroup, number>();
-  for (const g of grants) sums.set(g.group, (sums.get(g.group) ?? 0) + g.amount);
+  let value = 0;
+  for (const g of grants) {
+    sums.set(g.group, (sums.get(g.group) ?? 0) + g.amount);
+    value += g.amount;
+  }
   return {
-    value: grants.reduce((s, g) => s + g.amount, 0),
+    value,
     lines: BREAKDOWN_ORDER.flatMap((group) => {
       const value = sums.get(group) ?? 0;
       return value !== 0 ? [{ group, value }] : [];
@@ -81,13 +75,14 @@ export function computeTotals(sheet: CharacterSheet, ref: ReferenceData): Totals
   const permissions = new Map<Permission, Totals["permissions"][number]["sources"]>();
   const effects: Totals["effects"] = [];
   for (const { grant, source } of counted) {
-    const condition = grant.condition !== undefined ? { condition: grant.condition } : {};
     if (grant.kind === "die") {
-      (isSituational(grant) ? situationalDice : extra).push({ die: grant.die, source, ...condition });
+      (isSituational(grant) ? situationalDice : extra).push({ die: grant.die, source, ...withCondition(grant) });
     } else if (grant.kind === "permission" && !isSituational(grant)) {
-      permissions.set(grant.permission, [...(permissions.get(grant.permission) ?? []), source]);
+      const sources = permissions.get(grant.permission);
+      if (sources) sources.push(source);
+      else permissions.set(grant.permission, [source]);
     } else if (grant.kind === "effect") {
-      effects.push({ effect: grant.effect, text: grant.text, source, ...condition });
+      effects.push({ effect: grant.effect, text: grant.text, source, ...withCondition(grant) });
     }
   }
 
