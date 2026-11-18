@@ -207,27 +207,38 @@ const NOT_EQUIPPABLE: Record<Exclude<Entry["category"], "weapons" | "armor" | "i
 };
 
 /** Whether this entry can go in `target` at all (EQ-2, EQ-3, EQ-7), whatever's already there. */
+/**
+ * Whether an entry can be in `target` at all, whatever's already there (EQ-2, EQ-3, EQ-7).
+ * The store also uses it, so an entry stored as equipped where it no longer fits (two
+ * phones' changes merged, NF-3) counts as unequipped.
+ */
+export function fitsSlot(entry: Entry, target: SlotTarget): boolean {
+  switch (entry.category) {
+    case "weapons":
+      return entry.hands === 2 ? target === "both-hands" : (HANDS as readonly string[]).includes(target);
+    case "armor":
+      return target === entry.slotKind;
+    case "items":
+      return entry.arcane && target === "arcane";
+    default:
+      return false;
+  }
+}
+
+/** Why this entry can't go in `target` at all (EQ-2, EQ-3, EQ-7), or null if it fits. */
 function placementBlock(entry: Entry, name: string, target: SlotTarget, kinds: Map<Id, SlotKind>): EquipCheck | null {
+  if (fitsSlot(entry, target)) return null;
   const where = kindName(kinds, target);
   switch (entry.category) {
     case "weapons":
-      if (entry.hands === 2) {
-        return target === "both-hands"
-          ? null
-          : block("wrong-slot", target, `${name} is two-handed, so it takes both hands.`);
-      }
-      return (HANDS as readonly string[]).includes(target)
-        ? null
+      return entry.hands === 2
+        ? block("wrong-slot", target, `${name} is two-handed, so it takes both hands.`)
         : block("wrong-slot", target, `${name} is one-handed: it goes in the Main hand or the Off hand.`);
-    case "armor": {
-      const fits = kindName(kinds, entry.slotKind);
-      return target === entry.slotKind ? null : block("wrong-slot", target, `${name} fits ${fits}, not ${where}.`);
-    }
+    case "armor":
+      return block("wrong-slot", target, `${name} fits ${kindName(kinds, entry.slotKind)}, not ${where}.`);
     case "items":
       if (entry.arcane) {
-        return target === "arcane"
-          ? null
-          : block("wrong-slot", target, `${name} is arcane, so it goes in an arcane slot, not ${where}.`);
+        return block("wrong-slot", target, `${name} is arcane, so it goes in an arcane slot, not ${where}.`);
       }
       return target === "arcane"
         ? block("not-arcane", target, `${name} isn't arcane, so it can't go in an arcane slot.`)
@@ -235,15 +246,6 @@ function placementBlock(entry: Entry, name: string, target: SlotTarget, kinds: M
     default:
       return block("cannot-equip", target, `${name} ${NOT_EQUIPPABLE[entry.category]}.`);
   }
-}
-
-/**
- * Whether an entry can be in `target` at all, whatever's already there (EQ-2, EQ-3, EQ-7).
- * The store uses it so an entry stored as equipped where it no longer fits (two phones'
- * changes merged, NF-3) counts as unequipped.
- */
-export function fitsSlot(entry: Entry, target: SlotTarget, ref: ReferenceData): boolean {
-  return placementBlock(entry, entryName(entry, ref), target, slotKinds(ref)) === null;
 }
 
 const isShield = (e: Entry) => e.category === "armor" && e.slotKind === "off-hand";
