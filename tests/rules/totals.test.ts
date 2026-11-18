@@ -247,6 +247,24 @@ rule(
   },
 );
 
+rule(
+  { req: ["GR-1", "GR-11"], m: "M4" },
+  "another skill's own die, outside the group, is added alongside the group's largest",
+  () => {
+    // Warden's Watch gives its own 1d6, in no group.
+    const situational = computeTotals(isoldeWith("cinder-mark-ii", "wardens-watch"), testReferenceData());
+    expect(fromSkills(situational.dice.extra), "Isolde's extra dice from skills").toEqual(["Warden's Watch 1d6"]);
+    expect(fromSkills(situational.dice.situational), "Isolde's situational dice from skills").toEqual([
+      "Cinder Mark II 1d8 when a spell adds the Cinder Die",
+    ]);
+    const always = computeTotals(isoldeWith("cinder-mark-ii", "wardens-watch", "cinder-focus"), testReferenceData());
+    expect(fromSkills(always.dice.extra), "Isolde's extra dice with Cinder Focus").toEqual([
+      "Cinder Mark II 1d8",
+      "Warden's Watch 1d6",
+    ]);
+  },
+);
+
 rule({ req: ["GR-1", "GR-11"], m: "M4" }, "die-always adds nothing without a die in its group", () => {
   const totals = computeTotals(isoldeWith("cinder-focus"), testReferenceData());
   expect(totals.dice.extra, "Isolde's extra dice with only Cinder Focus").toEqual([]);
