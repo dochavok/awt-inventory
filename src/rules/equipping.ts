@@ -19,7 +19,6 @@ import type {
   CharacterSheet,
   Entry,
   EquipCheck,
-  Grant,
   Id,
   LossReason,
   Occupant,
@@ -60,22 +59,25 @@ function kindName(kinds: Map<Id, SlotKind>, id: SlotTarget): string {
   return kinds.get(id)?.name ?? id;
 }
 
-type SlotGrant = Extract<Grant, { kind: "slots" | "arcane-slots" }>;
-
-function addsTo(grant: Grant, scope: Id | "arcane"): grant is SlotGrant {
-  return scope === "arcane" ? grant.kind === "arcane-slots" : grant.kind === "slots" && grant.slotKind === scope;
-}
+type SlotGrants = Map<Id | "arcane", { g: SourcedGrant; amount: number }[]>;
 
 /**
- * The grants that add to a slot kind's allowance, or the arcane slots' (GR-1),
- * with how many whole slots each adds. GR-1's grants are +n, so bad data below 1 adds none.
+ * The grants that add slots, by the slot kind they add to ("arcane" for arcane
+ * slots), in one pass (GR-1). GR-1's grants are +n, so bad data that isn't a
+ * whole number of 1 or more adds nothing.
  */
-function slotGrants(counted: SourcedGrant[], scope: Id | "arcane"): { g: SourcedGrant; amount: number }[] {
-  return counted.flatMap((g) => {
-    if (!addsTo(g.grant, scope) || isSituational(g.grant)) return [];
-    const amount = Number.isFinite(g.grant.amount) ? Math.trunc(g.grant.amount) : 0;
-    return amount > 0 ? [{ g, amount }] : [];
-  });
+function slotGrants(counted: SourcedGrant[]): SlotGrants {
+  const by: SlotGrants = new Map();
+  for (const g of counted) {
+    const { grant } = g;
+    if (grant.kind !== "slots" && grant.kind !== "arcane-slots") continue;
+    if (isSituational(grant) || !Number.isInteger(grant.amount) || grant.amount < 1) continue;
+    const scope = grant.kind === "slots" ? grant.slotKind : "arcane";
+    const list = by.get(scope);
+    if (list) list.push({ g, amount: grant.amount });
+    else by.set(scope, [{ g, amount: grant.amount }]);
+  }
+  return by;
 }
 
 /** The arcane slots the level chart gives: the class's start plus each level's (EQ-6). */
@@ -107,6 +109,7 @@ function stateFrom(sheet: CharacterSheet, ref: ReferenceData, counted: SourcedGr
     }
   }
 
+  const bySlot = slotGrants(counted);
   const known = slotKinds(ref);
   // Retired kinds show only while something is in them; unknown ones too, so nothing equipped is hidden.
   const unknown = [...occupants.keys()]
@@ -116,7 +119,7 @@ function stateFrom(sheet: CharacterSheet, ref: ReferenceData, counted: SourcedGr
     .filter((k) => !k.retired || occupants.has(k.id))
     .map((k) => {
       const inIt = occupants.get(k.id) ?? [];
-      const extra = slotGrants(counted, k.id).flatMap(({ g, amount }) => Array<SourceRef>(amount).fill(g.source));
+      const extra = (bySlot.get(k.id) ?? []).flatMap(({ g, amount }) => Array<SourceRef>(amount).fill(g.source));
       const allowed = 1 + extra.length;
       return {
         kind: k.id,
@@ -135,7 +138,7 @@ function stateFrom(sheet: CharacterSheet, ref: ReferenceData, counted: SourcedGr
     });
 
   const { starting, fromLevels } = chartArcaneSlots(sheet, ref);
-  const arcaneGrants = slotGrants(counted, "arcane").map(({ g, amount }) => grantLine(g, amount));
+  const arcaneGrants = (bySlot.get("arcane") ?? []).map(({ g, amount }) => grantLine(g, amount));
   const arcaneIn = occupants.get("arcane") ?? [];
   const arcane: ArcaneState = {
     allowed: starting + fromLevels + arcaneGrants.reduce((s, g) => s + g.amount, 0),
@@ -236,8 +239,9 @@ function placementBlock(entry: Entry, name: string, target: SlotTarget, kinds: M
 
 const isShield = (e: Entry) => e.category === "armor" && e.slotKind === "off-hand";
 
-function overLimitText(name: string, equipped: number, allowed: number): string {
-  return `${name}: ${equipped} equipped, ${allowed} allowed. Unequip ${equipped - allowed} to clear the alert before equipping more there.`;
+/** EQ-8's count, e.g. "Back: 2 equipped, 1 allowed.", shared by the alert and the over-limit block. */
+function countText(name: string, equipped: number, allowed: number): string {
+  return `${name}: ${equipped} equipped, ${allowed} allowed.`;
 }
 
 /** Whether `entryId` may be equipped in `target`: blocked, or allowed with any warnings (EQ-2 to EQ-8). */
@@ -291,7 +295,10 @@ export function checkEquip(sheet: CharacterSheet, ref: ReferenceData, entryId: I
   // Every target kind is shown here: the check above blocked the retired and unknown ones.
   const needed = targetKinds(target).flatMap((key) => all.filter((c) => c.key === key));
   const over = needed.find((c) => c.equipped > c.allowed);
-  if (over) return block("over-limit", over.key, overLimitText(over.name, over.equipped, over.allowed), over.occupants);
+  if (over) {
+    const message = `${countText(over.name, over.equipped, over.allowed)} Unequip ${over.equipped - over.allowed} to clear the alert.`;
+    return block("over-limit", over.key, message, over.occupants);
+  }
 
   const full = needed.filter((c) => c.equipped >= c.allowed);
   if (full.length === 0) return { outcome: "allowed", warnings: [] };
@@ -302,7 +309,7 @@ export function checkEquip(sheet: CharacterSheet, ref: ReferenceData, entryId: I
   if (first.key === "arcane") {
     return block("arcane-full", "arcane", `Arcane slots are full: ${first.equipped} of ${first.allowed} used.`, inThem);
   }
-  if (needed.length > 1) {
+  if (target === "both-hands") {
     const hands = listNames(full.map((c) => `the ${c.name}`));
     return block("hands-not-free", first.key, `${name} needs both hands free: ${names} ${verb} in ${hands}.`, inThem);
   }
@@ -312,7 +319,7 @@ export function checkEquip(sheet: CharacterSheet, ref: ReferenceData, entryId: I
 // ---------------------------------------------------------------- over-limit alerts (EQ-8)
 
 /** What each source adds to a slot kind's allowance, or the arcane slots' (the level chart included). */
-function allowanceBySource(sheet: CharacterSheet, ref: ReferenceData, counted: SourcedGrant[], scope: Id | "arcane") {
+function allowanceBySource(sheet: CharacterSheet, ref: ReferenceData, bySlot: SlotGrants, scope: Id | "arcane") {
   const by = new Map<string, { source: SourceRef; amount: number }>();
   const add = (source: SourceRef, amount: number) => {
     const key = sourceKey(source);
@@ -322,7 +329,7 @@ function allowanceBySource(sheet: CharacterSheet, ref: ReferenceData, counted: S
     const { starting, fromLevels } = chartArcaneSlots(sheet, ref);
     add({ type: "level-chart" }, starting + fromLevels);
   }
-  for (const { g, amount } of slotGrants(counted, scope)) add(g.source, amount);
+  for (const { g, amount } of bySlot.get(scope) ?? []) add(g.source, amount);
   return by;
 }
 
@@ -361,12 +368,13 @@ function cause(source: SourceRef, amount: number, reason: LossReason, arcane: bo
 export function overLimitAlerts(sheet: CharacterSheet, ref: ReferenceData, change?: SheetChange): OverLimitAlert[] {
   const after = countedGrants(sheet, ref);
   const over = capacities(stateFrom(sheet, ref, after)).filter((c) => c.equipped > c.allowed);
-  const before = change && over.length > 0 ? countedGrants(change.before, ref) : undefined;
+  const before = change && over.length > 0 ? slotGrants(countedGrants(change.before, ref)) : undefined;
+  const afterBySlot = before ? slotGrants(after) : undefined;
 
   return over.map(({ scope, key, name, equipped, allowed }) => {
-    const base = { scope, equipped, allowed, message: `${name}: ${equipped} equipped, ${allowed} allowed.` };
-    if (!change || !before) return base;
-    const now = allowanceBySource(sheet, ref, after, key);
+    const base = { scope, equipped, allowed, message: countText(name, equipped, allowed) };
+    if (!change || !before || !afterBySlot) return base;
+    const now = allowanceBySource(sheet, ref, afterBySlot, key);
     for (const [k, was] of allowanceBySource(change.before, ref, before, key)) {
       const amount = was.amount - (now.get(k)?.amount ?? 0);
       if (amount > 0) {

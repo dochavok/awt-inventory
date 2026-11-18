@@ -21,15 +21,25 @@ export interface SourcedGrant {
   group: BreakdownGroup;
 }
 
+/** A grant's condition, trimmed; undefined when it has none or it's blank. */
+function conditionOf(grant: Grant): string | undefined {
+  return grant.condition?.trim() || undefined;
+}
+
 /** GR-4: a grant with a condition is situational, never added to a total. */
 export function isSituational(grant: Grant): boolean {
-  return Boolean(grant.condition?.trim());
+  return conditionOf(grant) !== undefined;
 }
 
 /** `{ condition }` when the grant is situational, so lines and dice carry a condition only then. */
 export function withCondition(grant: Grant): { condition?: string } {
-  const condition = grant.condition?.trim();
-  return condition ? { condition } : {};
+  const condition = conditionOf(grant);
+  return condition !== undefined ? { condition } : {};
+}
+
+/** GR-1's amounts are numbers; bad data with one that isn't (NaN, Infinity) is left out. */
+function usable(grant: Grant): boolean {
+  return !("amount" in grant) || Number.isFinite(grant.amount);
 }
 
 /** A counted grant as a line in a total (GR-12). */
@@ -76,7 +86,7 @@ export function countedGrants(sheet: CharacterSheet, ref: ReferenceData): Source
   const skillGrants = new Map(ref.skillGrants.map((s) => [s.skill, s.grants]));
   const counted: SourcedGrant[] = [];
   const add = (grants: Grant[] | undefined, source: SourceRef, group: BreakdownGroup) => {
-    for (const grant of grants ?? []) counted.push({ grant, source, group });
+    for (const grant of grants ?? []) if (usable(grant)) counted.push({ grant, source, group });
   };
 
   for (const entry of sheet.entries) {
