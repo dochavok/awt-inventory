@@ -255,7 +255,7 @@ function EntryList({
             <a href={href(`characters/${entry.characterId}/entries/${entry.id}`)}>
               <strong className="name">{name}</strong>
             </a>
-            <span className="quantity">Ã— {entry.quantity}</span>
+            <span className="quantity">× {entry.quantity}</span>
             {equipped && <span className="tag">{entry.category === "allies" ? "Active" : "Equipped"}</span>}
             {/* An ally is made active in its own form, not equipped, so it has no targets. */}
             {equipTargets(entry).length > 0 && (
@@ -722,7 +722,7 @@ function EntryForm({
 
 function details(entry: ItemEntry, ref: ReferenceData): [string, string][] {
   const rows: [string, string | undefined][] = [
-    ["Quantity", `Ã— ${entry.quantity}`],
+    ["Quantity", `× ${entry.quantity}`],
     ["Description", entry.description],
     ["Notes", entry.notes],
     ["Item family", entry.itemFamily],
@@ -1036,7 +1036,7 @@ function TradeForm({
         ...(who.trim() ? { note: who } : {}),
         ...(date ? { date } : {}),
       });
-      onDone(entry.quantity - count, `${kind === "traded" ? "Traded" : "Gave away"} ${count} Ã— ${entry.name}.`);
+      onDone(entry.quantity - count, `${kind === "traded" ? "Traded" : "Gave away"} ${count} × ${entry.name}.`);
     });
   };
 
