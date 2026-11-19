@@ -216,7 +216,7 @@ export function recordCheck(sheet: CharacterSheet, ref: ReferenceData): MissingS
   return missingSkillLevels(sheet.character, levels, ref);
 }
 
-/** recordCheck, given only the character and the levels its skills were gained at. */
+/** SK-6's record check, given only the character and the levels its skills were gained at (the Skills page). */
 export function missingSkillLevels(
   { className, level }: Pick<Character, "className" | "level">,
   levelsGained: number[],

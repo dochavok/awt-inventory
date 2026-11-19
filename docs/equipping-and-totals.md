@@ -19,7 +19,7 @@ If there's no room, nothing changes and the app says which slot is full and what
 
 **Equipment**, on the character's page, shows the paper doll: every slot (Head, Chest and the rest, plus Main hand and Off hand), with what's in it or *Empty*. A slot that comes from a grant is marked with where it comes from. Each equipped entry has **Unequip** there too.
 
-Below it are the arcane items, with how many arcane slots are used. A character's arcane slots are the class's starting number, plus one at each level where the level chart gives one, plus any arcane slot grants. For the guide's made-up sample character, before the trade below (only the slots with something in them, or from a grant, are shown here):
+Below it are the arcane items, with how many arcane slots are used. A character's arcane slots are the class's starting number, plus one at each level where the level chart gives one, plus any arcane slot grants. For the guide's made-up sample character, before the trade in the alert example below (only the slots with something in them, or from a grant, are shown here):
 
 <!-- generated: equipment-example -->
 ```text
@@ -80,7 +80,7 @@ Combat dice 1d20 + 1d6 (Moonlit Lantern)
 
 ## Over-limit alerts
 
-Losing a grant can leave a character with more equipped than it's now allowed: for example, trading the item that gave a second Back slot, moving a title to another character, or lowering the level. The app never unequips anything itself. Instead the character's page and its equipment page show an alert, naming the slot (or arcane slots), how many are equipped and allowed, and the grant that was lost where the app knows it. For the sample character, after trading the item that gave a second Back slot:
+Losing a grant can leave a character with more equipped than it's now allowed: for example, trading the item that gave a second Back slot, moving a title to another character, or lowering the level. The app never unequips anything itself. Instead the character's page and its equipment page show an alert, naming the slot (or arcane slots), how many are equipped and allowed, and the grant that was lost where the app knows it. For the sample character, after trading an item that gave an extra slot:
 
 <!-- generated: alert-example -->
 > Back: 2 equipped, 1 allowed. The extra slot came from Wayfarer's Sash, which you traded.

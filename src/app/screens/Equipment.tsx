@@ -15,6 +15,7 @@ import { BackTo, CharacterNotFound, Loading, useScreenData } from "./common";
  * are worked out from the sheet and the change that may have lost a grant, rather than read
  * again (NF-5). Once nothing is over its limit, store.alerts lets the store forget that
  * change, so a later alert never names it; that read happens only while it's still kept.
+ * A change from another phone between the reads shows at the next refresh.
  */
 export async function sheetWithAlerts(
   { store, ref }: Pick<Services, "store" | "ref">,
@@ -22,8 +23,8 @@ export async function sheetWithAlerts(
 ): Promise<{ sheet: CharacterSheet; alerts: OverLimitAlert[] }> {
   const [sheet, cause] = await Promise.all([store.sheet(id), store.lastChange(id)]);
   const alerts = overLimitAlerts(sheet, ref, cause);
-  // The store's own answer, which also forgets the cause, and catches a change made meanwhile.
-  if (alerts.length === 0 && cause) return { sheet, alerts: await store.alerts(id) };
+  // Only so the store forgets the cause. Its answer isn't shown: the page shows what this sheet says.
+  if (alerts.length === 0 && cause) await store.alerts(id);
   return { sheet, alerts };
 }
 
@@ -84,7 +85,7 @@ export function Equipment({ services, id }: { services: Services; id: string }) 
         <ul className="slots" aria-label="Paper doll">
           {state.kinds.flatMap((kind) =>
             kind.slots.map((slot, i) => {
-              // The same text the guide's example is made from (slotLine, DOC-4).
+              // The same words the guide's example uses (slotLine, DOC-4); the layout is the page's own.
               const { label, from, holds } = slotParts(slot);
               return (
                 <li key={label}>
