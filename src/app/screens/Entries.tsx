@@ -255,7 +255,7 @@ function EntryList({
             <a href={href(`characters/${entry.characterId}/entries/${entry.id}`)}>
               <strong className="name">{name}</strong>
             </a>
-            <span className="quantity">× {entry.quantity}</span>
+            <span className="quantity">Ã— {entry.quantity}</span>
             {equipped && <span className="tag">{entry.category === "allies" ? "Active" : "Equipped"}</span>}
             {/* An ally is made active in its own form, not equipped, so it has no targets. */}
             {equipTargets(entry).length > 0 && (
@@ -613,7 +613,7 @@ function EntryForm({
             label="Weapon group"
             value={f.weaponGroup}
             onChange={set("weaponGroup")}
-            suggestions={suggestions.weaponGroup}
+            suggestions={suggestions.weaponGroup ?? []}
           />
           <CountField
             label="Extra damage (hearts)"
@@ -646,7 +646,12 @@ function EntryForm({
       )}
       {category === "allies" && (
         <>
-          <TextField label="Type" value={f.allyType} onChange={set("allyType")} suggestions={suggestions.allyType} />
+          <TextField
+            label="Type"
+            value={f.allyType}
+            onChange={set("allyType")}
+            suggestions={suggestions.allyType ?? []}
+          />
           <CountField label="Hearts" value={f.hearts} onChange={set("hearts")} min={0} max={LIMITS.hearts} />
           <label className="check">
             <input type="checkbox" checked={f.active} onChange={(e) => set("active")(e.target.checked)} />
@@ -655,7 +660,7 @@ function EntryForm({
         </>
       )}
       {category === "components" && (
-        <TextField label="Tier" value={f.tier} onChange={set("tier")} suggestions={suggestions.componentTier} />
+        <TextField label="Tier" value={f.tier} onChange={set("tier")} suggestions={suggestions.componentTier ?? []} />
       )}
       {(category === "weapons" || category === "armor" || category === "items") && (
         <RarityField value={f.rarity} onChange={set("rarity")} ref={ref} />
@@ -664,7 +669,7 @@ function EntryForm({
         label="Item family"
         value={f.itemFamily}
         onChange={set("itemFamily")}
-        suggestions={suggestions.itemFamily}
+        suggestions={suggestions.itemFamily ?? []}
       />
       <label>
         Description
@@ -685,7 +690,7 @@ function EntryForm({
           label="Where it came from"
           value={f.source}
           onChange={set("source")}
-          suggestions={suggestions.acquisitionSource}
+          suggestions={suggestions.acquisitionSource ?? []}
         />
         <label>
           Link
@@ -717,7 +722,7 @@ function EntryForm({
 
 function details(entry: ItemEntry, ref: ReferenceData): [string, string][] {
   const rows: [string, string | undefined][] = [
-    ["Quantity", `× ${entry.quantity}`],
+    ["Quantity", `Ã— ${entry.quantity}`],
     ["Description", entry.description],
     ["Notes", entry.notes],
     ["Item family", entry.itemFamily],
@@ -1031,7 +1036,7 @@ function TradeForm({
         ...(who.trim() ? { note: who } : {}),
         ...(date ? { date } : {}),
       });
-      onDone(entry.quantity - count, `${kind === "traded" ? "Traded" : "Gave away"} ${count} × ${entry.name}.`);
+      onDone(entry.quantity - count, `${kind === "traded" ? "Traded" : "Gave away"} ${count} Ã— ${entry.name}.`);
     });
   };
 
