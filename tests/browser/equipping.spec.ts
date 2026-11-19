@@ -93,6 +93,16 @@ const slotRow = (page: Page, label: string) =>
     .getByRole("listitem")
     .filter({ has: page.getByText(label, { exact: true }) });
 
+/**
+ * What's in the paper doll's slots with these labels, sorted by name: EQ-5 doesn't say
+ * which item of a kind shows in which numbered slot.
+ */
+async function inSlots(page: Page, labels: string[]): Promise<string[]> {
+  const names: string[] = [];
+  for (const label of labels) names.push(...(await slotRow(page, label).locator(".name").allTextContents()));
+  return names.sort();
+}
+
 browserRule(
   { req: ["NF-1", "EQ-2", "EQ-4", "EQ-5", "IN-9"], m: "M4" },
   "armor is equipped in two taps from the character's page, shows in its slot, and is unequipped there",
@@ -284,7 +294,9 @@ browserRule(
     }
     await openFromCharacter(page, brin, /^Equipment/, "Equipment");
     await expect(slotRow(page, "Back 2"), "Brin's second Back slot").toContainText("from Wanderer's Belt");
-    await expect(slotRow(page, "Back 2"), "Brin's second Back slot").toContainText("Moth Cloak");
+    await expect
+      .poll(() => inSlots(page, ["Back", "Back 2"]), "the cloaks in Brin's two Back slots")
+      .toEqual(["Moth Cloak", "Spare Cloak"]);
 
     await openFromCharacter(page, brin, /^Armor/, "Armor");
     await openEntry(page, "Wanderer's Belt");
@@ -305,8 +317,9 @@ browserRule(
       "the alerts on Brin's equipment page",
     ).toHaveText([alert]);
     // EQ-8: the app unequips nothing itself.
-    await expect(slotRow(page, "Back"), "Brin's Back slot").toContainText("Spare Cloak");
-    await expect(slotRow(page, "Back 2"), "the Back slot that's over the limit").toContainText("Moth Cloak");
+    await expect
+      .poll(() => inSlots(page, ["Back", "Back 2"]), "the cloaks still in Brin's Back slots, one over the limit")
+      .toEqual(["Moth Cloak", "Spare Cloak"]);
 
     await openFromCharacter(page, brin, /^Armor/, "Armor");
     await tap(rowFor(page, "Dusk Cloak").getByRole("button", { name: "Equip Dusk Cloak" }), "Equip Dusk Cloak");
