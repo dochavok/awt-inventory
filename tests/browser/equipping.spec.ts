@@ -305,7 +305,13 @@ browserRule(
       page.getByRole("list", { name: "Over-limit alerts" }).getByRole("listitem"),
       "the alerts on Brin's page",
     ).toHaveText([alert]);
-    await openFromCharacter(page, brin, /^Equipment/, "Equipment");
+    // From the page already open: going to its own address again reloads it on iPhone (WebKit),
+    // and after a reload the alert no longer knows its cause (EQ-8, "where known").
+    await tap(
+      page.getByRole("navigation", { name: "Inventory" }).getByRole("link", { name: /^Equipment/ }),
+      "the link to Equipment",
+    );
+    await expect(page.getByRole("heading", { level: 1 }), "the Equipment screen").toHaveText("Equipment");
     await expect(
       page.getByRole("list", { name: "Over-limit alerts" }).getByRole("listitem"),
       "the alerts on Brin's equipment page",
