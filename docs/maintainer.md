@@ -64,10 +64,11 @@ request. Keeping the artifacts in step with the file afterwards is part of
 this task. The game's owner agreed (Q10) to the card text and the level chart's
 numbers being kept in this public repository; they remain the owner's (RD-8).
 
-Card text is shown in the app while `showSkillText` is `true` in
-`src/app/services.ts`. To turn it off (for example, if the owner withdraws
-agreement), set it to `false` and deploy: skills are then shown without their
-text, and the printable sheet can't include it (SK-2).
+Card text is shown in the app while `SHOW_SKILL_TEXT` is `true` in
+`src/app/settings.ts`. To turn it off (for example, if the owner withdraws
+agreement), set it to `false`, run `npm run docs:write` and deploy: skills are
+then shown without their text, and the printable sheet can't include it
+(SK-2).
 
 ## Managing the invite list
 
