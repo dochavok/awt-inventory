@@ -1,3 +1,323 @@
-# Each skill's unconditional grants and permissions, by skill ID (SK-7, RD-1).
-# Empty until the real skill list exists (see skills.yaml).
-[]
+# Unconditional grants and permissions of each skill (SK-7, RD-1), from the card
+# text in skills.yaml (2026-11-17). A grant with a `condition` is situational:
+# listed, never added to a total (GR-4). Within a `group` only the largest
+# grant counts (GR-1: holy-die, tactical-die, acrobatics-die, cm-vs-evil), and
+# a `die-always` grant makes the group's die count in the combat dice.
+- skill: weapon-use
+  grants:
+  - {id: sg-weapon-use-1, kind: permission, permission: weapon-use}
+- skill: ranged-weapon-use
+  grants:
+  - {id: sg-ranged-weapon-use-1, kind: permission, permission: ranged-weapon-use}
+- skill: ranged-training
+  grants:
+  - {id: sg-ranged-training-1, kind: cm, amount: 3, condition: when using a ranged weapon}
+- skill: attack-tactics
+  grants:
+  - {id: sg-attack-tactics-1, kind: cm, amount: 3}
+- skill: press
+  grants:
+  - {id: sg-press-1, kind: cm, amount: 4, condition: 1/combat}
+- skill: strength-training
+  grants:
+  - {id: sg-strength-training-1, kind: cm, amount: 2}
+  - {id: sg-strength-training-2, kind: effect, effect: cr-bonus, text: +2 to Strength-based Challenge Rolls}
+- skill: strength-conditioning
+  grants:
+  - {id: sg-strength-conditioning-1, kind: cm, amount: 2}
+  - {id: sg-strength-conditioning-2, kind: effect, effect: cr-bonus, text: +2 to Strength-based Challenge Rolls}
+- skill: strength-mastery
+  grants:
+  - {id: sg-strength-mastery-1, kind: cm, amount: 2}
+- skill: armor-use
+  grants:
+  - {id: sg-armor-use-1, kind: permission, permission: armor-use}
+- skill: defensive-tactics
+  grants:
+  - {id: sg-defensive-tactics-1, kind: cm, amount: 3}
+- skill: vigor
+  grants:
+  - {id: sg-vigor-1, kind: cm, amount: 2}
+  - {id: sg-vigor-2, kind: effect, effect: cr-bonus, text: +2 to Challenge Rolls to resist damage}
+- skill: resilience
+  grants:
+  - {id: sg-resilience-1, kind: cm, amount: 2}
+  - {id: sg-resilience-2, kind: effect, effect: cr-bonus, text: +2 to Challenge Rolls vs. afflictions}
+- skill: toughness
+  grants:
+  - {id: sg-toughness-1, kind: hearts, amount: 1}
+- skill: poise
+  grants:
+  - {id: sg-poise-1, kind: cm, amount: 2}
+- skill: true-guardian
+  grants:
+  - {id: sg-true-guardian-1, kind: mitigation, amount: 1, condition: vs physical damage}
+  - {id: sg-true-guardian-2, kind: effect, effect: resistance, text: 'Resistance: 1♥ vs physical damage'}
+- skill: dual-wielding
+  grants:
+  - {id: sg-dual-wielding-1, kind: permission, permission: dual-wielding}
+- skill: weapon-focus
+  grants:
+  - {id: sg-weapon-focus-1, kind: cm, amount: 3, condition: with the chosen weapon group}
+- skill: improved-weapon-focus
+  grants:
+  - {id: sg-improved-weapon-focus-1, kind: cm, amount: 2, condition: with the chosen weapon group}
+- skill: weapon-focus-mastery
+  grants:
+  - {id: sg-weapon-focus-mastery-1, kind: cm, amount: 2, condition: with the chosen weapon group}
+- skill: mage-screen
+  grants:
+  - {id: sg-mage-screen-1, kind: cm, amount: 2}
+- skill: mage-armor
+  grants:
+  - {id: sg-mage-armor-1, kind: cm, amount: 2}
+- skill: arcane-wisdom
+  grants:
+  - {id: sg-arcane-wisdom-1, kind: arcane-slots, amount: 1}
+- skill: power-surge
+  grants:
+  - {id: sg-power-surge-1, kind: cm, amount: 2, condition: 1/combat}
+- skill: power-blitz
+  grants:
+  - {id: sg-power-blitz-1, kind: cm, amount: 4, condition: 1/combat}
+- skill: power-overload
+  grants:
+  - {id: sg-power-overload-1, kind: cm, amount: 6, condition: 1/combat}
+- skill: nimble
+  grants:
+  - {id: sg-nimble-1, kind: cm, amount: 3}
+- skill: dodge
+  grants:
+  - {id: sg-dodge-1, kind: cm, amount: 4, condition: 1/combat}
+- skill: dodge-ii
+  grants:
+  - {id: sg-dodge-ii-1, kind: cm, amount: 6, condition: 1/combat}
+- skill: dodge-iii
+  grants:
+  - {id: sg-dodge-iii-1, kind: mitigation, amount: 1, condition: 1/combat}
+- skill: balance
+  grants:
+  - {id: sg-balance-1, kind: effect, effect: cr-bonus, text: +2 to Agility-based Challenge Rolls}
+- skill: war-magus
+  grants:
+  - {id: sg-war-magus-1, kind: cm, amount: 2}
+  - {id: sg-war-magus-2, kind: effect, effect: resistance, text: Epic Resistance vs. damage spells}
+- skill: arcane-shield
+  grants:
+  - {id: sg-arcane-shield-1, kind: mitigation, amount: 1, condition: '1/combat, vs damage from a spell, with a shield equipped'}
+- skill: magister-belli-et-magia
+  grants:
+  - {id: sg-magister-belli-et-magia-1, kind: hearts, amount: 1}
+- skill: battlecraze
+  grants:
+  - {id: sg-battlecraze-1, kind: cm, amount: 10, condition: '1/combat, and take 1♥ of damage'}
+- skill: bloodrage
+  grants:
+  - {id: sg-bloodrage-1, kind: cm, amount: 2, condition: if below full health}
+- skill: bloodrage-ii
+  grants:
+  - {id: sg-bloodrage-ii-1, kind: cm, amount: 4, condition: if using berserk while below full health}
+- skill: bloodrage-iii
+  grants:
+  - {id: sg-bloodrage-iii-1, kind: cm, amount: 6, condition: if using berserk while below full health}
+- skill: vow-of-knighthood
+  grants:
+  - {id: sg-vow-of-knighthood-1, kind: cm, amount: 2, condition: vs. Evil, group: cm-vs-evil}
+  - {id: sg-vow-of-knighthood-2, kind: die, die: 1d4, condition: when a skill adds the Holy Die (e.g. Smite), group: holy-die}
+- skill: devotion-i-holy-knight
+  grants:
+  - {id: sg-devotion-i-holy-knight-1, kind: cm, amount: 4, condition: vs. Evil, group: cm-vs-evil}
+  - {id: sg-devotion-i-holy-knight-2, kind: die, die: 1d6, condition: when a skill adds the Holy Die (e.g. Smite), group: holy-die}
+- skill: devotion-ii-holy-knight
+  grants:
+  - {id: sg-devotion-ii-holy-knight-1, kind: cm, amount: 6, condition: vs. Evil, group: cm-vs-evil}
+  - {id: sg-devotion-ii-holy-knight-2, kind: die, die: 1d8, condition: when a skill adds the Holy Die (e.g. Smite), group: holy-die}
+- skill: devotion-iii-holy-knight
+  grants:
+  - {id: sg-devotion-iii-holy-knight-1, kind: cm, amount: 8, condition: vs. Evil, group: cm-vs-evil}
+  - {id: sg-devotion-iii-holy-knight-2, kind: die, die: 1d10, condition: when a skill adds the Holy Die (e.g. Smite), group: holy-die}
+- skill: sanctify-weapon
+  grants:
+  - {id: sg-sanctify-weapon-1, kind: cm, amount: 4, condition: '1/combat, vs. Evil foes, with the sanctified weapon'}
+- skill: holy-aura
+  grants:
+  - {id: sg-holy-aura-1, kind: effect, effect: cr-bonus, text: '+2 vs. fear effects, for allies in your aura'}
+- skill: bolstering-aura
+  grants:
+  - {id: sg-bolstering-aura-1, kind: cm, amount: 2, condition: for allies in your aura}
+- skill: champion-of-light
+  grants:
+  - {id: sg-champion-of-light-1, kind: effect, effect: resistance, text: Resistance vs. damage from Evil sources}
+- skill: ranged-master
+  grants:
+  - {id: sg-ranged-master-1, kind: cm, amount: 8, condition: with ranged weapons}
+- skill: good-grouping
+  grants:
+  - {id: sg-good-grouping-1, kind: cm, amount: 3, condition: '1/combat, vs a foe you damaged the previous round'}
+- skill: footwork
+  grants:
+  - {id: sg-footwork-1, kind: die, die: 1d8, condition: '1/combat, added as CM (Defence)'}
+- skill: master-balance
+  grants:
+  - {id: sg-master-balance-1, kind: die-always, group: acrobatics-die}
+- skill: acrobatics-i
+  grants:
+  - {id: sg-acrobatics-i-1, kind: die, die: 1d4, condition: '1/combat, added to CM (Defence); more uses with Balance II and III', group: acrobatics-die}
+- skill: acrobatics-ii
+  grants:
+  - {id: sg-acrobatics-ii-1, kind: die, die: 1d6, condition: '1/combat, added to CM (Defence); more uses with Balance II and III', group: acrobatics-die}
+- skill: acrobatics-iii
+  grants:
+  - {id: sg-acrobatics-iii-1, kind: die, die: 1d8, condition: '1/combat, added to CM (Defence); more uses with Balance II and III', group: acrobatics-die}
+- skill: reflexes
+  grants:
+  - {id: sg-reflexes-1, kind: mitigation, amount: 1, condition: '1/combat, vs elemental damage'}
+- skill: legendary-grace
+  grants:
+  - {id: sg-legendary-grace-1, kind: effect, effect: cr-bonus, text: +5 to Agility-based Challenge Rolls}
+- skill: recon
+  grants:
+  - {id: sg-recon-1, kind: cm, amount: 4, condition: vs your mark}
+- skill: drain-life
+  grants:
+  - {id: sg-drain-life-1, kind: cm, amount: 5, condition: 1/combat}
+- skill: drain-life-ii
+  grants:
+  - {id: sg-drain-life-ii-1, kind: cm, amount: 5, condition: 1/combat}
+- skill: drain-life-iii
+  grants:
+  - {id: sg-drain-life-iii-1, kind: cm, amount: 5, condition: 1/combat}
+- skill: deflect
+  grants:
+  - {id: sg-deflect-1, kind: die, die: 1d4, condition: '1/combat, added to CM (Defence)'}
+- skill: ward
+  grants:
+  - {id: sg-ward-1, kind: die, die: 1d8, condition: '1/combat, added to CM (Defence)'}
+- skill: forcedome
+  grants:
+  - {id: sg-forcedome-1, kind: die, die: 1d12, condition: '1/combat, added to CM (Defence)'}
+- skill: fast-talk
+  grants:
+  - {id: sg-fast-talk-1, kind: effect, effect: cr-bonus, text: +2 to Charisma-based Challenge Rolls}
+- skill: holy-vow
+  grants:
+  - {id: sg-holy-vow-1, kind: cm, amount: 2, condition: vs. Evil, group: cm-vs-evil}
+  - {id: sg-holy-vow-2, kind: die, die: 1d4, condition: when a skill adds the Holy Die (e.g. Smite), group: holy-die}
+- skill: devotion-i-cleric
+  grants:
+  - {id: sg-devotion-i-cleric-1, kind: cm, amount: 4, condition: vs. Evil, group: cm-vs-evil}
+  - {id: sg-devotion-i-cleric-2, kind: die, die: 1d6, condition: when a skill adds the Holy Die (e.g. Smite), group: holy-die}
+- skill: devotion-ii-cleric
+  grants:
+  - {id: sg-devotion-ii-cleric-1, kind: cm, amount: 6, condition: vs. Evil, group: cm-vs-evil}
+  - {id: sg-devotion-ii-cleric-2, kind: die, die: 1d8, condition: when a skill adds the Holy Die (e.g. Smite), group: holy-die}
+- skill: devotion-iii-cleric
+  grants:
+  - {id: sg-devotion-iii-cleric-1, kind: cm, amount: 8, condition: vs. Evil, group: cm-vs-evil}
+  - {id: sg-devotion-iii-cleric-2, kind: die, die: 1d10, condition: when a skill adds the Holy Die (e.g. Smite), group: holy-die}
+- skill: protection-from-evil
+  grants:
+  - {id: sg-protection-from-evil-1, kind: cm, amount: 4, condition: '1/combat, vs Evil'}
+- skill: evil-bane
+  grants:
+  - {id: sg-evil-bane-1, kind: cm, amount: 4, condition: '1/combat, vs Evil, for up to 6 allies'}
+- skill: privilege-of-rank-lieutenant
+  grants:
+  - {id: sg-privilege-of-rank-lieutenant-1, kind: die, die: 1d4, condition: when added to your combat roll (or an ally's), group: tactical-die}
+- skill: rank-captain
+  grants:
+  - {id: sg-rank-captain-1, kind: die, die: 1d6, condition: when added to your combat roll (or an ally's), group: tactical-die}
+- skill: rank-major
+  grants:
+  - {id: sg-rank-major-1, kind: die, die: 1d8, condition: when added to your combat roll (or an ally's), group: tactical-die}
+- skill: rank-brigadier
+  grants:
+  - {id: sg-rank-brigadier-1, kind: die, die: 1d10, condition: when added to your combat roll (or an ally's), group: tactical-die}
+- skill: why-we-train
+  grants:
+  - {id: sg-why-we-train-1, kind: effect, effect: cr-bonus, text: +1 to all Challenge Rolls}
+- skill: poison-adept
+  grants:
+  - {id: sg-poison-adept-1, kind: effect, effect: resistance, text: 'Resistance: poison'}
+- skill: poison-master
+  grants:
+  - {id: sg-poison-master-1, kind: effect, effect: resistance, text: 'Epic Resistance: poison'}
+- skill: man-vs-beast
+  grants:
+  - {id: sg-man-vs-beast-1, kind: mitigation, amount: 2, condition: vs Creatures}
+- skill: immovable-object
+  grants:
+  - {id: sg-immovable-object-1, kind: effect, effect: cr-bonus, text: +10 to Strength Rolls}
+- skill: unstoppable-force
+  grants:
+  - {id: sg-unstoppable-force-1, kind: effect, effect: cr-bonus, text: +10 to Strength Rolls}
+- skill: constitution
+  grants:
+  - {id: sg-constitution-1, kind: effect, effect: cr-bonus, text: +10 to CRs if it will hurt}
+- skill: holy-defense
+  grants:
+  - {id: sg-holy-defense-1, kind: mitigation, amount: 3, condition: vs Necrotic and Unholy damage}
+- skill: second-skin
+  grants:
+  - {id: sg-second-skin-1, kind: effect, effect: cr-bonus, text: +10 to Dexterity-based CRs}
+- skill: divine-crest
+  grants:
+  - {id: sg-divine-crest-1, kind: mitigation, amount: 2, condition: while wearing armor}
+- skill: aura-of-defense
+  grants:
+  - {id: sg-aura-of-defense-1, kind: effect, effect: cr-bonus, text: '+5 to CRs if it would hurt, for all allies'}
+- skill: pure-devotion
+  grants:
+  - {id: sg-pure-devotion-1, kind: die, die: 1d12, condition: when a skill adds the Holy Die (e.g. Smite), group: holy-die}
+- skill: aura-of-hope
+  grants:
+  - {id: sg-aura-of-hope-1, kind: cm, amount: 10, condition: for all allies}
+- skill: divine-instrument
+  grants:
+  - {id: sg-divine-instrument-1, kind: die, die: 1d20, condition: when a skill adds the Holy Die (e.g. Smite), group: holy-die}
+  - {id: sg-divine-instrument-2, kind: die-always, group: holy-die}
+- skill: rank-commandant
+  grants:
+  - {id: sg-rank-commandant-1, kind: die, die: 1d12, condition: when added to your combat roll (or an ally's), group: tactical-die}
+- skill: commanding-presence
+  grants:
+  - {id: sg-commanding-presence-1, kind: cm, amount: 5, condition: for all allies in the same range as you}
+- skill: inspiring-presence
+  grants:
+  - {id: sg-inspiring-presence-1, kind: effect, effect: cr-bonus, text: '+5 to all CRs, for allies (does not stack)'}
+- skill: situational-awareness
+  grants:
+  - {id: sg-situational-awareness-1, kind: effect, effect: cr-bonus, text: +3 to CRs vs enemies in stealth or hiding}
+- skill: battle-senses
+  grants:
+  - {id: sg-battle-senses-1, kind: effect, effect: cr-bonus, text: +5 to CRs for perception}
+- skill: rank-commander-and-chief
+  grants:
+  - {id: sg-rank-commander-and-chief-1, kind: die, die: 1d20, condition: when added to your combat roll (or an ally's), group: tactical-die}
+- skill: poison-identification
+  grants:
+  - {id: sg-poison-identification-1, kind: effect, effect: cr-bonus, text: +10 to CRs to identify poisons}
+- skill: built-up-immunity
+  grants:
+  - {id: sg-built-up-immunity-1, kind: effect, effect: immunity, text: 'Immunity: poison'}
+- skill: silver-tongue
+  grants:
+  - {id: sg-silver-tongue-1, kind: effect, effect: cr-bonus, text: +5 to communication-based CRs}
+- skill: connoisseur-of-coin
+  grants:
+  - {id: sg-connoisseur-of-coin-1, kind: cm, amount: 30, condition: '1/combat, by trading 10z'}
+- skill: phylactery
+  grants:
+  - {id: sg-phylactery-1, kind: effect, effect: resistance, text: 'Resistance: necrotic and evil damage'}
+- skill: undead-resistance
+  grants:
+  - {id: sg-undead-resistance-1, kind: mitigation, amount: 2, condition: vs Necrotic and Evil sources}
+- skill: elemental-protection
+  grants:
+  - {id: sg-elemental-protection-1, kind: mitigation, amount: 2, condition: vs elements you know}
+- skill: devotion-4
+  grants:
+  - {id: sg-devotion-4-1, kind: die, die: 1d12, condition: when a skill adds the Holy Die (e.g. Smite), group: holy-die}
+- skill: devotion-5
+  grants:
+  - {id: sg-devotion-5-1, kind: die, die: 1d20, condition: when a skill adds the Holy Die (e.g. Smite), group: holy-die}

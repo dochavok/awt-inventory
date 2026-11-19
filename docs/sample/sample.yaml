@@ -2,7 +2,8 @@
 # scripts/generate-docs.ts builds this account with the app's own code and
 # writes its output into the guide's pages; `npm run docs:write` regenerates
 # them after a change here or in the app. Kept apart from the test fixtures.
-# Nothing here is from the game: the skill is the placeholder list's (RD-8).
+# Everything is made up except the skill, which is from the real skill list in
+# data/ (RD-8).
 
 # When the sample account is made, in UTC.
 at: "2026-05-02T18:00:00.000Z"
@@ -31,7 +32,7 @@ entries:
     used:
       note: At the made-up river crossing
 skills:
-  - skillId: placeholder-mage-skill
+  - skillId: find-familiar
     howGained: starting
     levelGained: 1
 titles:

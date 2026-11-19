@@ -83,7 +83,7 @@ export interface SkillView {
   tree: string;
   usage: string;
   tier: SkillTier;
-  /** Only when the game's owner has agreed (SK-2, Q10). */
+  /** Only while card text is turned on (SK-2). */
   text?: string;
   howGained: HowGained;
   levelGained: number;

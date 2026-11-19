@@ -48,8 +48,8 @@ rule({ req: ["SK-3"], m: "M2" }, "a skill that warns is still added", async () =
 });
 
 rule(
-  { req: ["SK-2", "RD-8"], q: ["Q10"], m: "M2" },
-  "a skill shows its name, tree, usage and tier, and no card text until the owner agrees",
+  { req: ["SK-2"], m: "M2" },
+  "with card text turned off in the app's settings, a skill shows its name, tree, usage and tier without the text",
   async () => {
     const w = world({ showSkillText: false });
     const cass = w.as("cass");
@@ -58,13 +58,13 @@ rule(
     await cass.addSkill(brin.character.id, { skillId: "veil", howGained: "level-up", levelGained: 8 });
     const veil = (await cass.skills(brin.character.id)).find((s) => s.skillId === "veil");
     expect(veil, "Brin's Veil").toMatchObject({ name: "Veil", tree: "Shadowcraft", usage: "1/combat", tier: "epic" });
-    expect(veil?.text, "Veil's card text without the owner's agreement").toBeUndefined();
+    expect(veil?.text, "Veil's card text, turned off").toBeUndefined();
   },
 );
 
 rule(
-  { req: ["SK-2"], q: ["Q10"], m: "M2" },
-  "once the owner agrees, the card text from the skill list is shown",
+  { req: ["SK-2"], m: "M2" },
+  "with card text turned on, a skill shows its card text from the skill list",
   async () => {
     const w = world({ showSkillText: true });
     const cass = w.as("cass");

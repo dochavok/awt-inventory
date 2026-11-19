@@ -100,7 +100,7 @@ export function buildSheet(
             usage: skill?.usage ?? "",
             tier: skill?.tier ?? "normal",
           };
-          // Card text only when ticked, and only once the game's owner has agreed (EX-1, SK-2).
+          // Card text only when ticked, and only while card text is turned on (EX-1, SK-2).
           if (options.includeSkillText && options.showSkillText && skill?.text !== undefined) line.text = skill.text;
           return line;
         })
@@ -142,11 +142,13 @@ class Writer {
   page!: PDFPage;
   y = 0;
   readonly pages: PDFPage[] = [];
+  /** fontFor's answers, by the text's font and then the character. */
+  private readonly chosen = new Map<PDFFont, Map<string, PDFFont | undefined>>();
 
   constructor(
     private readonly doc: PDFDocument,
     private readonly size: readonly [number, number],
-    private readonly fonts: { regular: PDFFont; bold: PDFFont },
+    private readonly fonts: { regular: PDFFont; bold: PDFFont; symbol: PDFFont },
   ) {}
 
   newPage(): void {
@@ -159,16 +161,51 @@ class Writer {
     if (this.y - height < MARGIN + LINE * 2) this.newPage();
   }
 
-  /** Text the standard fonts can't draw becomes "?", so a character's odd symbol never stops the sheet. */
+  /**
+   * The pieces of a line, each with the font that draws it: the text's own font, or the
+   * standard Symbol font for what only it has, such as the ♥ in card text.
+   */
+  private runs(line: string, font: PDFFont): { text: string; font: PDFFont }[] {
+    const runs: { text: string; font: PDFFont }[] = [];
+    for (const ch of line) {
+      const chFont = this.fontFor(ch, font) ?? font;
+      const last = runs[runs.length - 1];
+      if (last?.font === chFont) last.text += ch;
+      else runs.push({ text: ch, font: chFont });
+    }
+    return runs;
+  }
+
+  private width(line: string, font: PDFFont, size: number): number {
+    return this.runs(line, font).reduce((sum, run) => sum + run.font.widthOfTextAtSize(run.text, size), 0);
+  }
+
+  private draw(page: PDFPage, line: string, at: { x: number; y: number; size: number; font: PDFFont; grey?: boolean }) {
+    let x = at.x;
+    const color = at.grey ? rgb(0.3, 0.3, 0.3) : rgb(0, 0, 0);
+    for (const run of this.runs(line, at.font)) {
+      page.drawText(run.text, { x, y: at.y, size: at.size, font: run.font, color });
+      x += run.font.widthOfTextAtSize(run.text, at.size);
+    }
+  }
+
+  /** Which font draws a character: the text's own, else Symbol, else none. Worked out once per font and character. */
+  private fontFor(ch: string, font: PDFFont): PDFFont | undefined {
+    let known = this.chosen.get(font);
+    if (!known) this.chosen.set(font, (known = new Map()));
+    if (!known.has(ch))
+      known.set(
+        ch,
+        [font, this.fonts.symbol].find((f) => encodes(f, ch)),
+      );
+    return known.get(ch);
+  }
+
+  /** Text no standard font can draw becomes "?", so a character's odd symbol never stops the sheet. */
   private drawable(text: string, font: PDFFont): string {
     let out = "";
     for (const ch of text.replace(/→/g, "->").replace(/×/g, "x").replace(/\t/g, " ")) {
-      try {
-        font.widthOfTextAtSize(ch, BODY);
-        out += ch;
-      } catch {
-        out += "?";
-      }
+      out += this.fontFor(ch, font) ? ch : "?";
     }
     return out;
   }
@@ -181,7 +218,7 @@ class Writer {
       let line = "";
       for (const word of paragraph.split(" ")) {
         const next = line === "" ? word : `${line} ${word}`;
-        if (line !== "" && font.widthOfTextAtSize(next, size) > width) {
+        if (line !== "" && this.width(next, font, size) > width) {
           lines.push(line);
           line = word;
         } else line = next;
@@ -200,16 +237,27 @@ class Writer {
     for (const line of this.wrap(text, font, size, indent)) {
       this.room(height);
       this.y -= height;
-      this.page.drawText(line, { x: MARGIN + indent, y: this.y, size, font, color: rgb(0, 0, 0) });
+      this.draw(this.page, line, { x: MARGIN + indent, y: this.y, size, font });
     }
   }
 
   footer(text: string): void {
     const total = this.pages.length;
+    const font = this.fonts.regular;
     this.pages.forEach((page, i) => {
-      const line = this.drawable(`${text} · Page ${i + 1} of ${total}`, this.fonts.regular);
-      page.drawText(line, { x: MARGIN, y: MARGIN / 2, size: 9, font: this.fonts.regular, color: rgb(0.3, 0.3, 0.3) });
+      const line = this.drawable(`${text} · Page ${i + 1} of ${total}`, font);
+      this.draw(page, line, { x: MARGIN, y: MARGIN / 2, size: 9, font, grey: true });
     });
+  }
+}
+
+/** Whether a standard font can draw a character (its encoding has it). */
+function encodes(font: PDFFont, ch: string): boolean {
+  try {
+    font.widthOfTextAtSize(ch, BODY);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -220,6 +268,7 @@ export async function renderPdf(sheet: SheetDocument, options: PrintOptions): Pr
   const fonts = {
     regular: await doc.embedFont(StandardFonts.Helvetica),
     bold: await doc.embedFont(StandardFonts.HelveticaBold),
+    symbol: await doc.embedFont(StandardFonts.Symbol),
   };
   const w = new Writer(doc, PAPER[options.paper], fonts);
   if (sheet.characters.length === 0) {

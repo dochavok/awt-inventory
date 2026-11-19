@@ -1,6 +1,6 @@
 # Search and export
 
-reviewed: 2026-11-13
+reviewed: 2026-11-18
 
 ## Search
 
@@ -20,7 +20,7 @@ A category's list can be filtered by rarity and by item family. The filters offe
 
 Tap **Print or export** on a character's page or on your account page. Choose one character, or all characters that aren't retired, and Letter or A4 paper, then tap **Create PDF** and **Save**.
 
-The sheet shows each character's name, class and level, what's equipped, every category with quantities, skills with their usage and tier, titles, and notes. Each character starts on a new page. Tick **include skill text** to add the skills' card text, once the skill list has it. Every page shows when the sheet was made, so an old copy is easy to spot.
+The sheet shows each character's name, class and level, what's equipped, every category with quantities, skills with their usage and tier, titles, and notes. Each character starts on a new page. Tick **include skill text** to add the skills' card text. Every page shows when the sheet was made, so an old copy is easy to spot.
 
 Save the PDF to your phone's files (on iPhone, the Files app) to open it later without signal. It prints on Letter or A4 paper. The sheet is made on your phone, so it works without signal too.
 
@@ -73,6 +73,15 @@ The export of a made-up character, Mirela, with a lantern found on a quest, one 
           "characterId": "c1"
         },
         {
+          "id": "e10",
+          "characterId": "c1",
+          "category": "skills",
+          "skillId": "find-familiar",
+          "howGained": "starting",
+          "levelGained": 1,
+          "quantity": 1
+        },
+        {
           "category": "items",
           "name": "Moonlit Lantern",
           "quantity": 1,
@@ -82,15 +91,6 @@ The export of a made-up character, Mirela, with a lantern found on a quest, one 
           "arcane": true,
           "id": "e2",
           "characterId": "c1"
-        },
-        {
-          "id": "e10",
-          "characterId": "c1",
-          "category": "skills",
-          "skillId": "placeholder-mage-skill",
-          "howGained": "starting",
-          "levelGained": 1,
-          "quantity": 1
         }
       ],
       "equipped": [],
@@ -103,10 +103,10 @@ The export of a made-up character, Mirela, with a lantern found on a quest, one 
           "event": "acquired",
           "date": "2026-05-02T18:00:00.000Z",
           "entryId": "e10",
-          "entryName": "Placeholder Mage skill",
+          "entryName": "Find Familiar",
           "category": "skills",
           "quantity": 1,
-          "summary": "Acquired 1 × Placeholder Mage skill"
+          "summary": "Acquired 1 × Find Familiar"
         },
         {
           "id": "h8",

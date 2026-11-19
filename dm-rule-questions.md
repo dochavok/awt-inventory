@@ -1,6 +1,6 @@
 # AWT Inventory: Questions for the DMs
 
-**For:** the AWT DMs, and the game's owner (Q10).
+**For:** the AWT DMs, and the game's owner (Q10, Q13).
 **From:** Craig, for the AWT Inventory app.
 
 There's no rulebook yet, so a few rules the app needs to follow are unclear. Each question below says why the app needs to know. Short answers are fine. Until a question is answered, the app either leaves the rule out or only warns.
@@ -65,7 +65,19 @@ The app lets players pick their skills and spells from the game's list, and it w
 - May the skill and spell text be kept in the public repository?
 - May the level chart's numbers be kept in the public repository?
 
-Until you answer, none of this goes into the public repository.
+**Answer (the game's owner, 2026-11-17): yes to all three.** The app may show the card text, and the text and the level chart may be kept in the public repository.
+
+## The skill sheets and the level chart
+
+While the app's level chart and skill list were built from the printed sheets (November 2026), a few places could be read more than one way. Until you answer, the app follows the reading given with each question.
+
+**Q13. Is the Warrior Combat Bonus at levels 73 to 75 +83?** The chart prints +81, but every step since level 52 is +4 (… +75, +79). The app uses +83.
+
+**Q14. Should these different skills share a name?** Turn Undead (Holy Knight and Cleric), Transmutation (Worldshaper and Alchemist), Elemental Mastery (Sorcerer and Elementalist), and Devotion I, II and III (Holy Knight and Cleric) each name two cards with different effects. The app keeps them as separate skills, with the tree in brackets, e.g. "Turn Undead (Cleric)".
+
+**Q15. Does the Cutthroat tree need level 51?** It's a prestige tree, but its sheet doesn't say "Level 51" like the others. The app uses 51.
+
+**Q16. Which Thief skill does Acquisitions Agent need?** It needs "a Thief Tree Epic Skill", but no Thief skill is marked Epic. For now the app uses Guild Connections, the Thief tree's last card. Which skill should it be, or should one be marked Epic?
 
 ## Numbers not used
 

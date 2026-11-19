@@ -27,7 +27,7 @@ DMs sometimes allow these, so the decision is yours. See [Troubleshooting](troub
 
 ## What's shown
 
-Each of a character's skills shows its name, tree (every tree, for a skill in several), usage (passive, 1/combat, 1/day…) and tier, from the skill list, with your own fields.
+Each of a character's skills shows its name, tree (every tree, for a skill in several), usage (passive, 1/combat, 1/day…), tier and card text, from the skill list, with your own fields. The card text is the game's own, shown with the game owner's agreement.
 
 ## Removing a skill
 

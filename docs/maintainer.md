@@ -57,12 +57,24 @@ every file (RD-4). An entry leaving the game is marked `retired: true`, never
 deleted (RD-3). Raising the level cap means adding rows to `level-chart.yaml`
 (RD-5).
 
-The skill list (`data/skills.yaml`) is the app's own source once built (RD-6).
-To rebuild it from the Warrior, Rogue and Mage artifacts, clean up their
-unclear prerequisites, tiers and text first, then write the YAML by pull
-request. Keeping the artifacts in step with the file afterwards is part of
-this task. No game text or level chart numbers go into this public repository
-until the game's owner agrees (RD-8, Q10).
+The skill list (`data/skills.yaml`) is the app's own source (RD-6): it was
+built on 2026-11-17 from the updated skill sheets. Change a skill there, by
+pull request, never by rebuilding it from the Warrior, Rogue and Mage
+artifacts: they still show the older sheets. Keeping the artifacts in step
+with the file is a separate task. The game's owner agreed (Q10) to the card text and the level chart's
+numbers being kept in this public repository; they remain the owner's (RD-8).
+
+Card text is shown in the app while `SHOW_SKILL_TEXT` is `true` in
+`src/app/settings.ts`. To turn it off (for example, if the owner withdraws
+agreement), set it to `false` and deploy: skills are then shown without their
+text, and the printable sheet can't include it (SK-2). In the same pull
+request, update the guide pages that promise card text (`docs/skills.md`,
+`docs/search-and-export.md`). The browser test "a skill taken shows its card
+text from the skill list" (SK-2) then fails, and CI blocks the deploy, so
+change SK-2 and that test first, by the test-change rule (TF-6). Turning it
+off only hides the text: if the owner
+also wants the game content out of this repository, that changes RD-8, so
+agree the requirement first (the browser tests read skills from `data/`).
 
 ## Managing the invite list
 

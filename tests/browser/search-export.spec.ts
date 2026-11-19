@@ -495,16 +495,19 @@ browserRule(
 // ---------------------------------------------------------------- after review (EX-1, NF-3)
 
 browserRule(
-  { req: ["EX-1", "SK-2"], q: ["Q10"], m: "M3" },
-  "include skill text can't be ticked while the skill list has no card text the app may show",
+  { req: ["EX-1", "SK-2"], m: "M3" },
+  "include skill text can be ticked, since card text is turned on and the skill list has it",
   async ({ page }) => {
     await signUp(page);
     const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
     await page.goto(`/#/export/${wren}`);
     const form = sheetForm(page);
     await expect(form, "the printable sheet form").toBeVisible();
-    await expect(form.getByLabel("Include skill text"), "the skill text tick box").toBeDisabled();
-    await expect(form, "why it can't be ticked").toContainText(/no card text/i);
+    const box = form.getByLabel("Include skill text");
+    await expect(box, "the skill text tick box").toBeEnabled();
+    await expect(form, "the hint shown only without card text").not.toContainText(/no card text/i);
+    await box.check();
+    await expect(box, "the skill text tick box, ticked").toBeChecked();
   },
 );
 

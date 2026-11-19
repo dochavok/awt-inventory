@@ -55,7 +55,7 @@ AWT terms shared with the other AWT projects (Faire day, Class, Hearts, CM, CR, 
 | **Mitigation** | Hearts of damage taken off each hit in combat. Grants from all sources add up. |
 | **Combat dice** | The dice a character rolls in combat: the level chart's dice, plus any extra dice from grants, each listed with its source. |
 | **Title** | An honour from the game, with a name and a description. **Player-level** by default (applies to all of the user's characters). Can be made **character-level** (applies to one character). A Patreon tier is recorded as a title. |
-| **Skill list** | The game's skills and spells, kept as reference data in the repository. It was built from the maintainer's skill and spell artifacts and is now the app's own source (RD-6). Skills are picked from it, never typed in. |
+| **Skill list** | The game's skills and spells, kept as reference data in the repository. It was built from the game's skill and spell sheets and is now the app's own source (RD-6). Skills are picked from it, never typed in. |
 | **Item family** | An optional group that an item belongs to by origin or theme, across categories, e.g. Passion (made by Will Passion) or Glizzy. Typed by the player, so not a fixed list. Called *item class* in the bonus bot. |
 | **Weapon group** | The kind of weapon, e.g. Sword, Dagger, Bow. The term Weapon Focus uses. |
 | **Component tier** | A crafting component's tier, usually Minor, Major, Epic or Legendary, but typed by the player, since tiers are sometimes made up. Unrelated to item rarity. |
@@ -178,13 +178,13 @@ Lost and broken entries are for later (section 18).
 
 ## 6. Skills and the Skill List
 
-Skills and spells aren't typed in. They're picked from the skill list in the reference data, which was built from the maintainer's Warrior, Rogue and Mage artifacts (RD-6). In this section, "skill" covers spells too.
+Skills and spells aren't typed in. They're picked from the skill list in the reference data, which was built from the game's skill and spell sheets (RD-6). In this section, "skill" covers spells too.
 
 **SK-1 · Must · M2: Adding a skill.** The user picks a skill from the skill list, searching by name. By default the list shows the trees open to the character's class; the user can switch to all trees. The user also records **How gained** (Starting, Level-up, Quest, Trained under the old system, or Other), **Level gained**, and optional notes.
 
 **SK-1a · Must · M2: Available skills first.** The picker first offers the skills the character can take **now**: those whose prerequisites are all on the character, in a tree the character's class and level allow, and not already taken as often as allowed. Starting skills of the character's own trees count as available. Every other skill is listed below them, under a separate heading, and choosing one gives the warnings in SK-3. A skill in several trees is listed once. It's available if any of its trees allows it as above.
 
-**SK-2 · Must · M2: What's shown.** A character's skill shows its name, tree (every tree, for a skill in several), usage (passive, 1/combat, 1/day, task…), tier (normal, Epic, Legendary) and card text, all from the skill list, plus the user's own fields. Card text is shown only if the game's owner agrees (Q10). Otherwise, the name, tree and tags are shown without the text.
+**SK-2 · Must · M2: What's shown.** A character's skill shows its name, tree (every tree, for a skill in several), usage (passive, 1/combat, 1/day, task…), tier (normal, Epic, Legendary) and card text, all from the skill list, plus the user's own fields. The game's owner has agreed to the card text being shown (Q10). A skill with no card text in the list is shown without it. The maintainer can turn card text off in the app's settings (for example, if the owner withdraws agreement); skills are then shown without it.
 
 **SK-3 · Must · M2: Warnings, not blocks.** When the user adds a skill, the app warns, but still allows it, if:
 
@@ -442,11 +442,11 @@ Invalid data can't be deployed.
 
 **RD-5 · Must · M2: The level cap.** The highest level a character can have is the highest level in the level chart. Raising the cap (e.g. to 100) means adding rows to the chart, with no change to code or requirements. A chart change never lowers a character's level.
 
-**RD-6 · Must · M2: The skill list is the app's own data.** The skill list is built from the maintainer's Warrior, Rogue and Mage artifacts, after their unclear prerequisites are cleaned up. From then on, the skill list file in the repository is the app's source: changes to skills are made there, by pull request. Keeping the artifacts in step with it is a maintainer task.
+**RD-6 · Must · M2: The skill list is the app's own data.** The skill list was built from the game's skill and spell sheets (2026-11-17); what stayed unclear was asked of the DMs or recorded as maintainer notes (RD-7). The skill list file in the repository is the app's source: changes to skills are made there, by pull request. Keeping the maintainer's Warrior, Rogue and Mage artifacts in step with it is a maintainer task.
 
 **RD-7 · Must · M2: Unclear entries.** Anything still unclear in a skill after the clean-up is recorded as a maintainer note in the skill list. It isn't shown to players: the app shows the skill as recorded.
 
-**RD-8 · Must · M2: Game content in the public repository.** The repository is public, and its licence doesn't cover the game's content. Until the game's owner agrees (Q10), nothing from the game is committed: no skill or spell card text, and no level chart numbers. Tests are unaffected, since they use their own made-up reference data (TF-3). If the owner agrees to the app showing the text but not to publishing it, the text is kept out of the repository and loaded into the app another way, to be decided then.
+**RD-8 · Must · M2: Game content in the public repository.** The repository is public, and its licence doesn't cover the game's content. The game's owner has agreed (Q10) that the app may show the skill and spell card text, and that the card text and the level chart's numbers may be kept in this repository. They remain the owner's. Tests use their own made-up reference data (TF-3), except the browser tests, which run on the real data and read what they need from it, never naming a real skill or number (TF-13).
 
 ## 14. Non-Functional Requirements
 
@@ -458,7 +458,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 
 **NF-3 · Must · M3: Working offline.**
 
-- After a user has opened the app with signal on a phone, everything in their account stays on that phone. Without signal they can view, search and export it, and make any change. Changes sync when signal returns.
+- After a user has opened the app with signal on a phone, and it has finished storing itself there, everything in their account stays on that phone. Without signal they can view, search and export it, and make any change. Changes sync when signal returns.
 - If two devices change the same field while offline, the change made later wins, whichever phone gets signal first. Quantity changes are combined (one *used* on each of two phones means two fewer). History records from both are kept. If that takes a quantity below 0 (two phones each use the last one), the entry counts as gone, as at 0, and restoring a use brings it back with 1. If two phones each create a character with the same name while offline, or rename one to the same name, the one that reaches the server first is kept. The other is refused when its phone gets signal, together with anything added to it on that phone, and the app tells the user which character was refused. A clash that leaves too much equipped shows the over-limit alert (EQ-8).
 - These need signal: signing in on a new device, creating an account, and browsing trade listings (later). Reports written offline are sent when signal returns.
 - The app shows when it's offline and how many changes are waiting to sync.
@@ -513,7 +513,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 
 Later milestones implement these interfaces without changing them. An interface may gain an optional input, with a default that leaves every existing call's result unchanged, when a requirement change needs it.
 
-**TF-3 · Must · M1: Fixtures.** Test data lives in `tests/fixtures/` as YAML: made-up users and characters (never real players), and a **test copy of the reference data** separate from the real files, so changing real data never breaks a test. It includes a sample character whose CM adds up to the GR-8 example. Tests don't rely on an empty database: a test that sets up data more than once gives each setup its own user or character, and earlier data stays in place, as it would in use. A test that deletes an account checks what's left by reading as that account's own user, never by signing up again, since a new sign-up gets a new user. Records the store can no longer reach once their character is gone (entries and history) are checked in the test database itself.
+**TF-3 · Must · M1: Fixtures.** Test data lives in `tests/fixtures/` as YAML: made-up users and characters (never real players), and a **test copy of the reference data** separate from the real files, so changing real data never breaks a test. The exception is the browser tests, which read what they need from the real data (TF-13): one fails only if what it needs is gone from it, and says so. The test copy includes a sample character whose CM adds up to the GR-8 example. Tests don't rely on an empty database: a test that sets up data more than once gives each setup its own user or character, and earlier data stays in place, as it would in use. A test that deletes an account checks what's left by reading as that account's own user, never by signing up again, since a new sign-up gets a new user. Records the store can no longer reach once their character is gone (entries and history) are checked in the test database itself.
 
 **TF-4 · Must · M1: Traceability.** Every test names the requirement IDs it checks, and any DM question it depends on (e.g. Q1). An untagged test fails. A generated coverage table lists every requirement and its tests, and every *Must* has at least one. Requirement IDs are permanent: never renumbered or reused. A removed requirement keeps its place, marked *removed*. Requirements about how the work is done rather than how the app behaves (TF-12, TF-14, DOC-3) are marked *checked in review* in the coverage table instead of needing a test; the pull request's Review section reports them.
 
@@ -559,7 +559,7 @@ When a DM answers a question, start at step 2.
 
 **TF-12 · Must · M2+: Proven by mutation.** New tests are proven by temporarily breaking the code they guard (a scripted mutation run that restores every file) and confirming they fail. The caught and survived counts are reported in the pull request, and tests that let a mutation survive are fixed.
 
-**TF-13 · Should · M3: Phone-sized browser tests.** The main flows (sign in, add a character, add and use an entry, export) run automatically in a phone-sized browser, against the app's production build and the hosting service's local emulators for sign-in and the database, never a real project. Each test signs up its own made-up users, so tests can run side by side and never rely on an empty database. Before the tests run, one made-up player signs up once, so the first tests don't fail while the fresh build and the emulators warm up.
+**TF-13 · Should · M3: Phone-sized browser tests.** The main flows (sign in, add a character, add and use an entry, export) run automatically in a phone-sized browser, against the app's production build and the hosting service's local emulators for sign-in and the database, never a real project. Each test signs up its own made-up users, so tests can run side by side and never rely on an empty database. Before the tests run, one made-up player signs up once, so the first tests don't fail while the fresh build and the emulators warm up. Browser tests run on the real reference data, so they never name a real skill or number: what they need from it, they read from `data/`.
 
 **TF-14 · Must · M3: The 0.x trial.** Craig uses release 0.x at a faire. Every mismatch with his paper sheet is a bug, a rule modelled wrong, or a data error, and each becomes a new test or a data fix.
 
@@ -596,10 +596,15 @@ Each milestone from M2 on is done when all of its tests from M1 pass, with no te
 - Q9: weapon groups
 - Q11: familiars, allies and minions
 - Q12: which class bonuses are added to rolls
+- Q14: different skills that share a name
+- Q15: the Cutthroat tree's level
+- Q16: the Thief skill Acquisitions Agent needs
 
-**Waiting on the game's owner:** Q10, whether the app may show the skill and spell card text and use the level chart, and whether both may be published in the public repository (RD-8). The real reference data can't be committed until then.
+**Waiting on the game's owner:**
 
-**Waiting on Craig:** clean up the skill artifacts' unclear prerequisites, tiers and text before the skill list is built (RD-6).
+- Q13: the Warrior Combat Bonus at levels 73 to 75
+
+**Waiting on Craig:** bring the Warrior Skills, Rogue Skills and Mage Spells artifacts in step with the skill list in `data/skills.yaml`, which is now the source (RD-6); they still show the sheets from before 2026-11-17.
 
 **For later:**
 
@@ -622,6 +627,8 @@ Each milestone from M2 on is done when all of its tests from M1 pass, with no te
 - **Release 0.x at M3** for Craig's own trial, and **1.0 at M5**.
 - **Tech stack:** a TypeScript web app on Firebase (section 20), chosen because the rules must run in the browser for offline use and instant totals. Working offline became a *Must* in M3 (NF-3).
 - **Contacting the maintainer:** an in-app report form. Reports become issues in a separate private GitHub repository, except account problems, which stay in the database (SP-1 to SP-3).
+- **The skill list is built** (2026-11-17) from the updated skill sheets. What's still unclear is asked in Q14 to Q16, and recorded as maintainer notes in the list (RD-6, RD-7).
+- **Game content (Q10):** the game's owner agreed (2026-11-17) that the app may show the skill and spell card text, and that the text and the level chart may be kept in the public repository (RD-8).
 
 ## 18. Later
 

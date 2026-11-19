@@ -14,6 +14,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { z } from "zod";
+import { SHOW_SKILL_TEXT } from "../src/app/settings";
 import { MemoryDatabase, createMemoryStore } from "../src/data/memory-store";
 import type { InventoryStore } from "../src/data/store";
 import type { GainOptions, NewEntry, NewSkill, NewTitle } from "../src/data/types";
@@ -56,7 +57,8 @@ async function sampleStore(root: string): Promise<InventoryStore> {
     currentUid: () => "sample-user",
     clock: { now: () => new Date(sample.at) },
     ref,
-    settings: { showSkillText: false, appVersion: "sample" },
+    // As the app runs. No example made today (the JSON export) holds card text.
+    settings: { showSkillText: SHOW_SKILL_TEXT, appVersion: "sample" },
   });
   await store.createProfile({ displayName: sample.displayName, email: "sample@example.com" });
   const character = await store.createCharacter(sample.character);
