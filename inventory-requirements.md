@@ -446,7 +446,7 @@ Invalid data can't be deployed.
 
 **RD-7 · Must · M2: Unclear entries.** Anything still unclear in a skill after the clean-up is recorded as a maintainer note in the skill list. It isn't shown to players: the app shows the skill as recorded.
 
-**RD-8 · Must · M2: Game content in the public repository.** The repository is public, and its licence doesn't cover the game's content. The game's owner has agreed (Q10) that the app may show the skill and spell card text, and that the card text and the level chart's numbers may be kept in this repository. They remain the owner's. Tests are unaffected, since they use their own made-up reference data (TF-3).
+**RD-8 · Must · M2: Game content in the public repository.** The repository is public, and its licence doesn't cover the game's content. The game's owner has agreed (Q10) that the app may show the skill and spell card text, and that the card text and the level chart's numbers may be kept in this repository. They remain the owner's. Tests use their own made-up reference data (TF-3), except the browser tests, which run on the real data and read what they need from it, never naming a real skill or number (TF-13).
 
 ## 14. Non-Functional Requirements
 
