@@ -16,6 +16,7 @@ import {
   firstLevelWithBonusDice,
   skillInSeveralTrees,
   skillLevels,
+  slotKindNames,
 } from "../support/browser-data";
 import { browserRule } from "../support/browser-rule";
 
@@ -535,5 +536,248 @@ browserRule(
     await expect(page.getByRole("heading", { level: 1 }), "the help page the equipment page links to").toHaveText(
       "Equipping and totals",
     );
+  },
+);
+
+/** An entry's page, from its category's list on the character's page. */
+async function entryFromCharacter(page: Page, characterId: string, category: RegExp, heading: string, name: string) {
+  await openFromCharacter(page, characterId, category, heading);
+  await openEntry(page, name);
+}
+
+/** A class bonus as GR-7 shows it: dice and a number where the chart gives dice. */
+const bonusText = (row: { classBonus: number; classBonusDice?: string }) =>
+  row.classBonusDice ? `${row.classBonusDice} + ${row.classBonus}` : String(row.classBonus);
+
+browserRule(
+  { req: ["GR-9", "GR-10", "GR-12", "GR-4"], m: "M4" },
+  "mitigation and max hearts each list where they come from, situational apart",
+  async ({ page }) => {
+    const row = chartRow("Warrior", 8);
+    await signUp(page);
+    const brin = await addCharacter(page, { name: "Brin", className: "Warrior", level: 8 });
+    await openFromCharacter(page, brin, /^Armor/, "Armor");
+    await addArmor(page, "Wanderer's Mail", "Chest");
+    await openEntry(page, "Wanderer's Mail");
+    const form = page.getByRole("form", { name: "Add a grant" });
+    await addGrant(form, { kind: "Mitigation", amount: 1 });
+    await addGrant(form, { kind: "Mitigation", amount: 1, condition: "vs fire" });
+    await addGrant(form, { kind: "Max hearts", amount: 2 });
+    await expect(page.getByRole("list", { name: "Grants" }).getByRole("listitem"), "the mail's grants").toHaveCount(3);
+    await tap(page.getByRole("button", { name: "Equip", exact: true }), "Equip");
+    await expect(page.getByRole("main"), "the mail once equipped").toContainText("Equipped in Chest");
+
+    await page.goto(`/#/characters/${brin}`);
+    const totals = totalsOf(page);
+    await expect(totals.getByText("Mitigation 1", { exact: true }), "Brin's mitigation").toBeVisible();
+    await expect(totals.getByText("Armor 1", { exact: true }), "Brin's mitigation breakdown").toBeVisible();
+    await expect(totals.getByText(`Max hearts ${row.hearts + 2}`, { exact: true }), "Brin's max hearts").toBeVisible();
+    await expect(
+      totals.getByText(`Level chart ${row.hearts}, Armor 2`, { exact: true }),
+      "Brin's max hearts breakdown",
+    ).toBeVisible();
+
+    await tap(totals.getByRole("button", { name: "Where Mitigation comes from" }), "Where Mitigation comes from");
+    await expect(
+      totals.getByRole("list", { name: "Grants in Mitigation" }).getByRole("listitem"),
+      "mitigation's grants",
+    ).toHaveText(["Wanderer's Mail · Armor · +1"]);
+    await expect(
+      totals.getByRole("list", { name: "Situational for Mitigation" }).getByRole("listitem"),
+      "mitigation's situational grants",
+    ).toHaveText(["Wanderer's Mail · Armor · +1 · vs fire"]);
+    await tap(totals.getByRole("button", { name: "Where Max hearts comes from" }), "Where Max hearts comes from");
+    await expect(
+      totals.getByRole("list", { name: "Grants in Max hearts" }).getByRole("listitem"),
+      "max hearts' grants",
+    ).toHaveText([`Level chart · +${row.hearts}`, "Wanderer's Mail · Armor · +2"]);
+  },
+);
+
+browserRule(
+  { req: ["GR-2", "GR-3", "GR-8", "GR-11"], m: "M4" },
+  "a weapon's, an arcane item's and an active ally's grants all count, each on its own line; an inactive ally's don't",
+  async ({ page }) => {
+    const row = chartRow("Mage", 13);
+    expect(row.classBonus, "a level 13 Mage's Arcane Bonus in data/").toBeGreaterThan(0);
+    expect(arcaneSlots("Mage", 13), "a level 13 Mage's arcane slots in data/").toBeGreaterThan(0);
+    await signUp(page);
+    const mira = await addCharacter(page, { name: "Mira", className: "Mage", level: 13 });
+    await openFromCharacter(page, mira, /^Weapons/, "Weapons");
+    await addEntry(page, "Duskfang");
+    await openEntry(page, "Duskfang");
+    await addGrant(page.getByRole("form", { name: "Add a grant" }), { kind: "CM", amount: 1 });
+    await expect(page.getByRole("list", { name: "Grants" }), "Duskfang's grants").toContainText("CM +1");
+    await openFromCharacter(page, mira, /^Items/, "Items");
+    await addEntry(page, "Moonlit Lantern", (form) => form.getByLabel("Arcane").check());
+    await openEntry(page, "Moonlit Lantern");
+    await addGrant(page.getByRole("form", { name: "Add a grant" }), { kind: "CM", amount: 3 });
+    await expect(page.getByRole("list", { name: "Grants" }), "the lantern's grants").toContainText("CM +3");
+    await openFromCharacter(page, mira, /^Familiars/, "Familiars/Allies");
+    await addEntry(page, "Shadow", (form) => form.getByLabel("Active").check());
+    await openEntry(page, "Shadow");
+    const form = page.getByRole("form", { name: "Add a grant" });
+    await addGrant(form, { kind: "CM", amount: 2 });
+    await addGrant(form, { kind: "Extra die", die: "1d4" });
+    await expect(page.getByRole("list", { name: "Grants" }).getByRole("listitem"), "Shadow's grants").toHaveCount(2);
+
+    await openFromCharacter(page, mira, /^Weapons/, "Weapons");
+    await tap(rowFor(page, "Duskfang").getByRole("button", { name: "Equip Duskfang" }), "Equip Duskfang");
+    await expect(rowFor(page, "Duskfang"), "Duskfang once equipped").toContainText("Equipped");
+    await openFromCharacter(page, mira, /^Items/, "Items");
+    await tap(rowFor(page, "Moonlit Lantern").getByRole("button", { name: "Equip Moonlit Lantern" }), "Equip");
+    await expect(rowFor(page, "Moonlit Lantern"), "the lantern once equipped").toContainText("Equipped");
+
+    await page.goto(`/#/characters/${mira}`);
+    const totals = totalsOf(page);
+    const bonus = `Arcane Bonus ${bonusText(row)}`;
+    await expect(totals.getByText(`CM ${row.classBonus + 6}`, { exact: true }), "Mira's CM").toBeVisible();
+    await expect(
+      totals.getByText(`${bonus}, Weapons 1, Ally 2, Items 3`, { exact: true }),
+      "Mira's CM breakdown",
+    ).toBeVisible();
+    await expect(
+      totals.getByText(new RegExp(`^Combat dice .* \\+ 1d4 \\(Shadow\\)$`)),
+      "Mira's combat dice",
+    ).toBeVisible();
+
+    // GR-3: an ally's grants count only while it's active.
+    await entryFromCharacter(page, mira, /^Familiars/, "Familiars/Allies", "Shadow");
+    await tap(page.getByRole("button", { name: "Edit" }), "Edit Shadow");
+    const edit = page.getByRole("form", { name: "Edit Shadow" });
+    await edit.getByLabel("Active").uncheck();
+    await edit.getByRole("button", { name: "Save" }).click();
+    await expect(edit, "Shadow's edit form, closed once saved").toBeHidden();
+    await page.goto(`/#/characters/${mira}`);
+    await expect(
+      totals.getByText(`CM ${row.classBonus + 4}`, { exact: true }),
+      "Mira's CM, Shadow inactive",
+    ).toBeVisible();
+    await expect(
+      totals.getByText(`${bonus}, Weapons 1, Items 3`, { exact: true }),
+      "Mira's CM breakdown, Shadow inactive",
+    ).toBeVisible();
+    await expect(totals, "Mira's totals, Shadow inactive").not.toContainText("(Shadow)");
+  },
+);
+
+browserRule(
+  { req: ["GR-2", "GR-5", "TI-4", "TI-5"], m: "M4" },
+  "removing an entry's grant or a title's grant takes it out of CM at once",
+  async ({ page }) => {
+    const row = chartRow("Warrior", 8);
+    await signUp(page);
+    const brin = await addCharacter(page, { name: "Brin", className: "Warrior", level: 8 });
+    await openFromCharacter(page, brin, /^Armor/, "Armor");
+    await addArmor(page, "Wanderer's Mail", "Chest");
+    await openEntry(page, "Wanderer's Mail");
+    await addGrant(page.getByRole("form", { name: "Add a grant" }), { kind: "CM", amount: 2 });
+    await tap(page.getByRole("button", { name: "Equip", exact: true }), "Equip");
+    await expect(page.getByRole("main"), "the mail once equipped").toContainText("Equipped in Chest");
+
+    await page.goto("/#/titles");
+    const add = page.getByRole("form", { name: "Add a title" });
+    await add.getByLabel("Name").fill("Wanderer");
+    await add.getByRole("button", { name: "Add title" }).click();
+    const card = page.getByRole("list", { name: "Your titles" }).locator(":scope > li").filter({ hasText: "Wanderer" });
+    await addGrant(card.getByRole("form", { name: "Add a grant" }), { kind: "CM", amount: 1 });
+    await expect(card.getByRole("list", { name: "Grants" }), "the title's grants").toContainText("CM +1");
+
+    await page.goto(`/#/characters/${brin}`);
+    const totals = totalsOf(page);
+    await expect(totals.getByText(`CM ${row.classBonus + 3}`, { exact: true }), "Brin's CM, both grants").toBeVisible();
+
+    await entryFromCharacter(page, brin, /^Armor/, "Armor", "Wanderer's Mail");
+    await tap(page.getByRole("button", { name: "Remove CM +2" }), "Remove CM +2");
+    await expect(page.getByRole("list", { name: "Grants" }), "the mail's grants once removed").toHaveCount(0);
+    await page.goto(`/#/characters/${brin}`);
+    await expect(
+      totals.getByText(`CM ${row.classBonus + 1}`, { exact: true }),
+      "Brin's CM, the title's only",
+    ).toBeVisible();
+
+    await page.goto("/#/titles");
+    await tap(card.getByRole("button", { name: "Remove CM +1" }), "Remove CM +1");
+    await expect(card.getByRole("list", { name: "Grants" }), "the title's grants once removed").toHaveCount(0);
+    await page.goto(`/#/characters/${brin}`);
+    await expect(totals.getByText(`CM ${row.classBonus}`, { exact: true }), "Brin's CM, no grants").toBeVisible();
+  },
+);
+
+browserRule(
+  { req: ["EQ-1", "EQ-5"], m: "M4" },
+  "the paper doll lists every slot kind in the reference data, each Empty to start",
+  async ({ page }) => {
+    const kinds = slotKindNames();
+    await signUp(page);
+    const brin = await addCharacter(page, { name: "Brin", className: "Warrior", level: 8 });
+    await openFromCharacter(page, brin, /^Equipment/, "Equipment");
+    const doll = page.getByRole("list", { name: "Paper doll" });
+    await expect(doll.locator(".slot-name"), "the paper doll's slots").toHaveText(kinds);
+    await expect(doll.getByRole("listitem"), "the paper doll's slots, each empty").toHaveText(
+      kinds.map((k) => new RegExp(`^${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*Empty$`)),
+    );
+  },
+);
+
+browserRule(
+  { req: ["EQ-3"], q: ["Q2"], m: "M4" },
+  "a two-handed weapon fills both hands; a shield goes in the Off hand, and a second shield is blocked",
+  async ({ page }) => {
+    await signUp(page);
+    const brin = await addCharacter(page, { name: "Brin", className: "Warrior", level: 8 });
+    await openFromCharacter(page, brin, /^Weapons/, "Weapons");
+    await addEntry(page, "Greatsword", (form) =>
+      form
+        .getByLabel("Hands")
+        .selectOption({ label: "Two-handed" })
+        .then(() => undefined),
+    );
+    await tap(rowFor(page, "Greatsword").getByRole("button", { name: "Equip Greatsword" }), "Equip Greatsword");
+    await expect(rowFor(page, "Greatsword"), "the greatsword once equipped").toContainText("Equipped");
+    await openFromCharacter(page, brin, /^Equipment/, "Equipment");
+    await expect(slotRow(page, "Main hand"), "Brin's Main hand").toContainText("Greatsword");
+    await expect(slotRow(page, "Off hand"), "Brin's Off hand").toContainText("Greatsword");
+    await tap(slotRow(page, "Main hand").getByRole("button", { name: "Unequip Greatsword" }), "Unequip Greatsword");
+    await expect(slotRow(page, "Off hand"), "Brin's Off hand once the greatsword is off").toContainText("Empty");
+
+    await openFromCharacter(page, brin, /^Armor/, "Armor");
+    await addArmor(page, "Kite Shield", "Off hand");
+    await addArmor(page, "Buckler", "Off hand");
+    await tap(rowFor(page, "Kite Shield").getByRole("button", { name: "Equip Kite Shield" }), "Equip Kite Shield");
+    await expect(rowFor(page, "Kite Shield"), "the shield once equipped").toContainText("Equipped");
+    await tap(rowFor(page, "Buckler").getByRole("button", { name: "Equip Buckler" }), "Equip Buckler");
+    await expect(page.getByRole("alert"), "the block for a second shield").toHaveText(
+      "Kite Shield is already held, and a character can't hold two shields.",
+    );
+    await openFromCharacter(page, brin, /^Equipment/, "Equipment");
+    await expect(slotRow(page, "Off hand"), "Brin's Off hand").toContainText("Kite Shield");
+    await expect(slotRow(page, "Main hand"), "Brin's Main hand").toContainText("Empty");
+  },
+);
+
+browserRule(
+  { req: ["TI-5", "TI-2"], m: "M4" },
+  "a title made one character's gives its grants to that character only",
+  async ({ page }) => {
+    const row = chartRow("Warrior", 8);
+    await signUp(page);
+    const brin = await addCharacter(page, { name: "Brin", className: "Warrior", level: 8 });
+    const cass = await addCharacter(page, { name: "Cass", className: "Warrior", level: 8 });
+    await page.goto("/#/titles");
+    const add = page.getByRole("form", { name: "Add a title" });
+    await add.getByLabel("Name").fill("Wanderer");
+    await add.getByLabel("Applies to").selectOption({ label: "Only Brin" });
+    await add.getByRole("button", { name: "Add title" }).click();
+    const card = page.getByRole("list", { name: "Your titles" }).locator(":scope > li").filter({ hasText: "Wanderer" });
+    await expect(card, "the Wanderer title").toContainText("Only Brin");
+    await addGrant(card.getByRole("form", { name: "Add a grant" }), { kind: "CM", amount: 1 });
+    await expect(card.getByRole("list", { name: "Grants" }), "the title's grants").toContainText("CM +1");
+
+    await page.goto(`/#/characters/${brin}`);
+    await expect(totalsOf(page).getByText(`CM ${row.classBonus + 1}`, { exact: true }), "Brin's CM").toBeVisible();
+    await page.goto(`/#/characters/${cass}`);
+    await expect(page.getByRole("heading", { level: 1 }), "Cass's page").toHaveText("Cass");
+    await expect(totalsOf(page).getByText(`CM ${row.classBonus}`, { exact: true }), "Cass's CM").toBeVisible();
   },
 );

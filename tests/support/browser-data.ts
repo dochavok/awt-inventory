@@ -54,6 +54,13 @@ export function skillLevels(className: ClassName, level: number): number[] {
     .sort((a, b) => a - b);
 }
 
+/** The paper-doll slot kinds' names, in the file's order, retired ones left out (EQ-1). */
+export function slotKindNames(): string[] {
+  const kinds = (read("slot-kinds.yaml") as { name: string; retired?: boolean }[]).filter((k) => !k.retired);
+  if (kinds.length === 0) throw new Error("data/slot-kinds.yaml needs slot kinds, for this test");
+  return kinds.map((k) => k.name);
+}
+
 interface ListedTree {
   id: string;
   name: string;
