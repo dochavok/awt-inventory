@@ -142,6 +142,8 @@ class Writer {
   page!: PDFPage;
   y = 0;
   readonly pages: PDFPage[] = [];
+  /** fontFor's answers, by the text's font and then the character. */
+  private readonly chosen = new Map<PDFFont, Map<string, PDFFont | undefined>>();
 
   constructor(
     private readonly doc: PDFDocument,
@@ -187,7 +189,7 @@ class Writer {
     }
   }
 
-  /** Which font draws a character: the text's own, else Symbol, else none. Worked out once per font. */
+  /** Which font draws a character: the text's own, else Symbol, else none. Worked out once per font and character. */
   private fontFor(ch: string, font: PDFFont): PDFFont | undefined {
     let known = this.chosen.get(font);
     if (!known) this.chosen.set(font, (known = new Map()));
@@ -198,8 +200,6 @@ class Writer {
       );
     return known.get(ch);
   }
-
-  private readonly chosen = new Map<PDFFont, Map<string, PDFFont | undefined>>();
 
   /** Text no standard font can draw becomes "?", so a character's odd symbol never stops the sheet. */
   private drawable(text: string, font: PDFFont): string {

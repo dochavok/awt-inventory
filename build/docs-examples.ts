@@ -14,10 +14,10 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { z } from "zod";
+import { SHOW_SKILL_TEXT } from "../src/app/settings";
 import { MemoryDatabase, createMemoryStore } from "../src/data/memory-store";
 import type { InventoryStore } from "../src/data/store";
 import type { GainOptions, NewEntry, NewSkill, NewTitle } from "../src/data/types";
-import { SHOW_SKILL_TEXT } from "../src/app/settings";
 import { loadReferenceData } from "../src/refdata";
 
 /** docs/sample/sample.yaml: unknown fields are refused, so a typo can't vanish from the examples. */
