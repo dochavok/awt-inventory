@@ -4,11 +4,20 @@
 // alerts (EQ-8). Anything equipped can be unequipped here (EQ-4).
 
 import { slotState } from "../../rules/equipping";
-import type { OverLimitAlert, Occupant } from "../../rules/types";
+import type { CharacterSheet, OverLimitAlert, Occupant } from "../../rules/types";
 import { sourceLabel } from "../grant-text";
 import type { Services } from "../services";
 import { Feedback, useAction } from "../useAction";
 import { BackTo, CharacterNotFound, Loading, useScreenData } from "./common";
+
+/** A character's sheet with its alerts, read together, so a page never shows without them (EQ-8). */
+export async function sheetWithAlerts(
+  store: Services["store"],
+  id: string,
+): Promise<{ sheet: CharacterSheet; alerts: OverLimitAlert[] }> {
+  const [sheet, alerts] = await Promise.all([store.sheet(id), store.alerts(id)]);
+  return { sheet, alerts };
+}
 
 /** EQ-8's alerts; nothing when there are none. */
 export function Alerts({ alerts }: { alerts: OverLimitAlert[] }) {
@@ -28,11 +37,7 @@ export function Alerts({ alerts }: { alerts: OverLimitAlert[] }) {
 
 export function Equipment({ services, id }: { services: Services; id: string }) {
   const { store, ref } = services;
-  // The alerts come with the sheet, so the page never shows without them.
-  const screen = useScreenData(async () => {
-    const [sheet, alerts] = await Promise.all([store.sheet(id), store.alerts(id)]);
-    return { sheet, alerts };
-  });
+  const screen = useScreenData(() => sheetWithAlerts(store, id));
   const action = useAction();
 
   if (screen.missing) return <CharacterNotFound />;

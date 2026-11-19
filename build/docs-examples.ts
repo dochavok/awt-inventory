@@ -75,25 +75,25 @@ async function sampleAccount(root: string): Promise<SampleAccount> {
   });
   await store.createProfile({ displayName: sample.displayName, email: "sample@example.com" });
   const character = await store.createCharacter(sample.character);
-  const ids: string[] = [];
-  for (const { entry, gain, used } of sample.entries) {
-    const added = await store.addEntry(character.id, entry as unknown as NewEntry, gain as GainOptions | undefined);
-    ids.push(added.id);
-    if (used) await store.markUsed(added.id, used);
+  const added: { id: string; equip?: string; trade?: (typeof sample.entries)[number]["trade"] }[] = [];
+  for (const { entry, gain, used, equip, trade } of sample.entries) {
+    const { id } = await store.addEntry(character.id, entry as unknown as NewEntry, gain as GainOptions | undefined);
+    added.push({ id, ...(equip === undefined ? {} : { equip }), ...(trade ? { trade } : {}) });
+    if (used) await store.markUsed(id, used);
   }
   for (const skill of sample.skills) await store.addSkill(character.id, skill as unknown as NewSkill);
   for (const title of sample.titles) await store.addTitle(title as unknown as NewTitle);
   for (const { reason, grants } of sample.manualGrants) {
     await store.addManualGrant(character.id, reason, grants as unknown as NewGrant[]);
   }
-  for (const [i, { equip }] of sample.entries.entries()) {
+  for (const { id, equip } of added) {
     if (equip === undefined) continue;
-    const check = await store.equip(ids[i]!, equip);
+    const check = await store.equip(id, equip);
     // A sample that can't be equipped as written is a mistake in it, not an example.
     if (check.outcome !== "allowed") throw new Error(`docs/sample: ${check.block?.message ?? "blocked"}`);
   }
-  for (const [i, { trade }] of sample.entries.entries()) {
-    if (trade) await store.markTraded(ids[i]!, trade);
+  for (const { id, trade } of added) {
+    if (trade) await store.markTraded(id, trade);
   }
   return { store, characterId: character.id };
 }

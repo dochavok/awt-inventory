@@ -3,21 +3,31 @@
 // (GR-7 to GR-12). Plain functions, so the user guide's examples come from the
 // same code as the screens (DOC-4).
 
-import { sheetTotals } from "../data/sheet";
+import { GROUP_NAMES, totalRows, type TotalRow } from "../data/totals-text";
 import { classBonusShown, dieSourceName, sourceName } from "../rules/totals";
 import type {
-  BreakdownGroup,
   Effect,
   Grant,
   GrantLine,
   NewGrant,
   Permission,
   ReferenceData,
-  SlotTarget,
   SourceRef,
   Total,
   Totals,
 } from "../rules/types";
+
+/** GR-1's kinds as the grant form offers them, in GR-1's order. Effects (GR-6) come in M5. */
+export const KIND_NAMES: Record<Exclude<NewGrant["kind"], "effect">, string> = {
+  cm: "CM",
+  mitigation: "Mitigation",
+  hearts: "Max hearts",
+  die: "Extra die",
+  slots: "Slots",
+  "arcane-slots": "Arcane slots",
+  allowance: "Rarity allowance",
+  permission: "Permission",
+};
 
 /** GR-1's permissions, as the game names them. */
 export const PERMISSION_NAMES: Record<Permission, string> = {
@@ -33,7 +43,8 @@ const EFFECT_NAMES: Record<Effect, string> = {
   "cr-bonus": "CR bonus",
 };
 
-const named = (list: { id: string; name: string }[], id: string) => list.find((x) => x.id === id)?.name ?? id;
+/** A reference data entry's name by its ID, or the ID if the list doesn't have it. */
+export const named = (list: { id: string; name: string }[], id: string) => list.find((x) => x.id === id)?.name ?? id;
 const plural = (n: number, word: string) => `${word}${n === 1 ? "" : "s"}`;
 
 /** A grant as the app lists it, e.g. "CM +2", "+1 Back slot", "Extra die 1d6 (vs Undead)". */
@@ -71,37 +82,21 @@ export function grantText(grant: Grant | NewGrant, ref: ReferenceData): string {
   return grant.condition ? `${text} (${grant.condition})` : text;
 }
 
+const SOURCE_PREFIX: Record<SourceRef["type"], string> = {
+  entry: "",
+  title: "Title: ",
+  skill: "Skill: ",
+  manual: "Manual grant: ",
+  "level-chart": "",
+};
+
 /**
  * Where an extra slot comes from (EQ-5): an entry by its name, otherwise what it is and
  * its name, e.g. "Title: Wanderer".
  */
 export function sourceLabel(source: SourceRef): string {
-  switch (source.type) {
-    case "entry":
-      return source.name;
-    case "title":
-      return `Title: ${source.name}`;
-    case "skill":
-      return `Skill: ${source.name}`;
-    case "manual":
-      return `Manual grant: ${source.reason}`;
-    case "level-chart":
-      return "Level chart";
-  }
+  return SOURCE_PREFIX[source.type] + sourceName(source);
 }
-
-/** GR-8's source categories, as each grant in a total names its own (GR-12). */
-const GROUP_NAMES: Record<BreakdownGroup, string> = {
-  "class-bonus": "Class bonus",
-  "level-chart": "Level chart",
-  armor: "Armor",
-  weapons: "Weapons",
-  skills: "Skills",
-  ally: "Ally",
-  items: "Items",
-  titles: "Titles",
-  other: "Other",
-};
 
 /**
  * One grant in a total (GR-12): its source, its category and its amount, and its
@@ -138,31 +133,24 @@ export function totalsView(totals: Totals): {
   situationalDice: string[];
 } {
   const { classBonus } = totals;
-  const [cm, mitigation, hearts, dice] = sheetTotals(totals);
-  const view = (row: typeof cm, total: Total): TotalView => {
+  const rows = totalRows(totals);
+  const view = (row: TotalRow, total: Total): TotalView => {
     const out: TotalView = {
-      label: row!.label,
-      heading: `${row!.label} ${row!.value}`,
+      label: row.label,
+      heading: `${row.label} ${row.value}`,
       grants: total.grants.map((g) => grantLineText(g, classBonus)),
       situational: total.situational.map((g) => grantLineText(g, classBonus)),
     };
-    if (row!.lines.length > 1) out.breakdown = row!.lines.map((l) => `${l.label} ${l.value}`).join(", ");
+    if (row.lines.length > 1) out.breakdown = row.lines.map((l) => `${l.label} ${l.value}`).join(", ");
     return out;
   };
   return {
     // GR-7: always under the class's own name, and with dice as dice plus a number.
     classBonus: `${classBonus.name} ${classBonusShown(classBonus)}`,
-    totals: [view(cm, totals.cm), view(mitigation, totals.mitigation), view(hearts, totals.hearts)],
-    dice: `Combat dice ${dice!.value}`,
+    totals: [view(rows.cm, totals.cm), view(rows.mitigation, totals.mitigation), view(rows.hearts, totals.hearts)],
+    dice: `${rows.dice.label} ${rows.dice.value}`,
     situationalDice: totals.dice.situational.map(
       (d) => `${d.die} (${dieSourceName(d, classBonus)}${d.condition ? `, ${d.condition}` : ""})`,
     ),
   };
-}
-
-/** Where an equipped entry is, e.g. "Back", "both hands" or "an arcane slot" (EQ-5, EQ-7). */
-export function slotName(slot: SlotTarget, ref: ReferenceData): string {
-  if (slot === "both-hands") return "both hands";
-  if (slot === "arcane") return "an arcane slot";
-  return named(ref.slotKinds, slot);
 }

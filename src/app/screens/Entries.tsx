@@ -14,8 +14,9 @@ import type { Services } from "../services";
 import { offerUndo, UndoBar } from "../undo";
 import { Feedback, useAction } from "../useAction";
 import { BackTo, CharacterNotFound, DayField, Loading, pickedDate, useScreenData } from "./common";
-import { slotName } from "../grant-text";
-import { equipTargets, equipWherever, GrantsEditor } from "./grants";
+import { equipTargets, slotTargetName } from "../../rules/equipping";
+import { named } from "../grant-text";
+import { chooseable, equipIn, equipWherever, GrantsEditor } from "./grants";
 
 /** Only consumables and components can be marked used (IN-12). */
 const usable = (category: ItemCategory) => category === "consumables" || category === "components";
@@ -32,7 +33,6 @@ export function Category({ services, id, category }: { services: Services; id: s
   });
   const [adding, setAdding] = useState(false);
   const [filter, setFilter] = useState<Filter>({ rarity: "", family: "", equipped: false });
-  const [blocked, setBlocked] = useState<string | null>(null);
   const action = useAction();
 
   if (screen.missing) return <CharacterNotFound />;
@@ -47,9 +47,7 @@ export function Category({ services, id, category }: { services: Services; id: s
     equipped: choices.equipped && filter.equipped,
   };
   // It's forgotten, too, so it doesn't come back when a new entry has it.
-  if (active.rarity !== filter.rarity || active.family !== filter.family || active.equipped !== filter.equipped) {
-    setFilter(active);
-  }
+  if ((Object.keys(active) as (keyof Filter)[]).some((key) => active[key] !== filter[key])) setFilter(active);
   const match = {
     ...(active.rarity ? { rarity: active.rarity } : {}),
     ...(active.family ? { itemFamily: active.family } : {}),
@@ -57,25 +55,24 @@ export function Category({ services, id, category }: { services: Services; id: s
   const shown = items.filter((item) => matchesFilter(item.entry, match) && (!active.equipped || item.equipped));
   const reload = () => void action.run(screen.refresh);
 
+  // The list changes in place: reading the category again after every tap would cost a read per entry (NF-5).
+  const markEquipped = (entryId: string, equipped: boolean) =>
+    screen.set((data) => ({
+      ...data,
+      items: data.items.map((item) => (item.entry.id === entryId ? { ...item, equipped } : item)),
+    }));
   // Equip in one tap where the entry fits (NF-1, EQ-2); a block changes nothing and says why.
   const equip = (entry: Entry) =>
     void action.run(async () => {
-      setBlocked(null);
-      const check = await equipWherever(services, entry);
-      if (check.outcome === "blocked") {
-        setBlocked(check.block?.message ?? "That can't be equipped.");
-        return;
-      }
-      await screen.refresh();
+      await equipWherever(services, entry);
+      markEquipped(entry.id, true);
     });
   const unequip = (entry: Entry) =>
     void action.run(async () => {
-      setBlocked(null);
       await store.unequip(entry.id);
-      await screen.refresh();
+      markEquipped(entry.id, false);
     });
 
-  // The list changes in place: reading the category again after every tap would cost a read per entry (NF-5).
   const used = (entry: Entry) =>
     void action.run(async () => {
       await store.markUsed(entry.id);
@@ -99,7 +96,7 @@ export function Category({ services, id, category }: { services: Services; id: s
       <BackTo character={character} />
       <h1>{categoryName(category)}</h1>
       <UndoBar at={categoryAddress(character.id, category)} onUndone={reload} />
-      <Feedback error={action.error ?? blocked} notice={action.notice} />
+      <Feedback error={action.error} notice={action.notice} />
       <Filters category={category} choices={choices} filter={active} onChange={setFilter} />
       {items.length === 0 ? (
         <p className="hint">Nothing here yet.</p>
@@ -260,8 +257,8 @@ function EntryList({
             </a>
             <span className="quantity">× {entry.quantity}</span>
             {equipped && <span className="tag">{entry.category === "allies" ? "Active" : "Equipped"}</span>}
-            {/* EQ-4: an ally is made active in its own form, not equipped. */}
-            {entry.category !== "allies" && equipTargets(entry).length > 0 && (
+            {/* An ally is made active in its own form, not equipped, so it has no targets. */}
+            {equipTargets(entry).length > 0 && (
               <button
                 type="button"
                 className="secondary"
@@ -315,8 +312,6 @@ interface Fields {
   link: string;
   gained: string;
 }
-
-const chooseable = <T extends { retired?: boolean }>(list: T[]) => list.filter((x) => !x.retired);
 
 function fieldsOf(entry: ItemEntry | undefined, ref: ReferenceData): Fields {
   const e = (entry ?? {}) as Record<string, unknown>;
@@ -721,7 +716,6 @@ function EntryForm({
 // ---------------------------------------------------------------- an entry's page
 
 function details(entry: ItemEntry, ref: ReferenceData): [string, string][] {
-  const named = (list: { id: string; name: string }[], id: string) => list.find((x) => x.id === id)?.name ?? id;
   const rows: [string, string | undefined][] = [
     ["Quantity", `× ${entry.quantity}`],
     ["Description", entry.description],
@@ -779,7 +773,6 @@ export function EntryPage({ services, id, entryId }: { services: Services; id: s
     };
   });
   const [panel, setPanel] = useState<"edit" | "delete" | null>(null);
-  const [blocked, setBlocked] = useState<string | null>(null);
   const action = useAction();
 
   if (screen.missing) return <CharacterNotFound />;
@@ -818,7 +811,7 @@ export function EntryPage({ services, id, entryId }: { services: Services; id: s
       <p className="hint">
         <a href={href(list)}>{categoryName(entry.category)}</a>
       </p>
-      <Feedback error={action.error ?? blocked} notice={action.notice} />
+      <Feedback error={action.error} notice={action.notice} />
       <dl className="details">
         {details(entry, ref).map(([term, value]) => (
           <div key={term}>
@@ -842,59 +835,20 @@ export function EntryPage({ services, id, entryId }: { services: Services; id: s
           onCancel={() => setPanel(null)}
         />
       )}
-      {equipTargets(entry).length > 0 && (
-        <section className="card" aria-labelledby="equip-title">
-          <h2 id="equip-title">Equipping</h2>
-          {slot !== undefined ? (
-            <>
-              <p>{`Equipped in ${slotName(slot, ref)}`}</p>
-              <button
-                type="button"
-                disabled={action.busy}
-                onClick={() =>
-                  void action.run(async () => {
-                    setBlocked(null);
-                    await store.unequip(entry.id);
-                    await screen.refresh();
-                    return `${entry.name} unequipped.`;
-                  })
-                }
-              >
-                Unequip
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="hint">Not equipped. Its grants count only while it&apos;s equipped.</p>
-              <div className="actions">
-                {equipTargets(entry).map((target, _, all) => (
-                  <button
-                    key={target}
-                    type="button"
-                    disabled={action.busy}
-                    onClick={() =>
-                      void action.run(async () => {
-                        setBlocked(null);
-                        const check = await store.equip(entry.id, target);
-                        if (check.outcome === "blocked") {
-                          setBlocked(check.block?.message ?? "That can't be equipped.");
-                          return;
-                        }
-                        await screen.refresh();
-                        return `${entry.name} equipped.`;
-                      })
-                    }
-                  >
-                    {/* One place to go is just Equip; a one-handed weapon chooses its hand (EQ-3). */}
-                    {all.length === 1 ? "Equip" : `Equip in ${slotName(target, ref)}`}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </section>
-      )}
-      {entry.category !== "consumables" && entry.category !== "components" && (
+      <Equipping
+        services={services}
+        entry={entry}
+        slot={slot}
+        busy={action.busy}
+        onChange={(change, message) =>
+          void action.run(async () => {
+            await change();
+            await screen.refresh();
+            return message;
+          })
+        }
+      />
+      {!usable(entry.category) && (
         <section className="card" aria-labelledby="grants-title">
           <h2 id="grants-title">Grants</h2>
           <p className="hint">
@@ -949,6 +903,61 @@ export function EntryPage({ services, id, entryId }: { services: Services; id: s
         )}
       </section>
     </>
+  );
+}
+
+/**
+ * Where an entry is equipped, with Unequip; or Equip, a one-handed weapon choosing its hand
+ * (EQ-2 to EQ-5, EQ-7). Nothing for what can't be equipped. `onChange` runs a change and reloads.
+ */
+function Equipping({
+  services,
+  entry,
+  slot,
+  busy,
+  onChange,
+}: {
+  services: Services;
+  entry: ItemEntry;
+  slot: string | undefined;
+  busy: boolean;
+  onChange: (change: () => Promise<void>, message: string) => void;
+}) {
+  const { store, ref } = services;
+  const targets = equipTargets(entry);
+  if (targets.length === 0) return null;
+  return (
+    <section className="card" aria-labelledby="equip-title">
+      <h2 id="equip-title">Equipping</h2>
+      {slot !== undefined ? (
+        <>
+          <p>{`Equipped in ${slotTargetName(ref, slot)}`}</p>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onChange(() => store.unequip(entry.id), `${entry.name} unequipped.`)}
+          >
+            Unequip
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="hint">Not equipped. Its grants count only while it&apos;s equipped.</p>
+          <div className="actions">
+            {targets.map((target) => (
+              <button
+                key={target}
+                type="button"
+                disabled={busy}
+                onClick={() => onChange(() => equipIn(services, entry.id, target), `${entry.name} equipped.`)}
+              >
+                {targets.length === 1 ? "Equip" : `Equip in ${slotTargetName(ref, target)}`}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 

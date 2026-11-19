@@ -25,7 +25,7 @@ import type { Services } from "../services";
 import { VerifyEmail } from "../Shell";
 import { Feedback, useAction } from "../useAction";
 import { CharacterNotFound, LevelInput, Loading, useScreenData } from "./common";
-import { Alerts } from "./Equipment";
+import { Alerts, sheetWithAlerts } from "./Equipment";
 import { GrantForm } from "./grants";
 
 const describe = (c: Pick<Character, "className" | "level">) => `${c.className} · level ${c.level}`;
@@ -169,12 +169,8 @@ function InventoryLinks({ id, entries }: { id: string; entries: Entry[] }) {
 
 export function CharacterPage({ services, id }: { services: Services; id: string }) {
   const { store, ref } = services;
-  // One read for the character, its entries (for the counts and totals) and its titles (TI-2);
-  // the alerts come with it, so the page never shows without them (EQ-8).
-  const screen = useScreenData(async () => {
-    const [sheet, alerts] = await Promise.all([store.sheet(id), store.alerts(id)]);
-    return { sheet, alerts };
-  });
+  // The character, its entries (for the counts and totals) and its titles (TI-2), with its alerts.
+  const screen = useScreenData(() => sheetWithAlerts(store, id));
   const [panel, setPanel] = useState<"edit" | "class" | null>(null);
   const action = useAction();
 
@@ -339,7 +335,6 @@ function ManualGrants({
   onChanged: () => Promise<void>;
 }) {
   const { store, ref } = services;
-  const [reason, setReason] = useState("");
   const remove = useAction();
   return (
     <section className="card" aria-labelledby="manual-title">
@@ -378,23 +373,9 @@ function ManualGrants({
         services={services}
         label="Add a manual grant"
         button="Add manual grant"
-        before={
-          <label>
-            Reason
-            <input required maxLength={LIMITS.shortText} value={reason} onChange={(e) => setReason(e.target.value)} />
-            <span className="hint">Such as &quot;DM ruling, Faire 2026&quot;.</span>
-          </label>
-        }
-        onAdd={async (grant) => {
-          // Cleared as it's sent, like the grant's own fields; back if it's refused.
-          const sent = reason;
-          setReason("");
-          try {
-            await store.addManualGrant(characterId, sent, [grant]);
-          } catch (error) {
-            setReason((now) => (now === "" ? sent : now));
-            throw error;
-          }
+        withReason
+        onAdd={async (grant, reason) => {
+          await store.addManualGrant(characterId, reason, [grant]);
           await onChanged();
         }}
       />

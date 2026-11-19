@@ -3,9 +3,11 @@
 // to an entry or a title (GR-2, TI-5), and equipping where an entry fits
 // (EQ-2, EQ-3, EQ-7).
 
-import { useId, useState, type FormEvent, type ReactNode } from "react";
+import { useId, useState, type FormEvent } from "react";
 import type { GrantTarget } from "../../data/types";
 import { LIMITS } from "../../data/validate";
+import { ValidationError } from "../../errors";
+import { equipTargets } from "../../rules/equipping";
 import {
   PERMISSIONS,
   type EquipCheck,
@@ -14,25 +16,12 @@ import {
   type NewGrant,
   type Permission,
   type ReferenceData,
-  type SlotTarget,
 } from "../../rules/types";
-import { grantText, PERMISSION_NAMES } from "../grant-text";
+import { grantText, KIND_NAMES, PERMISSION_NAMES } from "../grant-text";
 import type { Services } from "../services";
 import { Feedback, useAction } from "../useAction";
 
-type Kind = Exclude<NewGrant["kind"], "effect">;
-
-/** GR-1's kinds, in its order. Effects (GR-6) come in M5. */
-const KIND_NAMES: Record<Kind, string> = {
-  cm: "CM",
-  mitigation: "Mitigation",
-  hearts: "Max hearts",
-  die: "Extra die",
-  slots: "Slots",
-  "arcane-slots": "Arcane slots",
-  allowance: "Rarity allowance",
-  permission: "Permission",
-};
+type Kind = keyof typeof KIND_NAMES;
 
 interface Fields {
   kind: Kind;
@@ -42,9 +31,12 @@ interface Fields {
   rarity: string;
   permission: Permission;
   condition: string;
+  /** A manual grant's reason (GR-2); unused otherwise. */
+  reason: string;
 }
 
-const chooseable = <T extends { retired?: boolean }>(list: T[]) => list.filter((x) => !x.retired);
+/** What can still be chosen from a reference data list: what isn't retired (RD-3). */
+export const chooseable = <T extends { retired?: boolean }>(list: T[]) => list.filter((x) => !x.retired);
 
 function emptyFields(ref: ReferenceData): Fields {
   return {
@@ -55,6 +47,7 @@ function emptyFields(ref: ReferenceData): Fields {
     rarity: chooseable(ref.rarities)[0]?.id ?? "",
     permission: "weapon-use",
     condition: "",
+    reason: "",
   };
 }
 
@@ -80,21 +73,21 @@ function grantFrom(f: Fields): NewGrant {
 }
 
 /**
- * A form for one grant. `before` holds fields of the form's own (a manual grant's reason);
- * `onAdd` saves the grant and returns what to tell the user.
+ * A form for one grant; `onAdd` saves it and returns what to tell the user.
  */
 export function GrantForm({
   services,
   label = "Add a grant",
   button = "Add grant",
-  before,
+  withReason = false,
   onAdd,
 }: {
   services: Services;
   label?: string;
   button?: string;
-  before?: ReactNode;
-  onAdd: (grant: NewGrant) => Promise<string | void>;
+  /** A manual grant's form also asks for its reason (GR-2), passed to `onAdd`. */
+  withReason?: boolean;
+  onAdd: (grant: NewGrant, reason: string) => Promise<string | void>;
 }) {
   const { ref } = services;
   const [f, setF] = useState(() => emptyFields(ref));
@@ -114,7 +107,7 @@ export function GrantForm({
     setF(fresh);
     void add.run(async () => {
       try {
-        return await onAdd(grantFrom(sent));
+        return await onAdd(grantFrom(sent), sent.reason);
       } catch (error) {
         setF((now) => (now === fresh ? sent : now));
         throw error;
@@ -140,7 +133,18 @@ export function GrantForm({
 
   return (
     <form className="grant-form" aria-label={label} onSubmit={submit}>
-      {before}
+      {withReason && (
+        <label>
+          Reason
+          <input
+            required
+            maxLength={LIMITS.shortText}
+            value={f.reason}
+            onChange={(e) => set("reason")(e.target.value)}
+          />
+          <span className="hint">Such as &quot;DM ruling, Faire 2026&quot;.</span>
+        </label>
+      )}
       {/* Labelled apart, so the label's name is "Kind" alone, not its options' ("Extra die", "Permission"). */}
       <div className="field">
         <label htmlFor={kindId}>Kind</label>
@@ -285,33 +289,28 @@ export function GrantsEditor({
   );
 }
 
-/**
- * Where an entry can be equipped, in the order the app tries them (EQ-2, EQ-3, EQ-7):
- * a one-handed weapon in either hand, Main hand first. None for what can't be equipped.
- */
-export function equipTargets(entry: Entry): SlotTarget[] {
-  switch (entry.category) {
-    case "weapons":
-      return entry.hands === 2 ? ["both-hands"] : ["main-hand", "off-hand"];
-    case "armor":
-      return [entry.slotKind];
-    case "items":
-      return entry.arcane ? ["arcane"] : [];
-    default:
-      return [];
-  }
+/** A blocked equip as a refusal the screen shows, naming the slot and what's in it (EQ-2); NF-12 doesn't report it. */
+function refused(check: EquipCheck): never {
+  throw new ValidationError("slot", check.block?.message ?? "That can't be equipped.");
+}
+
+/** Equips an entry in `target`; a block changes nothing and is thrown as a refusal. */
+export async function equipIn(services: Services, entryId: string, target: string): Promise<void> {
+  const check = await services.store.equip(entryId, target);
+  if (check.outcome === "blocked") refused(check);
 }
 
 /**
  * Equips an entry in the first place it fits that's free, in one tap (NF-1). If none is,
- * nothing changes, and the first place's block says why (EQ-2).
+ * nothing changes, and the first place's block is thrown (EQ-2). Only for an entry that
+ * can be equipped somewhere (equipTargets isn't empty).
  */
-export async function equipWherever(services: Services, entry: Entry): Promise<EquipCheck> {
+export async function equipWherever(services: Services, entry: Entry): Promise<void> {
   let first: EquipCheck | undefined;
   for (const target of equipTargets(entry)) {
     const check = await services.store.equip(entry.id, target);
-    if (check.outcome === "allowed") return check;
+    if (check.outcome === "allowed") return;
     first ??= check;
   }
-  return first ?? (await services.store.equip(entry.id, "none"));
+  if (first) refused(first);
 }

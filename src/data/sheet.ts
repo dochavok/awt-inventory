@@ -3,19 +3,8 @@
 
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { formatLocal, localDay } from "../platform/time";
-import { classBonusShown, dieSourceName } from "../rules/totals";
-import type {
-  BreakdownGroup,
-  Character,
-  Entry,
-  ItemEntry,
-  ReferenceData,
-  SkillEntry,
-  SlotState,
-  Title,
-  Total,
-  Totals,
-} from "../rules/types";
+import type { Character, Entry, ItemEntry, ReferenceData, SkillEntry, SlotState, Title, Totals } from "../rules/types";
+import { totalRows } from "./totals-text";
 import type { PdfFile, PrintOptions, SheetDocument } from "./types";
 import { categoryName } from "./validate";
 
@@ -37,36 +26,10 @@ export interface SheetInput {
 
 type SheetPage = SheetDocument["characters"][number];
 
-const GROUP_LABELS: Record<Exclude<BreakdownGroup, "class-bonus">, string> = {
-  "level-chart": "Level chart",
-  armor: "Armor",
-  weapons: "Weapons",
-  skills: "Skills",
-  ally: "Ally",
-  items: "Items",
-  titles: "Titles",
-  other: "Other",
-};
-
-/**
- * EX-1: CM, mitigation, max hearts and combat dice, each with its breakdown (GR-8 to GR-11).
- * The character's page shows them the same way.
- */
-export function sheetTotals(totals: Totals): NonNullable<SheetPage["totals"]> {
-  const { classBonus } = totals;
-  const lines = (total: Total) =>
-    total.lines.map((l) =>
-      l.group === "class-bonus"
-        ? { label: classBonus.name, value: classBonusShown(classBonus) }
-        : { label: GROUP_LABELS[l.group], value: l.value },
-    );
-  const extra = totals.dice.extra.map((d) => ` + ${d.die} (${dieSourceName(d, classBonus)})`).join("");
-  return [
-    { label: "CM", value: totals.cm.value, lines: lines(totals.cm) },
-    { label: "Mitigation", value: totals.mitigation.value, lines: lines(totals.mitigation) },
-    { label: "Max hearts", value: totals.hearts.value, lines: lines(totals.hearts) },
-    { label: "Combat dice", value: `${totals.dice.base}${extra}`, lines: [] },
-  ];
+/** EX-1: CM, mitigation, max hearts and combat dice, each with its breakdown, as the character's page shows them. */
+function sheetTotals(totals: Totals): NonNullable<SheetPage["totals"]> {
+  const { cm, mitigation, hearts, dice } = totalRows(totals);
+  return [cm, mitigation, hearts, dice];
 }
 
 /** EX-1: what's equipped, slot by slot in paper-doll order, then the arcane slots (EQ-5, EQ-7). */
