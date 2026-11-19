@@ -36,5 +36,6 @@ The checks CI runs are listed in [CLAUDE.md](CLAUDE.md).
 ## Licence
 
 The code is under the [MIT licence](LICENSE). AWT's game content (names, rules,
-skill and spell text, the level chart and other game data) belongs to the
-game's owner and is **not** covered by that licence.
+skill and spell text, the level chart and other game data, including what's in
+`data/`) belongs to the game's owner and is used here with the owner's
+permission. It is **not** covered by that licence, and isn't free to reuse.

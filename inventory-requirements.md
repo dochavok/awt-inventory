@@ -596,8 +596,13 @@ Each milestone from M2 on is done when all of its tests from M1 pass, with no te
 - Q9: weapon groups
 - Q11: familiars, allies and minions
 - Q12: which class bonuses are added to rolls
+- Q14: different skills that share a name
+- Q15: the Cutthroat tree's level
+- Q16: the Thief skill Acquisitions Agent needs
 
-**Waiting on the game's owner:** Q10, whether the app may show the skill and spell card text and use the level chart, and whether both may be published in the public repository (RD-8). The real reference data can't be committed until then.
+**Waiting on the game's owner:**
+
+- Q13: the Warrior Combat Bonus at levels 73 to 75
 
 **Waiting on Craig:** clean up the skill artifacts' unclear prerequisites, tiers and text before the skill list is built (RD-6).
 
@@ -622,6 +627,7 @@ Each milestone from M2 on is done when all of its tests from M1 pass, with no te
 - **Release 0.x at M3** for Craig's own trial, and **1.0 at M5**.
 - **Tech stack:** a TypeScript web app on Firebase (section 20), chosen because the rules must run in the browser for offline use and instant totals. Working offline became a *Must* in M3 (NF-3).
 - **Contacting the maintainer:** an in-app report form. Reports become issues in a separate private GitHub repository, except account problems, which stay in the database (SP-1 to SP-3).
+- **Game content (Q10):** the game's owner agreed (2026-11-17) that the app may show the skill and spell card text, and that the text and the level chart may be kept in the public repository (RD-8).
 
 ## 18. Later
 

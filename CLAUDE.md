@@ -113,6 +113,8 @@ Each is a CI job, and all five are required checks on `main`:
   the same pull request (DOC-3).
 - No real player data in tests, fixtures, docs or examples. Use made-up
   characters.
-- **No game content in this public repository** until the game's owner agrees
-  (RD-8, Q10): no skill or spell card text and no level chart numbers. Tests use
-  their own made-up reference data. The code is MIT; game content isn't covered.
+- **Game content in this public repository** (RD-8): the game's owner agreed
+  (Q10) that `data/` may hold the skill and spell card text and the level
+  chart's numbers; they remain the owner's, and the MIT licence doesn't cover
+  them. Tests use their own made-up reference data and never name real skills
+  or numbers: browser tests read what they need from `data/` (TF-13).
