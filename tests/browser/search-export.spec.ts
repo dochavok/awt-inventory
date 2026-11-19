@@ -575,3 +575,32 @@ browserRule(
     }
   },
 );
+
+browserRule(
+  { req: ["SE-3"], m: "M4" },
+  "a category's list is filtered by what's equipped, and allies by what's active",
+  async ({ page }) => {
+    await signUp(page);
+    const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+    await openCategory(page, wren, "weapons", "Weapons");
+    await addEntry(page, "Duskfang");
+    await addEntry(page, "Hand Axe");
+    await tap(entryRows(page).filter({ hasText: "Duskfang" }).getByRole("button", { name: "Equip Duskfang" }), "Equip");
+    await expect(entryRows(page).filter({ hasText: "Duskfang" }), "Duskfang once equipped").toContainText("Equipped");
+    const filters = page.getByRole("form", { name: "Filters" });
+    await expect(filters.getByLabel("Equipped only"), "the filter for what's equipped").toBeVisible();
+    await filters.getByLabel("Equipped only").check();
+    await expect(entryRows(page), "Wren's equipped weapons").toHaveText([/Duskfang/]);
+    await filters.getByLabel("Equipped only").uncheck();
+    await expect(entryRows(page), "all Wren's weapons").toHaveText([/Duskfang/, /Hand Axe/]);
+
+    await openCategory(page, wren, "allies", "Familiars/Allies");
+    await addEntry(page, "Shadow", async (form) => {
+      await form.getByLabel("Active").check();
+    });
+    await addEntry(page, "Old Crow");
+    await expect(filters.getByLabel("Active only"), "the filter for active allies").toBeVisible();
+    await filters.getByLabel("Active only").check();
+    await expect(entryRows(page), "Wren's active allies").toHaveText([/Shadow/]);
+  },
+);
