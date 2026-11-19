@@ -604,7 +604,7 @@ Each milestone from M2 on is done when all of its tests from M1 pass, with no te
 
 - Q13: the Warrior Combat Bonus at levels 73 to 75
 
-**Waiting on Craig:** clean up the skill artifacts' unclear prerequisites, tiers and text before the skill list is built (RD-6).
+**Waiting on Craig:** bring the Warrior Skills, Rogue Skills and Mage Spells artifacts in step with the skill list in `data/skills.yaml`, which is now the source (RD-6); they still show the sheets from before 2026-11-17.
 
 **For later:**
 
@@ -627,6 +627,7 @@ Each milestone from M2 on is done when all of its tests from M1 pass, with no te
 - **Release 0.x at M3** for Craig's own trial, and **1.0 at M5**.
 - **Tech stack:** a TypeScript web app on Firebase (section 20), chosen because the rules must run in the browser for offline use and instant totals. Working offline became a *Must* in M3 (NF-3).
 - **Contacting the maintainer:** an in-app report form. Reports become issues in a separate private GitHub repository, except account problems, which stay in the database (SP-1 to SP-3).
+- **The skill list is built** (2026-11-17) from the updated skill sheets. What's still unclear is asked in Q14 to Q16, and recorded as maintainer notes in the list (RD-6, RD-7).
 - **Game content (Q10):** the game's owner agreed (2026-11-17) that the app may show the skill and spell card text, and that the text and the level chart may be kept in the public repository (RD-8).
 
 ## 18. Later
