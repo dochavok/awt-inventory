@@ -55,7 +55,7 @@ AWT terms shared with the other AWT projects (Faire day, Class, Hearts, CM, CR, 
 | **Mitigation** | Hearts of damage taken off each hit in combat. Grants from all sources add up. |
 | **Combat dice** | The dice a character rolls in combat: the level chart's dice, plus any extra dice from grants, each listed with its source. |
 | **Title** | An honour from the game, with a name and a description. **Player-level** by default (applies to all of the user's characters). Can be made **character-level** (applies to one character). A Patreon tier is recorded as a title. |
-| **Skill list** | The game's skills and spells, kept as reference data in the repository. It was built from the maintainer's skill and spell artifacts and is now the app's own source (RD-6). Skills are picked from it, never typed in. |
+| **Skill list** | The game's skills and spells, kept as reference data in the repository. It was built from the game's skill and spell sheets and is now the app's own source (RD-6). Skills are picked from it, never typed in. |
 | **Item family** | An optional group that an item belongs to by origin or theme, across categories, e.g. Passion (made by Will Passion) or Glizzy. Typed by the player, so not a fixed list. Called *item class* in the bonus bot. |
 | **Weapon group** | The kind of weapon, e.g. Sword, Dagger, Bow. The term Weapon Focus uses. |
 | **Component tier** | A crafting component's tier, usually Minor, Major, Epic or Legendary, but typed by the player, since tiers are sometimes made up. Unrelated to item rarity. |
@@ -178,7 +178,7 @@ Lost and broken entries are for later (section 18).
 
 ## 6. Skills and the Skill List
 
-Skills and spells aren't typed in. They're picked from the skill list in the reference data, which was built from the maintainer's Warrior, Rogue and Mage artifacts (RD-6). In this section, "skill" covers spells too.
+Skills and spells aren't typed in. They're picked from the skill list in the reference data, which was built from the game's skill and spell sheets (RD-6). In this section, "skill" covers spells too.
 
 **SK-1 · Must · M2: Adding a skill.** The user picks a skill from the skill list, searching by name. By default the list shows the trees open to the character's class; the user can switch to all trees. The user also records **How gained** (Starting, Level-up, Quest, Trained under the old system, or Other), **Level gained**, and optional notes.
 
@@ -442,7 +442,7 @@ Invalid data can't be deployed.
 
 **RD-5 · Must · M2: The level cap.** The highest level a character can have is the highest level in the level chart. Raising the cap (e.g. to 100) means adding rows to the chart, with no change to code or requirements. A chart change never lowers a character's level.
 
-**RD-6 · Must · M2: The skill list is the app's own data.** The skill list is built from the maintainer's Warrior, Rogue and Mage artifacts, after their unclear prerequisites are cleaned up. From then on, the skill list file in the repository is the app's source: changes to skills are made there, by pull request. Keeping the artifacts in step with it is a maintainer task.
+**RD-6 · Must · M2: The skill list is the app's own data.** The skill list was built from the game's skill and spell sheets (2026-11-17); what stayed unclear was asked of the DMs or recorded as maintainer notes (RD-7). The skill list file in the repository is the app's source: changes to skills are made there, by pull request. Keeping the maintainer's Warrior, Rogue and Mage artifacts in step with it is a maintainer task.
 
 **RD-7 · Must · M2: Unclear entries.** Anything still unclear in a skill after the clean-up is recorded as a maintainer note in the skill list. It isn't shown to players: the app shows the skill as recorded.
 
