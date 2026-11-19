@@ -10,6 +10,7 @@ import { ConnectionBar, Header, RefusedNotices } from "./Shell";
 import { Account } from "./screens/Account";
 import { CharacterPage, Characters, NewCharacter } from "./screens/Characters";
 import { Category, EntryPage } from "./screens/Entries";
+import { Equipment } from "./screens/Equipment";
 import { Export } from "./screens/Export";
 import { Help, helpFor } from "./screens/Help";
 import { History } from "./screens/History";
@@ -33,6 +34,7 @@ function shows(route: Route | null, { kind, id }: RefusedChange): boolean {
     case "entry":
     case "skills":
     case "history":
+    case "equipment":
       // A character's screens show that character, its entries and history, and titles.
       if (kind === "profile" || kind === "report") return false;
       if (kind === "title" || id === undefined) return true;
@@ -129,6 +131,7 @@ export function App({ services }: { services: Services }) {
     screen = <EntryPage services={services} id={route.id} entryId={route.entryId} />;
   } else if (route?.screen === "skills") screen = <Skills services={services} id={route.id} />;
   else if (route?.screen === "history") screen = <History services={services} id={route.id} />;
+  else if (route?.screen === "equipment") screen = <Equipment services={services} id={route.id} />;
   else if (route?.screen === "report") screen = <ReportForm services={services} kind={route.kind} />;
   else if (route?.screen === "search") screen = <Search services={services} id={route.id} />;
   else if (route?.screen === "export") screen = <Export services={services} id={route.id} />;

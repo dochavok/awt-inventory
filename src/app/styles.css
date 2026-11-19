@@ -462,3 +462,68 @@ button.option {
   padding: 0.35rem 0;
   overflow-wrap: anywhere;
 }
+
+/* Totals on the character's page (GR-7 to GR-12): each total, then where it comes from. */
+.total {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.totals .total-block {
+  padding: 0.25rem 0;
+}
+
+.totals ul {
+  margin: 0.25rem 0;
+  overflow-wrap: anywhere;
+}
+
+/* The paper doll and arcane slots (EQ-5, EQ-7), and a source's grants (GR-2): one row each. */
+ul.slots,
+ul.grant-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+ul.slots li,
+ul.grant-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  padding: 0.4rem 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+ul.slots li + li,
+ul.grant-list li + li {
+  border-top: 1px solid var(--border);
+}
+
+ul.slots .slot-name {
+  font-weight: 600;
+  min-width: 6rem;
+}
+
+ul.slots .name,
+ul.grant-list span {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
+.grant-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* A field whose label is apart from it, laid out like a label holding its field. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}

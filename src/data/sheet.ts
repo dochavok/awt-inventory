@@ -48,8 +48,11 @@ const GROUP_LABELS: Record<Exclude<BreakdownGroup, "class-bonus">, string> = {
   other: "Other",
 };
 
-/** EX-1: CM, mitigation, max hearts and combat dice, each with its breakdown (GR-8 to GR-11). */
-function sheetTotals(totals: Totals): NonNullable<SheetPage["totals"]> {
+/**
+ * EX-1: CM, mitigation, max hearts and combat dice, each with its breakdown (GR-8 to GR-11).
+ * The character's page shows them the same way.
+ */
+export function sheetTotals(totals: Totals): NonNullable<SheetPage["totals"]> {
   const { classBonus } = totals;
   const lines = (total: Total) =>
     total.lines.map((l) =>

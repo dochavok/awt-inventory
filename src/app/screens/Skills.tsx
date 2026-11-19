@@ -1,16 +1,18 @@
 // Skills (section 6): a character's skills as the list describes them (SK-2),
 // removing one (SK-4), and the picker: available skills first (SK-1a), every
 // tree on request, search by name (SK-1), warnings that don't block (SK-3), and
-// the link to report a skill that isn't listed (SK-5).
+// the link to report a skill that isn't listed (SK-5); and the record check (SK-6).
 
 import { useEffect, useState, type FormEvent } from "react";
 import { LIMITS } from "../../data/validate";
 import { levelCap } from "../../rules/levels";
+import { recordCheck } from "../../rules/skills";
 import {
   HOW_GAINED_NAMES,
   SKILL_TIER_NAMES,
   type Character,
   type HowGained,
+  type MissingSkillLevel,
   type SkillOption,
   type SkillPicker,
 } from "../../rules/types";
@@ -26,8 +28,8 @@ const SEARCH_PAUSE_MS = 300;
 export function Skills({ services, id }: { services: Services; id: string }) {
   const { store } = services;
   const screen = useScreenData(async () => {
-    const [character, skills] = await Promise.all([store.character(id), store.skills(id)]);
-    return { character, skills };
+    const [sheet, skills] = await Promise.all([store.sheet(id), store.skills(id)]);
+    return { character: sheet.character, skills, missingLevels: recordCheck(sheet, services.ref) };
   });
   const [removing, setRemoving] = useState<string | null>(null);
   const action = useAction();
@@ -36,7 +38,7 @@ export function Skills({ services, id }: { services: Services; id: string }) {
 
   if (screen.missing) return <CharacterNotFound />;
   if (!screen.data) return <Loading error={screen.error} />;
-  const { character, skills } = screen.data;
+  const { character, skills, missingLevels } = screen.data;
   const reload = () => void action.run(screen.refresh);
   // This screen's address: where a removed skill's Undo is offered.
   const here = `characters/${character.id}/skills`;
@@ -111,6 +113,7 @@ export function Skills({ services, id }: { services: Services; id: string }) {
           ))}
         </ul>
       )}
+      <RecordCheck character={character} missing={missingLevels} />
       <Picker
         services={services}
         character={character}
@@ -123,6 +126,31 @@ export function Skills({ services, id }: { services: Services; id: string }) {
         }
       />
     </>
+  );
+}
+
+/** SK-6: the levels where the chart gives a skill or spell but none has that Level gained. Information only. */
+function RecordCheck({ character, missing }: { character: Character; missing: MissingSkillLevel[] }) {
+  const what = character.className === "Mage" ? "a spell" : "a skill";
+  return (
+    <section className="card" aria-labelledby="record-title">
+      <h2 id="record-title">Record check</h2>
+      {missing.length === 0 ? (
+        <p className="hint">Every level where the level chart gives {what} has one recorded.</p>
+      ) : (
+        <>
+          <p className="hint">
+            The level chart gives {what} at these levels, but no skill has that Level gained. Just a reminder: nothing
+            is stopped.
+          </p>
+          <ul aria-label="Levels with no skill recorded">
+            {missing.map((m) => (
+              <li key={m.level}>{m.message}</li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
   );
 }
 
