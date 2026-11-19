@@ -329,21 +329,19 @@ rule(
   },
 );
 
-rule(
-  { req: ["RD-8"], m: "M2" },
-  "data/'s level chart has its numbers, and the tests' made-up chart isn't it",
-  () => {
-    const chart = loadReferenceData(readFiles(DATA)).levelChart;
-    expect(Object.keys(chart).sort(), "the classes in data/level-chart.yaml").toEqual(["Mage", "Rogue", "Warrior"]);
-    const madeUp = loadReferenceData(testFiles()).levelChart;
-    for (const [className, { levels }] of Object.entries(chart)) {
-      expect(levels.length, `${className}'s levels in data/`).toBeGreaterThan(0);
-      const placeholder = levels.filter((l) => l.classBonus === 0 && l.hearts === 0 && l.dice === "1d1");
-      expect(
-        placeholder.map((l) => l.level),
-        `${className}'s levels in data/ with no numbers`,
-      ).toEqual([]);
-      expect(levels, `${className}'s chart in data/ against the tests' own`).not.toEqual(madeUp[className as keyof typeof madeUp].levels);
-    }
-  },
-);
+rule({ req: ["RD-8"], m: "M2" }, "data/'s level chart has its numbers, and the tests' made-up chart isn't it", () => {
+  const chart = loadReferenceData(readFiles(DATA)).levelChart;
+  expect(Object.keys(chart).sort(), "the classes in data/level-chart.yaml").toEqual(["Mage", "Rogue", "Warrior"]);
+  const madeUp = loadReferenceData(testFiles()).levelChart;
+  for (const [className, { levels }] of Object.entries(chart)) {
+    expect(levels.length, `${className}'s levels in data/`).toBeGreaterThan(0);
+    const placeholder = levels.filter((l) => l.classBonus === 0 && l.hearts === 0 && l.dice === "1d1");
+    expect(
+      placeholder.map((l) => l.level),
+      `${className}'s levels in data/ with no numbers`,
+    ).toEqual([]);
+    expect(levels, `${className}'s chart in data/ against the tests' own`).not.toEqual(
+      madeUp[className as keyof typeof madeUp].levels,
+    );
+  }
+});

@@ -26,6 +26,7 @@ interface ListedSkill {
   tree?: string;
   trees?: { tree: string; starting?: boolean }[];
   usage: string;
+  text?: string;
   starting?: boolean;
   retired?: boolean;
 }
@@ -35,7 +36,10 @@ interface ListedSkill {
  * a starting skill whose trees are only for Rogues, and a skill whose trees are only for Mages
  * whose name no other skill's contains, so searching for it finds only it.
  */
-function skillsFromData(): { rogue: { name: string; tree: string; usage: string }; mage: string } {
+function skillsFromData(): {
+  rogue: { name: string; tree: string; usage: string; text?: string };
+  mage: string;
+} {
   const list = parse(readFileSync(new URL("../../data/skills.yaml", import.meta.url), "utf8")) as {
     trees: { id: string; name: string; classes: string[]; entryLevel?: number; retired?: boolean }[];
     skills: ListedSkill[];
@@ -55,8 +59,7 @@ function skillsFromData(): { rogue: { name: string; tree: string; usage: string 
   );
   const mage = list.skills.find(
     (s) =>
-      onlyFor(s, "Mage") &&
-      list.skills.filter((o) => o.name.toLowerCase().includes(s.name.toLowerCase())).length === 1,
+      onlyFor(s, "Mage") && list.skills.filter((o) => o.name.toLowerCase().includes(s.name.toLowerCase())).length === 1,
   );
   if (!rogue || !mage) {
     throw new Error(
@@ -64,7 +67,10 @@ function skillsFromData(): { rogue: { name: string; tree: string; usage: string 
         "in trees only for Mages whose name is in no other skill's name, for this test",
     );
   }
-  return { rogue: { name: rogue.name, tree: tree(treesOf(rogue)[0]!).name, usage: rogue.usage }, mage: mage.name };
+  return {
+    rogue: { name: rogue.name, tree: tree(treesOf(rogue)[0]!).name, usage: rogue.usage, text: rogue.text },
+    mage: mage.name,
+  };
 }
 
 interface NewEntryFields {
@@ -311,9 +317,30 @@ browserRule(
     // Removing a skill asks first, like deleting any entry (SK-4, IN-15).
     await expect(taken, "Wren's skills while asking").toHaveCount(2);
     await page.getByRole("button", { name: "Remove for good" }).click();
-    await expect(taken, "Wren's skills after removing one").toHaveText([new RegExp(rogue.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))]);
+    await expect(taken, "Wren's skills after removing one").toHaveText([
+      new RegExp(rogue.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+    ]);
   },
 );
+
+browserRule({ req: ["SK-2"], m: "M2" }, "a skill taken shows its card text from the skill list", async ({ page }) => {
+  const { rogue } = skillsFromData();
+  expect(rogue.text, `${rogue.name}'s card text in data/`).toBeTruthy();
+  await signUp(page);
+  const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+  await openFromCharacter(page, wren, /^Skills/, "Skills");
+  await page
+    .getByRole("list", { name: "Available now" })
+    .getByRole("button", { name: rogue.name, exact: true })
+    .click();
+  const add = page.getByRole("form", { name: `Add ${rogue.name}` });
+  await add.getByLabel("How gained").selectOption({ label: "Starting" });
+  await add.getByLabel("Level gained").fill("1");
+  await add.getByRole("button", { name: "Add skill" }).click();
+  const taken = page.getByRole("list", { name: "Skills taken" }).getByRole("listitem");
+  await expect(taken, "Wren's skills").toHaveCount(1);
+  await expect(taken.first(), `Wren's ${rogue.name} showing its card text`).toContainText(rogue.text!);
+});
 
 browserRule(
   { req: ["TF-13", "SK-5", "SP-1"], m: "M3" },
