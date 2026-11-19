@@ -30,7 +30,7 @@ When equipping is refused, nothing changes, and the app says why. See [Equipping
 
 - **Wrong slot** ("… fits Chest, not Back"): armor goes only in the slot it fits; a one-handed weapon in the Main hand or the Off hand; a two-handed weapon in both hands; an arcane item in an arcane slot. If the entry's slot or hands are wrong, edit the entry. A slot the game no longer uses takes nothing new.
 - **Slot full** ("Back is full: … is in it"): every slot of that kind is taken. Unequip what's there first, or add a grant if something gives the character another slot of that kind.
-- **Hands not free** ("… needs both hands free"): a two-handed weapon needs both hands empty. Unequip what's in them.
+- **Hands not free** ("… needs both hands free"): a two-handed weapon needs both hands empty. Unequip what's in them. For a one-handed weapon, "Both hands are full: …" says what's in each hand.
 - **Two shields** ("a character can't hold two shields"): until the DMs answer, a character holds one shield at most.
 - **Not arcane** ("… isn't arcane, so it can't go in an arcane slot"): only arcane items go in arcane slots. If the item is arcane, edit it and tick **Arcane**.
 - **Arcane full** ("Arcane slots are full: 4 of 4 used"): unequip another arcane item first. A character gains arcane slots from the level chart and from grants.
