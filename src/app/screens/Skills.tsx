@@ -13,6 +13,7 @@ import {
   type Character,
   type HowGained,
   type MissingSkillLevel,
+  type SkillEntry,
   type SkillOption,
   type SkillPicker,
 } from "../../rules/types";
@@ -28,8 +29,19 @@ const SEARCH_PAUSE_MS = 300;
 export function Skills({ services, id }: { services: Services; id: string }) {
   const { store } = services;
   const screen = useScreenData(async () => {
-    const [sheet, skills] = await Promise.all([store.sheet(id), store.skills(id)]);
-    return { character: sheet.character, skills, missingLevels: recordCheck(sheet, services.ref) };
+    const [character, skills] = await Promise.all([store.character(id), store.skills(id)]);
+    // SK-6 needs only the character and its skills' levels, both read already (NF-5).
+    const entries = skills.map((s): SkillEntry => ({
+      id: s.entryId,
+      characterId: character.id,
+      category: "skills",
+      skillId: s.skillId,
+      howGained: s.howGained,
+      levelGained: s.levelGained,
+      quantity: 1,
+    }));
+    const sheet = { character, entries, equipped: [], titles: [], manualGrants: [] };
+    return { character, skills, missingLevels: recordCheck(sheet, services.ref) };
   });
   const [removing, setRemoving] = useState<string | null>(null);
   const action = useAction();

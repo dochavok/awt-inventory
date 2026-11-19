@@ -771,3 +771,27 @@ browserRule(
     await expect(rowFor(page, "Shortsword"), "Shortsword after the block").not.toContainText("Equipped");
   },
 );
+
+browserRule(
+  { req: ["EQ-2", "EQ-3", "EQ-4"], m: "M4" },
+  "two daggers, one in each hand, are named as two when a third weapon finds both hands full",
+  async ({ page }) => {
+    await signUp(page);
+    const brin = await addCharacter(page, { name: "Brin", className: "Warrior", level: 8 });
+    await openFromCharacter(page, brin, /^Weapons/, "Weapons");
+    // EQ-4: two of the same thing are separate entries; here they share a name.
+    await addEntry(page, "Dagger");
+    await addEntry(page, "Dagger", (form) => form.getByLabel("Notes").fill("The second one."));
+    await addEntry(page, "Shortsword");
+    const daggers = rowFor(page, "Dagger");
+    await expect(daggers, "Brin's two daggers").toHaveCount(2);
+    for (const i of [0, 1]) {
+      await tap(daggers.nth(i).getByRole("button", { name: "Equip Dagger" }), `Equip dagger ${i + 1}`);
+      await expect(daggers.nth(i), `dagger ${i + 1} once equipped`).toContainText("Equipped");
+    }
+    await tap(rowFor(page, "Shortsword").getByRole("button", { name: "Equip Shortsword" }), "Equip Shortsword");
+    await expect(page.getByRole("alert"), "the block with a dagger in each hand").toHaveText(
+      "Both hands are full: Dagger is in the Main hand and Dagger in the Off hand.",
+    );
+  },
+);

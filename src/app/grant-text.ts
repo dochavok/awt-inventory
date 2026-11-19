@@ -6,6 +6,8 @@
 import { GROUP_NAMES, totalRows, type TotalRow } from "../data/totals-text";
 import { classBonusShown, dieSourceName, sourceName } from "../rules/totals";
 import type {
+  ArcaneState,
+  SlotView,
   Effect,
   Grant,
   GrantLine,
@@ -81,6 +83,14 @@ export function grantText(grant: Grant | NewGrant, ref: ReferenceData): string {
   }
   return grant.condition ? `${text} (${grant.condition})` : text;
 }
+
+/** EQ-7's count, e.g. "Arcane slots: 3 of 4 used". */
+export const arcaneCount = (arcane: Pick<ArcaneState, "used" | "allowed">) =>
+  `Arcane slots: ${arcane.used} of ${arcane.allowed} used`;
+
+/** A paper-doll slot as a line of text, e.g. "Back 2: Grey Cloak (from Wayfarer's Sash)" (EQ-5). */
+export const slotLine = (slot: SlotView) =>
+  `${slot.label}: ${slot.occupant?.name ?? "Empty"}${slot.source ? ` (from ${sourceLabel(slot.source)})` : ""}`;
 
 const SOURCE_PREFIX: Record<SourceRef["type"], string> = {
   entry: "",

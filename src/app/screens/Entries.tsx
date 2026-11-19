@@ -778,7 +778,7 @@ export function EntryPage({ services, id, entryId }: { services: Services; id: s
   if (screen.missing) return <CharacterNotFound />;
   if (!screen.data) return <Loading error={screen.error} />;
   const { character, entry, slot } = screen.data;
-  if (!entry || entry.category === "skills" || entry.characterId !== character.id) {
+  if (!entry || entry.category === "skills") {
     return (
       <>
         <BackTo character={character} />
@@ -853,7 +853,11 @@ export function EntryPage({ services, id, entryId }: { services: Services; id: s
           <h2 id="grants-title">Grants</h2>
           <p className="hint">
             What it adds to the character, such as CM or an extra slot.{" "}
-            {entry.category === "allies" ? "They count while it's active." : "They count only while it's equipped."}
+            {entry.category === "allies"
+              ? "They count while it's active."
+              : equipTargets(entry).length > 0
+                ? "They count only while it's equipped."
+                : "An item that isn't arcane can't be equipped, so they don't count. Tick Arcane in Edit if it is."}
           </p>
           <GrantsEditor
             services={services}

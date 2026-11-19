@@ -17,9 +17,19 @@ If there's no room, nothing changes and the app says which slot is full and what
 
 ## The equipment page
 
-**Equipment**, on the character's page, shows the paper doll: every slot (Head, Chest and the rest, plus Main hand and Off hand), with what's in it or *Empty*. A slot that comes from a grant is marked with where it comes from, such as "Back 2: from Title: Wanderer". Each equipped entry has **Unequip** there too.
+**Equipment**, on the character's page, shows the paper doll: every slot (Head, Chest and the rest, plus Main hand and Off hand), with what's in it or *Empty*. A slot that comes from a grant is marked with where it comes from. Each equipped entry has **Unequip** there too.
 
-Below it are the arcane items, with how many arcane slots are used, such as "Arcane slots: 3 of 4 used". A character's arcane slots are the class's starting number, plus one at each level where the level chart gives one, plus any arcane slot grants.
+Below it are the arcane items, with how many arcane slots are used. A character's arcane slots are the class's starting number, plus one at each level where the level chart gives one, plus any arcane slot grants. For the made-up sample character Mirela, a level 9 Mage, while she still had the sash that gave her a second Back slot (only the slots with something in them, or from a grant, are shown here):
+
+<!-- generated: equipment-example -->
+```text
+Head: Starglass Circlet
+Back: Dusk Cloak
+Back 2: Grey Cloak (from Wayfarer's Sash)
+Belt: Wayfarer's Sash
+Arcane slots: 1 of 3 used
+```
+<!-- end generated: equipment-example -->
 
 ## Grants
 

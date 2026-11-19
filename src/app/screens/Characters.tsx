@@ -170,7 +170,7 @@ function InventoryLinks({ id, entries }: { id: string; entries: Entry[] }) {
 export function CharacterPage({ services, id }: { services: Services; id: string }) {
   const { store, ref } = services;
   // The character, its entries (for the counts and totals) and its titles (TI-2), with its alerts.
-  const screen = useScreenData(() => sheetWithAlerts(store, id));
+  const screen = useScreenData(() => sheetWithAlerts(services, id));
   const [panel, setPanel] = useState<"edit" | "class" | null>(null);
   const action = useAction();
 

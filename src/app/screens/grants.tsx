@@ -313,13 +313,14 @@ export async function equipWherever(services: Services, entry: Entry): Promise<v
     blocks.push(check);
   }
   // A one-handed weapon tried in both hands: say both are full, and what's in each (EQ-3).
-  const [main, off] = blocks.map((b) => (b.block?.reason === "slot-full" ? b.block.occupants[0]?.name : undefined));
+  const [main, off] = blocks.map((b) => (b.block?.reason === "slot-full" ? b.block.occupants[0] : undefined));
   if (blocks.length === 2 && main && off) {
     throw new ValidationError(
       "slot",
-      main === off
-        ? `Both hands are full: ${main} is in them.`
-        : `Both hands are full: ${main} is in the Main hand and ${off} in the Off hand.`,
+      // One entry in both hands is a two-handed weapon; two entries can share a name.
+      main.entryId === off.entryId
+        ? `Both hands are full: ${main.name} is in them.`
+        : `Both hands are full: ${main.name} is in the Main hand and ${off.name} in the Off hand.`,
     );
   }
   if (blocks[0]) refused(blocks[0]);

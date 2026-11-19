@@ -14,13 +14,15 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { z } from "zod";
-import { totalsView } from "../src/app/grant-text";
+import { arcaneCount, slotLine, totalsView } from "../src/app/grant-text";
+import { slotState } from "../src/rules/equipping";
+import { recordCheck } from "../src/rules/skills";
 import { SHOW_SKILL_TEXT } from "../src/app/settings";
 import { MemoryDatabase, createMemoryStore } from "../src/data/memory-store";
 import type { InventoryStore } from "../src/data/store";
 import type { GainOptions, NewEntry, NewSkill, NewTitle } from "../src/data/types";
 import { loadReferenceData } from "../src/refdata";
-import type { NewGrant } from "../src/rules/types";
+import type { CharacterSheet, NewGrant, ReferenceData } from "../src/rules/types";
 
 /** docs/sample/sample.yaml: unknown fields are refused, so a typo can't vanish from the examples. */
 const Sample = z.strictObject({
@@ -49,10 +51,22 @@ const Sample = z.strictObject({
   manualGrants: z.array(z.strictObject({ reason: z.string(), grants: z.array(z.record(z.string(), z.unknown())) })),
 });
 
-/** The sample account's store, and its one character's ID. */
+/** The sample account's store, its one character's ID, and its equipment before anything was traded. */
 interface SampleAccount {
   store: InventoryStore;
   characterId: string;
+  ref: ReferenceData;
+  equipment: string;
+}
+
+/**
+ * DOC-4: the paper doll's slots that hold something or come from a grant, and the arcane
+ * slots' count, as the equipment page shows them (EQ-5, EQ-7).
+ */
+function equipmentExample(sheet: CharacterSheet, ref: ReferenceData): string {
+  const state = slotState(sheet, ref);
+  const slots = state.kinds.flatMap((k) => k.slots).filter((s) => s.occupant || s.source);
+  return ["```text", ...slots.map(slotLine), arcaneCount(state.arcane), "```"].join("\n");
 }
 
 /** The sample account, built through the app's store with the reference data in data/. */
@@ -92,10 +106,19 @@ async function sampleAccount(root: string): Promise<SampleAccount> {
     // A sample that can't be equipped as written is a mistake in it, not an example.
     if (check.outcome !== "allowed") throw new Error(`docs/sample: ${check.block?.message ?? "blocked"}`);
   }
+  // Before the trades, while the sample still has a slot from a grant.
+  const equipment = equipmentExample(await store.sheet(character.id), ref);
   for (const { id, trade } of added) {
     if (trade) await store.markTraded(id, trade);
   }
-  return { store, characterId: character.id };
+  return { store, characterId: character.id, ref, equipment };
+}
+
+/** DOC-4: the record check on the sample character's Skills page (SK-6). */
+async function recordCheckExample({ store, characterId, ref }: SampleAccount): Promise<string> {
+  const missing = recordCheck(await store.sheet(characterId), ref);
+  if (missing.length === 0) throw new Error("docs/sample: the record check example needs a level with no skill");
+  return ["```text", ...missing.map((m) => m.message), "```"].join("\n");
 }
 
 /** DOC-4: the sample character's totals as its page shows them, and where its CM comes from (GR-7 to GR-12). */
@@ -135,5 +158,7 @@ export async function docsExamples(root: string): Promise<Record<string, string>
     "json-example": ["```json", JSON.stringify(await account.store.exportJson(), null, 2), "```"].join("\n"),
     "totals-example": await totalsExample(account),
     "alert-example": await alertExample(account),
+    "equipment-example": account.equipment,
+    "record-check-example": await recordCheckExample(account),
   };
 }
