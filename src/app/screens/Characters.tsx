@@ -8,12 +8,25 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { ClassCorrectionNotice } from "../../data/types";
 import { categoryName, LIMITS } from "../../data/validate";
 import { levelCap } from "../../rules/levels";
-import { CATEGORIES, CLASS_NAMES, type Category, type Character, type ClassName, type Entry } from "../../rules/types";
+import { computeTotals } from "../../rules/totals";
+import {
+  CATEGORIES,
+  CLASS_NAMES,
+  type Category,
+  type Character,
+  type ClassName,
+  type Entry,
+  type ManualGrant,
+  type Totals,
+} from "../../rules/types";
+import { grantText, totalsView } from "../grant-text";
 import { go, href } from "../router";
 import type { Services } from "../services";
 import { VerifyEmail } from "../Shell";
 import { Feedback, useAction } from "../useAction";
 import { CharacterNotFound, LevelInput, Loading, useScreenData } from "./common";
+import { Alerts, sheetWithAlerts } from "./Equipment";
+import { GrantForm } from "./grants";
 
 const describe = (c: Pick<Character, "className" | "level">) => `${c.className} · level ${c.level}`;
 
@@ -123,13 +136,19 @@ export function NewCharacter({ services }: { services: Services }) {
   );
 }
 
-/** The links to a character's inventory, skills and history, in the glossary's order, with how many of each. */
+/**
+ * The links to a character's equipment, then its inventory, skills and history, in the
+ * glossary's order, with how many of each.
+ */
 function InventoryLinks({ id, entries }: { id: string; entries: Entry[] }) {
   // The sheet's entries are those still in the inventory.
   const count = (category: Category) => entries.filter((e) => e.category === category).length;
   return (
     <nav aria-label="Inventory" className="inventory-links">
       <ul className="link-list">
+        <li>
+          <a href={href(`characters/${id}/equipment`)}>Equipment</a>
+        </li>
         {CATEGORIES.map((category) => (
           <li key={category}>
             <a href={href(`characters/${id}/${category}`)}>
@@ -149,15 +168,16 @@ function InventoryLinks({ id, entries }: { id: string; entries: Entry[] }) {
 }
 
 export function CharacterPage({ services, id }: { services: Services; id: string }) {
-  const { store } = services;
-  // One read for the character, its entries (for the counts) and its titles (TI-2).
-  const screen = useScreenData(() => store.sheet(id));
+  const { store, ref } = services;
+  // The character, its entries (for the counts and totals) and its titles (TI-2), with its alerts.
+  const screen = useScreenData(() => sheetWithAlerts(services, id));
   const [panel, setPanel] = useState<"edit" | "class" | null>(null);
   const action = useAction();
 
   if (screen.missing) return <CharacterNotFound />;
   if (!screen.data) return <Loading error={screen.error} />;
-  const { character, entries, titles } = screen.data;
+  const { sheet, alerts } = screen.data;
+  const { character, entries, titles } = sheet;
 
   const done = async (message: string) => {
     await screen.refresh();
@@ -173,6 +193,8 @@ export function CharacterPage({ services, id }: { services: Services; id: string
         {character.retired && <span className="tag">Retired</span>}
       </p>
       {character.notes && <p className="notes">{character.notes}</p>}
+      <Alerts alerts={alerts} />
+      <TotalsCard totals={computeTotals(sheet, ref)} />
       <InventoryLinks id={character.id} entries={entries} />
       <Feedback error={action.error} notice={action.notice} />
       <div className="actions">
@@ -233,8 +255,131 @@ export function CharacterPage({ services, id }: { services: Services; id: string
           </ul>
         )}
       </section>
+      <ManualGrants
+        services={services}
+        characterId={character.id}
+        manualGrants={sheet.manualGrants}
+        onChanged={screen.refresh}
+      />
       <DeleteCharacter services={services} character={character} />
     </>
+  );
+}
+
+/**
+ * GR-7 to GR-12: the class bonus on its own line, each total with its breakdown, and a
+ * button for each that opens every grant in it, situational ones apart; then the combat dice.
+ */
+function TotalsCard({ totals }: { totals: Totals }) {
+  const view = totalsView(totals);
+  const [open, setOpen] = useState<string | null>(null);
+  return (
+    <section className="card totals" aria-labelledby="totals-title">
+      <h2 id="totals-title">Totals</h2>
+      <p className="total">{view.classBonus}</p>
+      {view.totals.map((t) => (
+        <div key={t.label} className="total-block">
+          <p className="total">{t.heading}</p>
+          {t.breakdown && <p className="hint">{t.breakdown}</p>}
+          <button
+            type="button"
+            className="link-button"
+            aria-expanded={open === t.label}
+            onClick={() => setOpen(open === t.label ? null : t.label)}
+          >
+            {`Where ${t.label} comes from`}
+          </button>
+          {open === t.label && (
+            <>
+              {t.grants.length === 0 ? (
+                <p className="hint">Nothing adds to it.</p>
+              ) : (
+                <ul aria-label={`Grants in ${t.label}`}>
+                  {t.grants.map((g, i) => (
+                    <li key={i}>{g}</li>
+                  ))}
+                </ul>
+              )}
+              {t.situational.length > 0 && (
+                <>
+                  <h3>Situational, not added in</h3>
+                  <ul aria-label={`Situational for ${t.label}`}>
+                    {t.situational.map((g, i) => (
+                      <li key={i}>{g}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </>
+          )}
+        </div>
+      ))}
+      <p className="total">{view.dice}</p>
+      {view.situationalDice.length > 0 && (
+        <p className="hint">Situational dice, not rolled every time: {view.situationalDice.join(", ")}</p>
+      )}
+    </section>
+  );
+}
+
+/** GR-2: grants added straight to the character, each with its reason. */
+function ManualGrants({
+  services,
+  characterId,
+  manualGrants,
+  onChanged,
+}: {
+  services: Services;
+  characterId: string;
+  manualGrants: ManualGrant[];
+  onChanged: () => Promise<void>;
+}) {
+  const { store, ref } = services;
+  const remove = useAction();
+  return (
+    <section className="card" aria-labelledby="manual-title">
+      <h2 id="manual-title">Manual grants</h2>
+      <p className="hint">
+        For what the app can&apos;t see, such as a DM&apos;s ruling. Each has a reason, and always counts.
+      </p>
+      {manualGrants.length > 0 && (
+        <ul className="grant-list" aria-label="Manual grants">
+          {manualGrants.map((m) => (
+            <li key={m.id}>
+              <span>
+                <strong>{m.reason}</strong>: {m.grants.map((g) => grantText(g, ref)).join(", ")}
+              </span>
+              <button
+                type="button"
+                className="secondary"
+                aria-label={`Remove ${m.reason}`}
+                disabled={remove.busy}
+                onClick={() =>
+                  void remove.run(async () => {
+                    // A manual grant left with no grants is removed with its last one.
+                    for (const g of m.grants) await store.removeGrant(g.id);
+                    await onChanged();
+                  })
+                }
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Feedback error={remove.error} notice={null} />
+      <GrantForm
+        services={services}
+        label="Add a manual grant"
+        button="Add manual grant"
+        withReason
+        onAdd={async (grant, reason) => {
+          await store.addManualGrant(characterId, reason, [grant]);
+          await onChanged();
+        }}
+      />
+    </section>
   );
 }
 

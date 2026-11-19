@@ -12,6 +12,7 @@ const ORDER = [
   "characters-and-titles",
   "inventory",
   "skills",
+  "equipping-and-totals",
   "history",
   "search-and-export",
   "troubleshooting",
@@ -49,6 +50,8 @@ export function helpFor(route: Route | null, signedIn: boolean): string {
       return "help/skills";
     case "history":
       return "help/history";
+    case "equipment":
+      return "help/equipping-and-totals";
     case "report":
       return "help/troubleshooting";
     case "search":

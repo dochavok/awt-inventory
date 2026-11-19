@@ -1,12 +1,13 @@
 // Titles (section 4.2): adding one with a name, description and date earned
 // (TI-1), player-level by default or one character's (TI-2), Patreon tiers as
-// titles (TI-3), and editing or removing them (TI-4).
+// titles (TI-3), editing or removing them (TI-4), and their grants (TI-5).
 
 import { useEffect, useState, type FormEvent } from "react";
 import { LIMITS } from "../../data/validate";
 import type { Character, Title, TitleScope } from "../../rules/types";
 import type { Services } from "../services";
 import { Feedback, useAction } from "../useAction";
+import { GrantsEditor } from "./grants";
 
 const PLAYER = "player";
 
@@ -123,6 +124,13 @@ export function Titles({ services }: { services: Services }) {
               {t.description && <p>{t.description}</p>}
               {t.earned && <p className="hint">Earned {t.earned}</p>}
               <p className="hint">{scopeText(t.scope)}</p>
+              {/* TI-5: what the title adds, to every character it applies to. */}
+              <GrantsEditor
+                services={services}
+                target={{ titleId: t.id }}
+                grants={t.grants ?? []}
+                onChanged={refresh}
+              />
               {editing === t.id ? (
                 <EditTitle
                   services={services}

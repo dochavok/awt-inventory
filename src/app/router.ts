@@ -11,7 +11,7 @@ const SIMPLE = ["sign-in", "sign-up", "privacy", "account", "characters", "title
 
 export type Route =
   | { screen: (typeof SIMPLE)[number] | "new-character" }
-  | { screen: "character" | "skills" | "history"; id: string }
+  | { screen: "character" | "skills" | "history" | "equipment"; id: string }
   | { screen: "category"; id: string; category: ItemCategory }
   | { screen: "entry"; id: string; entryId: string }
   | { screen: "help"; page?: string }
@@ -65,7 +65,9 @@ function characterRoute(id: string, part?: string, entryId?: string): Route | nu
   if (id === "new") return null;
   if (part === "entries") return entryId ? { screen: "entry", id, entryId } : null;
   if (entryId !== undefined) return null;
-  if (part === "skills" || part === "history" || part === "search") return { screen: part, id };
+  if (part === "skills" || part === "history" || part === "search" || part === "equipment") {
+    return { screen: part, id };
+  }
   if ((ITEM_CATEGORIES as readonly string[]).includes(part)) {
     return { screen: "category", id, category: part as ItemCategory };
   }

@@ -1,6 +1,6 @@
 {
   "name": "awt-inventory",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "description": "Inventory, skills and totals for Adventures from the Wizards Tower characters, as a phone-first web app.",
   "type": "module",
@@ -26,7 +26,8 @@
     "finishedMilestones": [
       "M1",
       "M2",
-      "M3"
+      "M3",
+      "M4"
     ]
   },
   "dependencies": {

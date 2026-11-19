@@ -206,7 +206,6 @@ const NOT_EQUIPPABLE: Record<Exclude<Entry["category"], "weapons" | "armor" | "i
   allies: "is an ally: allies are made active, not equipped",
 };
 
-/** Whether this entry can go in `target` at all (EQ-2, EQ-3, EQ-7), whatever's already there. */
 /**
  * Whether an entry can be in `target` at all, whatever's already there (EQ-2, EQ-3, EQ-7).
  * The store also uses it, so an entry stored as equipped where it no longer fits (two
@@ -223,6 +222,25 @@ export function fitsSlot(entry: Entry, target: SlotTarget): boolean {
     default:
       return false;
   }
+}
+
+/**
+ * Where an entry can be equipped, in the order the app tries them: a one-handed weapon in
+ * the Main hand first, then the Off hand. None for what can't be equipped (EQ-2, EQ-3, EQ-7).
+ */
+export function equipTargets(entry: Entry): SlotTarget[] {
+  const candidates = new Set([
+    ...(entry.category === "armor" ? [entry.slotKind] : []),
+    ...HANDS,
+    "both-hands",
+    "arcane",
+  ]);
+  return [...candidates].filter((target) => fitsSlot(entry, target));
+}
+
+/** Where something is equipped, as the app names it: a slot kind's name, "both hands" or "an arcane slot". */
+export function slotTargetName(ref: ReferenceData, target: SlotTarget): string {
+  return kindName(slotKinds(ref), target);
 }
 
 /** Why this entry can't go in `target` at all (EQ-2, EQ-3, EQ-7), or null if it fits. */

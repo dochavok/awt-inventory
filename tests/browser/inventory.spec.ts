@@ -73,6 +73,33 @@ function skillsFromData(): {
   };
 }
 
+/**
+ * A skill from the real list in data/ printed in several trees (RD-1), none of them retired,
+ * whose name is in no other skill's name, so searching for it finds only it; with its trees'
+ * names in the list's order (TF-13).
+ */
+function skillInSeveralTrees(): { name: string; trees: string[] } {
+  const list = parse(readFileSync(new URL("../../data/skills.yaml", import.meta.url), "utf8")) as {
+    trees: { id: string; name: string; retired?: boolean }[];
+    skills: ListedSkill[];
+  };
+  const tree = (id: string) => list.trees.find((t) => t.id === id);
+  const skill = list.skills.find(
+    (s) =>
+      !s.retired &&
+      (s.trees?.length ?? 0) >= 2 &&
+      s.trees!.every((p) => tree(p.tree) && !tree(p.tree)!.retired) &&
+      list.skills.filter((o) => o.name.toLowerCase().includes(s.name.toLowerCase())).length === 1,
+  );
+  if (!skill) {
+    throw new Error(
+      "data/skills.yaml needs a skill in several trees, none retired, whose name is in no other skill's name, " +
+        "for this test",
+    );
+  }
+  return { name: skill.name, trees: skill.trees!.map((p) => tree(p.tree)!.name) };
+}
+
 interface NewEntryFields {
   name: string;
   quantity?: number;
@@ -558,5 +585,29 @@ browserRule(
       /Consumables\s*2/,
     );
     await expect(inventory.getByRole("link", { name: /^Weapons/ }), "Wren's Weapons link").toHaveText(/Weapons\s*0/);
+  },
+);
+
+browserRule(
+  { req: ["SK-1a", "SK-2"], m: "M2" },
+  "a skill printed in several trees is offered once, and shows every tree once taken",
+  async ({ page }) => {
+    const skill = skillInSeveralTrees();
+    await signUp(page);
+    const brin = await addCharacter(page, { name: "Brin", className: "Warrior", level: 8 });
+    await openFromCharacter(page, brin, /^Skills/, "Skills");
+    const picker = page.getByRole("region", { name: "Add a skill" });
+    await picker.getByLabel("Show every tree").check();
+    await picker.getByLabel("Search skills").fill(skill.name);
+    const offered = picker.getByRole("button", { name: skill.name, exact: true });
+    await expect(offered, `${skill.name} offered once`).toHaveCount(1);
+    await offered.click();
+    const add = page.getByRole("form", { name: `Add ${skill.name}` });
+    await add.getByLabel("How gained").selectOption({ label: "Quest" });
+    await add.getByLabel("Level gained").fill("8");
+    await add.getByRole("button", { name: "Add skill" }).click();
+    const taken = page.getByRole("list", { name: "Skills taken" }).getByRole("listitem");
+    await expect(taken, "Brin's skills").toHaveCount(1);
+    await expect(taken.first(), `${skill.name} showing every tree`).toContainText(skill.trees.join(", "));
   },
 );

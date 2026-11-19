@@ -1,6 +1,6 @@
 # Troubleshooting
 
-reviewed: 2026-11-12
+reviewed: 2026-11-19
 
 Every refusal and warning the app shows, and what to do about it.
 
@@ -23,6 +23,28 @@ Every refusal and warning the app shows, and what to do about it.
 - **"It's too late to undo":** **Undo** is offered for about 10 seconds after deleting an entry. After that, add the entry again.
 - **"That use … was restored already":** each use can be restored once.
 - **"… is no longer in the inventory":** a use can't be restored once the rest of the entry was deleted. Add it again instead.
+
+## Equipping
+
+When equipping is refused, nothing changes, and the app says why. See [Equipping and totals](equipping-and-totals.md).
+
+- **Wrong slot** ("… fits Chest, not Back"): armor goes only in the slot it fits; a one-handed weapon in the Main hand or the Off hand; a two-handed weapon in both hands; an arcane item in an arcane slot. If the entry's slot or hands are wrong, edit the entry. A slot the game no longer uses takes nothing new.
+- **Slot full** ("Back is full: … is in it"): every slot of that kind is taken. Unequip what's there first, or add a grant if something gives the character another slot of that kind.
+- **Hands not free** ("… needs both hands free"): a two-handed weapon needs both hands empty. Unequip what's in them. For a one-handed weapon, "Both hands are full: …" says what's in each hand.
+- **Two shields** ("a character can't hold two shields"): until the DMs answer, a character holds one shield at most.
+- **Not arcane** ("… isn't arcane, so it can't go in an arcane slot"): only arcane items go in arcane slots. If the item is arcane, edit it and tick **Arcane**.
+- **Arcane full** ("Arcane slots are full: 4 of 4 used"): unequip another arcane item first. A character gains arcane slots from the level chart and from grants.
+- **Over limit** ("Back: 2 equipped, 1 allowed. Unequip 1 to clear the alert."): the character lost a grant, or two of your phones equipped the same slot without signal, so more is equipped there than it's now allowed. Nothing more goes in until you unequip enough.
+- **Cannot equip** ("… can't be equipped"): consumables, components, skills and items that aren't arcane are never equipped. Familiars and allies are made active instead, in their own form.
+- **Already equipped** ("… is already equipped in …"): an entry is in one place at a time. Unequip it first to move it.
+
+## Grants
+
+- **"… isn't a kind of grant"** or **"… doesn't have a …":** choose the kind again; each kind has its own fields.
+- **A grant's amount** is a whole number of 1 or more (at most 10 slots in one grant). An extra die is written like `1d6`.
+- **"… entries can't have grants":** only weapons, armor, items and familiars or allies have grants. Skills bring theirs from the skill list.
+- **"… can have at most 50 grants":** one entry, title or manual grant holds at most 50, and a character at most 50 manual grants.
+- **A manual grant needs a reason,** such as "DM ruling, Faire 2026".
 
 ## Without signal
 

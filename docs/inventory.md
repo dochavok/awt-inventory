@@ -1,10 +1,12 @@
 # The inventory
 
-reviewed: 2026-11-17
+reviewed: 2026-11-19
 
 A character's inventory has seven categories: **Weapons, Armor, Skills, Familiars/Allies, Consumables, Items** and **Components**. Skills have their own page: [Skills](skills.md). The app has no item catalog: you type in your own items.
 
 A character's page lists the categories, with how many entries each has. Open one to see its entries, and **Add an entry** at the bottom. Tap an entry's name to see all of it and to edit, trade or delete it.
+
+Weapons, armor and arcane items have **Equip** (or **Unequip**) next to them in the list, and on their own page. Weapons, armor, items and allies can carry **grants**, such as +2 CM or an extra Back slot, added on their page. See [Equipping and totals](equipping-and-totals.md).
 
 ## Entries
 

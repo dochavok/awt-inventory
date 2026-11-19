@@ -8,13 +8,15 @@ import { useEffect, useId, useState, type FormEvent } from "react";
 import { matchesFilter } from "../../data/search";
 import type { EntryListItem, EntryPatch, GainOptions, NewEntry } from "../../data/types";
 import { categoryName, LIMITS } from "../../data/validate";
-import { NotFoundError } from "../../errors";
 import type { Character, Entry, ItemCategory, ItemEntry, ReferenceData } from "../../rules/types";
 import { go, href } from "../router";
 import type { Services } from "../services";
 import { offerUndo, UndoBar } from "../undo";
 import { Feedback, useAction } from "../useAction";
 import { BackTo, CharacterNotFound, DayField, Loading, pickedDate, useScreenData } from "./common";
+import { equipTargets, slotTargetName } from "../../rules/equipping";
+import { named } from "../grant-text";
+import { chooseable, equipIn, equipWherever, GrantsEditor } from "./grants";
 
 /** Only consumables and components can be marked used (IN-12). */
 const usable = (category: ItemCategory) => category === "consumables" || category === "components";
@@ -30,7 +32,7 @@ export function Category({ services, id, category }: { services: Services; id: s
     return { character, items };
   });
   const [adding, setAdding] = useState(false);
-  const [filter, setFilter] = useState<Filter>({ rarity: "", family: "" });
+  const [filter, setFilter] = useState<Filter>({ rarity: "", family: "", equipped: false });
   const action = useAction();
 
   if (screen.missing) return <CharacterNotFound />;
@@ -42,17 +44,35 @@ export function Category({ services, id, category }: { services: Services; id: s
   const active: Filter = {
     rarity: choices.rarities.some((r) => r.id === filter.rarity) ? filter.rarity : "",
     family: choices.families.some((f) => f.key === filter.family) ? filter.family : "",
+    equipped: choices.equipped && filter.equipped,
   };
   // It's forgotten, too, so it doesn't come back when a new entry has it.
-  if (active.rarity !== filter.rarity || active.family !== filter.family) setFilter(active);
+  if ((Object.keys(active) as (keyof Filter)[]).some((key) => active[key] !== filter[key])) setFilter(active);
   const match = {
     ...(active.rarity ? { rarity: active.rarity } : {}),
     ...(active.family ? { itemFamily: active.family } : {}),
   };
-  const shown = items.filter((item) => matchesFilter(item.entry, match));
+  const shown = items.filter((item) => matchesFilter(item.entry, match) && (!active.equipped || item.equipped));
   const reload = () => void action.run(screen.refresh);
 
   // The list changes in place: reading the category again after every tap would cost a read per entry (NF-5).
+  const markEquipped = (entryId: string, equipped: boolean) =>
+    screen.set((data) => ({
+      ...data,
+      items: data.items.map((item) => (item.entry.id === entryId ? { ...item, equipped } : item)),
+    }));
+  // Equip in one tap where the entry fits (NF-1, EQ-2); a block changes nothing and says why.
+  const equip = (entry: Entry) =>
+    void action.run(async () => {
+      await equipWherever(services, entry);
+      markEquipped(entry.id, true);
+    });
+  const unequip = (entry: Entry) =>
+    void action.run(async () => {
+      await store.unequip(entry.id);
+      markEquipped(entry.id, false);
+    });
+
   const used = (entry: Entry) =>
     void action.run(async () => {
       await store.markUsed(entry.id);
@@ -77,13 +97,20 @@ export function Category({ services, id, category }: { services: Services; id: s
       <h1>{categoryName(category)}</h1>
       <UndoBar at={categoryAddress(character.id, category)} onUndone={reload} />
       <Feedback error={action.error} notice={action.notice} />
-      <Filters choices={choices} filter={active} onChange={setFilter} />
+      <Filters category={category} choices={choices} filter={active} onChange={setFilter} />
       {items.length === 0 ? (
         <p className="hint">Nothing here yet.</p>
       ) : shown.length === 0 ? (
         <p className="hint">Nothing matches these filters.</p>
       ) : (
-        <EntryList category={category} items={shown} busy={action.busy} onUsed={used} />
+        <EntryList
+          category={category}
+          items={shown}
+          busy={action.busy}
+          onUsed={used}
+          onEquip={equip}
+          onUnequip={unequip}
+        />
       )}
       {adding ? (
         <EntryForm
@@ -114,19 +141,21 @@ export function Category({ services, id, category }: { services: Services; id: s
 
 /**
  * A list's filters as chosen: a rarity's ID and an item family in lower case (its spelling
- * doesn't matter, SE-3), "" for any. Matched with the store's own rule (matchesFilter).
- * Equipped or active comes in M4.
+ * doesn't matter, SE-3), "" for any, matched with the store's own rule (matchesFilter); and
+ * whether only what's equipped (or for allies, active) is shown.
  */
 interface Filter {
   rarity: string;
   family: string;
+  equipped: boolean;
 }
 
-/** What a list can be filtered by: the rarities and item families its entries have. */
+/** What a list can be filtered by: the rarities and item families its entries have, and whether any is equipped. */
 interface FilterChoices {
   rarities: ReferenceData["rarities"];
   /** One per family however its entries spell it, in order: its lower-case key, and a spelling to show. */
   families: { key: string; label: string }[];
+  equipped: boolean;
 }
 
 function filterChoices(items: EntryListItem[], allRarities: ReferenceData["rarities"]): FilterChoices {
@@ -139,6 +168,7 @@ function filterChoices(items: EntryListItem[], allRarities: ReferenceData["rarit
   return {
     rarities,
     families: [...families].map(([key, label]) => ({ key, label })).sort((a, b) => a.label.localeCompare(b.label)),
+    equipped: items.some((item) => item.equipped),
   };
 }
 
@@ -147,17 +177,29 @@ function filterChoices(items: EntryListItem[], allRarities: ReferenceData["rarit
  * already loaded (NF-5). None show when there's nothing to filter by.
  */
 function Filters({
-  choices: { rarities, families },
+  category,
+  choices: { rarities, families, equipped },
   filter,
   onChange,
 }: {
+  category: ItemCategory;
   choices: FilterChoices;
   filter: Filter;
   onChange: (filter: Filter) => void;
 }) {
-  if (rarities.length === 0 && families.length === 0) return null;
+  if (rarities.length === 0 && families.length === 0 && !equipped) return null;
   return (
     <form className="filters" aria-label="Filters" onSubmit={(e) => e.preventDefault()}>
+      {equipped && (
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={filter.equipped}
+            onChange={(e) => onChange({ ...filter, equipped: e.target.checked })}
+          />
+          {category === "allies" ? "Active only" : "Equipped only"}
+        </label>
+      )}
       {rarities.length > 0 && (
         <label>
           Rarity
@@ -193,11 +235,15 @@ function EntryList({
   items,
   busy,
   onUsed,
+  onEquip,
+  onUnequip,
 }: {
   category: ItemCategory;
   items: EntryListItem[];
   busy: boolean;
   onUsed: (entry: Entry) => void;
+  onEquip: (entry: Entry) => void;
+  onUnequip: (entry: Entry) => void;
 }) {
   return (
     <ul className="entry-list" aria-label={categoryName(category)}>
@@ -211,6 +257,18 @@ function EntryList({
             </a>
             <span className="quantity">× {entry.quantity}</span>
             {equipped && <span className="tag">{entry.category === "allies" ? "Active" : "Equipped"}</span>}
+            {/* An ally is made active in its own form, not equipped, so it has no targets. */}
+            {equipTargets(entry).length > 0 && (
+              <button
+                type="button"
+                className="secondary"
+                aria-label={`${equipped ? "Unequip" : "Equip"} ${name}`}
+                disabled={busy}
+                onClick={() => (equipped ? onUnequip(entry) : onEquip(entry))}
+              >
+                {equipped ? "Unequip" : "Equip"}
+              </button>
+            )}
             {usable(category) && (
               <button
                 type="button"
@@ -254,8 +312,6 @@ interface Fields {
   link: string;
   gained: string;
 }
-
-const chooseable = <T extends { retired?: boolean }>(list: T[]) => list.filter((x) => !x.retired);
 
 function fieldsOf(entry: ItemEntry | undefined, ref: ReferenceData): Fields {
   const e = (entry ?? {}) as Record<string, unknown>;
@@ -660,7 +716,6 @@ function EntryForm({
 // ---------------------------------------------------------------- an entry's page
 
 function details(entry: ItemEntry, ref: ReferenceData): [string, string][] {
-  const named = (list: { id: string; name: string }[], id: string) => list.find((x) => x.id === id)?.name ?? id;
   const rows: [string, string | undefined][] = [
     ["Quantity", `× ${entry.quantity}`],
     ["Description", entry.description],
@@ -706,25 +761,24 @@ function details(entry: ItemEntry, ref: ReferenceData): [string, string][] {
 
 export function EntryPage({ services, id, entryId }: { services: Services; id: string; entryId: string }) {
   const { store, ref } = services;
+  // One read for the character, the entry and where it's equipped (EQ-5). A character that
+  // isn't there is "missing"; an entry that isn't (deleted, or all of it used, traded or given
+  // away) is shown as gone from the character's inventory.
   const screen = useScreenData(async () => {
-    // A character that isn't there is "missing"; an entry that isn't (deleted, or all of it
-    // used, traded or given away) is shown as gone from the character's inventory.
-    const [character, entry] = await Promise.all([
-      store.character(id),
-      store.entry(entryId).catch((error: unknown) => {
-        if (error instanceof NotFoundError) return null;
-        throw error;
-      }),
-    ]);
-    return { character, entry };
+    const sheet = await store.sheet(id);
+    return {
+      character: sheet.character,
+      entry: sheet.entries.find((e) => e.id === entryId) ?? null,
+      slot: sheet.equipped.find((q) => q.entryId === entryId)?.slot,
+    };
   });
   const [panel, setPanel] = useState<"edit" | "delete" | null>(null);
   const action = useAction();
 
   if (screen.missing) return <CharacterNotFound />;
   if (!screen.data) return <Loading error={screen.error} />;
-  const { character, entry } = screen.data;
-  if (!entry || entry.category === "skills" || entry.characterId !== character.id) {
+  const { character, entry, slot } = screen.data;
+  if (!entry || entry.category === "skills") {
     return (
       <>
         <BackTo character={character} />
@@ -781,6 +835,38 @@ export function EntryPage({ services, id, entryId }: { services: Services; id: s
           onCancel={() => setPanel(null)}
         />
       )}
+      <Equipping
+        services={services}
+        entry={entry}
+        slot={slot}
+        busy={action.busy}
+        onChange={(change, message) =>
+          void action.run(async () => {
+            await change();
+            await screen.refresh();
+            return message;
+          })
+        }
+      />
+      {!usable(entry.category) && (
+        <section className="card" aria-labelledby="grants-title">
+          <h2 id="grants-title">Grants</h2>
+          <p className="hint">
+            What it adds to the character, such as CM or an extra slot.{" "}
+            {entry.category === "allies"
+              ? "They count while it's active."
+              : equipTargets(entry).length > 0
+                ? "They count only while it's equipped."
+                : "An item that isn't arcane can't be equipped, so they don't count. Tick Arcane in Edit if it is."}
+          </p>
+          <GrantsEditor
+            services={services}
+            target={{ entryId: entry.id }}
+            grants={entry.grants ?? []}
+            onChanged={screen.refresh}
+          />
+        </section>
+      )}
       {/* Keyed by the quantity, so each form starts afresh, and offers all that's left, after a change. */}
       {usable(entry.category) && (
         <UseForm key={`use-${entry.quantity}`} services={services} entry={entry} onDone={done} />
@@ -821,6 +907,61 @@ export function EntryPage({ services, id, entryId }: { services: Services; id: s
         )}
       </section>
     </>
+  );
+}
+
+/**
+ * Where an entry is equipped, with Unequip; or Equip, a one-handed weapon choosing its hand
+ * (EQ-2 to EQ-5, EQ-7). Nothing for what can't be equipped. `onChange` runs a change and reloads.
+ */
+function Equipping({
+  services,
+  entry,
+  slot,
+  busy,
+  onChange,
+}: {
+  services: Services;
+  entry: ItemEntry;
+  slot: string | undefined;
+  busy: boolean;
+  onChange: (change: () => Promise<void>, message: string) => void;
+}) {
+  const { store, ref } = services;
+  const targets = equipTargets(entry);
+  if (targets.length === 0) return null;
+  return (
+    <section className="card" aria-labelledby="equip-title">
+      <h2 id="equip-title">Equipping</h2>
+      {slot !== undefined ? (
+        <>
+          <p>{`Equipped in ${slotTargetName(ref, slot)}`}</p>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onChange(() => store.unequip(entry.id), `${entry.name} unequipped.`)}
+          >
+            Unequip
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="hint">Not equipped. Its grants count only while it&apos;s equipped.</p>
+          <div className="actions">
+            {targets.map((target) => (
+              <button
+                key={target}
+                type="button"
+                disabled={busy}
+                onClick={() => onChange(() => equipIn(services, entry.id, target), `${entry.name} equipped.`)}
+              >
+                {targets.length === 1 ? "Equip" : `Equip in ${slotTargetName(ref, target)}`}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 

@@ -1,6 +1,6 @@
 # Characters and titles
 
-reviewed: 2026-11-12
+reviewed: 2026-11-19
 
 ## Your characters
 
@@ -14,7 +14,11 @@ Choose **Add a character**, then give its name, class (Warrior, Mage or Rogue) a
 
 On a character's page, choose **Edit** to change its name, level or notes. Every change of level is recorded in the character's history, for example "Level 12 → 13".
 
-A character's page also links to each category of its inventory, its history and **Search**, and **Print or export** makes its printable sheet: see [Search and export](search-and-export.md).
+A character's page also links to its **Equipment**, each category of its inventory, its history and **Search**, and **Print or export** makes its printable sheet: see [Search and export](search-and-export.md).
+
+### Totals and manual grants
+
+A character's page shows its totals: the class bonus, CM, mitigation, max hearts and combat dice, each worked out from the level chart and what's equipped. Tap **Where CM comes from** to see every grant in it. If more is equipped than the character is allowed, an alert at the top says so. Under **Manual grants** you can add a grant with a reason, such as a DM's ruling. See [Equipping and totals](equipping-and-totals.md).
 
 ### Correcting the class
 
@@ -41,3 +45,7 @@ A new title applies to **all your characters**, including ones you create later.
 ### Editing and removing
 
 Choose **Edit** on a title to change its name, description, date or who it applies to, or **Remove** to remove it.
+
+### A title's grants
+
+A title can carry grants, such as "+1 Back slot" or "+1 Legendary allowance": add them on the title, under its **Grants**. A title for all your characters gives its grants to each of them; one character's title, only to that character. Removing a title, or moving it to another character, takes its grants away, which can raise an over-limit alert. See [Equipping and totals](equipping-and-totals.md).

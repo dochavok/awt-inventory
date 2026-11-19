@@ -2,8 +2,11 @@
 # scripts/generate-docs.ts builds this account with the app's own code and
 # writes its output into the guide's pages; `npm run docs:write` regenerates
 # them after a change here or in the app. Kept apart from the test fixtures.
-# Everything is made up except the skill, which is from the real skill list in
-# data/ (RD-8).
+# Everything is made up except the skill and the level chart's numbers, which
+# are from the real reference data in data/ (RD-8).
+#
+# The account is built in this order: entries, skills, titles and manual
+# grants; then every `equip`, in the file's order; then every `trade`.
 
 # When the sample account is made, in UTC.
 at: "2026-05-02T18:00:00.000Z"
@@ -21,10 +24,42 @@ entries:
       rarity: epic
       itemFamily: Starglass
       arcane: true
+      grants:
+        - { kind: cm, amount: 2 }
+        - { kind: die, die: 1d6 }
     gain:
       source: Quest
       link: https://example.com/rewards/42
       note: From the made-up Night Market quest
+    equip: arcane
+  - entry:
+      category: armor
+      name: Starglass Circlet
+      slotKind: head
+      grants:
+        - { kind: mitigation, amount: 1 }
+        - { kind: cm, amount: 1, condition: vs Undead }
+    equip: head
+  - entry:
+      category: armor
+      name: Wayfarer's Sash
+      slotKind: belt
+      grants:
+        - { kind: slots, slotKind: back, amount: 1 }
+    equip: belt
+    trade:
+      kind: traded
+      note: A made-up trader
+  - entry:
+      category: armor
+      name: Dusk Cloak
+      slotKind: back
+    equip: back
+  - entry:
+      category: armor
+      name: Grey Cloak
+      slotKind: back
+    equip: back
   - entry:
       category: consumables
       name: Ember Tonic
@@ -39,3 +74,9 @@ titles:
   - name: Keeper of the Lanterns
     description: Made-up title for the guide.
     earned: "2026-04-18"
+    grants:
+      - { kind: cm, amount: 1 }
+manualGrants:
+  - reason: DM ruling, made-up faire
+    grants:
+      - { kind: hearts, amount: 1 }
