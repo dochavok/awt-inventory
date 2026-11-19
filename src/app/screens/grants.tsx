@@ -306,11 +306,21 @@ export async function equipIn(services: Services, entryId: string, target: strin
  * can be equipped somewhere (equipTargets isn't empty).
  */
 export async function equipWherever(services: Services, entry: Entry): Promise<void> {
-  let first: EquipCheck | undefined;
+  const blocks: EquipCheck[] = [];
   for (const target of equipTargets(entry)) {
     const check = await services.store.equip(entry.id, target);
     if (check.outcome === "allowed") return;
-    first ??= check;
+    blocks.push(check);
   }
-  if (first) refused(first);
+  // A one-handed weapon tried in both hands: say both are full, and what's in each (EQ-3).
+  const [main, off] = blocks.map((b) => (b.block?.reason === "slot-full" ? b.block.occupants[0]?.name : undefined));
+  if (blocks.length === 2 && main && off) {
+    throw new ValidationError(
+      "slot",
+      main === off
+        ? `Both hands are full: ${main} is in them.`
+        : `Both hands are full: ${main} is in the Main hand and ${off} in the Off hand.`,
+    );
+  }
+  if (blocks[0]) refused(blocks[0]);
 }

@@ -751,3 +751,23 @@ browserRule(
     await expect(totalsOf(page).getByText(`CM ${row.classBonus}`, { exact: true }), "Cass's CM").toBeVisible();
   },
 );
+
+browserRule(
+  { req: ["EQ-2", "EQ-3"], m: "M4" },
+  "a third one-handed weapon, with both hands full, is blocked naming both hands and what's in each",
+  async ({ page }) => {
+    await signUp(page);
+    const brin = await addCharacter(page, { name: "Brin", className: "Warrior", level: 8 });
+    await openFromCharacter(page, brin, /^Weapons/, "Weapons");
+    for (const weapon of ["Dagger", "Hand Axe", "Shortsword"]) await addEntry(page, weapon);
+    for (const weapon of ["Dagger", "Hand Axe"]) {
+      await tap(rowFor(page, weapon).getByRole("button", { name: `Equip ${weapon}` }), `Equip ${weapon}`);
+      await expect(rowFor(page, weapon), `${weapon} once equipped`).toContainText("Equipped");
+    }
+    await tap(rowFor(page, "Shortsword").getByRole("button", { name: "Equip Shortsword" }), "Equip Shortsword");
+    await expect(page.getByRole("alert"), "the block with both hands full").toHaveText(
+      "Both hands are full: Dagger is in the Main hand and Hand Axe in the Off hand.",
+    );
+    await expect(rowFor(page, "Shortsword"), "Shortsword after the block").not.toContainText("Equipped");
+  },
+);
