@@ -478,12 +478,13 @@ browserRule(
     const suggested = async () => {
       await page.getByRole("button", { name: "Edit" }).click();
       const field = page.getByRole("form", { name: "Edit Silk Rope" }).getByLabel("Where it came from");
-      // The suggestions arrive just after the form opens.
-      await expect(field, "the source field's suggestions").toHaveAttribute("list", /.+/);
+      // The suggestions arrive just after the form opens; the reference data's common sources
+      // are always among them, so the list's first option means they're there.
+      await expect(field, "the source field's suggestion list").toHaveAttribute("list", /.+/);
       const list = await field.getAttribute("list");
-      const values = await page
-        .locator(`datalist[id="${list}"] option`)
-        .evaluateAll((options) => options.map((o) => (o as HTMLOptionElement).value));
+      const options = page.locator(`datalist[id="${list}"] option`);
+      await expect(options.first(), "the source field's suggestions, once they've arrived").toBeAttached();
+      const values = await options.evaluateAll((all) => all.map((o) => (o as HTMLOptionElement).value));
       await page.getByRole("button", { name: "Cancel" }).click();
       return values;
     };
