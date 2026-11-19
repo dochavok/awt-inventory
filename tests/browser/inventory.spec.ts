@@ -10,7 +10,6 @@ import { expect, type Locator, type Page } from "@playwright/test";
 import { parse } from "yaml";
 import { browserRule } from "../support/browser-rule";
 import { addCharacter, signUp } from "../support/browser-account";
-import { skillInSeveralTrees } from "../support/browser-data";
 
 /** A screen of a character's inventory, opened from the character's page in one tap. */
 async function openFromCharacter(page: Page, characterId: string, link: RegExp, heading: string): Promise<void> {
@@ -72,6 +71,33 @@ function skillsFromData(): {
     rogue: { name: rogue.name, tree: tree(treesOf(rogue)[0]!).name, usage: rogue.usage, text: rogue.text },
     mage: mage.name,
   };
+}
+
+/**
+ * A skill from the real list in data/ printed in several trees (RD-1), none of them retired,
+ * whose name is in no other skill's name, so searching for it finds only it; with its trees'
+ * names in the list's order (TF-13).
+ */
+function skillInSeveralTrees(): { name: string; trees: string[] } {
+  const list = parse(readFileSync(new URL("../../data/skills.yaml", import.meta.url), "utf8")) as {
+    trees: { id: string; name: string; retired?: boolean }[];
+    skills: ListedSkill[];
+  };
+  const tree = (id: string) => list.trees.find((t) => t.id === id);
+  const skill = list.skills.find(
+    (s) =>
+      !s.retired &&
+      (s.trees?.length ?? 0) >= 2 &&
+      s.trees!.every((p) => tree(p.tree) && !tree(p.tree)!.retired) &&
+      list.skills.filter((o) => o.name.toLowerCase().includes(s.name.toLowerCase())).length === 1,
+  );
+  if (!skill) {
+    throw new Error(
+      "data/skills.yaml needs a skill in several trees, none retired, whose name is in no other skill's name, " +
+        "for this test",
+    );
+  }
+  return { name: skill.name, trees: skill.trees!.map((p) => tree(p.tree)!.name) };
 }
 
 interface NewEntryFields {
