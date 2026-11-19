@@ -31,7 +31,7 @@ Added to the home screen, the app opens full screen with its own icon.
 
 ## Without signal
 
-Open the app once with signal, and everything in your account is kept on your phone. At the faire, without signal, you can still open every character and make changes. A bar at the top says when you're offline and how many changes are waiting; they're sent as soon as there's signal again.
+Open the app once with signal and give it a few seconds to store itself on your phone; from then on, everything in your account is kept there. At the faire, without signal, you can still open every character and make changes. A bar at the top says when you're offline and how many changes are waiting; they're sent as soon as there's signal again.
 
 Signing in on a new phone and creating an account need signal.
 

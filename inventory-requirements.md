@@ -458,7 +458,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 
 **NF-3 · Must · M3: Working offline.**
 
-- After a user has opened the app with signal on a phone, everything in their account stays on that phone. Without signal they can view, search and export it, and make any change. Changes sync when signal returns.
+- After a user has opened the app with signal on a phone, and it has finished storing itself there, everything in their account stays on that phone. Without signal they can view, search and export it, and make any change. Changes sync when signal returns.
 - If two devices change the same field while offline, the change made later wins, whichever phone gets signal first. Quantity changes are combined (one *used* on each of two phones means two fewer). History records from both are kept. If that takes a quantity below 0 (two phones each use the last one), the entry counts as gone, as at 0, and restoring a use brings it back with 1. If two phones each create a character with the same name while offline, or rename one to the same name, the one that reaches the server first is kept. The other is refused when its phone gets signal, together with anything added to it on that phone, and the app tells the user which character was refused. A clash that leaves too much equipped shows the over-limit alert (EQ-8).
 - These need signal: signing in on a new device, creating an account, and browsing trade listings (later). Reports written offline are sent when signal returns.
 - The app shows when it's offline and how many changes are waiting to sync.

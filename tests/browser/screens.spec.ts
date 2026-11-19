@@ -173,6 +173,11 @@ browserRule(
       page.getByRole("list", { name: "Main characters" }).getByRole("link"),
       "the characters this phone sees",
     ).toHaveText([/Isolde/]);
+    // The app has been opened with signal and has stored itself on the phone (NF-3).
+    expect(
+      await page.evaluate(async () => (await navigator.serviceWorker.ready).active !== null),
+      "the app stored on the phone",
+    ).toBe(true);
     await context.setOffline(true);
     await page.reload();
     await expectSignedIn(page);
