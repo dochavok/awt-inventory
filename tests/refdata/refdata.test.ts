@@ -2,7 +2,8 @@
 // Reference data (section 13: RD-1 to RD-8): reading the files and the CI
 // checks on them. Uses the test copy in tests/fixtures/refdata/, and broken
 // copies made from it inside each test; never the real files, except the
-// RD-6 and RD-8 checks on data/ itself.
+// RD-6 and RD-8 checks on data/ itself (and RD-8's check that the tests'
+// made-up data isn't taken from data/).
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -312,30 +313,37 @@ rule(
 );
 
 rule(
-  { req: ["RD-8"], q: ["Q10"], m: "M2" },
-  "until the owner agrees, data/ holds no skill card text (and the skill list exists without it)",
+  { req: ["RD-8", "SK-2"], m: "M2" },
+  "data/'s skill list has card text, and none of the tests' made-up card text comes from it",
   () => {
-    expect(existsSync(new URL("skills.yaml", DATA)), "data/skills.yaml").toBe(true);
-    const skills = parse(readFileSync(new URL("skills.yaml", DATA), "utf8")) as {
-      skills: { id: string; text?: string }[];
-    };
-    const withText = skills.skills.filter((s) => s.text !== undefined).map((s) => s.id);
-    expect(withText, "skills in data/ with card text").toEqual([]);
+    const textsOf = (dir: URL) =>
+      (parse(readFileSync(new URL("skills.yaml", dir), "utf8")) as { skills: { id: string; text?: string }[] }).skills
+        .filter((s) => s.text !== undefined)
+        .map((s) => s.text!);
+    const real = new Set(textsOf(DATA));
+    expect(real.size, "skills in data/ with card text").toBeGreaterThan(0);
+    expect(
+      textsOf(FIXTURES).filter((t) => real.has(t)),
+      "the tests' card text found in data/",
+    ).toEqual([]);
   },
 );
 
 rule(
-  { req: ["RD-8"], q: ["Q10"], m: "M2" },
-  "until the owner agrees, data/'s level chart holds no numbers: every bonus and heart is 0 and every die 1d1",
+  { req: ["RD-8"], m: "M2" },
+  "data/'s level chart has its numbers, and the tests' made-up chart isn't it",
   () => {
     const chart = loadReferenceData(readFiles(DATA)).levelChart;
     expect(Object.keys(chart).sort(), "the classes in data/level-chart.yaml").toEqual(["Mage", "Rogue", "Warrior"]);
+    const madeUp = loadReferenceData(testFiles()).levelChart;
     for (const [className, { levels }] of Object.entries(chart)) {
       expect(levels.length, `${className}'s levels in data/`).toBeGreaterThan(0);
-      const numbered = levels
-        .filter((l) => l.classBonus !== 0 || l.hearts !== 0 || l.dice !== "1d1")
-        .map((l) => `${className} level ${l.level}`);
-      expect(numbered, `${className}'s levels in data/ with real numbers`).toEqual([]);
+      const placeholder = levels.filter((l) => l.classBonus === 0 && l.hearts === 0 && l.dice === "1d1");
+      expect(
+        placeholder.map((l) => l.level),
+        `${className}'s levels in data/ with no numbers`,
+      ).toEqual([]);
+      expect(levels, `${className}'s chart in data/ against the tests' own`).not.toEqual(madeUp[className as keyof typeof madeUp].levels);
     }
   },
 );

@@ -230,8 +230,8 @@ rule({ req: ["EX-1", "CH-5"], m: "M3" }, "the sheet for all characters leaves ou
 });
 
 rule(
-  { req: ["EX-1", "SK-2"], q: ["Q10"], m: "M3" },
-  "skill text is on the sheet only when ticked, and only once the owner has agreed",
+  { req: ["EX-1", "SK-2"], m: "M3" },
+  "skill text is on the sheet only when ticked, and only while card text is turned on",
   async () => {
     const shown = await bramWithTwo({ showSkillText: true });
     const spark = async (b: typeof shown, includeSkillText: boolean) =>
@@ -243,7 +243,7 @@ rule(
       "Made-up card text for tests: a small burst of sparks.",
     );
     const hidden = await bramWithTwo({ showSkillText: false });
-    expect((await spark(hidden, true))?.text, "Spark's text, ticked, without the owner's agreement").toBeUndefined();
+    expect((await spark(hidden, true))?.text, "Spark's text, ticked, with card text turned off").toBeUndefined();
   },
 );
 

@@ -2,9 +2,12 @@
 // using, restoring, trading, editing and deleting entries (IN), skills from the
 // list (SK), the history and its filters (HI), and reports to the maintainer
 // (SP-1). Each test signs up its own made-up player. The skills come from the
-// placeholder skill list in data/ (one starting skill per class, RD-8).
+// real skill list in data/, which the build uses: the tests read the skills
+// they need from it and never name one (TF-13).
 
+import { readFileSync } from "node:fs";
 import { expect, type Locator, type Page } from "@playwright/test";
+import { parse } from "yaml";
 import { browserRule } from "../support/browser-rule";
 import { addCharacter, signUp } from "../support/browser-account";
 
@@ -15,6 +18,53 @@ async function openFromCharacter(page: Page, characterId: string, link: RegExp, 
   await expect(inventory, "the inventory links on the character's page").toBeVisible({ timeout: 15_000 });
   await inventory.getByRole("link", { name: link }).click();
   await expect(page.getByRole("heading", { level: 1 }), `the ${heading} screen`).toHaveText(heading);
+}
+
+interface ListedSkill {
+  id: string;
+  name: string;
+  tree?: string;
+  trees?: { tree: string; starting?: boolean }[];
+  usage: string;
+  starting?: boolean;
+  retired?: boolean;
+}
+
+/**
+ * Two skills from the real list in data/ (TF-13), found with plain rules rather than the app's:
+ * a starting skill whose trees are only for Rogues, and a skill whose trees are only for Mages
+ * whose name no other skill's contains, so searching for it finds only it.
+ */
+function skillsFromData(): { rogue: { name: string; tree: string; usage: string }; mage: string } {
+  const list = parse(readFileSync(new URL("../../data/skills.yaml", import.meta.url), "utf8")) as {
+    trees: { id: string; name: string; classes: string[]; entryLevel?: number; retired?: boolean }[];
+    skills: ListedSkill[];
+  };
+  const tree = (id: string) => list.trees.find((t) => t.id === id)!;
+  const treesOf = (s: ListedSkill) => s.trees?.map((p) => p.tree) ?? (s.tree === undefined ? [] : [s.tree]);
+  const onlyFor = (s: ListedSkill, className: string) =>
+    !s.retired &&
+    treesOf(s).length > 0 &&
+    treesOf(s).every((id) => !tree(id).retired && tree(id).classes.join() === className);
+  const rogue = list.skills.find(
+    (s) =>
+      onlyFor(s, "Rogue") &&
+      treesOf(s).length === 1 &&
+      (tree(treesOf(s)[0]!).entryLevel ?? 1) <= 3 &&
+      (s.starting === true || s.trees?.[0]?.starting === true),
+  );
+  const mage = list.skills.find(
+    (s) =>
+      onlyFor(s, "Mage") &&
+      list.skills.filter((o) => o.name.toLowerCase().includes(s.name.toLowerCase())).length === 1,
+  );
+  if (!rogue || !mage) {
+    throw new Error(
+      "data/skills.yaml needs a starting skill in a tree only for Rogues (open by level 3) and a skill " +
+        "in trees only for Mages whose name is in no other skill's name, for this test",
+    );
+  }
+  return { rogue: { name: rogue.name, tree: tree(treesOf(rogue)[0]!).name, usage: rogue.usage }, mage: mage.name };
 }
 
 interface NewEntryFields {
@@ -222,43 +272,46 @@ browserRule(
   { req: ["TF-13", "SK-1", "SK-1a", "SK-2", "SK-3", "SK-4"], m: "M3" },
   "skills are picked from the list, available ones first; another class's skill comes with a warning; one is removed",
   async ({ page }) => {
+    const { rogue, mage } = skillsFromData();
     await signUp(page);
     const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
     await openFromCharacter(page, wren, /^Skills/, "Skills");
     const available = page.getByRole("list", { name: "Available now" });
-    await expect(available.getByRole("button"), "the skills Wren can take now").toHaveText(["Placeholder Rogue skill"]);
-    await available.getByRole("button", { name: "Placeholder Rogue skill" }).click();
-    let add = page.getByRole("form", { name: "Add Placeholder Rogue skill" });
+    const exactly = (name: string) => ({ name, exact: true });
+    await expect(available.getByRole("button", exactly(rogue.name)), `${rogue.name}, available to Wren`).toBeVisible();
+    await expect(available.getByRole("button", exactly(mage)), `${mage}, not available to Wren`).toHaveCount(0);
+    await available.getByRole("button", exactly(rogue.name)).click();
+    let add = page.getByRole("form", { name: `Add ${rogue.name}` });
     await add.getByLabel("How gained").selectOption({ label: "Starting" });
     await add.getByLabel("Level gained").fill("1");
     await add.getByRole("button", { name: "Add skill" }).click();
     const taken = page.getByRole("list", { name: "Skills taken" }).getByRole("listitem");
     await expect(taken, "Wren's skills").toHaveCount(1);
-    for (const detail of ["Placeholder Rogue skill", "Placeholder Rogue tree", "passive", "Starting", "level 1"]) {
+    for (const detail of [rogue.name, rogue.tree, rogue.usage, "Starting", "level 1"]) {
       await expect(taken.first(), `Wren's skill showing ${detail}`).toContainText(detail);
     }
 
     await page.getByLabel("Show every tree").check();
     const others = page.getByRole("list", { name: "Other skills" });
-    await expect(others.getByRole("button", { name: "Placeholder Mage skill" }), "a Mage skill offered").toBeVisible();
-    await page.getByLabel("Search skills").fill("mage");
-    await expect(others.getByRole("button"), "other skills matching mage").toHaveText(["Placeholder Mage skill"]);
-    await others.getByRole("button", { name: "Placeholder Mage skill" }).click();
-    add = page.getByRole("form", { name: "Add Placeholder Mage skill" });
+    await expect(others.getByRole("button", exactly(mage)), `${mage}, a Mage skill, offered`).toBeVisible();
+    await page.getByLabel("Search skills").fill(mage.toLowerCase());
+    await expect(others.getByRole("button"), `other skills matching ${mage}`).toHaveText([mage]);
+    await others.getByRole("button", exactly(mage)).click();
+    add = page.getByRole("form", { name: `Add ${mage}` });
     await add.getByLabel("How gained").selectOption({ label: "Quest" });
     await add.getByLabel("Level gained").fill("3");
     await add.getByRole("button", { name: "Add skill" }).click();
     await expect(
       page.getByRole("status").filter({ hasText: /isn't open to Rogues/ }),
       "the warning for another class's skill",
-    ).toContainText("Placeholder Mage skill");
+    ).toContainText(mage);
     await expect(taken, "Wren's skills, the warned one included").toHaveCount(2);
 
-    await taken.filter({ hasText: "Placeholder Mage skill" }).getByRole("button", { name: "Remove" }).click();
+    await taken.filter({ hasText: mage }).getByRole("button", { name: "Remove" }).click();
     // Removing a skill asks first, like deleting any entry (SK-4, IN-15).
     await expect(taken, "Wren's skills while asking").toHaveCount(2);
     await page.getByRole("button", { name: "Remove for good" }).click();
-    await expect(taken, "Wren's skills after removing one").toHaveText([/Placeholder Rogue skill/]);
+    await expect(taken, "Wren's skills after removing one").toHaveText([new RegExp(rogue.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))]);
   },
 );
 

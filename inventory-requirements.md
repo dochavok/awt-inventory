@@ -184,7 +184,7 @@ Skills and spells aren't typed in. They're picked from the skill list in the ref
 
 **SK-1a · Must · M2: Available skills first.** The picker first offers the skills the character can take **now**: those whose prerequisites are all on the character, in a tree the character's class and level allow, and not already taken as often as allowed. Starting skills of the character's own trees count as available. Every other skill is listed below them, under a separate heading, and choosing one gives the warnings in SK-3. A skill in several trees is listed once. It's available if any of its trees allows it as above.
 
-**SK-2 · Must · M2: What's shown.** A character's skill shows its name, tree (every tree, for a skill in several), usage (passive, 1/combat, 1/day, task…), tier (normal, Epic, Legendary) and card text, all from the skill list, plus the user's own fields. Card text is shown only if the game's owner agrees (Q10). Otherwise, the name, tree and tags are shown without the text.
+**SK-2 · Must · M2: What's shown.** A character's skill shows its name, tree (every tree, for a skill in several), usage (passive, 1/combat, 1/day, task…), tier (normal, Epic, Legendary) and card text, all from the skill list, plus the user's own fields. The game's owner has agreed to the card text being shown (Q10). A skill with no card text in the list is shown without it. The maintainer can turn card text off in the app's settings (for example, if the owner withdraws agreement); skills are then shown without it.
 
 **SK-3 · Must · M2: Warnings, not blocks.** When the user adds a skill, the app warns, but still allows it, if:
 
@@ -446,7 +446,7 @@ Invalid data can't be deployed.
 
 **RD-7 · Must · M2: Unclear entries.** Anything still unclear in a skill after the clean-up is recorded as a maintainer note in the skill list. It isn't shown to players: the app shows the skill as recorded.
 
-**RD-8 · Must · M2: Game content in the public repository.** The repository is public, and its licence doesn't cover the game's content. Until the game's owner agrees (Q10), nothing from the game is committed: no skill or spell card text, and no level chart numbers. Tests are unaffected, since they use their own made-up reference data (TF-3). If the owner agrees to the app showing the text but not to publishing it, the text is kept out of the repository and loaded into the app another way, to be decided then.
+**RD-8 · Must · M2: Game content in the public repository.** The repository is public, and its licence doesn't cover the game's content. The game's owner has agreed (Q10) that the app may show the skill and spell card text, and that the card text and the level chart's numbers may be kept in this repository. They remain the owner's. Tests are unaffected, since they use their own made-up reference data (TF-3).
 
 ## 14. Non-Functional Requirements
 
@@ -559,7 +559,7 @@ When a DM answers a question, start at step 2.
 
 **TF-12 · Must · M2+: Proven by mutation.** New tests are proven by temporarily breaking the code they guard (a scripted mutation run that restores every file) and confirming they fail. The caught and survived counts are reported in the pull request, and tests that let a mutation survive are fixed.
 
-**TF-13 · Should · M3: Phone-sized browser tests.** The main flows (sign in, add a character, add and use an entry, export) run automatically in a phone-sized browser, against the app's production build and the hosting service's local emulators for sign-in and the database, never a real project. Each test signs up its own made-up users, so tests can run side by side and never rely on an empty database. Before the tests run, one made-up player signs up once, so the first tests don't fail while the fresh build and the emulators warm up.
+**TF-13 · Should · M3: Phone-sized browser tests.** The main flows (sign in, add a character, add and use an entry, export) run automatically in a phone-sized browser, against the app's production build and the hosting service's local emulators for sign-in and the database, never a real project. Each test signs up its own made-up users, so tests can run side by side and never rely on an empty database. Before the tests run, one made-up player signs up once, so the first tests don't fail while the fresh build and the emulators warm up. Browser tests run on the real reference data, so they never name a real skill or number: what they need from it, they read from `data/`.
 
 **TF-14 · Must · M3: The 0.x trial.** Craig uses release 0.x at a faire. Every mismatch with his paper sheet is a bug, a rule modelled wrong, or a data error, and each becomes a new test or a data fix.
 
