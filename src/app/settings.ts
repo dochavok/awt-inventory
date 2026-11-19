@@ -1,4 +1,5 @@
-// The maintainer's switches, shared by the app and the guide's examples (DOC-4).
+// The maintainer's switches, read by the app (and by the guide's examples, so they show
+// what the app shows).
 
 /**
  * SK-2: skill card text is shown. The game's owner agreed to it (Q10); set this to

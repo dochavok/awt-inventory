@@ -166,7 +166,7 @@ class Writer {
   private runs(line: string, font: PDFFont): { text: string; font: PDFFont }[] {
     const runs: { text: string; font: PDFFont }[] = [];
     for (const ch of line) {
-      const chFont = encodes(font, ch) ? font : this.fonts.symbol;
+      const chFont = this.fontFor(ch, font) ?? font;
       const last = runs[runs.length - 1];
       if (last?.font === chFont) last.text += ch;
       else runs.push({ text: ch, font: chFont });
@@ -187,11 +187,25 @@ class Writer {
     }
   }
 
+  /** Which font draws a character: the text's own, else Symbol, else none. Worked out once per font. */
+  private fontFor(ch: string, font: PDFFont): PDFFont | undefined {
+    let known = this.chosen.get(font);
+    if (!known) this.chosen.set(font, (known = new Map()));
+    if (!known.has(ch))
+      known.set(
+        ch,
+        [font, this.fonts.symbol].find((f) => encodes(f, ch)),
+      );
+    return known.get(ch);
+  }
+
+  private readonly chosen = new Map<PDFFont, Map<string, PDFFont | undefined>>();
+
   /** Text no standard font can draw becomes "?", so a character's odd symbol never stops the sheet. */
   private drawable(text: string, font: PDFFont): string {
     let out = "";
     for (const ch of text.replace(/→/g, "->").replace(/×/g, "x").replace(/\t/g, " ")) {
-      out += encodes(font, ch) || encodes(this.fonts.symbol, ch) ? ch : "?";
+      out += this.fontFor(ch, font) ? ch : "?";
     }
     return out;
   }

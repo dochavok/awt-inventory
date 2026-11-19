@@ -69,7 +69,9 @@ Card text is shown in the app while `SHOW_SKILL_TEXT` is `true` in
 agreement), set it to `false` and deploy: skills are then shown without their
 text, and the printable sheet can't include it (SK-2). In the same pull
 request, update the guide pages that promise card text (`docs/skills.md`,
-`docs/search-and-export.md`).
+`docs/search-and-export.md`). Turning it off only hides the text: if the owner
+also wants the game content out of this repository, that changes RD-8, so
+agree the requirement first (the browser tests read skills from `data/`).
 
 ## Managing the invite list
 

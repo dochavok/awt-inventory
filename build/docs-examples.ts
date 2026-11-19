@@ -17,6 +17,7 @@ import { z } from "zod";
 import { MemoryDatabase, createMemoryStore } from "../src/data/memory-store";
 import type { InventoryStore } from "../src/data/store";
 import type { GainOptions, NewEntry, NewSkill, NewTitle } from "../src/data/types";
+import { SHOW_SKILL_TEXT } from "../src/app/settings";
 import { loadReferenceData } from "../src/refdata";
 
 /** docs/sample/sample.yaml: unknown fields are refused, so a typo can't vanish from the examples. */
@@ -56,7 +57,8 @@ async function sampleStore(root: string): Promise<InventoryStore> {
     currentUid: () => "sample-user",
     clock: { now: () => new Date(sample.at) },
     ref,
-    settings: { showSkillText: false, appVersion: "sample" },
+    // As the app runs. No example made today (the JSON export) holds card text.
+    settings: { showSkillText: SHOW_SKILL_TEXT, appVersion: "sample" },
   });
   await store.createProfile({ displayName: sample.displayName, email: "sample@example.com" });
   const character = await store.createCharacter(sample.character);
