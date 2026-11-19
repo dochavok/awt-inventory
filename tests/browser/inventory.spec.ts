@@ -10,6 +10,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
 import { parse } from "yaml";
 import { browserRule } from "../support/browser-rule";
 import { addCharacter, signUp } from "../support/browser-account";
+import { skillInSeveralTrees } from "../support/browser-data";
 
 /** A screen of a character's inventory, opened from the character's page in one tap. */
 async function openFromCharacter(page: Page, characterId: string, link: RegExp, heading: string): Promise<void> {
@@ -558,5 +559,29 @@ browserRule(
       /Consumables\s*2/,
     );
     await expect(inventory.getByRole("link", { name: /^Weapons/ }), "Wren's Weapons link").toHaveText(/Weapons\s*0/);
+  },
+);
+
+browserRule(
+  { req: ["SK-1a", "SK-2"], m: "M2" },
+  "a skill printed in several trees is offered once, and shows every tree once taken",
+  async ({ page }) => {
+    const skill = skillInSeveralTrees();
+    await signUp(page);
+    const brin = await addCharacter(page, { name: "Brin", className: "Warrior", level: 8 });
+    await openFromCharacter(page, brin, /^Skills/, "Skills");
+    const picker = page.getByRole("region", { name: "Add a skill" });
+    await picker.getByLabel("Show every tree").check();
+    await picker.getByLabel("Search skills").fill(skill.name);
+    const offered = picker.getByRole("button", { name: skill.name, exact: true });
+    await expect(offered, `${skill.name} offered once`).toHaveCount(1);
+    await offered.click();
+    const add = page.getByRole("form", { name: `Add ${skill.name}` });
+    await add.getByLabel("How gained").selectOption({ label: "Quest" });
+    await add.getByLabel("Level gained").fill("8");
+    await add.getByRole("button", { name: "Add skill" }).click();
+    const taken = page.getByRole("list", { name: "Skills taken" }).getByRole("listitem");
+    await expect(taken, "Brin's skills").toHaveCount(1);
+    await expect(taken.first(), `${skill.name} showing every tree`).toContainText(skill.trees.join(", "));
   },
 );

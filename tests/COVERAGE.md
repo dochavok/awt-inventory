@@ -46,8 +46,8 @@ Tests shows each file with the number of its tests that name the requirement.
 | IN-15 | Must | M2 | access/firestore-store.test.ts (1), access/privacy.test.ts (1), browser/inventory.spec.ts (2), data/grants.test.ts (3), data/inventory.test.ts (3), data/limits.test.ts (1), data/skills.test.ts (1) |
 | IN-16 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (2), data/inventory.test.ts (3) |
 | SK-1 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (1), data/skills.test.ts (1), rules/skills.test.ts (7) |
-| SK-1a | Must | M2 | browser/equipping.spec.ts (1), browser/inventory.spec.ts (1), data/skills.test.ts (1), refdata/refdata.test.ts (1), rules/skills.test.ts (8) |
-| SK-2 | Must | M2 | access/firestore-store.test.ts (1), browser/equipping.spec.ts (1), browser/inventory.spec.ts (2), browser/search-export.spec.ts (1), data/search-export.test.ts (2), data/skills.test.ts (4), refdata/refdata.test.ts (1) |
+| SK-1a | Must | M2 | browser/inventory.spec.ts (2), data/skills.test.ts (1), refdata/refdata.test.ts (1), rules/skills.test.ts (8) |
+| SK-2 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (3), browser/search-export.spec.ts (1), data/search-export.test.ts (2), data/skills.test.ts (4), refdata/refdata.test.ts (1) |
 | SK-3 | Must | M2 | browser/inventory.spec.ts (1), data/skills.test.ts (1), docs/docs.test.ts (1), rules/skills.test.ts (14) |
 | SK-4 | Must | M2 | browser/inventory.spec.ts (1), data/skills.test.ts (2) |
 | SK-5 | Must | M2 | browser/inventory.spec.ts (1), data/skills.test.ts (4) |

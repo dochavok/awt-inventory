@@ -10,14 +10,7 @@
 
 import { expect, type Locator, type Page } from "@playwright/test";
 import { addCharacter, signUp } from "../support/browser-account";
-import {
-  arcaneSlots,
-  chartRow,
-  firstLevelWithBonusDice,
-  skillInSeveralTrees,
-  skillLevels,
-  slotKindNames,
-} from "../support/browser-data";
+import { arcaneSlots, chartRow, firstLevelWithBonusDice, skillLevels, slotKindNames } from "../support/browser-data";
 import { browserRule } from "../support/browser-rule";
 
 /** A screen of a character's, opened from the character's page in one tap. */
@@ -360,12 +353,12 @@ browserRule(
 );
 
 browserRule(
-  { req: ["GR-7", "GR-8", "GR-11"], m: "M4" },
+  { req: ["GR-7", "GR-8", "GR-11"], q: ["Q12"], m: "M4" },
   "a Rogue's Stealth Bonus shows as dice and a number on the character's page, and its dice join the combat dice",
   async ({ page }) => {
     const row = firstLevelWithBonusDice("Rogue");
     await signUp(page);
-    const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: row.level });
+    await addCharacter(page, { name: "Wren", className: "Rogue", level: row.level });
     const totals = totalsOf(page);
     await expect(
       totals.getByText(`Stealth Bonus ${row.classBonusDice} + ${row.classBonus}`, { exact: true }),
@@ -377,7 +370,8 @@ browserRule(
       "Wren's combat dice",
     ).toBeVisible();
     // The same page, opened afresh.
-    await page.goto(`/#/characters/${wren}`);
+    await page.reload();
+    await expect(page.getByRole("heading", { level: 1 }), "Wren's page, reopened").toHaveText("Wren");
     await expect(
       totals.getByText(`Stealth Bonus ${row.classBonusDice} + ${row.classBonus}`, { exact: true }),
       "Wren's Stealth Bonus, reopened",
@@ -471,30 +465,6 @@ browserRule(
     await expect(missing, "Brin's levels with no skill, one recorded").toHaveText(
       levels.slice(1).map((l) => `Level ${l}: no skill recorded`),
     );
-  },
-);
-
-browserRule(
-  { req: ["SK-1a", "SK-2"], m: "M2" },
-  "a skill printed in several trees is offered once, and shows every tree once taken",
-  async ({ page }) => {
-    const skill = skillInSeveralTrees();
-    await signUp(page);
-    const brin = await addCharacter(page, { name: "Brin", className: "Warrior", level: 8 });
-    await openFromCharacter(page, brin, /^Skills/, "Skills");
-    const picker = page.getByRole("region", { name: "Add a skill" });
-    await picker.getByLabel("Show every tree").check();
-    await picker.getByLabel("Search skills").fill(skill.name);
-    const offered = picker.getByRole("button", { name: skill.name, exact: true });
-    await expect(offered, `${skill.name} offered once`).toHaveCount(1);
-    await offered.click();
-    const add = page.getByRole("form", { name: `Add ${skill.name}` });
-    await add.getByLabel("How gained").selectOption({ label: "Quest" });
-    await add.getByLabel("Level gained").fill("8");
-    await add.getByRole("button", { name: "Add skill" }).click();
-    const taken = page.getByRole("list", { name: "Skills taken" }).getByRole("listitem");
-    await expect(taken, "Brin's skills").toHaveCount(1);
-    await expect(taken.first(), `${skill.name} showing every tree`).toContainText(skill.trees.join(", "));
   },
 );
 
