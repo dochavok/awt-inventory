@@ -61,8 +61,13 @@ The skill list (`data/skills.yaml`) is the app's own source once built (RD-6).
 To rebuild it from the Warrior, Rogue and Mage artifacts, clean up their
 unclear prerequisites, tiers and text first, then write the YAML by pull
 request. Keeping the artifacts in step with the file afterwards is part of
-this task. No game text or level chart numbers go into this public repository
-until the game's owner agrees (RD-8, Q10).
+this task. The game's owner agreed (Q10) to the card text and the level chart's
+numbers being kept in this public repository; they remain the owner's (RD-8).
+
+Card text is shown in the app while `showSkillText` is `true` in
+`src/app/services.ts`. To turn it off (for example, if the owner withdraws
+agreement), set it to `false` and deploy: skills are then shown without their
+text, and the printable sheet can't include it (SK-2).
 
 ## Managing the invite list
 

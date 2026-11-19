@@ -56,7 +56,7 @@ async function sampleStore(root: string): Promise<InventoryStore> {
     currentUid: () => "sample-user",
     clock: { now: () => new Date(sample.at) },
     ref,
-    settings: { showSkillText: false, appVersion: "sample" },
+    settings: { showSkillText: true, appVersion: "sample" },
   });
   await store.createProfile({ displayName: sample.displayName, email: "sample@example.com" });
   const character = await store.createCharacter(sample.character);

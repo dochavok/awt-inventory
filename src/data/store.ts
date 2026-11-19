@@ -56,7 +56,7 @@ import type {
 } from "./types";
 
 export interface AppSettings {
-  /** Whether skill card text may be shown: only once the game's owner agrees (SK-2, Q10). */
+  /** Whether skill card text is shown: the maintainer's switch (SK-2); the game's owner agreed to it (Q10). */
   showSkillText: boolean;
   /** The app's version, recorded on reports (SP-2). */
   appVersion: string;

@@ -102,7 +102,7 @@ function PrintableSheet({
   // made, the choices are locked, so the file offered is always for what the form shows.
   const { clear } = file;
   useEffect(() => clear(), [clear, which, paper, skillText]);
-  // The sheet has card text only where the app may show it (SK-2) and the skill list has it.
+  // The sheet has card text only while it's turned on (SK-2) and the skill list has it.
   const textAvailable = settings.showSkillText && ref.skills.some((s) => s.text !== undefined);
 
   const submit = (e: FormEvent) => {
@@ -148,9 +148,7 @@ function PrintableSheet({
         />
         Include skill text
       </label>
-      {!textAvailable && (
-        <p className="hint">The skill list has no card text yet, so the sheet shows skill names only.</p>
-      )}
+      {!textAvailable && <p className="hint">There's no card text to include, so the sheet shows skill names only.</p>}
       <Feedback error={make.error} notice={null} />
       <button type="submit" disabled={make.busy}>
         Create PDF

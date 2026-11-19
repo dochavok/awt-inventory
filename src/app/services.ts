@@ -74,7 +74,8 @@ const RELOAD_MS = 15 * 60_000;
 
 export function createServices(): Services {
   const ref = referenceData();
-  const settings: AppSettings = { showSkillText: false, appVersion: APP_VERSION };
+  // SK-2: the game's owner agreed to the card text being shown (Q10); false turns it off.
+  const settings: AppSettings = { showSkillText: true, appVersion: APP_VERSION };
   const refusedListeners = new Set<(change: RefusedChange) => void>();
   let lastLoad: { uid: string; at: number } | undefined;
   let loading: { uid: string; done: Promise<void> } | undefined;

@@ -1,29 +1,3839 @@
-# PLACEHOLDER skill list (RD-6, RD-8). The real list is built from the
-# maintainer's skill and spell artifacts once their unclear entries are cleaned
-# up, and its card text can be added only if the game's owner agrees (Q10).
-# Until then, one placeholder tree and starting skill per class, so the app
-# and its checks have something to work with. Nothing here is from the game.
+# The AWT skill and spell list (RD-1, RD-6): every tree and card on the skill
+# tree sheets, as of 2026-11-17 (several sheets updated by Craig that day).
+# Game content, used with the owner's agreement (Q10, 2026-11-17). Open
+# readings are DM questions Q14 to Q16. IDs are permanent once released (RD-2).
+#
+# A card printed in several trees is one skill with `trees:`, a list of
+# placements ({ tree, starting?, prerequisites? }), in place of `tree`,
+# `starting` and `prerequisites` (RD-1, SK-1a).
+
 trees:
-  - { id: placeholder-warrior, name: Placeholder Warrior tree, kind: class, classes: [Warrior] }
-  - { id: placeholder-mage, name: Placeholder Mage tree, kind: class, classes: [Mage] }
-  - { id: placeholder-rogue, name: Placeholder Rogue tree, kind: class, classes: [Rogue] }
+  - {id: warrior, name: Warrior, kind: class, classes: [Warrior]}
+  - {id: mage, name: Mage, kind: class, classes: [Mage]}
+  - {id: rogue, name: Rogue, kind: class, classes: [Rogue]}
+  - {id: battlecaster, name: Battlecaster, kind: advanced, classes: [Warrior, Mage]}
+  - {id: berserker, name: Berserker, kind: advanced, classes: [Warrior]}
+  - {id: holy-knight, name: Holy Knight, kind: advanced, classes: [Warrior]}
+  - {id: ranged, name: Ranged, kind: advanced, classes: [Warrior, Rogue]}
+  - {id: swashbuckler, name: Swashbuckler, kind: advanced, classes: [Warrior, Rogue]}
+  - {id: acrobat, name: Acrobat, kind: advanced, classes: [Rogue]}
+  - {id: assassin, name: Assassin, kind: advanced, classes: [Rogue]}
+  - {id: death, name: Death, kind: advanced, classes: [Mage]}
+  - {id: sorcerer, name: Sorcerer, kind: advanced, classes: [Mage], maintainerNote: 'The Mage sheet says ''Requires Elemental Magic (Any 2 Elements)'': two elements ticked on Elemental Magic, which the data can''t check.'}
+  - {id: worldshaper, name: Worldshaper, kind: advanced, classes: [Mage]}
+  - {id: thief, name: Thief, kind: advanced, classes: [Rogue]}
+  - {id: cleric, name: Cleric, kind: advanced, classes: [Mage], maintainerNote: 'Requirement from Craig (2026-11-17) and the updated Mage sheet: Cleric Tree requires Lesser Recovery.'}
+  - {id: tactician, name: Tactician, kind: advanced, classes: [Warrior], maintainerNote: 'Its sheet prints ''Improved Weapon Focus, Ranged Use, Parry, Over Press''; ''Ranged Use'' read as Ranged Weapon Use, all four needed (Craig 2026-11-17). Nothing on the Warrior sheet leads to it.'}
+  - {id: toxicology, name: Toxicology, kind: advanced, classes: [Rogue]}
+  - {id: gladiator, name: Gladiator, kind: prestige, classes: [Warrior], entryLevel: 51, maintainerNote: 'Needs ''a Berserker Tree Epic Skill'': Death Throes is the only one (purple gem, no [Epic] label).'}
+  - {id: paladin, name: Paladin, kind: prestige, classes: [Warrior], entryLevel: 51}
+  - {id: commander, name: Commander, kind: prestige, classes: [Warrior], entryLevel: 51, maintainerNote: '''Tactician Epic Skills'' read as both Tactician Epics (Craig 2026-11-17).'}
+  - {id: cutthroat, name: Cutthroat, kind: prestige, classes: [Rogue], entryLevel: 51, maintainerNote: 'Its sheet prints only ''Assassinate, Deadly Stealth'', no Level 51; level 51 added like the other prestige trees (Craig 2026-11-17; DM question).'}
+  - {id: poison-master, name: Poison Master, kind: prestige, classes: [Rogue], entryLevel: 51}
+  - {id: acquisitions-agent, name: Acquisitions Agent, kind: prestige, classes: [Rogue], entryLevel: 51, maintainerNote: 'Needs ''a Thief Tree Epic Skill'', but no Thief skill is Epic; Guild Connections (the Thief tree''s locked capstone) used until the DMs say (Craig 2026-11-17; DM question).'}
+  - {id: alchemist, name: Alchemist, kind: prestige, classes: [Mage], entryLevel: 51}
+  - {id: arch-lich, name: Arch-Lich, kind: prestige, classes: [Mage], entryLevel: 51, maintainerNote: Printed 'Arch-Litch'; corrected (Craig 2026-11-17).}
+  - {id: elementalist, name: Elementalist, kind: prestige, classes: [Mage], entryLevel: 51, maintainerNote: Printed 'Elamentalist'; corrected (Craig 2026-11-17).}
+  - {id: high-priest, name: High Priest, kind: prestige, classes: [Mage], entryLevel: 51}
 
 skills:
-  - id: placeholder-warrior-skill
-    name: Placeholder Warrior skill
-    tree: placeholder-warrior
+
+  # Warrior
+  - id: weapon-use
+    name: Weapon Use
+    trees:
+    - {tree: warrior, starting: true}
+    - {tree: rogue, starting: true}
+    - tree: cleric
+      prerequisites: {skill: holy-vow}
     usage: passive
     tier: normal
-    starting: true
-  - id: placeholder-mage-skill
-    name: Placeholder Mage skill
-    tree: placeholder-mage
+    text: Can Equip Weapons.
+    maintainerNote: 'Also printed on the Mage sheet, marked (Warrior Skill), only to show Battlecaster''s
+      requirement. In Cleric it follows Holy Vow, but a Mage can get Weapon Use other ways (Craig 2026-11-17).
+      The Cleric sheet prints: "Can Equip Weapons"'
+  - id: ranged-weapon-use
+    name: Ranged Weapon Use
+    trees:
+    - {tree: warrior, starting: true}
+    - {tree: rogue, starting: true}
     usage: passive
     tier: normal
-    starting: true
-  - id: placeholder-rogue-skill
-    name: Placeholder Rogue skill
-    tree: placeholder-rogue
+    text: Can equip ranged weapons.
+  - id: ranged-training
+    name: Ranged Training
+    trees:
+    - tree: warrior
+      prerequisites: {skill: ranged-weapon-use}
+    - tree: rogue
+      prerequisites: {skill: ranged-weapon-use}
     usage: passive
     tier: normal
-    starting: true
+    text: Gain +3 CM (Attack) when using a ranged weapon.
+    maintainerNote: 'The Rogue sheet prints: "Gain +3 to combat rolls with ranged weapons."'
+  - id: attack-tactics
+    name: Attack Tactics
+    trees:
+    - {tree: warrior, starting: true}
+    - tree: swashbuckler
+      prerequisites: {skill: fend}
+    usage: passive
+    tier: normal
+    text: +3 to Combat Modifier (Attack) May damage 1 ranged opponent.
+    maintainerNote: 'The Swashbuckler sheet prints: "+3 to CM (Attack) May damage 1 ranged opponent."'
+  - id: disarm
+    name: Disarm
+    trees:
+    - tree: warrior
+      prerequisites: {skill: attack-tactics}
+    - tree: swashbuckler
+      prerequisites: {skill: defensive-tactics}
+    usage: 1/combat
+    tier: normal
+    text: Knock a foe's item to the ground. They cannot use it until they task to retrieve it.
+  - id: sunder
+    name: Sunder
+    trees:
+    - tree: warrior
+      prerequisites: {skill: disarm}
+    - tree: swashbuckler
+      prerequisites: {skill: disarm}
+    usage: 1/combat
+    tier: normal
+    text: Break a non-epic item a foe has equipped or is using.
+  - id: press
+    name: Press
+    tree: warrior
+    usage: 1/combat
+    tier: normal
+    text: After a combat roll is totaled, add an additional +4
+    prerequisites: {skill: attack-tactics}
+  - id: over-press
+    name: Over Press
+    tree: warrior
+    usage: 1/combat
+    tier: normal
+    text: Remove 1 Foe's CM (Attack) this round.
+    prerequisites: {skill: press}
+  - id: strength-training
+    name: Strength Training
+    tree: warrior
+    usage: passive
+    tier: normal
+    text: Gain another +2 CM (Attack) and +2 to Strength based Challenge Rolls.
+    prerequisites: {skill: attack-tactics}
+  - id: strength-conditioning
+    name: Strength Conditioning
+    tree: warrior
+    usage: passive
+    tier: normal
+    text: Gain another +2 CM (Attack) and Strength-based Challenge Rolls.
+    prerequisites: {skill: strength-training}
+  - id: strength-mastery
+    name: Strength Mastery
+    tree: warrior
+    usage: passive
+    tier: normal
+    text: Gain another +2 CM (Attack) Your attacks ignore 1♥ of resistance.
+    prerequisites: {skill: strength-conditioning}
+  - id: true-warrior
+    name: True Warrior
+    tree: warrior
+    usage: passive
+    tier: epic
+    text: Your attacks now add +1♥ of damage. You may now use Mettle each round.
+    prerequisites:
+      all:
+      - {skill: over-press}
+      - {skill: strength-mastery}
+  - id: armor-use
+    name: Armor Use
+    trees:
+    - {tree: warrior, starting: true}
+    - tree: battlecaster
+      prerequisites:
+        all:
+        - {skill: weapon-use}
+        - {skill: knowledge}
+    usage: passive
+    tier: normal
+    text: Can equip armor and shields.
+  - id: defensive-tactics
+    name: Defensive Tactics
+    trees:
+    - {tree: warrior, starting: true}
+    - tree: swashbuckler
+      prerequisites: {skill: attack-tactics}
+    usage: passive
+    tier: normal
+    text: Gain +3 CM (Defence) 1/round you may take 1♥ of damage for 1 ally.
+  - id: vigor
+    name: Vigor
+    tree: warrior
+    usage: passive
+    tier: normal
+    text: Gain +2 CM (Defence) and +2 to Challenge Rolls to resist damage.
+    prerequisites: {skill: defensive-tactics}
+  - id: resilience
+    name: Resilience
+    tree: warrior
+    usage: passive
+    tier: normal
+    text: Gain +2 CM (Defence) and +2 to Challenge Rolls vs. afflictions.
+    prerequisites: {skill: vigor}
+  - id: mettle
+    name: Mettle
+    tree: warrior
+    usage: 1/combat
+    tier: normal
+    text: Remove 1♥ to regain the use of one used skill from the Warrior Base Tree.
+    prerequisites:
+      all:
+      - {skill: strength-training}
+      - {skill: resilience}
+  - id: toughness
+    name: Toughness
+    tree: warrior
+    usage: passive
+    tier: normal
+    text: Gain +1♥ to your maximum ♥s You can take this skill up to 5 times.
+    prerequisites: {skill: mettle}
+    maxTimes: 5
+  - id: poise
+    name: Poise
+    tree: warrior
+    usage: passive
+    tier: normal
+    text: Gain +2 CM (Defence)
+    prerequisites: {skill: resilience}
+  - id: defend
+    name: Defend
+    tree: warrior
+    usage: 1/combat
+    tier: normal
+    text: Take all damage for 1 ally.
+    prerequisites: {skill: defensive-tactics}
+  - id: parry
+    name: Parry
+    trees:
+    - tree: warrior
+      prerequisites: {skill: defend}
+    - tree: swashbuckler
+      prerequisites: {skill: footwork}
+    usage: 1/combat
+    tier: normal
+    text: Remove a foe's Combat Modifier (Attack)
+  - id: stalwart
+    name: Stalwart
+    tree: warrior
+    usage: passive
+    tier: normal
+    text: When using Warrior Skills that take a hit for an ally, you can apply your resistances.
+    prerequisites:
+      all:
+      - {skill: poise}
+      - {skill: parry}
+  - id: true-guardian
+    name: True Guardian
+    tree: warrior
+    usage: passive
+    tier: epic
+    text: As Stalwart but apply immunities. You gain 1♥ of Resistance vs physical damage.
+    prerequisites: {skill: stalwart}
+  - {id: bounty-hunter, name: Bounty Hunter, tree: warrior, usage: passive, tier: normal, text: Gain 1 Zenni
+      for each monster type slain., starting: true}
+  - id: trophy-taker
+    name: Trophy Taker
+    tree: warrior
+    usage: 1/day
+    tier: normal
+    text: 1/day When you defeat a foe, gain 1 minor monster part.
+    prerequisites: {skill: bounty-hunter}
+  - id: hamstring
+    name: Hamstring
+    tree: warrior
+    usage: 1/combat
+    tier: normal
+    text: Negate 1 opponent ability that would allow them to flee combat.
+    prerequisites: {skill: trophy-taker}
+  - id: dual-wielding
+    name: Dual Wielding
+    trees:
+    - {tree: warrior, starting: true}
+    - tree: rogue
+      prerequisites: {skill: weapon-use}
+    - tree: battlecaster
+      prerequisites:
+        all:
+        - {skill: weapon-use}
+        - {skill: knowledge}
+    usage: passive
+    tier: normal
+    text: Can equip two one-handed weapons at once.
+  - {id: weapon-focus, name: Weapon Focus, tree: warrior, usage: passive, tier: normal, text: +3 to CM (Attack)
+      with a specific weapon group., starting: true}
+  - id: fend
+    name: Fend
+    trees:
+    - tree: warrior
+      prerequisites: {skill: weapon-focus}
+    - tree: rogue
+      prerequisites: {skill: weapon-use}
+    usage: 1/combat
+    tier: normal
+    text: Add 1 equipped weapon's bonus as CM (Defence) this round.
+    maintainerNote: 'The Rogue sheet prints: "Add your equipped weapon''s bonus as CM (Defence)"'
+  - id: improved-weapon-focus
+    name: Improved Weapon Focus
+    tree: warrior
+    usage: passive
+    tier: normal
+    text: Additional +2 CM (Attack) with a specific weapon group. (Total +5)
+    prerequisites: {skill: weapon-focus}
+  - id: weapon-focus-mastery
+    name: Weapon Focus Mastery
+    tree: warrior
+    usage: passive
+    tier: normal
+    text: Additional +2 CM (Attack) with a specific weapon group. (Total +7)
+    prerequisites: {skill: improved-weapon-focus}
+
+  # Mage
+  - {id: knowledge, name: Knowledge, tree: mage, usage: passive, tier: normal, text: Get one hint for free.,
+    starting: true, maintainerNote: 'Also printed on the Warrior sheet, marked (Mage Skill), only to show
+      Battlecaster''s requirement.'}
+  - id: lore
+    name: Lore
+    tree: mage
+    usage: passive
+    tier: normal
+    text: Learn information about an enemy or event before the quest.
+    prerequisites: {skill: knowledge}
+  - {id: elemental-magic, name: Elemental Magic, tree: mage, usage: passive, tier: normal, text: You can
+      add chosen element to the damage types you know., starting: true}
+  - id: enchant
+    name: Enchant
+    tree: mage
+    usage: task
+    tier: normal
+    text: Choose an element you have Elemental Magic for. You can enchant 1 weapon with that damage type
+      for the rest of combat.
+    prerequisites:
+      all:
+      - {skill: lore}
+      - {skill: elemental-magic}
+  - {id: light, name: Light, tree: mage, usage: 1/combat, tier: normal, text: Opponents get -4 to combat
+      rolls. You can see in darkness., starting: true}
+  - id: mage-screen
+    name: Mage Screen
+    tree: mage
+    usage: passive
+    tier: normal
+    text: Gain a permanent +2 Combat Modifier (Defence)
+    prerequisites: {skill: light}
+  - id: daylight
+    name: Daylight
+    tree: mage
+    usage: 1/combat
+    tier: normal
+    text: Eliminate one foe's stealth.
+    prerequisites: {skill: light}
+  - id: mage-armor
+    name: Mage Armor
+    tree: mage
+    usage: passive
+    tier: normal
+    text: Gain an additional permanent +2 Combat Modifier (Defence)
+    prerequisites: {skill: mage-screen}
+  - {id: find-familiar, name: Find Familiar, tree: mage, usage: passive, tier: normal, text: You can acquire
+      a familiar by spending 3 XP or 9 Zenni., starting: true}
+  - {id: arcane-wisdom, name: Arcane Wisdom, tree: mage, usage: passive, tier: normal, text: Gain 1 Arcane
+      Slot (You can take this spell up to 5 times), starting: true, maxTimes: 5}
+  - id: haste
+    name: Haste
+    tree: mage
+    usage: 1/combat
+    tier: normal
+    text: Give 1 ally an additional skill use.
+    prerequisites: {skill: arcane-wisdom}
+  - id: counterspell
+    name: Counterspell
+    tree: mage
+    usage: 1/combat
+    tier: normal
+    text: Prevent the casting of 1 foe's combat spell.
+    prerequisites: {skill: haste}
+  - id: weaken
+    name: Weaken
+    tree: mage
+    usage: 1/combat
+    tier: normal
+    text: One foe takes -2 to their combat and strength rolls for the rest of combat.
+    prerequisites: {skill: counterspell}
+  - id: overchannel
+    name: Overchannel
+    tree: mage
+    usage: 1/combat
+    tier: normal
+    text: Sacrifice 1♥ to cast 2 Mage spells this round, even if they are Tasks.
+    prerequisites:
+      all:
+      - {skill: counterspell}
+      - {skill: power-overload}
+  - {id: mage-bolt, name: Mage Bolt, tree: mage, usage: passive, tier: normal, text: You can attack at range.,
+    starting: true}
+  - id: power-surge
+    name: Power Surge
+    tree: mage
+    usage: 1/combat
+    tier: normal
+    text: Add +2 to this combat roll.
+    prerequisites: {skill: mage-bolt}
+  - id: power-blitz
+    name: Power Blitz
+    tree: mage
+    usage: 1/combat
+    tier: normal
+    text: Add +4 to this combat roll.
+    prerequisites: {skill: power-surge}
+  - id: power-overload
+    name: Power Overload
+    tree: mage
+    usage: 1/combat
+    tier: normal
+    text: Add +6 to this combat roll.
+    prerequisites: {skill: power-blitz}
+  - id: power-beam
+    name: Power Beam
+    tree: mage
+    usage: 1/combat
+    tier: epic
+    text: Sacrifice 1♥ or any 2 combat spells to roll your combat dice again and add the total to this combat
+      roll.
+    prerequisites: {skill: overchannel}
+  - {id: spell-focus, name: Spell Focus, tree: mage, usage: passive, tier: normal, text: Choose a spell.
+      Increase its combat bonus by 2 or damage by 1♥., starting: true}
+  - id: lesser-recovery
+    name: Lesser Recovery
+    tree: mage
+    usage: 1/combat
+    tier: normal
+    text: Recover 1 used mage spell with fewer than 2 required spells/skills.
+    prerequisites: {skill: spell-focus}
+  - id: recovery
+    name: Recovery
+    tree: mage
+    usage: 1/combat
+    tier: normal
+    text: Recover 1 used mage spell with fewer than 4 required spells/skills.
+    prerequisites: {skill: lesser-recovery}
+  - id: greater-recovery
+    name: Greater Recovery
+    tree: mage
+    usage: 1/combat
+    tier: normal
+    text: Recover 1 used mage spell with fewer than 6 required spells/skills.
+    prerequisites: {skill: recovery}
+  - id: immolation
+    name: Immolation
+    tree: mage
+    usage: task, 1/combat
+    tier: epic
+    text: Sacrifice all your remaining ♥s to deal that much damage to all foes. You cannot be revived from
+      this death.
+    prerequisites: {skill: power-beam}
+
+  # Rogue
+  - {id: pickpocket, name: Pickpocket, tree: rogue, usage: passive, tier: normal, text: 'Out of combat,
+      place a clothespin on target. Gain 1d4 zenni or +2♥ on your first attack.', starting: true}
+  - id: stroke-of-luck
+    name: Stroke of Luck
+    trees:
+    - {tree: rogue, starting: true}
+    - tree: swashbuckler
+      prerequisites: {skill: fend}
+    usage: 1/combat
+    tier: normal
+    text: Re-roll one die.
+  - id: rogues-touch
+    name: Rogue's Touch
+    tree: rogue
+    usage: 1/combat
+    tier: normal
+    text: Re-roll all of your combat dice.
+    prerequisites: {skill: stroke-of-luck}
+  - id: fortunate
+    name: Fortunate
+    tree: rogue
+    usage: passive
+    tier: normal
+    text: You may re-roll any die result of 1, but you must take the new result.
+    prerequisites: {skill: rogues-touch}
+  - id: never-tell-me-the-odds
+    name: Never Tell Me The Odds
+    tree: rogue
+    usage: 1/combat
+    tier: epic
+    text: Choose any one of your combat dice to automatically land on its maximum.
+    prerequisites: {skill: fortunate}
+    maintainerNote: Printed 'it's maximum'; corrected to 'its maximum' (Craig 2026-11-17).
+  - {id: nimble, name: Nimble, tree: rogue, usage: passive, tier: normal, text: Gain +3 Combat Modifier
+      (Defence), starting: true}
+  - id: dodge
+    name: Dodge
+    tree: rogue
+    usage: 1/combat
+    tier: normal
+    text: Gain +4 Combat Modifier (Defence)
+    prerequisites: {skill: nimble}
+  - id: dodge-ii
+    name: Dodge II
+    tree: rogue
+    usage: 1/combat
+    tier: normal
+    text: Gain +6 Combat Modifier (Defence)
+    prerequisites: {skill: dodge}
+  - id: dodge-iii
+    name: Dodge III
+    tree: rogue
+    usage: 1/combat
+    tier: normal
+    text: Negate 1♥ of damage.
+    prerequisites: {skill: dodge-ii}
+  - id: evasion
+    name: Evasion
+    trees:
+    - tree: rogue
+      prerequisites: {skill: dodge-ii}
+    - tree: swashbuckler
+      prerequisites: {skill: parry}
+    usage: 1/combat
+    tier: normal
+    text: Avoid damage from an Area of Effect.
+  - id: balance
+    name: Balance
+    tree: rogue
+    usage: passive
+    tier: normal
+    text: Gain +2 to Agility-based Challenge Rolls.
+    prerequisites: {skill: nimble}
+  - {id: precise-strike, name: Precise Strike, tree: rogue, usage: 1/combat, tier: normal, text: Ignore
+      1 opponent's Combat Modifier (Defence)., starting: true}
+  - id: deadly-aim
+    name: Deadly Aim
+    tree: rogue
+    usage: task, 1/combat
+    tier: normal
+    text: Deal 2♥ of damage to one opponent.
+    prerequisites: {skill: precise-strike}
+  - id: severe-wound
+    name: Severe Wound
+    tree: rogue
+    usage: 1/combat
+    tier: normal
+    text: When one of your dice rolls max, add 2♥ to this round's damage.
+    prerequisites: {skill: precise-strike}
+  - id: critical-wound
+    name: Critical Wound
+    tree: rogue
+    usage: 1/combat
+    tier: normal
+    text: When one of your dice rolls max, add 3♥ to this round's damage.
+    prerequisites: {skill: severe-wound}
+  - id: deadly-wound
+    name: Deadly Wound
+    tree: rogue
+    usage: 1/combat
+    tier: epic
+    text: When one of your dice rolls max, add 5♥ to this round's damage.
+    prerequisites: {skill: critical-wound}
+  - {id: sneak-attack, name: Sneak Attack, tree: rogue, usage: 1/combat, tier: normal, text: Add 1x rogue
+      stealth bonus to this combat roll., starting: true}
+  - id: cunning-hide
+    name: Cunning Hide
+    tree: rogue
+    usage: task
+    tier: normal
+    text: The following round becomes a stealth round. (requires a CR)
+    prerequisites: {skill: sneak-attack}
+  - id: shadow-strike
+    name: Shadow Strike
+    tree: rogue
+    usage: 1/combat
+    tier: normal
+    text: If you beat your opponent's combat roll by 10 or more you may add your stealth bonus to your next
+      combat roll.
+    prerequisites: {skill: cunning-hide}
+
+  # Battlecaster
+  - id: two-as-one
+    name: Two as One
+    tree: battlecaster
+    usage: 1/combat
+    tier: normal
+    text: If both weapons you are wielding have a combat ability, you can activate both this round as long
+      as neither has been used this combat.
+    prerequisites: {skill: dual-wielding}
+  - id: swirl-of-steel-and-magic
+    name: Swirl of Steel & Magic
+    tree: battlecaster
+    usage: 1/combat
+    tier: normal
+    text: As long as you have combat spells available, you can deal 3♥ of damage to up to 2 opponents.
+    prerequisites: {skill: two-as-one}
+  - id: arcane-weapon
+    name: Arcane Weapon
+    tree: battlecaster
+    usage: passive
+    tier: normal
+    text: Weapons you wield gain +1♥ of damage as long as you have usable spells. (Dual wielding does not
+      grant this bonus to both weapons.)
+    prerequisites:
+      all:
+      - {skill: weapon-use}
+      - {skill: knowledge}
+  - id: arcane-training
+    name: Arcane Training
+    tree: battlecaster
+    usage: passive
+    tier: normal
+    text: Take a Mage skill you qualify for. You may enter a Mage Advanced tree with this skill. Take this
+      skill 5x to advance.
+    prerequisites: {skill: arcane-weapon}
+    maxTimes: 5
+    maintainerNote: Printed 'skill skill'; corrected to 'skill' (Craig 2026-11-17).
+  - id: martial-training
+    name: Martial Training
+    tree: battlecaster
+    usage: passive
+    tier: normal
+    text: Take a Warrior skill you qualify for. You may enter a Warrior Advanced tree with this skill. Take
+      this skill 5x to advance.
+    prerequisites: {skill: arcane-weapon}
+    maxTimes: 5
+    maintainerNote: Printed 'skill skill'; corrected to 'skill' (Craig 2026-11-17).
+  - id: war-magus
+    name: War Magus
+    tree: battlecaster
+    usage: passive
+    tier: epic
+    text: You gain +2 Combat Modifier (Defence) and +1♥ of damage to all attacks and spells. Gain Epic Resistance
+      vs. damage spells.
+    prerequisites:
+      any:
+      - {skill: arcane-training}
+      - {skill: martial-training}
+  - id: arcane-shield
+    name: Arcane Shield
+    tree: battlecaster
+    usage: 1/combat
+    tier: normal
+    text: Ignore 1♥ of damage caused by a spell. (Must have a shield equipped)
+    prerequisites: {skill: armor-use}
+  - id: reflect-spell
+    name: Reflect Spell
+    tree: battlecaster
+    usage: 1/combat
+    tier: normal
+    text: Reflect the damage you would take from a spell back at its caster. (Must have a shield equipped.)
+    prerequisites: {skill: arcane-shield}
+  - id: arcane-armor
+    name: Arcane Armor
+    tree: battlecaster
+    usage: 1/combat
+    tier: normal
+    text: Absorb a spell that targets you and use its energy to cast one of your combat spells without sacrificing
+      it. (Must be wearing armor.)
+    prerequisites: {skill: arcane-shield}
+    maintainerNote: Printed 'use it's energy'; corrected to 'use its energy' (Craig 2026-11-17).
+  - id: arcane-extension
+    name: Arcane Extension
+    tree: battlecaster
+    usage: 1/combat
+    tier: normal
+    text: Sacrifice 1 of your combat spells or one absorbed by Arcane Armor to prevent 1♥ of damage to all
+      allies from a spell source. (Must be wearing armor.)
+    prerequisites: {skill: arcane-armor}
+  - id: magister-belli-et-magia
+    name: Magister Belli et Magia
+    tree: battlecaster
+    usage: passive
+    tier: epic
+    text: Increase your max ♥s by 1. You can use 1 combat maneuver and 1 spell each turn. (Requires rest
+      of tree.)
+    prerequisites:
+      all:
+      - {skill: swirl-of-steel-and-magic}
+      - {skill: war-magus}
+      - {skill: reflect-spell}
+      - {skill: arcane-extension}
+
+  # Berserker
+  - id: berserk
+    name: Berserk
+    tree: berserker
+    usage: passive
+    tier: normal
+    text: This combat, your attacks deal +1♥ of rage damage, but you take +1♥ on a failed Combat Roll. Berserk
+      must be declared before rolling.
+    prerequisites:
+      all:
+      - {skill: press}
+      - {skill: strength-training}
+  - id: bloodlust
+    name: Bloodlust
+    tree: berserker
+    usage: passive
+    tier: normal
+    text: Increase extra damage from Berserk to +2♥.
+    prerequisites: {skill: berserk}
+  - id: rage
+    name: Rage
+    tree: berserker
+    usage: passive
+    tier: normal
+    text: Increase extra damage from Berserk to +3♥.
+    prerequisites: {skill: bloodlust}
+  - id: battle-scars
+    name: Battle Scars
+    tree: berserker
+    usage: passive
+    tier: normal
+    text: Subtract 1♥ from any extra damage you would take from a failed berserk roll.
+    prerequisites:
+      all:
+      - {skill: press}
+      - {skill: strength-training}
+  - id: battle-scars-ii
+    name: Battle Scars II
+    tree: berserker
+    usage: passive
+    tier: normal
+    text: Increases Battle Scars subtraction to -2♥.
+    prerequisites: {skill: battle-scars}
+  - id: battle-scars-iii
+    name: Battle Scars III
+    tree: berserker
+    usage: passive
+    tier: normal
+    text: Increases Battle Scars subtraction to -3♥.
+    prerequisites: {skill: battle-scars-ii}
+  - id: wild-strike
+    name: Wild Strike
+    tree: berserker
+    usage: 1/combat
+    tier: normal
+    text: Add your Class Bonus again to this combat roll.
+    prerequisites:
+      all:
+      - {skill: press}
+      - {skill: strength-training}
+  - id: battle-fury
+    name: Battle Fury
+    tree: berserker
+    usage: passive
+    tier: normal
+    text: All of your attacks now use Berserk and you no longer need to be declared.
+    prerequisites:
+      all:
+      - {skill: battle-scars-iii}
+      - {skill: intimidate-ii}
+  - id: battlecraze
+    name: Battlecraze
+    tree: berserker
+    usage: 1/combat
+    tier: normal
+    text: Add +10 to this Combat Roll and take 1♥ of damage.
+    prerequisites:
+      all:
+      - {skill: press}
+      - {skill: strength-training}
+  - id: intimidate
+    name: Intimidate
+    tree: berserker
+    usage: 1/combat
+    tier: normal
+    text: Roll one of your combat dice against an opponent's with no bonuses added. If you win, that opponent
+      cannot make a combat roll this round.
+    prerequisites: {skill: battlecraze}
+  - id: intimidate-ii
+    name: Intimidate II
+    tree: berserker
+    usage: passive
+    tier: normal
+    text: You may add Warrior Combat Bonus to Intimidate checks.
+    prerequisites: {skill: intimidate}
+  - id: bloodrage
+    name: Bloodrage
+    tree: berserker
+    usage: passive
+    tier: normal
+    text: +2 to Combat Rolls if below full health.
+    prerequisites:
+      all:
+      - {skill: press}
+      - {skill: strength-training}
+  - id: bloodrage-ii
+    name: Bloodrage II
+    tree: berserker
+    usage: passive
+    tier: normal
+    text: Gain +4 to combat rolls if using berserk while below full health.
+    prerequisites: {skill: bloodrage}
+  - id: bloodrage-iii
+    name: Bloodrage III
+    tree: berserker
+    usage: passive
+    tier: normal
+    text: Gain +6 to combat rolls if using berserk while below full health.
+    prerequisites: {skill: bloodrage-ii}
+  - id: death-throes
+    name: Death Throes
+    tree: berserker
+    usage: 1/combat
+    tier: epic
+    text: You can use up all your remaining ♥s to deal that much damage to all foes. You cannot be revived
+      from this.
+    prerequisites: {skill: bloodrage-iii}
+    maintainerNote: Purple (Epic) gem but no [Epic] label; recorded as Epic (Craig 2026-11-17).
+
+  # Holy Knight
+  - id: vow-of-knighthood
+    name: Vow of Knighthood
+    tree: holy-knight
+    usage: passive
+    tier: normal
+    text: A Holy Knight may not lie, cheat, or steal or they lose all Holy Knight Tree powers until they
+      atone. In exchange for your vow, gain +2 to combat rolls vs. Evil (Death Tree Mages, Undead, etc.)
+      Gain a Holy Die (1d4)
+    prerequisites:
+      all:
+      - {skill: defend}
+      - {skill: vigor}
+    maintainerNote: 'Printed ''attone''; corrected to ''atone'' (Craig 2026-11-17). Printed as two cards
+      side by side, both named Vow of Knighthood: the vow (no gem) and the blessing (starting gem). One
+      skill here, with both texts.'
+  - id: turn-undead-holy-knight
+    name: Turn Undead (Holy Knight)
+    tree: holy-knight
+    usage: 1/combat
+    tier: normal
+    text: Undead minions cannot add their bonuses this round. (DM discretion vs. Event Bosses.)
+    prerequisites: {skill: vow-of-knighthood}
+    maintainerNote: Same name as a card with a different effect in another tree, so the tree is added to
+      the name (Craig 2026-11-17; DM question).
+  - id: destroy-undead
+    name: Destroy Undead
+    tree: holy-knight
+    usage: 1/combat
+    tier: normal
+    text: Roll your Holy Die and deal half that much damage to 1 undead or 1♥ to all undead.
+    prerequisites: {skill: turn-undead-holy-knight}
+  - id: sacrifice
+    name: Sacrifice
+    tree: holy-knight
+    usage: 1/combat
+    tier: normal
+    text: You may give away any number of your ♥ to any willing ally or add those ♥ to the damage of Destroy
+      Undead.
+    prerequisites: {skill: destroy-undead}
+    maintainerNote: Printed 'add those ♥ to those ♥ to the the damage'; corrected to 'add those ♥ to the
+      damage' (Craig 2026-11-17).
+  - id: devotion-i-holy-knight
+    name: Devotion I (Holy Knight)
+    tree: holy-knight
+    usage: passive
+    tier: normal
+    text: Holy Die increases to 1d6. Combat Bonus vs. Evil increases to +4. May spend 1♥ to use Smite at
+      any time.
+    prerequisites: {skill: vow-of-knighthood}
+    maintainerNote: Same name as a card with a different effect in another tree, so the tree is added to
+      the name (Craig 2026-11-17; DM question).
+  - id: devotion-ii-holy-knight
+    name: Devotion II (Holy Knight)
+    tree: holy-knight
+    usage: passive
+    tier: normal
+    text: Holy Die increases to 1d8. Combat Bonus vs. Evil increases to +6. May spend 1♥ to use Sanctify
+      Weapon at any time.
+    prerequisites: {skill: devotion-i-holy-knight}
+    maintainerNote: Same name as a card with a different effect in another tree, so the tree is added to
+      the name (Craig 2026-11-17; DM question).
+  - id: devotion-iii-holy-knight
+    name: Devotion III (Holy Knight)
+    tree: holy-knight
+    usage: passive
+    tier: normal
+    text: Holy Die increases to 1d10. Combat Bonus vs. Evil increases to +8. Increase Aura bonuses by +1.
+    prerequisites: {skill: devotion-ii-holy-knight}
+    maintainerNote: Same name as a card with a different effect in another tree, so the tree is added to
+      the name (Craig 2026-11-17; DM question).
+  - id: smite
+    name: Smite
+    trees:
+    - tree: holy-knight
+      prerequisites: {skill: vow-of-knighthood}
+    - tree: cleric
+      prerequisites: {skill: weapon-use}
+    usage: 1/combat
+    tier: normal
+    text: Add your Holy Die to your combat roll and your damage type is holy this round.
+    maintainerNote: 'The Holy Knight sheet prints: "Add your Holy Die to this combat roll."'
+  - id: sanctify-weapon
+    name: Sanctify Weapon
+    tree: holy-knight
+    usage: 1/combat
+    tier: normal
+    text: One weapon deals +1♥ extra damage and gets +4 to combat rolls vs. Evil foes for the rest of combat.
+    prerequisites: {skill: vow-of-knighthood}
+  - id: holy-aura
+    name: Holy Aura
+    tree: holy-knight
+    usage: passive
+    tier: normal
+    text: Allies in your aura gain +2 vs. fear effects.
+    prerequisites: {skill: vow-of-knighthood}
+  - id: bolstering-aura
+    name: Bolstering Aura
+    tree: holy-knight
+    usage: passive
+    tier: normal
+    text: Allies in your aura gain +2 to combat rolls.
+    prerequisites: {skill: holy-aura}
+  - id: protective-aura
+    name: Protective Aura
+    tree: holy-knight
+    usage: passive
+    tier: normal
+    text: Allies in your aura gain Resistance to damage from an Evil source.
+    prerequisites: {skill: bolstering-aura}
+  - id: healing-hands
+    name: Healing Hands
+    tree: holy-knight
+    usage: task, 1/combat
+    tier: normal
+    text: Roll your Holy Die and restore half that many ♥ to one ally. (Rounded Down)
+    prerequisites: {skill: vow-of-knighthood}
+  - id: revivify
+    name: Revivify
+    tree: holy-knight
+    usage: task, 1/combat
+    tier: normal
+    text: Bring a fallen player ally back from death with 2♥.
+    prerequisites: {skill: healing-hands}
+  - id: prayer
+    name: Prayer
+    tree: holy-knight
+    usage: passive
+    tier: normal
+    text: Healing Hands now uses your full Holy Die result.
+    prerequisites: {skill: revivify}
+  - id: miracle
+    name: Miracle
+    tree: holy-knight
+    usage: 1/combat
+    tier: normal
+    text: When you roll your Holy Die, maximize the result. (This does not count against your skill activations.)
+    prerequisites: {skill: prayer}
+  - id: champion-of-light
+    name: Champion of Light
+    tree: holy-knight
+    usage: passive
+    tier: epic
+    text: Gain Resistance vs. damage from Evil sources. Healing Hands is no longer a Task. You may sense
+      the presence of Evil or Undead. (May require a CR) Increase your damage vs. Evil and Undead by 2♥.
+    prerequisites:
+      all:
+      - {skill: devotion-iii-holy-knight}
+      - {skill: miracle}
+    maintainerNote: Printed 'damage damage'; corrected to 'damage' (Craig 2026-11-17).
+
+  # Ranged
+  - id: barrage
+    name: Barrage
+    tree: ranged
+    usage: 1/combat
+    tier: normal
+    text: Deal your damage this round to all opponents.
+    prerequisites: {skill: ranged-training}
+  - id: long-shot
+    name: Long Shot
+    tree: ranged
+    usage: 1/combat
+    tier: normal
+    text: If you defeat your opponent's roll by 10 or more, you can stay at range for the next combat roll.
+    prerequisites: {skill: ranged-training}
+  - id: prepared-shot
+    name: Prepared Shot
+    tree: ranged
+    usage: 1/combat
+    tier: normal
+    text: Add your Class Bonus to this attack roll with a ranged weapon.
+    prerequisites: {skill: long-shot}
+  - id: careful-aim
+    name: Careful Aim
+    tree: ranged
+    usage: 1/combat
+    tier: normal
+    text: Add 3♥ of damage to this round's attack roll with a ranged weapon.
+    prerequisites: {skill: prepared-shot}
+  - id: ranged-master
+    name: Ranged Master
+    tree: ranged
+    usage: passive
+    tier: normal
+    text: Gain +8 to combat rolls with ranged weapons.
+    prerequisites: {skill: careful-aim}
+  - id: rain
+    name: Rain
+    tree: ranged
+    usage: 1/combat
+    tier: epic
+    text: Deal 3♥ of damage to all foes and make an opposed CR to knock them prone.
+    prerequisites:
+      all:
+      - {skill: barrage}
+      - {skill: ranged-master}
+  - id: good-grouping
+    name: Good Grouping
+    tree: ranged
+    usage: 1/combat
+    tier: normal
+    text: If targeting a foe you successfully damaged the previous round, gain +3 to hit that target this
+      round.
+    prerequisites: {skill: careful-aim}
+  - id: expert-precision
+    name: Expert Precision
+    tree: ranged
+    usage: passive
+    tier: epic
+    text: Add 2♥ of damage when using ranged weapons.
+    prerequisites: {skill: good-grouping}
+  - id: pinning-shot
+    name: Pinning Shot
+    tree: ranged
+    usage: 1/combat
+    tier: normal
+    text: Remove the opponent's Combat Modifier (Attack) bonus this round.
+    prerequisites: {skill: ranged-training}
+  - id: withdraw
+    name: Withdraw
+    tree: ranged
+    usage: 1/combat
+    tier: normal
+    text: Counter one ability that would allow an opponent to damage you on a failed ranged round. (e.g.
+      Attack Tactics)
+    prerequisites: {skill: pinning-shot}
+    maintainerNote: Printed 'round . (e.g.'; corrected to 'round. (e.g.' (Craig 2026-11-17).
+  - id: tight-grouping
+    name: Tight Grouping
+    tree: ranged
+    usage: 1/combat
+    tier: normal
+    text: Add an additional +2 (+5 total) to Good Grouping and deal +1♥ of damage.
+    prerequisites: {skill: withdraw}
+
+  # Swashbuckler
+  - id: footwork
+    name: Footwork
+    tree: swashbuckler
+    usage: 1/combat
+    tier: normal
+    text: Roll 1d8. Add the result as a Combat Modifier (Defence)
+    prerequisites: {skill: fend}
+  - id: feint
+    name: Feint
+    tree: swashbuckler
+    usage: 1/combat
+    tier: normal
+    text: Roll one of your combat dice vs. one opponent's. If you win, add your class bonus to this roll.
+    prerequisites: {skill: fend}
+  - id: duelist
+    name: Duelist
+    tree: swashbuckler
+    usage: passive
+    tier: normal
+    text: Add your Class Bonus to your Feint Challenge Roll.
+    prerequisites: {skill: feint}
+    maintainerNote: Printed 'Challange'; corrected to 'Challenge' (Craig 2026-11-17).
+  - id: rakish-one
+    name: Rakish One
+    tree: swashbuckler
+    usage: passive
+    tier: epic
+    text: You may make one Feint challenge roll per combat roll.
+    prerequisites: {skill: feint}
+  - id: cunning
+    name: Cunning
+    tree: swashbuckler
+    usage: passive
+    tier: normal
+    text: You may attempt Distraction, Escape and Persuasion rolls.
+    prerequisites: {skill: fend}
+  - id: panache
+    name: Panache
+    tree: swashbuckler
+    usage: passive
+    tier: normal
+    text: You may add your Class Bonus to Distraction, Escape and Persuasion Rolls.
+    prerequisites: {skill: cunning}
+
+  # Acrobat
+  - id: balance-ii
+    name: Balance II
+    tree: acrobat
+    usage: passive
+    tier: normal
+    text: You may now use your Acrobatics Die on one more combat roll this combat.
+    prerequisites: {skill: balance}
+  - id: balance-iii
+    name: Balance III
+    tree: acrobat
+    usage: passive
+    tier: normal
+    text: You may now use your Acrobatics Die on two more combat rolls this combat.
+    prerequisites: {skill: balance-ii}
+  - id: master-balance
+    name: Master Balance
+    tree: acrobat
+    usage: passive
+    tier: normal
+    text: You may now use your Acrobatics Die on every combat roll.
+    prerequisites: {skill: balance-iii}
+  - id: acrobatics-i
+    name: Acrobatics I
+    tree: acrobat
+    usage: 1/combat
+    tier: normal
+    text: Gain an Acrobatics Die (1d4) Roll and add the result to your Combat Modifier (Defence)
+    prerequisites: {skill: balance}
+  - id: acrobatics-ii
+    name: Acrobatics II
+    tree: acrobat
+    usage: passive
+    tier: normal
+    text: Your Acrobatics Die increases to (1d6).
+    prerequisites: {skill: acrobatics-i}
+  - id: acrobatics-iii
+    name: Acrobatics III
+    tree: acrobat
+    usage: passive
+    tier: normal
+    text: Your Acrobatics Die increases to (1d8).
+    prerequisites: {skill: acrobatics-ii}
+  - id: acro-master
+    name: Acro Master
+    tree: acrobat
+    usage: passive
+    tier: normal
+    text: If your Acrobatics Die lands on its highest number, negate 1♥ of damage.
+    prerequisites: {skill: acrobatics-iii}
+  - id: reflexes
+    name: Reflexes
+    tree: acrobat
+    usage: 1/combat
+    tier: normal
+    text: Ignore 1♥ of elemental damage.
+    prerequisites: {skill: balance}
+  - id: legendary-grace
+    name: Legendary Grace
+    tree: acrobat
+    usage: passive
+    tier: epic
+    text: Gain +5 to Agility-based Challenge Rolls.
+    prerequisites:
+      all:
+      - {skill: master-balance}
+      - {skill: acro-master}
+    maintainerNote: Named Legendary but labelled [Epic]; recorded as Epic (Craig 2026-11-17).
+
+  # Assassin
+  - id: recon
+    name: Recon
+    tree: assassin
+    usage: passive
+    tier: normal
+    text: If you can describe one foe's class and level to a GM out of combat, that foe becomes your mark
+      for the rest of the day. Gain +4 on combat rolls vs. them.
+    prerequisites: {skill: shadow-strike}
+  - id: stealth-expert
+    name: Stealth Expert
+    tree: assassin
+    usage: passive
+    tier: normal
+    text: If any effect would remove your stealth, you still maintain stealth.
+    prerequisites: {skill: recon}
+  - id: slippery
+    name: Slippery
+    tree: assassin
+    usage: 1/combat
+    tier: normal
+    text: Negate one effect that would stop you from escaping combat.
+    prerequisites: {skill: shadow-strike}
+  - id: poison
+    name: Poison
+    tree: assassin
+    usage: 1/combat
+    tier: normal
+    text: Add 1♥ of poison damage to your attack this round.
+    prerequisites: {skill: shadow-strike}
+  - id: bolas
+    name: Bolas
+    tree: assassin
+    usage: 1/combat
+    tier: normal
+    text: Prevent an opponent from attempting to flee combat.
+    prerequisites: {skill: shadow-strike}
+  - id: smoke-bomb
+    name: Smoke Bomb
+    tree: assassin
+    usage: 1/combat
+    tier: normal
+    text: Grants you a stealth round.
+    prerequisites: {skill: shadow-strike}
+  - id: darkness
+    name: Darkness
+    tree: assassin
+    usage: 1/combat
+    tier: normal
+    text: You and your allies gain a stealth round.
+    prerequisites: {skill: smoke-bomb}
+  - id: cloak-of-shadows
+    name: Cloak of Shadows
+    tree: assassin
+    usage: 1/combat
+    tier: normal
+    text: If you won the previous round of combat while in a stealth round, you can remain in stealth for
+      this round.
+    prerequisites: {skill: darkness}
+  - id: assassinate
+    name: Assassinate
+    tree: assassin
+    usage: passive
+    tier: epic
+    text: You deal an additional 3♥ of damage when damaging a mark.
+    prerequisites:
+      all:
+      - {skill: stealth-expert}
+      - {skill: cloak-of-shadows}
+  - id: deadly-stealth
+    name: Deadly Stealth
+    tree: assassin
+    usage: passive
+    tier: epic
+    text: Increase your base damage to 2♥ on successful stealth rounds. (This stacks with Assassinate)
+    prerequisites:
+      all:
+      - {skill: stealth-expert}
+      - {skill: cloak-of-shadows}
+
+  # Death
+  - id: hex
+    name: Hex
+    tree: death
+    usage: 1/combat
+    tier: normal
+    text: Choose 1 die. (Not the total roll) Roll it again; the foe must take the lower result. (A foe can
+      only be hexed 1/round)
+    prerequisites: {skill: weaken}
+  - id: curse
+    name: Curse
+    tree: death
+    usage: 1/combat
+    tier: normal
+    text: May bestow the Cursed condition to one foe.
+    prerequisites: {skill: hex}
+  - id: hex-mark
+    name: Hex Mark
+    tree: death
+    usage: 1/combat
+    tier: normal
+    text: One foe takes 1♥ extra damage from each source this round.
+    prerequisites: {skill: curse}
+  - id: ghoul-touch
+    name: Ghoul Touch
+    tree: death
+    usage: 1/combat
+    tier: normal
+    text: Deal 3♥ of necrotic damage to one foe. That foe takes -4 to combat rolls for 1d4 rounds.
+    prerequisites: {skill: hex-mark}
+  - id: enfeeble
+    name: Enfeeble
+    tree: death
+    usage: 1/combat
+    tier: normal
+    text: A foe takes -4 to their combat and Strength rolls for the rest of combat.
+    prerequisites: {skill: weaken}
+  - id: raise-zombie
+    name: Raise Zombie
+    tree: death
+    usage: 1/combat
+    tier: normal
+    text: Create a Zombie with 1♥ that adds 1d6 to combat rolls.
+    prerequisites: {skill: enfeeble}
+  - id: necromancy
+    name: Necromancy
+    tree: death
+    usage: passive
+    tier: normal
+    text: Your undead summons gain 1 extra ♥ when summoned.
+    prerequisites: {skill: raise-zombie}
+  - id: undead-mastery
+    name: Undead Mastery
+    tree: death
+    usage: passive
+    tier: normal
+    text: Your Undead Summons gain Resistance when summoned.
+    prerequisites: {skill: necromancy}
+  - id: undead-armor
+    name: Undead Armor
+    tree: death
+    usage: passive
+    tier: normal
+    text: You can equip your Skeleton or Ghoulhulk with 1 weapon and 1 piece of armor.
+    prerequisites: {skill: undead-mastery}
+  - id: necromancy-mastery
+    name: Necromancy Mastery
+    tree: death
+    usage: passive
+    tier: normal
+    text: You can sacrifice 1 Death Tree spell to re-summon 1 slain undead.
+    prerequisites: {skill: undead-armor}
+  - id: raise-skeleton
+    name: Raise Skeleton
+    tree: death
+    usage: 1/combat
+    tier: normal
+    text: Creates a Skeleton with 2♥ that adds 1d8 to combat rolls.
+    prerequisites: {skill: raise-zombie}
+  - id: raise-ghoulhulk
+    name: Raise Ghoulhulk
+    tree: death
+    usage: 1/combat
+    tier: normal
+    text: Creates a Ghoulhulk with 3♥ that adds 1d12 to combat rolls.
+    prerequisites: {skill: raise-skeleton}
+  - id: necromancy-archmage
+    name: Necromancy Archmage
+    tree: death
+    usage: passive
+    tier: epic
+    text: Your undead summons now add 1♥ of necrotic damage to attacks. Choose 1 summon to become an ally.
+    prerequisites:
+      all:
+      - {skill: necromancy-mastery}
+      - {skill: raise-ghoulhulk}
+  - id: pulse-of-the-underworld
+    name: Pulse of the Underworld
+    tree: death
+    usage: 1/combat
+    tier: epic
+    text: Deal 3♥ of Necrotic damage to each foe and heal each undead on the battlefield for 3♥.
+    prerequisites:
+      all:
+      - {skill: ghoul-touch}
+      - {skill: necromancy-archmage}
+    maintainerNote: Printed 'Necroic Necrotic'; corrected to 'Necrotic' (Craig 2026-11-17).
+  - id: drain-life
+    name: Drain Life
+    tree: death
+    usage: 1/combat
+    tier: normal
+    text: Add +5 to this combat roll and gain 1♥ from the foe.
+    prerequisites: {skill: enfeeble}
+  - id: drain-life-ii
+    name: Drain Life II
+    tree: death
+    usage: 1/combat
+    tier: normal
+    text: Add +5 to this combat roll and gain 2♥ from the foe.
+    prerequisites: {skill: drain-life}
+  - id: drain-life-iii
+    name: Drain Life III
+    tree: death
+    usage: 1/combat
+    tier: normal
+    text: Add +5 to this combat roll and gain 3♥ from the foe.
+    prerequisites: {skill: drain-life-ii}
+  - id: infect
+    name: Infect
+    tree: death
+    usage: 1/combat
+    tier: normal
+    text: Attempt to infect a foe with a disease. The foe makes an opposed CR; on a failure, roll on the
+      disease chart to determine the infection.
+    prerequisites: {skill: weaken}
+  - id: summon-plague
+    name: Summon Plague
+    tree: death
+    usage: 1/combat
+    tier: normal
+    text: Attempt to infect 3 foes with a disease. Each foe makes an opposed CR; on a failure, roll on the
+      disease chart to determine their infection.
+    prerequisites: {skill: infect}
+  - id: vampiric-grasp
+    name: Vampiric Grasp
+    tree: death
+    usage: 1/combat
+    tier: normal
+    text: Steal 1♥ from a foe. Some foes may require a Challenge Roll.
+    prerequisites: {skill: drain-life-ii}
+  - id: vampiric-touch
+    name: Vampiric Touch
+    tree: death
+    usage: 1/combat
+    tier: normal
+    text: Increase all Drain Life ♥ gains by 1.
+    prerequisites: {skill: vampiric-grasp}
+    maintainerNote: Reads like a lasting bonus, but it's a heal used 1/combat (Craig 2026-11-17).
+  - id: lichdom
+    name: Lichdom
+    tree: death
+    usage: passive
+    tier: epic
+    text: Your type becomes Evil and Undead. You must create a Phylactery. You can resurrect once before
+      your Phylactery breaks and must be replaced.
+    prerequisites:
+      all:
+      - {skill: pulse-of-the-underworld}
+      - {skill: drain-life-iii}
+    maintainerNote: Printed 'ressurect'; corrected to 'resurrect' (Craig 2026-11-17).
+
+  # Sorcerer
+  - id: lesser-elemental
+    name: Lesser Elemental
+    tree: sorcerer
+    usage: 1/combat
+    tier: normal
+    text: Create an Elemental minion of an element you know with 1♥ and adds 1d4 to combat rolls.
+    prerequisites: {skill: elemental-magic}
+  - id: elemental
+    name: Elemental
+    tree: sorcerer
+    usage: passive
+    tier: normal
+    text: Your elemental's combat die becomes 1d8.
+    prerequisites: {skill: lesser-elemental}
+  - id: summoner
+    name: Summoner
+    tree: sorcerer
+    usage: passive
+    tier: normal
+    text: Your elemental gains +1♥ and +4 Combat Modifier (Attack).
+    prerequisites: {skill: elemental}
+  - id: greater-elemental
+    name: Greater Elemental
+    tree: sorcerer
+    usage: passive
+    tier: normal
+    text: Your elemental's combat die becomes 1d10.
+    prerequisites: {skill: elemental}
+  - id: elemental-fury
+    name: Elemental Fury
+    tree: sorcerer
+    usage: 1/combat
+    tier: normal
+    text: You and your elemental can each cast a spell this round.
+    prerequisites: {skill: summoner}
+  - id: elemental-mastery-sorcerer
+    name: Elemental Mastery (Sorcerer)
+    tree: sorcerer
+    usage: passive
+    tier: normal
+    text: You create an Arcane stone of an elemental type you know. As long as it is equipped, elementals
+      of that type are allies instead.
+    prerequisites:
+      all:
+      - {skill: greater-elemental}
+      - {skill: elemental-fury}
+    maintainerNote: Same name as a card with a different effect in another tree, so the tree is added to
+      the name (Craig 2026-11-17; DM question).
+  - id: sorcery
+    name: Sorcery
+    tree: sorcerer
+    usage: 1/combat
+    tier: normal
+    text: Add 1d4♥ of damage of an element you know to this attack.
+    prerequisites: {skill: elemental-magic}
+  - id: sorcery-power-ii
+    name: Sorcery Power II
+    tree: sorcerer
+    usage: 1/combat
+    tier: normal
+    text: Add 1d6♥ of damage of an element you know to this attack.
+    prerequisites: {skill: sorcery}
+  - id: sorcery-power-iii
+    name: Sorcery Power III
+    tree: sorcerer
+    usage: 1/combat
+    tier: normal
+    text: Add 1d8♥ of damage of an element you know to this attack.
+    prerequisites: {skill: sorcery-power-ii}
+  - id: sorcery-power-iv
+    name: Sorcery Power IV
+    tree: sorcerer
+    usage: 1/combat
+    tier: normal
+    text: Add 1d10♥ of damage of an element you know to this attack.
+    prerequisites: {skill: sorcery-power-iii}
+  - id: sorcery-power-v
+    name: Sorcery Power V
+    tree: sorcerer
+    usage: 1/combat
+    tier: normal
+    text: Add 1d12♥ of damage of an element you know to this attack.
+    prerequisites: {skill: sorcery-power-iv}
+  - id: fire-bolt
+    name: Fire Bolt
+    tree: sorcerer
+    usage: task, 1/combat
+    tier: normal
+    text: Deal 3♥ of Fire damage to one foe.
+    prerequisites: {skill: sorcery-power-iii}
+  - id: ice-spear
+    name: Ice Spear
+    tree: sorcerer
+    usage: task, 1/combat
+    tier: normal
+    text: Deal 3♥ of Ice damage to one foe.
+    prerequisites: {skill: sorcery-power-iii}
+  - id: lightning-bolt
+    name: Lightning Bolt
+    tree: sorcerer
+    usage: task, 1/combat
+    tier: normal
+    text: Deal 3♥ of Lightning damage to one foe.
+    prerequisites: {skill: sorcery-power-iii}
+  - id: boulder-throw
+    name: Boulder Throw
+    tree: sorcerer
+    usage: task, 1/combat
+    tier: normal
+    text: Deal 3♥ of Earth damage to one foe.
+    prerequisites: {skill: sorcery-power-iii}
+  - id: blizzard
+    name: Blizzard
+    tree: sorcerer
+    usage: task, 1/combat
+    tier: normal
+    text: Deal 4♥ of Ice damage to all foes.
+    prerequisites:
+      all:
+      - {skill: ice-spear}
+      - {skill: sorcery-power-v}
+    maintainerNote: The lock's second arrow starts between Sorcery Power IV and V; read as Sorcery Power
+      V like Fire Storm and Earthquake (Craig 2026-11-17).
+  - id: chain-lightning
+    name: Chain Lightning
+    tree: sorcerer
+    usage: task, 1/combat
+    tier: normal
+    text: Deal 4♥ of Lightning damage to all foes.
+    prerequisites:
+      all:
+      - {skill: lightning-bolt}
+      - {skill: sorcery-power-v}
+    maintainerNote: The lock's second arrow starts between Sorcery Power IV and V; read as Sorcery Power
+      V like Fire Storm and Earthquake (Craig 2026-11-17).
+  - id: fire-storm
+    name: Fire Storm
+    tree: sorcerer
+    usage: task, 1/combat
+    tier: normal
+    text: Deal 4♥ of Fire damage to all foes.
+    prerequisites:
+      all:
+      - {skill: fire-bolt}
+      - {skill: sorcery-power-v}
+  - id: earthquake
+    name: Earthquake
+    tree: sorcerer
+    usage: task, 1/combat
+    tier: normal
+    text: Deal 4♥ of Earth damage to all foes.
+    prerequisites:
+      all:
+      - {skill: boulder-throw}
+      - {skill: sorcery-power-v}
+  - id: quicken-spell
+    name: Quicken Spell
+    tree: sorcerer
+    usage: 1/combat
+    tier: epic
+    text: You can cast 2 Sorcerer spells this round. (even Tasks)
+    prerequisites: {skill: sorcery-power-v}
+  - id: sorcerer-archmage
+    name: Sorcerer Archmage
+    tree: sorcerer
+    usage: passive
+    tier: epic
+    text: Gain a permanent +1♥ of damage to all elemental spells.
+    prerequisites: {skill: quicken-spell}
+  - id: armageddon
+    name: Armageddon
+    tree: sorcerer
+    usage: task, 1/combat
+    tier: epic
+    text: You cast all Sorcery V spells you know and deal the combined damage to everyone, including yourself.
+    prerequisites: {skill: sorcerer-archmage}
+    maintainerNote: '''Sorcery V spells'' means the four spells that need Sorcery Power V (Blizzard, Chain
+      Lightning, Fire Storm, Earthquake) (Craig 2026-11-17).'
+  - id: shatter
+    name: Shatter
+    tree: sorcerer
+    usage: 1/combat
+    tier: normal
+    text: Break any one Basic item. It becomes useless until fixed at the Guild Hall for a fee.
+    prerequisites: {skill: elemental-magic}
+  - id: shatter-ii
+    name: Shatter II
+    tree: sorcerer
+    usage: 1/combat
+    tier: normal
+    text: Break any one Magic or Arcane item. It becomes useless until fixed at the Guild Hall for a fee.
+    prerequisites: {skill: shatter}
+  - id: infuse-metal
+    name: Infuse Metal
+    tree: sorcerer
+    usage: 1/combat
+    tier: normal
+    text: Disrupt one foe's metal item with an element you know. They take 1♥ of that type of damage as
+      long as they continue using the item.
+    prerequisites: {skill: shatter-ii}
+
+  # Worldshaper
+  - id: awaken-clay
+    name: Awaken Clay
+    tree: worldshaper
+    usage: 1/combat
+    tier: normal
+    text: Create a clay minion with 1♥ that adds 1d4 to combat rolls and Combat Modifier (Defence) +2 that
+      fights alongside you until slain.
+    prerequisites: {skill: mage-armor}
+    maintainerNote: Printed 'fights fights'; corrected to 'fights' (Craig 2026-11-17).
+  - id: create-golem
+    name: Create Golem
+    tree: worldshaper
+    usage: passive
+    tier: normal
+    text: Your clay minion's combat die becomes 1d8 and Combat Modifier (Defence) becomes +4.
+    prerequisites: {skill: awaken-clay}
+  - id: iron-golem
+    name: Iron Golem
+    tree: worldshaper
+    usage: passive
+    tier: normal
+    text: Your clay minion's combat die becomes 1d12 and Combat Modifier (Defence) becomes +6.
+    prerequisites: {skill: create-golem}
+  - id: animus
+    name: Animus
+    tree: worldshaper
+    usage: passive
+    tier: normal
+    text: Your Golem gains +1♥ and Resistance to Elemental damage.
+    prerequisites: {skill: create-golem}
+  - id: endowment
+    name: Endowment
+    tree: worldshaper
+    usage: passive
+    tier: normal
+    text: Your Golem is now considered an ally instead of a minion.
+    prerequisites:
+      all:
+      - {skill: iron-golem}
+      - {skill: animus}
+  - id: gust-of-wind
+    name: Gust of Wind
+    tree: worldshaper
+    usage: 1/combat
+    tier: normal
+    text: Prevent all damage from 1 ranged attack.
+    prerequisites: {skill: mage-armor}
+  - id: wind-wall
+    name: Wind Wall
+    tree: worldshaper
+    usage: 1/combat
+    tier: normal
+    text: Prevent damage from all ranged sources. Does not affect AOE.
+    prerequisites: {skill: gust-of-wind}
+  - id: deflect
+    name: Deflect
+    tree: worldshaper
+    usage: 1/combat
+    tier: normal
+    text: Roll 1d4 and add the result to your Combat Modifier (Defence) this round.
+    prerequisites: {skill: gust-of-wind}
+  - id: redirect
+    name: Redirect
+    tree: worldshaper
+    usage: 1/combat
+    tier: normal
+    text: When hit by an attack, you can redirect it to another target.
+    prerequisites: {skill: deflect}
+  - id: ward
+    name: Ward
+    tree: worldshaper
+    usage: 1/combat
+    tier: normal
+    text: Roll 1d8 and add the result to your Combat Modifier (Defence) this round.
+    prerequisites: {skill: redirect}
+  - id: forcedome
+    name: Forcedome
+    tree: worldshaper
+    usage: 1/combat
+    tier: normal
+    text: Roll 1d12 and add the result to your Combat Modifier (Defence) this round.
+    prerequisites: {skill: ward}
+  - id: mage-shield
+    name: Mage Shield
+    tree: worldshaper
+    usage: 1/combat
+    tier: normal
+    text: Prevent up to 2♥ of any non-True damage.
+    prerequisites: {skill: wind-wall}
+  - id: abjurers-power
+    name: Abjurer's Power
+    tree: worldshaper
+    usage: passive
+    tier: normal
+    text: Add half the number of Worldshaper spells you know as a bonus to Deflect, Ward and Forcedome.
+    prerequisites:
+      all:
+      - {skill: mage-shield}
+      - {skill: forcedome}
+  - id: protection
+    name: Protection
+    tree: worldshaper
+    usage: 1/combat
+    tier: normal
+    text: One target is protected (immune) from one element of choice. Only 1 instance of Protection can
+      be active on a target at a time. Protection lasts until end of combat or revoked.
+    prerequisites: {skill: abjurers-power}
+    maintainerNote: Printed 'procected'; corrected to 'protected' (Craig 2026-11-17).
+  - id: circle-of-protection
+    name: Circle of Protection
+    tree: worldshaper
+    usage: 1/combat
+    tier: epic
+    text: You and up to 6 allies are protected (immune) from one element until end of combat.
+    prerequisites:
+      all:
+      - {skill: protection}
+      - {skill: abjurers-power}
+  - id: abjurer-archmage
+    name: Abjurer Archmage
+    tree: worldshaper
+    usage: passive
+    tier: epic
+    text: Mage Armor now increases your Combat Modifier (Defence) by the number of Worldshaper spells you
+      know.
+    prerequisites: {skill: abjurers-power}
+    maintainerNote: Printed 'Worldshper'; corrected to 'Worldshaper' (Craig 2026-11-17).
+  - id: illusions
+    name: Illusions
+    tree: worldshaper
+    usage: 1/combat
+    tier: normal
+    text: You have a 25% miss chance until hit.
+    prerequisites: {skill: mage-armor}
+  - id: invisibility
+    name: Invisibility
+    tree: worldshaper
+    usage: 1/combat
+    tier: normal
+    text: You turn invisible until it is broken. While invisible you cannot be targeted.
+    prerequisites: {skill: illusions}
+  - id: greater-invisibility
+    name: Greater Invisibility
+    tree: worldshaper
+    usage: 1/combat
+    tier: normal
+    text: You grant one other target Invisibility.
+    prerequisites: {skill: invisibility}
+  - id: time-hop
+    name: Time Hop
+    tree: worldshaper
+    usage: 1/combat
+    tier: normal
+    text: One target must reroll their entire combat roll and take the new result.
+    prerequisites: {skill: greater-invisibility}
+  - id: time-stop
+    name: Time Stop
+    tree: worldshaper
+    usage: 1/combat
+    tier: epic
+    text: 'Choose a target. The target can perform any 2 of the following: Do a Task, roll and add their
+      dice to their combat roll or cast/use another spell/skill.'
+    prerequisites:
+      all:
+      - {skill: abjurer-archmage}
+      - {skill: time-hop}
+    maintainerNote: Printed 'thier'; corrected to 'their' (Craig 2026-11-17).
+  - id: bend-reality
+    name: Bend Reality
+    tree: worldshaper
+    usage: 1/combat
+    tier: epic
+    text: Minorly affect reality. (DM's Discretion)
+    prerequisites: {skill: time-hop}
+    maintainerNote: Printed 'affect. reality'; corrected to 'affect reality' (Craig 2026-11-17).
+  - id: transmutation-worldshaper
+    name: Transmutation (Worldshaper)
+    tree: worldshaper
+    usage: 1/combat
+    tier: normal
+    text: Change one effect or attack element to one you know. Effects that last more than 1 round are only
+      changed for 1 round.
+    prerequisites: {skill: mage-armor}
+    maintainerNote: Same name as a card with a different effect in another tree, so the tree is added to
+      the name (Craig 2026-11-17; DM question).
+
+  # Thief
+  - id: noise-maker
+    name: Noise Maker
+    tree: thief
+    usage: passive
+    tier: normal
+    text: If you pickpocket your opponent before combat, instead of stealing, you can place a distraction
+      device in their pocket, removing their CM (Attack) for the first round.
+    prerequisites:
+      all:
+      - {skill: stroke-of-luck}
+      - {skill: pickpocket}
+  - id: trip-up
+    name: Trip Up
+    tree: thief
+    usage: passive
+    tier: normal
+    text: If you pickpocket your opponent before combat, instead of stealing, you can set a trap that will
+      knock them prone for the 1st round of combat.
+    prerequisites: {skill: noise-maker}
+  - id: hot-pocket
+    name: Hot Pocket
+    tree: thief
+    usage: passive
+    tier: normal
+    text: If you pickpocket your opponent before combat, instead of stealing, you can place an explosive
+      device in their pocket. On the 1st round of combat, they take 3♥ of damage.
+    prerequisites: {skill: trip-up}
+    maintainerNote: Printed 'a explosive'; corrected to 'an explosive' (Craig 2026-11-17).
+  - id: fast-talk
+    name: Fast Talk
+    tree: thief
+    usage: passive
+    tier: normal
+    text: Gain a permanent +2 to Charisma-based Challenge Rolls.
+    prerequisites:
+      all:
+      - {skill: stroke-of-luck}
+      - {skill: pickpocket}
+  - id: bamboozle
+    name: Bamboozle
+    tree: thief
+    usage: 1/combat
+    tier: normal
+    text: Make an opposed Challenge Roll vs 1 opponent. If you succeed, that opponent cannot target you
+      this round.
+    prerequisites: {skill: fast-talk}
+  - id: street-smarts
+    name: Street Smarts
+    tree: thief
+    usage: passive
+    tier: normal
+    text: Gain one free hint per quest.
+    prerequisites:
+      all:
+      - {skill: stroke-of-luck}
+      - {skill: pickpocket}
+  - id: treasure-hunter
+    name: Treasure Hunter
+    tree: thief
+    usage: 1/day
+    tier: normal
+    text: '1/Day: After a successful pickpocket or opening a chest, gain a minor loot roll.'
+    prerequisites: {skill: street-smarts}
+  - id: padfoot
+    name: Padfoot
+    tree: thief
+    usage: 1/combat
+    tier: normal
+    text: Add your Stealth Bonus to this combat roll.
+    prerequisites:
+      all:
+      - {skill: stroke-of-luck}
+      - {skill: pickpocket}
+  - id: backstab
+    name: Backstab
+    tree: thief
+    usage: passive
+    tier: normal
+    text: If you pickpocket your opponent before combat, instead of stealing, you deal +2♥ of damage in
+      the 1st round of combat
+    prerequisites: {skill: padfoot}
+  - id: sneak-thief
+    name: Sneak Thief
+    tree: thief
+    usage: passive
+    tier: normal
+    text: If a foe can prevent a pickpocket attempt, make a combat roll. If you succeed, you still gain
+      1 Zenni.
+    prerequisites: {skill: backstab}
+  - id: guild-connections
+    name: Guild Connections
+    tree: thief
+    usage: 1/day
+    tier: normal
+    text: '1/Day: You can make an opposed Charisma Challenge Roll to pay half price for goods or services.
+      If you fail, you gain the "Notorious" condition.'
+    prerequisites:
+      all:
+      - {skill: street-smarts}
+      - {skill: sneak-thief}
+
+  # Cleric
+  - id: holy-vow
+    name: Holy Vow
+    tree: cleric
+    usage: passive
+    tier: normal
+    text: You may not take any evil action or lose your Cleric powers until atonement. Gain +2 CM vs Evil
+      and Gain a Holy Die (1d4)
+    prerequisites: {skill: lesser-recovery}
+  - id: cure-wounds
+    name: Cure Wounds
+    tree: cleric
+    usage: 1/combat
+    tier: normal
+    text: Roll 1d4. Recover that many ♥s to a single target.
+    prerequisites: {skill: holy-vow}
+  - id: devotion-i-cleric
+    name: Devotion I (Cleric)
+    tree: cleric
+    usage: passive
+    tier: normal
+    text: Increase your Holy Die to (1d6) and your bonus vs. Evil to +4.
+    prerequisites: {skill: cure-wounds}
+    maintainerNote: Same name as a card with a different effect in another tree, so the tree is added to
+      the name (Craig 2026-11-17; DM question).
+  - id: devotion-ii-cleric
+    name: Devotion II (Cleric)
+    tree: cleric
+    usage: passive
+    tier: normal
+    text: Increase your Holy Die to (1d8) and your bonus vs. Evil to +6.
+    prerequisites: {skill: devotion-i-cleric}
+    maintainerNote: Same name as a card with a different effect in another tree, so the tree is added to
+      the name (Craig 2026-11-17; DM question).
+  - id: devotion-iii-cleric
+    name: Devotion III (Cleric)
+    tree: cleric
+    usage: passive
+    tier: normal
+    text: Increase your Holy Die to (1d10) and your bonus vs. Evil to +8.
+    prerequisites: {skill: devotion-ii-cleric}
+    maintainerNote: Same name as a card with a different effect in another tree, so the tree is added to
+      the name (Craig 2026-11-17; DM question).
+  - id: turn-undead-cleric
+    name: Turn Undead (Cleric)
+    tree: cleric
+    usage: 1/day
+    tier: normal
+    text: '1/Day: Roll your Holy Die. Deal the result as Holy Damage to all undead.'
+    prerequisites: {skill: devotion-iii-cleric}
+    maintainerNote: Same name as a card with a different effect in another tree, so the tree is added to
+      the name (Craig 2026-11-17; DM question).
+  - id: cure-moderate-wounds
+    name: Cure Moderate Wounds
+    tree: cleric
+    usage: 1/combat
+    tier: normal
+    text: Roll 2d4. Recover that many ♥s to a single target.
+    prerequisites: {skill: cure-wounds}
+  - id: cure-critical-wounds
+    name: Cure Critical Wounds
+    tree: cleric
+    usage: 1/combat
+    tier: normal
+    text: Roll 4d4. Recover that many ♥s to a single target.
+    prerequisites: {skill: cure-moderate-wounds}
+  - id: cure-wounds-mass
+    name: Cure Wounds Mass
+    tree: cleric
+    usage: 1/combat
+    tier: normal
+    text: Roll 1d4. Recover that many ♥s to all allies.
+    prerequisites: {skill: cure-critical-wounds}
+  - id: calamons-wrath
+    name: Calamon's Wrath
+    tree: cleric
+    usage: 1/day
+    tier: epic
+    text: '1/Day: Calamon the First Cleric appears, dealing 2x your Holy Die roll in Holy Damage to all
+      enemies.'
+    prerequisites:
+      all:
+      - {skill: turn-undead-cleric}
+      - {skill: cure-wounds-mass}
+  - id: detect-evil
+    name: Detect Evil
+    tree: cleric
+    usage: 1/combat
+    tier: normal
+    text: Allows you to detect Evil around you.
+    prerequisites: {skill: holy-vow}
+  - id: protection-from-evil
+    name: Protection from Evil
+    tree: cleric
+    usage: 1/combat
+    tier: normal
+    text: Gain +4 Combat Modifier (Defense) against Evil this round.
+    prerequisites: {skill: detect-evil}
+  - id: evil-bane
+    name: Evil Bane
+    tree: cleric
+    usage: 1/combat
+    tier: normal
+    text: Give up to 6 allies +4 Combat Modifier (Attack) vs. Evil this round.
+    prerequisites: {skill: protection-from-evil}
+  - id: disrupt-evil
+    name: Disrupt Evil
+    tree: cleric
+    usage: 1/combat
+    tier: normal
+    text: Deal 1♥ of damage to an Evil creature.
+    prerequisites: {skill: evil-bane}
+  - id: eradicate-evil
+    name: Eradicate Evil
+    tree: cleric
+    usage: 1/combat
+    tier: normal
+    text: Deal 1♥ of damage to all Evil creatures.
+    prerequisites: {skill: disrupt-evil}
+  - id: blessed-recovery
+    name: Blessed Recovery
+    tree: cleric
+    usage: 1/combat
+    tier: normal
+    text: Recover one ally's used non-epic skill or spell.
+    prerequisites: {skill: holy-vow}
+  - id: restore
+    name: Restore
+    tree: cleric
+    usage: 1/combat
+    tier: normal
+    text: Remove one Diseased Condition from yourself or an Ally.
+    prerequisites: {skill: blessed-recovery}
+  - id: cleanse
+    name: Cleanse
+    tree: cleric
+    usage: 1/combat
+    tier: normal
+    text: Remove one Cursed Condition from yourself or an Ally.
+    prerequisites: {skill: restore}
+  - id: purify
+    name: Purify
+    tree: cleric
+    usage: 1/combat
+    tier: normal
+    text: Remove one Corruption Condition from yourself or an Ally.
+    prerequisites: {skill: cleanse}
+  - id: restoring-winds
+    name: Restoring Winds
+    tree: cleric
+    usage: task, 1/combat
+    tier: normal
+    text: Task to remove all negative effects from all allies around you.
+    prerequisites: {skill: purify}
+  - id: sanctify
+    name: Sanctify
+    tree: cleric
+    usage: 1/combat
+    tier: normal
+    text: One attack becomes Holy for the rest of this combat.
+    prerequisites: {skill: smite}
+  - id: holy-nimbus
+    name: Holy Nimbus
+    tree: cleric
+    usage: 1/combat
+    tier: normal
+    text: Add your Holy Die twice to your Combat Modifier (Defense) this round.
+    prerequisites: {skill: sanctify}
+  - id: holy-bolt
+    name: Holy Bolt
+    tree: cleric
+    usage: 1/combat
+    tier: normal
+    text: Deal 1♥ of Holy Damage to one target.
+    prerequisites: {skill: holy-nimbus}
+  - id: holy-burst
+    name: Holy Burst
+    tree: cleric
+    usage: 1/combat
+    tier: normal
+    text: Deal 1♥ of damage to all enemies.
+    prerequisites: {skill: holy-bolt}
+  - id: calamons-gift
+    name: Calamon's Gift
+    tree: cleric
+    usage: 1/day
+    tier: epic
+    text: '1/Day: Calamon the First Cleric prevents all damage including True for one target.'
+    prerequisites:
+      all:
+      - {skill: holy-burst}
+      - {skill: restoring-winds}
+
+  # Tactician
+  - id: assess-the-battle
+    name: Assess the Battle
+    tree: tactician
+    usage: 1/combat
+    tier: normal
+    text: 1/combat You can tell if an enemy is below half Hearts
+    prerequisites:
+      all:
+      - {skill: improved-weapon-focus}
+      - {skill: ranged-weapon-use}
+      - {skill: parry}
+      - {skill: over-press}
+  - id: push-the-advantage
+    name: Push the Advantage
+    tree: tactician
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Choose one ally and add half their CM from gear to your roll
+    prerequisites: {skill: assess-the-battle}
+  - id: charge-ahead
+    name: Charge Ahead
+    tree: tactician
+    usage: task
+    tier: normal
+    text: 'Task : All allies may start this round in Melee'
+    prerequisites: {skill: push-the-advantage}
+  - id: fall-back
+    name: Fall Back
+    tree: tactician
+    usage: task
+    tier: normal
+    text: 'Task : All allies may start this round in Ranged'
+    prerequisites: {skill: charge-ahead}
+  - id: effective-understanding
+    name: Effective Understanding
+    tree: tactician
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Increase one players Guild Bonus/Class bonus by your Tactical Die.
+    prerequisites: {skill: fall-back}
+  - id: hold-firm
+    name: Hold Firm
+    tree: tactician
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Roll your Tactical Die and reduce damage taken for that many allies by 2♥s
+    prerequisites: {skill: assess-the-battle}
+  - id: hold-fast
+    name: Hold Fast
+    tree: tactician
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Choose one ally and prevent any mind or body controlling effects
+    prerequisites: {skill: hold-firm}
+  - id: privilege-of-rank-lieutenant
+    name: 'Privilege of Rank: Lieutenant'
+    tree: tactician
+    usage: passive
+    tier: normal
+    text: Gain a Tactical Die 1d4 you may add this die to your combat roll or an allies combat roll
+    prerequisites:
+      all:
+      - {skill: effective-understanding}
+      - {skill: hold-fast}
+    maintainerNote: 'Name printed ''Privilege of Rank : Lieutenant''; corrected (Craig 2026-11-17). Two
+      arrows, no lock icon: both needed (Craig 2026-11-17; in the DM feedback).'
+  - id: rank-captain
+    name: 'Rank: Captain'
+    tree: tactician
+    usage: passive
+    tier: normal
+    text: Increase Tactical Die to a D6
+    prerequisites: {skill: privilege-of-rank-lieutenant}
+  - id: rank-major
+    name: 'Rank: Major'
+    tree: tactician
+    usage: passive
+    tier: normal
+    text: Increase Tactical Die to a D8
+    prerequisites: {skill: rank-captain}
+  - id: rank-brigadier
+    name: 'Rank: Brigadier'
+    tree: tactician
+    usage: passive
+    tier: normal
+    text: Increase Tactical Die to a D10
+    prerequisites: {skill: rank-major}
+  - id: rank-general
+    name: 'Rank: General'
+    tree: tactician
+    usage: passive
+    tier: normal
+    text: When Rolling your Tactical Die roll twice and take the better result
+    prerequisites: {skill: rank-brigadier}
+  - id: rally
+    name: Rally
+    tree: tactician
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Add your Tactical Die to your combat roll this round
+    prerequisites: {skill: privilege-of-rank-lieutenant}
+  - id: regroup
+    name: Regroup
+    tree: tactician
+    usage: task
+    tier: normal
+    text: 'Task : All willing allies move to ranged this round'
+    prerequisites: {skill: rally}
+  - id: charge
+    name: Charge
+    tree: tactician
+    usage: task
+    tier: normal
+    text: 'Task : All willing allies move to Melee this round'
+    prerequisites: {skill: regroup}
+  - id: clue-by-four
+    name: Clue by Four
+    tree: tactician
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Let one ally reroll a Challenge Roll
+    prerequisites: {skill: charge}
+  - id: get-down
+    name: Get Down
+    tree: tactician
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Roll your Tactical die and reduce damage taken this round by the result for yourself
+    prerequisites: {skill: privilege-of-rank-lieutenant}
+  - id: i-said-get-down
+    name: I said Get Down
+    tree: tactician
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Roll your Tactical die and reduce damage taken this round by the result for all allies
+    prerequisites: {skill: get-down}
+    maintainerNote: 'The sheet has no arrow into it; it follows Get Down, the card above it (Craig 2026-11-17:
+      the arrow is missing).'
+  - id: why-we-train
+    name: Why we Train
+    tree: tactician
+    usage: passive
+    tier: normal
+    text: You gain +1 to all Challenge Rolls
+    prerequisites: {skill: i-said-get-down}
+    maintainerNote: 'The sheet has no arrow into it; it follows I said Get Down, the card above it (Craig
+      2026-11-17: the arrow is missing).'
+  - id: know-your-enemy
+    name: Know Your Enemy
+    tree: tactician
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Can tell if the foe is under 1/4 of its health, & all of its weaknesses and resistances
+    prerequisites: {skill: why-we-train}
+  - id: create-an-opening
+    name: Create an Opening
+    tree: tactician
+    usage: 1/combat
+    tier: epic
+    text: 1/combat Opponent rolls a CR 25 or gain a weakness of the Tactician's choosing.
+    prerequisites:
+      all:
+      - {skill: clue-by-four}
+      - {skill: know-your-enemy}
+    maintainerNote: 'Two arrows, no lock icon: both needed (Craig 2026-11-17; in the DM feedback).'
+  - id: remember-your-training
+    name: Remember Your Training
+    tree: tactician
+    usage: 1/combat
+    tier: epic
+    text: 1/combat Give all allies +2 to this Challenge Roll
+    prerequisites:
+      all:
+      - {skill: why-we-train}
+      - {skill: rank-general}
+    maintainerNote: 'Two arrows, no lock icon: both needed (Craig 2026-11-17; in the DM feedback).'
+
+  # Toxicology
+  - id: poison-adept
+    name: Poison Adept
+    tree: toxicology
+    usage: passive
+    tier: normal
+    text: Gain resistance to poison Increase your Damage by 1 Heart per stack of poison your opponent has
+    prerequisites: {skill: never-tell-me-the-odds}
+  - id: weakness-poison
+    name: Weakness Poison
+    tree: toxicology
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Reduce Opponents rolls by 2, adds 1 Stack of Poison
+    prerequisites: {skill: poison-adept}
+  - id: tranquilizer-poison
+    name: Tranquilizer Poison
+    tree: toxicology
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Opponent makes a CR 20 or be slowed, adds 1 Stack of Poison
+    prerequisites: {skill: weakness-poison}
+  - id: paralyzing-poison
+    name: Paralyzing Poison
+    tree: toxicology
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Opponent makes a CR 15 or be Paralyzed for 1 round, Adds 1 Stack of Poison
+    prerequisites: {skill: tranquilizer-poison}
+    maintainerNote: 'CR 15 after Tranquilizer Poison''s CR 20 is intended: being slowed matters less than
+      being paralyzed (Craig 2026-11-17).'
+  - id: mix-master
+    name: Mix Master
+    tree: toxicology
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Can mix any 2 poisons together this round
+    prerequisites: {skill: paralyzing-poison}
+  - id: black-adder-poison
+    name: Black Adder Poison
+    tree: toxicology
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Deals 1 heart of Poison Damage, Adds 1 Stack of Poison
+    prerequisites: {skill: poison-adept}
+  - id: wyvern-poison
+    name: Wyvern Poison
+    tree: toxicology
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Deals 2 hearts of Poison Damage, Adds 1 Stack of Poison
+    prerequisites: {skill: black-adder-poison}
+  - id: purple-wurm-poison
+    name: Purple Wurm Poison
+    tree: toxicology
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Deals 3 Hearts of Poison Damage, Adds 1 Stack of Poison
+    prerequisites: {skill: wyvern-poison}
+  - id: poisonous-act
+    name: Poisonous Act
+    tree: toxicology
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Can Remove all stacks of Poison from 1 target dealing 3 hearts of Poison Damage per Stack
+      Removed
+    prerequisites: {skill: purple-wurm-poison}
+  - id: basic-antidote
+    name: Basic Antidote
+    tree: toxicology
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Can Cure 1 Basic Poison and Remove 1 Poison Stack from the Target
+    prerequisites: {skill: poison-adept}
+  - id: advanced-antidote
+    name: Advanced Antidote
+    tree: toxicology
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Can Cure Weaken or Slow Effects and Removes 2 Poison Stacks from the Target
+    prerequisites: {skill: basic-antidote}
+    maintainerNote: Printed 'Weakon'; corrected to 'Weaken' (Craig 2026-11-17).
+  - id: epic-antidote
+    name: Epic Antidote
+    tree: toxicology
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Can Cure Paralyzed, Bleed, and Nullifies Acid Effects, and Removes 3 Poison Stacks from
+      the Target
+    prerequisites: {skill: advanced-antidote}
+    maintainerNote: Named Epic but not marked Epic; recorded as normal (Craig 2026-11-17).
+  - id: panacea
+    name: Panacea
+    tree: toxicology
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Can Cure all Status Ailments and Remove all Poison Stacks from the Target
+    prerequisites: {skill: epic-antidote}
+    maintainerNote: Name printed 'Pancea'; corrected (Craig 2026-11-17).
+  - id: poison-master
+    name: Poison Master
+    tree: toxicology
+    usage: passive
+    tier: epic
+    text: Gain Epic Resistance to poison, and increase all stacks created by 1 (Requires Mix Master, Poisonous
+      Act, and Panacea)
+    prerequisites:
+      all:
+      - {skill: mix-master}
+      - {skill: poisonous-act}
+      - {skill: panacea}
+    maintainerNote: Printed 'and Pancea)'; corrected to 'and Panacea)' (Craig 2026-11-17). Same name as
+      the Poison Master prestige tree it opens; kept as printed (Craig 2026-11-17).
+
+  # Gladiator
+  - id: endurance
+    name: Endurance
+    tree: gladiator
+    usage: passive
+    tier: normal
+    text: Add +5 to your CM every time you take damage until the end of combat
+    prerequisites: {skill: death-throes}
+  - id: man-vs-beast
+    name: Man vs. Beast
+    tree: gladiator
+    usage: passive
+    tier: normal
+    text: Reduce the damage you take from Creatures by 2
+    prerequisites: {skill: endurance}
+    maintainerNote: Name printed 'Man VS. Beast'; corrected (Craig 2026-11-17).
+  - id: man-vs-beast-2
+    name: Man vs. Beast 2
+    tree: gladiator
+    usage: passive
+    tier: normal
+    text: Increase the damage you do to creatures by 2
+    prerequisites: {skill: man-vs-beast}
+    maintainerNote: Name printed 'Man VS. Beast 2'; corrected (Craig 2026-11-17).
+  - id: impresario
+    name: Impresario
+    tree: gladiator
+    usage: passive
+    tier: normal
+    text: You may Trade a Skill interaction for an Item interaction per round
+    prerequisites: {skill: man-vs-beast-2}
+  - id: spectacle
+    name: Spectacle
+    tree: gladiator
+    usage: 1/combat
+    tier: normal
+    text: 1/combat you gain two additional item interactions
+    prerequisites: {skill: impresario}
+  - id: pursuer
+    name: Pursuer
+    tree: gladiator
+    usage: 1/combat
+    tier: normal
+    text: 1/combat when a foe attempts an escape you deal 1d10 + 2 hearts of unavoidable damage to them
+      before they can
+    prerequisites: {skill: endurance}
+  - id: retiarius
+    name: Retiarius
+    tree: gladiator
+    usage: 1/day
+    tier: normal
+    text: 1/day when an opponent attempts a dodge or escape you roll a contested D20 roll, If you win they
+      cannot dodge or escape this combat
+    prerequisites: {skill: pursuer}
+  - id: close-combat
+    name: Close Combat
+    tree: gladiator
+    usage: passive
+    tier: normal
+    text: Maximize two of your dice when rolling combat in Melee
+    prerequisites: {skill: retiarius}
+  - id: in-fighting
+    name: In Fighting
+    tree: gladiator
+    usage: passive
+    tier: normal
+    text: Increase your damage dealt by 2 hearts when fighting in Melee
+    prerequisites: {skill: close-combat}
+    maintainerNote: Printed 'Increase you damage'; corrected to 'Increase your damage' (Craig 2026-11-17).
+  - id: immovable-object
+    name: Immovable Object
+    tree: gladiator
+    usage: passive
+    tier: epic
+    text: Increase Strength Rolls by 10 and 1/combat Reduce damage taken this round by your Warrior Class
+      Bonus
+    prerequisites:
+      all:
+      - {skill: spectacle}
+      - {skill: in-fighting}
+    maintainerNote: 'Two arrows, no lock icon: both needed (Craig 2026-11-17; in the DM feedback).'
+  - id: push-through
+    name: Push Through
+    tree: gladiator
+    usage: 1/combat
+    tier: normal
+    text: 1/combat take 3 hearts of damage and reroll a failed CR even if you have already rerolled once,
+      these hearts cannot be healed until the end of combat
+    prerequisites: {skill: endurance}
+  - id: versatility
+    name: Versatility
+    tree: gladiator
+    usage: 1/combat
+    tier: normal
+    text: 1/combat you may swap weapons without it being a task
+    prerequisites: {skill: push-through}
+  - id: dimachaerus
+    name: Dimachaerus
+    tree: gladiator
+    usage: 1/combat
+    tier: normal
+    text: 1/combat you may wield an additional weapon this round
+    prerequisites: {skill: versatility}
+    maintainerNote: Printed 'wield and additional'; corrected to 'wield an additional' (Craig 2026-11-17).
+  - id: brutal
+    name: Brutal
+    tree: gladiator
+    usage: 1/combat
+    tier: normal
+    text: 1/combat if you won the previous round by 50 or more, increase your damage by 5 hearts
+    prerequisites: {skill: dimachaerus}
+  - id: relentless
+    name: Relentless
+    tree: gladiator
+    usage: passive
+    tier: normal
+    text: You may use Brutal Every Round. (Still requires a Skill Interaction)
+    prerequisites: {skill: brutal}
+  - id: unstoppable-force
+    name: Unstoppable Force
+    tree: gladiator
+    usage: passive
+    tier: epic
+    text: Increase Strength Rolls by 10 and 1/combat add your Warrior Class Bonus as Hearts of Damage this
+      round
+    prerequisites: {skill: relentless}
+  - id: true-survivor
+    name: True Survivor
+    tree: gladiator
+    usage: passive
+    tier: legendary
+    text: After Taking Damage, you heal 1 heart every round until the end of combat
+    prerequisites:
+      all:
+      - {skill: immovable-object}
+      - {skill: unstoppable-force}
+    maintainerNote: 'Two arrows, no lock icon: both needed (Craig 2026-11-17; in the DM feedback).'
+
+  # Paladin
+  - id: halo
+    name: Halo
+    tree: paladin
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Increase 1 Aura's effect by 5 until the end of the combat
+    prerequisites: {skill: champion-of-light}
+  - id: enhanced-strength
+    name: Enhanced Strength
+    tree: paladin
+    usage: passive
+    tier: normal
+    text: Increase damage dealt by 1 heart
+    prerequisites: {skill: halo}
+  - id: divine-strength
+    name: Divine Strength
+    tree: paladin
+    usage: passive
+    tier: normal
+    text: Increase Damage Dealt by an additional heart and all Damage you deal becomes Holy
+    prerequisites: {skill: enhanced-strength}
+  - id: holy-shield
+    name: Holy Shield
+    tree: paladin
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Take all the Damage for one ally from an Evil Source
+    prerequisites: {skill: divine-strength}
+  - id: divine-smite
+    name: Divine Smite
+    tree: paladin
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Add your holy Die to this combat roll and Damage
+    prerequisites: {skill: holy-shield}
+  - id: divine-retribution
+    name: Divine Retribution
+    tree: paladin
+    usage: 1/day
+    tier: normal
+    text: 1/day after surviving an attack, you may deal the damage you received as Holy Damage to 1 Foe
+    prerequisites: {skill: divine-smite}
+    maintainerNote: Printed 'recieved'; corrected to 'received' (Craig 2026-11-17).
+  - id: demons-bane
+    name: Demon's Bane
+    tree: paladin
+    usage: passive
+    tier: epic
+    text: Increase the Damage you deal to Evil Creatures by 3♥s
+    prerequisites: {skill: divine-retribution}
+  - id: constitution
+    name: Constitution
+    tree: paladin
+    usage: passive
+    tier: normal
+    text: +10 to CRs if it will hurt
+    prerequisites: {skill: halo}
+  - id: holy-defense
+    name: Holy Defense
+    tree: paladin
+    usage: passive
+    tier: normal
+    text: Reduce all Necrotic and Unholy damage done to you by 3 hearts
+    prerequisites: {skill: constitution}
+  - id: second-skin
+    name: Second Skin
+    tree: paladin
+    usage: passive
+    tier: normal
+    text: +10 to Dexterity Based CRs
+    prerequisites: {skill: holy-defense}
+  - id: divine-crest
+    name: Divine Crest
+    tree: paladin
+    usage: passive
+    tier: normal
+    text: Your armor reduces damage you would receive by 2♥s
+    prerequisites: {skill: second-skin}
+    maintainerNote: Printed 'recieve'; corrected to 'receive' (Craig 2026-11-17).
+  - id: aura-of-defense
+    name: Aura of Defense
+    tree: paladin
+    usage: passive
+    tier: normal
+    text: Increase all Allies CRs by 5 if it would hurt
+    prerequisites: {skill: halo}
+  - id: pure-devotion
+    name: Pure Devotion
+    tree: paladin
+    usage: passive
+    tier: normal
+    text: Increase your holy die to a D12
+    prerequisites: {skill: aura-of-defense}
+  - id: aura-of-hope
+    name: Aura of Hope
+    tree: paladin
+    usage: passive
+    tier: normal
+    text: Increase all Allies CM by 10
+    prerequisites: {skill: pure-devotion}
+  - id: team-support
+    name: Team Support
+    tree: paladin
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Reduce Damage Taken by Allies due to failing a CR by 2 hearts
+    prerequisites: {skill: aura-of-hope}
+  - id: iron-will
+    name: Iron Will
+    tree: paladin
+    usage: 1/day
+    tier: epic
+    text: 1/day if you would fall to 0 hearts you may stay at 1 heart instead
+    prerequisites:
+      all:
+      - {skill: divine-crest}
+      - {skill: team-support}
+    maintainerNote: 'Two arrows, no lock icon: both needed (Craig 2026-11-17; in the DM feedback).'
+  - id: divine-instrument
+    name: Divine Instrument
+    tree: paladin
+    usage: passive
+    tier: legendary
+    text: Increase your Holy die to a D20, and you may always add your Holy Die to combat rolls.
+    prerequisites:
+      all:
+      - {skill: demons-bane}
+      - {skill: iron-will}
+    maintainerNote: 'Two arrows, no lock icon: both needed (Craig 2026-11-17; in the DM feedback).'
+
+  # Commander
+  - id: authority
+    name: Authority
+    tree: commander
+    usage: 1/combat
+    tier: normal
+    text: 1/combat you make a contested D20 roll VS one opponent if you win you gain lucky Vs them this
+      round
+    prerequisites:
+      all:
+      - {skill: create-an-opening}
+      - {skill: remember-your-training}
+  - id: confidence
+    name: Confidence
+    tree: commander
+    usage: 1/combat
+    tier: normal
+    text: 1/combat you may add your combat modifier to an allies roll this round
+    prerequisites: {skill: authority}
+  - id: strength-of-will
+    name: Strength of will
+    tree: commander
+    usage: 1/day
+    tier: normal
+    text: 1/day you and 1 other ally pass a CR you would fail
+    prerequisites: {skill: confidence}
+  - id: rank-commandant
+    name: 'Rank: Commandant'
+    tree: commander
+    usage: passive
+    tier: normal
+    text: Increase Tactical Die to a D12
+    prerequisites: {skill: strength-of-will}
+  - id: commanding-presence
+    name: Commanding Presence
+    tree: commander
+    usage: passive
+    tier: normal
+    text: +5 to CM for all allies who are in the same range as you
+    prerequisites: {skill: rank-commandant}
+  - id: fall-in-line
+    name: Fall in Line
+    tree: commander
+    usage: 1/combat
+    tier: normal
+    text: 1/combat target ally passes a CR they would fail
+    prerequisites: {skill: commanding-presence}
+  - id: inspiring-presence
+    name: Inspiring Presence
+    tree: commander
+    usage: passive
+    tier: normal
+    text: Add +5 to all CRs made by allies (Does not Stack)
+    prerequisites: {skill: fall-in-line}
+  - id: rallying-call
+    name: Rallying Call
+    tree: commander
+    usage: 1/combat
+    tier: epic
+    text: 1/combat Add your Tactical Die to your allies combat rolls this round
+    prerequisites: {skill: inspiring-presence}
+  - id: cordon
+    name: Cordon
+    tree: commander
+    usage: 1/combat
+    tier: normal
+    text: 1/combat you prevent all enemies escape attempts for 1d4 rounds
+    prerequisites: {skill: authority}
+  - id: strategic-advantage
+    name: Strategic Advantage
+    tree: commander
+    usage: passive
+    tier: normal
+    text: you add +1 to Contested D20 Rolls
+    prerequisites: {skill: cordon}
+  - id: coordinated-assault
+    name: Coordinated Assault
+    tree: commander
+    usage: 1/combat
+    tier: normal
+    text: 1/combat all allies deal an additional 1 heart of damage this round
+    prerequisites: {skill: strategic-advantage}
+  - id: lead-the-charge
+    name: Lead the Charge
+    tree: commander
+    usage: 1/combat
+    tier: normal
+    text: 1/combat you and all allies charge into melee. You deal an additional heart of damage for each
+      charging ally this round
+    prerequisites: {skill: coordinated-assault}
+  - id: situational-awareness
+    name: Situational Awareness
+    tree: commander
+    usage: passive
+    tier: normal
+    text: +3 to CRs vs enemies that are in stealth/hiding
+    prerequisites: {skill: lead-the-charge}
+  - id: battle-senses
+    name: Battle Senses
+    tree: commander
+    usage: passive
+    tier: normal
+    text: +5 to all CRs you make for perception
+    prerequisites: {skill: situational-awareness}
+  - id: scorched-earth
+    name: Scorched Earth
+    tree: commander
+    usage: 1/day
+    tier: epic
+    text: 1/day Each ally does 3 hearts of damage to one opponent
+    prerequisites: {skill: battle-senses}
+  - id: rank-commander-and-chief
+    name: 'Rank: Commander and Chief'
+    tree: commander
+    usage: passive
+    tier: legendary
+    text: Increase Tactical Die to a D20 And you gain A Tactical Skill interaction every round
+    prerequisites:
+      all:
+      - {skill: rallying-call}
+      - {skill: scorched-earth}
+    maintainerNote: 'Name printed ''Rank: Commander and Cheif''; corrected (Craig 2026-11-17).'
+
+  # Cutthroat
+  - id: assassins-license
+    name: Assassin's License
+    tree: cutthroat
+    usage: passive
+    tier: normal
+    text: The First two Rounds of Combat are always Stealth rounds for you
+    prerequisites:
+      all:
+      - {skill: assassinate}
+      - {skill: deadly-stealth}
+  - id: night-stalker
+    name: Night Stalker
+    tree: cutthroat
+    usage: passive
+    tier: normal
+    text: If an ally would gain Stealth you also Gain Stealth
+    prerequisites: {skill: assassins-license}
+  - id: vantage-point
+    name: Vantage Point
+    tree: cutthroat
+    usage: 1/combat
+    tier: normal
+    text: 1/combat your foe can not escape your sight or attain stealth
+    prerequisites: {skill: night-stalker}
+  - id: shadow-striker
+    name: Shadow Striker
+    tree: cutthroat
+    usage: passive
+    tier: normal
+    text: You deal an additional 3 hearts of Unavoidable Damage while in stealth
+    prerequisites: {skill: vantage-point}
+  - id: intimidating-stance
+    name: Intimidating Stance
+    tree: cutthroat
+    usage: 1/day
+    tier: normal
+    text: 1/day Prevent one Target from using Skills this round
+    prerequisites: {skill: shadow-striker}
+  - id: studied-mark
+    name: Studied Mark
+    tree: cutthroat
+    usage: 1/day
+    tier: normal
+    text: 1/day declare a mark, you deal an additional 2 hearts of damage to your mark
+    prerequisites: {skill: assassins-license}
+  - id: murderous-intent
+    name: Murderous Intent
+    tree: cutthroat
+    usage: passive
+    tier: normal
+    text: Increase the Damage dealt to marks by 3 hearts
+    prerequisites: {skill: studied-mark}
+  - id: rapid-repositioning
+    name: Rapid Repositioning
+    tree: cutthroat
+    usage: 1/combat
+    tier: normal
+    text: 1/combat After taking damage relocate and regain stealth
+    prerequisites: {skill: murderous-intent}
+  - id: garrote
+    name: Garrote
+    tree: cutthroat
+    usage: 1/day
+    tier: normal
+    text: 1/day Prevent one target from casting spells this round
+    prerequisites: {skill: rapid-repositioning}
+    maintainerNote: Name printed 'Garot'; corrected (Craig 2026-11-17).
+  - id: dash
+    name: Dash
+    tree: cutthroat
+    usage: 1/combat
+    tier: normal
+    text: 1/combat avoid one instance of non AOE damage
+    prerequisites: {skill: assassins-license}
+  - id: elusive
+    name: Elusive
+    tree: cutthroat
+    usage: 1/combat
+    tier: normal
+    text: 1/combat if you would lose stealth you retain it instead
+    prerequisites: {skill: dash}
+  - id: overwhelming-speed
+    name: Overwhelming Speed
+    tree: cutthroat
+    usage: 1/combat
+    tier: normal
+    text: 1/combat avoid all damage this round
+    prerequisites: {skill: elusive}
+  - id: rapid-takedown
+    name: Rapid Takedown
+    tree: cutthroat
+    usage: 1/combat
+    tier: normal
+    text: 1/combat leave stealth to add 5 hearts of damage this round
+    prerequisites: {skill: overwhelming-speed}
+  - id: stunning-strike
+    name: Stunning Strike
+    tree: cutthroat
+    usage: 1/day
+    tier: normal
+    text: 1/Day after your enemy takes damage make a contested d20 roll if they fail they are stunned for
+      the round
+    prerequisites: {skill: rapid-takedown}
+  - id: blood-lust
+    name: Blood Lust
+    tree: cutthroat
+    usage: passive
+    tier: epic
+    text: After dealing damage increase the damage you deal by 1 heart until the end of combat
+    prerequisites:
+      all:
+      - {skill: intimidating-stance}
+      - {skill: garrote}
+    maintainerNote: 'Two arrows, no lock icon: both needed (Craig 2026-11-17; in the DM feedback).'
+  - id: unfair-advantage
+    name: Unfair Advantage
+    tree: cutthroat
+    usage: 1/day
+    tier: epic
+    text: 1/day gain advantage on this roll
+    prerequisites:
+      all:
+      - {skill: stunning-strike}
+      - {skill: garrote}
+    maintainerNote: The Garrote arrow is dashed; counted like a solid arrow, both needed (Craig 2026-11-17).
+  - id: ruthless
+    name: Ruthless
+    tree: cutthroat
+    usage: passive
+    tier: legendary
+    text: Gain 1 heart of damage for each type of creature you defeat until the end of the day
+    prerequisites:
+      all:
+      - {skill: blood-lust}
+      - {skill: unfair-advantage}
+
+  # Poison Master
+  - id: blow-pipe
+    name: Blow Pipe
+    tree: poison-master
+    usage: passive
+    tier: normal
+    text: Can apply poisons from Ranged
+    prerequisites: {skill: poison-master}
+    maintainerNote: Printed 'poison's'; corrected to 'poisons' (Craig 2026-11-17).
+  - id: black-pepper-bomb
+    name: Black Pepper Bomb
+    tree: poison-master
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Prevent one enemy from casting spells / using skills
+    prerequisites: {skill: blow-pipe}
+  - id: poison-gas
+    name: Poison Gas
+    tree: poison-master
+    usage: 1/day
+    tier: normal
+    text: 1/day apply a poison you know and increase its CR requirement by 20
+    prerequisites: {skill: black-pepper-bomb}
+  - id: contagion
+    name: Contagion
+    tree: poison-master
+    usage: 1/combat
+    tier: normal
+    text: 1/combat your poison spreads to 1d4 + 1 Targets
+    prerequisites: {skill: poison-gas}
+  - id: outbreak
+    name: Outbreak
+    tree: poison-master
+    usage: 1/combat
+    tier: epic
+    text: 1/combat your poison spreads to all enemies this round
+    prerequisites: {skill: contagion}
+  - id: lasting-poison
+    name: Lasting Poison
+    tree: poison-master
+    usage: 1/day
+    tier: normal
+    text: 1/day Apply one Poison's effect to a weapon until the end of combat
+    prerequisites: {skill: blow-pipe}
+  - id: poisoners-pouch
+    name: Poisoner's Pouch
+    tree: poison-master
+    usage: passive
+    tier: normal
+    text: Gain an additional Quickslot for Consumables, or 2 Quickslots for Poisons
+    prerequisites: {skill: lasting-poison}
+  - id: modify-poison
+    name: Modify Poison
+    tree: poison-master
+    usage: 1/day
+    tier: normal
+    text: 1/day Modify a Poison to pass through resistances and immunities
+    prerequisites: {skill: poisoners-pouch}
+  - id: potent-poison
+    name: Potent Poison
+    tree: poison-master
+    usage: 1/combat
+    tier: normal
+    text: 1/combat one Poison effect is doubled
+    prerequisites: {skill: modify-poison}
+  - id: maximize-poison
+    name: Maximize Poison
+    tree: poison-master
+    usage: passive
+    tier: normal
+    text: Increase Damage dealt by poisons by 1♥
+    prerequisites: {skill: potent-poison}
+  - id: poison-identification
+    name: Poison Identification
+    tree: poison-master
+    usage: passive
+    tier: normal
+    text: +10 to CRs to identify Poisons of any kind
+    prerequisites: {skill: blow-pipe}
+  - id: apply-poison
+    name: Apply Poison
+    tree: poison-master
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Apply one Poison's effects to a weapon this round
+    prerequisites: {skill: poison-identification}
+  - id: apply-poison-mass
+    name: Apply Poison Mass
+    tree: poison-master
+    usage: 1/day
+    tier: normal
+    text: 1/day Apply one Poison's effects to 1d4 + 2 Allies weapons this round
+    prerequisites: {skill: apply-poison}
+  - id: entwined-application
+    name: Entwined Application
+    tree: poison-master
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Apply 2 Poisons' effects to a weapon this round
+    prerequisites: {skill: apply-poison-mass}
+    maintainerNote: Printed '2 Poison's'; corrected to '2 Poisons'' (Craig 2026-11-17).
+  - id: built-up-immunity
+    name: Built-up Immunity
+    tree: poison-master
+    usage: passive
+    tier: epic
+    text: Gain Immunity to Poison
+    prerequisites:
+      all:
+      - {skill: entwined-application}
+      - {skill: maximize-poison}
+    maintainerNote: The Maximize Poison arrow is dashed; counted like a solid arrow, both needed (Craig
+      2026-11-17).
+  - id: poison-acceleration
+    name: Poison Acceleration
+    tree: poison-master
+    usage: passive
+    tier: legendary
+    text: Cause one Poison you know to take effect without a CR
+    prerequisites:
+      all:
+      - {skill: outbreak}
+      - {skill: built-up-immunity}
+
+  # Acquisitions Agent
+  - id: appraising-eye
+    name: Appraising Eye
+    tree: acquisitions-agent
+    usage: passive
+    tier: normal
+    text: Increase all zenni you gain by selling items by 2z
+    prerequisites: {skill: guild-connections}
+  - id: reduce-the-supply
+    name: Reduce the Supply
+    tree: acquisitions-agent
+    usage: 1/day
+    tier: normal
+    text: 1/day prevent one opponent from using consumables
+    prerequisites: {skill: appraising-eye}
+  - id: due-diligence
+    name: Due Diligence
+    tree: acquisitions-agent
+    usage: 1/combat
+    tier: normal
+    text: 1/combat an ability that would prevent your escape does not this round
+    prerequisites: {skill: reduce-the-supply}
+  - id: win-win
+    name: Win-Win
+    tree: acquisitions-agent
+    usage: 1/combat
+    tier: normal
+    text: 1/combat throw 10z to your opponent to guarantee you hit even if you lose the roll
+    prerequisites: {skill: due-diligence}
+  - id: gift-of-gab
+    name: Gift of Gab
+    tree: acquisitions-agent
+    usage: 1/combat
+    tier: normal
+    text: 1/combat you get lucky on a communication based CR
+    prerequisites: {skill: win-win}
+  - id: silver-tongue
+    name: Silver Tongue
+    tree: acquisitions-agent
+    usage: passive
+    tier: normal
+    text: Gain +5 to all communication based CRs
+    prerequisites: {skill: gift-of-gab}
+  - id: connoisseur-of-coin
+    name: Connoisseur of Coin
+    tree: acquisitions-agent
+    usage: 1/combat
+    tier: normal
+    text: 1/combat you may trade 10z to add +30 to your CM
+    prerequisites: {skill: silver-tongue}
+  - id: underground-contacts
+    name: Underground Contacts
+    tree: acquisitions-agent
+    usage: 1/day
+    tier: epic
+    text: 1/day if you have pick pocketed a DM you may gain a monster part from a monster category of your
+      choice
+    prerequisites: {skill: connoisseur-of-coin}
+  - id: create-a-demand
+    name: Create a Demand
+    tree: acquisitions-agent
+    usage: 1/combat
+    tier: normal
+    text: 1/combat you may gather 1d6 + 1 Zenni
+    prerequisites: {skill: appraising-eye}
+  - id: convenient-bounty
+    name: Convenient Bounty
+    tree: acquisitions-agent
+    usage: 1/day
+    tier: normal
+    text: 1/day you may gain 5 zenni when you defeat a monster
+    prerequisites: {skill: create-a-demand}
+  - id: weighted-scales
+    name: Weighted Scales
+    tree: acquisitions-agent
+    usage: passive
+    tier: normal
+    text: when trading in two 5z pieces you gain 12z
+    prerequisites: {skill: convenient-bounty}
+  - id: expert-negotiator
+    name: Expert Negotiator
+    tree: acquisitions-agent
+    usage: passive
+    tier: normal
+    text: Gain +1z when selling items to the Guild hall
+    prerequisites: {skill: weighted-scales}
+  - id: market-research
+    name: Market Research
+    tree: acquisitions-agent
+    usage: 1/day
+    tier: normal
+    text: 1/day you may sell an item for 10z over market value
+    prerequisites: {skill: expert-negotiator}
+  - id: networking
+    name: Networking
+    tree: acquisitions-agent
+    usage: 1/combat
+    tier: normal
+    text: 1/combat you gain +5cm for each person you have made a financial deal with this day
+    prerequisites: {skill: market-research}
+  - id: art-of-the-deal
+    name: Art of the Deal
+    tree: acquisitions-agent
+    usage: 1/combat
+    tier: epic
+    text: 1/combat you may increase the damage you do this round by 1 heart for every 5z spent
+    prerequisites: {skill: networking}
+  - id: heads-i-win-tails-you-lose
+    name: Heads I win Tails you Lose
+    tree: acquisitions-agent
+    usage: 1/day
+    tier: legendary
+    text: 1/day you automatically pass one CR, when you do using this ability you gain 1d10 + 2z
+    prerequisites:
+      all:
+      - {skill: underground-contacts}
+      - {skill: art-of-the-deal}
+
+  # Alchemist
+  - id: alchemy
+    name: Alchemy
+    tree: alchemist
+    usage: passive
+    tier: normal
+    text: Turn 5 Zenni into 1xp
+    prerequisites:
+      all:
+      - {skill: circle-of-protection}
+      - {skill: abjurer-archmage}
+      - {skill: time-stop}
+      - {skill: bend-reality}
+  - id: transmutation-alchemist
+    name: Transmutation (Alchemist)
+    tree: alchemist
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Transmute one substance into a similar substance
+    prerequisites: {skill: alchemy}
+    maintainerNote: Same name as a card with a different effect in another tree, so the tree is added to
+      the name (Craig 2026-11-17; DM question).
+  - id: alteration
+    name: Alteration
+    tree: alchemist
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Transmute one attack into any element you have access to
+    prerequisites: {skill: transmutation-alchemist}
+  - id: transmogrify
+    name: Transmogrify
+    tree: alchemist
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Change the shape of one object up to 20sq feet
+    prerequisites: {skill: alteration}
+  - id: convert
+    name: Convert
+    tree: alchemist
+    usage: 1/combat
+    tier: normal
+    text: 1/combat change one attack's element into its opposite
+    prerequisites: {skill: transmogrify}
+  - id: metamorphose
+    name: Metamorphose
+    tree: alchemist
+    usage: 1/day
+    tier: normal
+    text: 1/day Change one willing character's body to a new shape for 1d4 + 2 rounds
+    prerequisites: {skill: convert}
+  - id: fabricate
+    name: Fabricate
+    tree: alchemist
+    usage: passive
+    tier: normal
+    text: Create a mundane weapon or armor for half cost
+    prerequisites: {skill: alchemy}
+  - id: fabricate-2
+    name: Fabricate 2
+    tree: alchemist
+    usage: passive
+    tier: normal
+    text: Create a magic item for half cost
+    prerequisites: {skill: fabricate}
+    maintainerNote: The arrow from Fabricate is dashed; counted like a solid arrow (Craig 2026-11-17).
+  - id: fabricate-3
+    name: Fabricate 3
+    tree: alchemist
+    usage: 1/fair run
+    tier: normal
+    text: 1/fair run create an item valued at less than 65z for free but its value is 0z
+    prerequisites: {skill: fabricate-2}
+    maintainerNote: Printed 'less then'; corrected to 'less than' (Craig 2026-11-17).
+  - id: careful-fabrication
+    name: Careful Fabrication
+    tree: alchemist
+    usage: 1/day
+    tier: normal
+    text: 1/day When Crafting at the guild hall reduce your failure chance by 30%
+    prerequisites: {skill: fabricate}
+    maintainerNote: Printed 'failiure'; corrected to 'failure' (Craig 2026-11-17).
+  - id: advanced-alchemy
+    name: Advanced Alchemy
+    tree: alchemist
+    usage: passive
+    tier: normal
+    text: Turn 1 Zenni into 1 heart
+    prerequisites: {skill: careful-fabrication}
+  - id: quick-fabrication
+    name: Quick Fabrication
+    tree: alchemist
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Can Fabricate an item that lasts 1d4 + 1 rounds
+    prerequisites: {skill: advanced-alchemy}
+  - id: vitriol
+    name: VITRIOL
+    tree: alchemist
+    usage: task, 1/day
+    tier: normal
+    text: 1/day Task to find inner perfection automatically pass your next CR
+    prerequisites: {skill: quick-fabrication}
+  - id: master-alchemist
+    name: Master Alchemist
+    tree: alchemist
+    usage: passive
+    tier: epic
+    text: Turn 1xp into 5z
+    prerequisites:
+      all:
+      - {skill: metamorphose}
+      - {skill: vitriol}
+  - id: albedo
+    name: Albedo
+    tree: alchemist
+    usage: 1 skill/spell action
+    tier: normal
+    text: 1 Skill/Spell Action, Create a Healing potion that heals 10 hearts lasts until EOC
+    prerequisites: {skill: master-alchemist}
+  - id: rubedo
+    name: Rubedo
+    tree: alchemist
+    usage: 1 skill/spell action
+    tier: normal
+    text: 1 Skill/ Spell Action, Create a Potion that increases damage by 2 heart lasts until EOC
+    prerequisites: {skill: master-alchemist}
+  - id: nigredo
+    name: Nigredo
+    tree: alchemist
+    usage: 1 skill/spell action
+    tier: normal
+    text: 1 Skill/ Spell Action, Create a poison that deals 10 hearts of damage lasts until EOC
+    prerequisites: {skill: master-alchemist}
+  - id: magnum-opus
+    name: Magnum Opus
+    tree: alchemist
+    usage: 1/weekend
+    tier: legendary
+    text: '1/weekend Combine 3 spells/skills you know into one spell/skill Requires: Albedo, Rubedo, and
+      Nigredo'
+    prerequisites:
+      all:
+      - {skill: albedo}
+      - {skill: rubedo}
+      - {skill: nigredo}
+    maintainerNote: 'No arrows are drawn into it; prerequisites from its printed ''Requires: Albedo, Rubedo,
+      and Nigredo''.'
+
+  # Arch-Lich
+  - id: phylactery
+    name: Phylactery
+    tree: arch-lich
+    usage: passive
+    tier: normal
+    text: On death you may spend any number of zenni up to max hearts to return with that many hearts in
+      1d4 -1 rounds. You gain resistance to all necrotic and evil damage
+    prerequisites:
+      all:
+      - {skill: necromancy-archmage}
+      - {skill: pulse-of-the-underworld}
+      - {skill: lichdom}
+    maintainerNote: Name printed 'Phylactory'; corrected (Craig 2026-11-17).
+  - id: speak-with-the-dead
+    name: Speak with the Dead
+    tree: arch-lich
+    usage: 1/day
+    tier: normal
+    text: 1/day you may ask 3 questions from a dead body you can see, they will answer honestly in their
+      native language
+    prerequisites: {skill: phylactery}
+  - id: death-knell
+    name: Death Knell
+    tree: arch-lich
+    usage: 1/combat
+    tier: normal
+    text: 1/ combat you deal 1 extra heart of damage and your type becomes necrotic
+    prerequisites: {skill: speak-with-the-dead}
+  - id: deaths-mantle
+    name: Death's Mantle
+    tree: arch-lich
+    usage: 1/combat
+    tier: normal
+    text: 1/combat All allies now deal 1 extra heart of damage and their type becomes Necrotic
+    prerequisites: {skill: death-knell}
+  - id: minion-mastery
+    name: Minion Mastery
+    tree: arch-lich
+    usage: passive
+    tier: normal
+    text: You may have 2 more minions active
+    prerequisites: {skill: speak-with-the-dead}
+  - id: spare-parts
+    name: Spare Parts
+    tree: arch-lich
+    usage: 1/combat
+    tier: normal
+    text: 1/combat You may sacrifice any amount of minions you control to heal 2 hearts per minion
+    prerequisites: {skill: minion-mastery}
+  - id: skeleton-army
+    name: Skeleton Army
+    tree: arch-lich
+    usage: 1/combat
+    tier: normal
+    text: 1/combat summon 1d8 skeletons they count as one minion
+    prerequisites: {skill: spare-parts}
+  - id: call-of-the-dead
+    name: Call of the Dead
+    tree: arch-lich
+    usage: 1/combat
+    tier: epic
+    text: 1/combat Summon 1 skeleton for each creature that has died this combat
+    prerequisites:
+      all:
+      - {skill: deaths-mantle}
+      - {skill: skeleton-army}
+    maintainerNote: 'Two arrows, no lock icon: both needed (Craig 2026-11-17; in the DM feedback).'
+  - id: bestow-curse-of-decay
+    name: Bestow Curse of Decay
+    tree: arch-lich
+    usage: 1/combat
+    tier: normal
+    text: 1/combat curse one opponent they take 1 heart of damage every round and they have their damage
+      reduced by 2 hearts and their roll reduced by 20 until the end of combat
+    prerequisites: {skill: phylactery}
+  - id: death-golem
+    name: Death Golem
+    tree: arch-lich
+    usage: passive
+    tier: normal
+    text: Summon a bone and blood golem that has 6 hearts and adds 1d20 to combat rolls
+    prerequisites: {skill: bestow-curse-of-decay}
+  - id: undead-resistance
+    name: Undead Resistance
+    tree: arch-lich
+    usage: passive
+    tier: normal
+    text: Reduce all Damage done by Necrotic and Evil sources by 2 hearts
+    prerequisites: {skill: death-golem}
+  - id: cursed-golem
+    name: Cursed Golem
+    tree: arch-lich
+    usage: passive
+    tier: normal
+    text: Death Golem now adds +2 hearts of damage and +10cm
+    prerequisites: {skill: undead-resistance}
+  - id: grasp-of-death
+    name: Grasp of Death
+    tree: arch-lich
+    usage: 1/combat
+    tier: normal
+    text: 1/combat grab an opponent to deal 1d6 hearts of Necrotic damage
+    prerequisites: {skill: phylactery}
+  - id: decaying-ray
+    name: Decaying Ray
+    tree: arch-lich
+    usage: 1/combat
+    tier: normal
+    text: 1/combat shoot a ray at 1 target dealing 5 hearts of Necrotic Damage
+    prerequisites: {skill: grasp-of-death}
+  - id: necrotic-pulse
+    name: Necrotic Pulse
+    tree: arch-lich
+    usage: 1/combat
+    tier: normal
+    text: 1/combat send out a pulse of Necrotic energy dealing 6 hearts of damage to all opponents
+    prerequisites: {skill: decaying-ray}
+  - id: vampiric-drain
+    name: Vampiric Drain
+    tree: arch-lich
+    usage: 1/combat
+    tier: normal
+    text: 1/combat touch an opponent to drain 1d10 + 2 hearts from them
+    prerequisites: {skill: necrotic-pulse}
+  - id: desecrate
+    name: Desecrate
+    tree: arch-lich
+    usage: 1/day
+    tier: epic
+    text: 1/day Desecrate the battlefield dealing 10 hearts of Necrotic damage to all Holy and Living creatures
+      each round until the end of combat
+    prerequisites:
+      all:
+      - {skill: cursed-golem}
+      - {skill: vampiric-drain}
+    maintainerNote: 'Two arrows, no lock icon: both needed (Craig 2026-11-17; in the DM feedback).'
+  - id: killing-word
+    name: Killing Word
+    tree: arch-lich
+    usage: 1/weekend
+    tier: legendary
+    text: 1/weekend you deal 1d20 + your heart total in unblockable necrotic damage to all enemies
+    prerequisites:
+      all:
+      - {skill: call-of-the-dead}
+      - {skill: desecrate}
+
+  # Elementalist
+  - id: elemental-protection
+    name: Elemental Protection
+    tree: elementalist
+    usage: passive
+    tier: normal
+    text: Reduce Damage you take from Known elements by 2 hearts
+    prerequisites:
+      all:
+      - {skill: quicken-spell}
+      - {skill: sorcerer-archmage}
+      - {skill: armageddon}
+  - id: ice-mastery-1
+    name: Ice Mastery 1
+    tree: elementalist
+    usage: passive
+    tier: normal
+    text: Increase all damage you do with Ice spells by 1 heart
+    prerequisites: {skill: elemental-protection}
+  - id: fire-mastery-1
+    name: Fire Mastery 1
+    tree: elementalist
+    usage: passive
+    tier: normal
+    text: Increase all damage you do with Fire spells by 1 heart
+    prerequisites: {skill: elemental-protection}
+  - id: lightning-mastery-1
+    name: Lightning Mastery 1
+    tree: elementalist
+    usage: passive
+    tier: normal
+    text: Increase all damage you do with Lightning spells by 1 heart
+    prerequisites: {skill: elemental-protection}
+  - id: earth-mastery-1
+    name: Earth Mastery 1
+    tree: elementalist
+    usage: passive
+    tier: normal
+    text: Increase all damage you do with Earth spells by 1 heart
+    prerequisites: {skill: elemental-protection}
+  - id: elemental-fusion
+    name: Elemental Fusion
+    tree: elementalist
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Combine 2 Elemental spells (Req. 2 Elemental Mastery 1's)
+    prerequisites:
+      any:
+      - all:
+        - {skill: fire-mastery-1}
+        - {skill: ice-mastery-1}
+      - all:
+        - {skill: fire-mastery-1}
+        - {skill: lightning-mastery-1}
+      - all:
+        - {skill: fire-mastery-1}
+        - {skill: earth-mastery-1}
+      - all:
+        - {skill: ice-mastery-1}
+        - {skill: lightning-mastery-1}
+      - all:
+        - {skill: ice-mastery-1}
+        - {skill: earth-mastery-1}
+      - all:
+        - {skill: lightning-mastery-1}
+        - {skill: earth-mastery-1}
+    maintainerNote: '''Req. 2 Elemental Mastery 1''s'': any two different Mastery 1s.'
+  - id: empowered-elemental
+    name: Empowered Elemental
+    tree: elementalist
+    usage: passive
+    tier: normal
+    text: Your Elemental Masteries now apply to your Summoned Elemental (Req. 1 Elemental Mastery 1)
+    prerequisites:
+      any:
+      - {skill: fire-mastery-1}
+      - {skill: ice-mastery-1}
+      - {skill: lightning-mastery-1}
+      - {skill: earth-mastery-1}
+  - id: ice-mastery-2
+    name: Ice Mastery 2
+    tree: elementalist
+    usage: passive
+    tier: normal
+    text: Increase all damage you do with Ice spells by 2 hearts
+    prerequisites:
+      all:
+      - {skill: ice-mastery-1}
+      - {skill: elemental-fusion}
+      - {skill: empowered-elemental}
+    maintainerNote: 'Fusion''s, Empowered''s and the centre arrow all lead into the Mastery 2 row: needs
+      this element''s Mastery 1, Elemental Fusion and Empowered Elemental (Craig 2026-11-17).'
+  - id: fire-mastery-2
+    name: Fire Mastery 2
+    tree: elementalist
+    usage: passive
+    tier: normal
+    text: Increase all damage you do with Fire spells by 2 hearts
+    prerequisites:
+      all:
+      - {skill: fire-mastery-1}
+      - {skill: elemental-fusion}
+      - {skill: empowered-elemental}
+    maintainerNote: 'Fusion''s, Empowered''s and the centre arrow all lead into the Mastery 2 row: needs
+      this element''s Mastery 1, Elemental Fusion and Empowered Elemental (Craig 2026-11-17).'
+  - id: lightning-mastery-2
+    name: Lightning Mastery 2
+    tree: elementalist
+    usage: passive
+    tier: normal
+    text: Increase all damage you do with Lightning spells by 2 hearts
+    prerequisites:
+      all:
+      - {skill: lightning-mastery-1}
+      - {skill: elemental-fusion}
+      - {skill: empowered-elemental}
+    maintainerNote: 'Fusion''s, Empowered''s and the centre arrow all lead into the Mastery 2 row: needs
+      this element''s Mastery 1, Elemental Fusion and Empowered Elemental (Craig 2026-11-17).'
+  - id: earth-mastery-2
+    name: Earth Mastery 2
+    tree: elementalist
+    usage: passive
+    tier: normal
+    text: Increase all damage you do with Earth spells by 2 hearts
+    prerequisites:
+      all:
+      - {skill: earth-mastery-1}
+      - {skill: elemental-fusion}
+      - {skill: empowered-elemental}
+    maintainerNote: 'Fusion''s, Empowered''s and the centre arrow all lead into the Mastery 2 row: needs
+      this element''s Mastery 1, Elemental Fusion and Empowered Elemental (Craig 2026-11-17).'
+  - id: greater-elemental-fusion
+    name: Greater Elemental Fusion
+    tree: elementalist
+    usage: 1/day
+    tier: normal
+    text: 1/day Combine 3 Elemental spells (Req.2 Elemental Mastery 2's)
+    prerequisites:
+      any:
+      - all:
+        - {skill: fire-mastery-2}
+        - {skill: ice-mastery-2}
+      - all:
+        - {skill: fire-mastery-2}
+        - {skill: lightning-mastery-2}
+      - all:
+        - {skill: fire-mastery-2}
+        - {skill: earth-mastery-2}
+      - all:
+        - {skill: ice-mastery-2}
+        - {skill: lightning-mastery-2}
+      - all:
+        - {skill: ice-mastery-2}
+        - {skill: earth-mastery-2}
+      - all:
+        - {skill: lightning-mastery-2}
+        - {skill: earth-mastery-2}
+    maintainerNote: '''Req. 2 Elemental Mastery 2''s'': any two different Mastery 2s (Craig 2026-11-17).'
+  - id: ice-mastery-3
+    name: Ice Mastery 3
+    tree: elementalist
+    usage: passive
+    tier: normal
+    text: Increase all damage you do with Ice spells by 3 hearts
+    prerequisites:
+      all:
+      - {skill: ice-mastery-2}
+      - {skill: greater-elemental-fusion}
+    maintainerNote: 'Greater Elemental Fusion''s arrow leads into the Mastery 3 row: needs this element''s
+      Mastery 2 and Greater Elemental Fusion (Craig 2026-11-17).'
+  - id: fire-mastery-3
+    name: Fire Mastery 3
+    tree: elementalist
+    usage: passive
+    tier: normal
+    text: Increase all damage you do with Fire spells by 3 hearts
+    prerequisites:
+      all:
+      - {skill: fire-mastery-2}
+      - {skill: greater-elemental-fusion}
+    maintainerNote: 'Greater Elemental Fusion''s arrow leads into the Mastery 3 row: needs this element''s
+      Mastery 2 and Greater Elemental Fusion (Craig 2026-11-17).'
+  - id: lightning-mastery-3
+    name: Lightning Mastery 3
+    tree: elementalist
+    usage: passive
+    tier: normal
+    text: Increase all damage you do with Lightning spells by 3 hearts
+    prerequisites:
+      all:
+      - {skill: lightning-mastery-2}
+      - {skill: greater-elemental-fusion}
+    maintainerNote: 'Greater Elemental Fusion''s arrow leads into the Mastery 3 row: needs this element''s
+      Mastery 2 and Greater Elemental Fusion (Craig 2026-11-17).'
+  - id: earth-mastery-3
+    name: Earth Mastery 3
+    tree: elementalist
+    usage: passive
+    tier: normal
+    text: Increase all damage you do with Earth spells by 3 hearts
+    prerequisites:
+      all:
+      - {skill: earth-mastery-2}
+      - {skill: greater-elemental-fusion}
+    maintainerNote: 'Greater Elemental Fusion''s arrow leads into the Mastery 3 row: needs this element''s
+      Mastery 2 and Greater Elemental Fusion (Craig 2026-11-17).'
+  - id: ultimate-elemental-fusion
+    name: Ultimate Elemental Fusion
+    tree: elementalist
+    usage: task, 1/weekend
+    tier: normal
+    text: Task 1/weekend Combine 4 Elemental spells (Req. 2 Elemental Mastery 3's)
+    prerequisites:
+      any:
+      - all:
+        - {skill: fire-mastery-3}
+        - {skill: ice-mastery-3}
+      - all:
+        - {skill: fire-mastery-3}
+        - {skill: lightning-mastery-3}
+      - all:
+        - {skill: fire-mastery-3}
+        - {skill: earth-mastery-3}
+      - all:
+        - {skill: ice-mastery-3}
+        - {skill: lightning-mastery-3}
+      - all:
+        - {skill: ice-mastery-3}
+        - {skill: earth-mastery-3}
+      - all:
+        - {skill: lightning-mastery-3}
+        - {skill: earth-mastery-3}
+    maintainerNote: '''Req. 2 Elemental Mastery 3''s'': any two different Mastery 3s.'
+  - id: elemental-maelstrom
+    name: Elemental Maelstrom
+    tree: elementalist
+    usage: 1/fair run
+    tier: epic
+    text: 1/fair run deal 3 hearts of damage from each Element you know to all enemies until the end of
+      combat
+    prerequisites: {skill: ultimate-elemental-fusion}
+  - id: elemental-focus
+    name: Elemental Focus
+    tree: elementalist
+    usage: 1/day
+    tier: epic
+    text: 1/day Choose one element you know, your damage with that element becomes unblockable until the
+      end of combat
+    prerequisites: {skill: ultimate-elemental-fusion}
+  - id: elemental-mastery-elementalist
+    name: Elemental Mastery (Elementalist)
+    tree: elementalist
+    usage: passive
+    tier: legendary
+    text: Ignore Resistances/count immunity as half damage for all elemental spells, all Sorcerer spells
+      are no longer tasks
+    prerequisites:
+      all:
+      - {skill: elemental-maelstrom}
+      - {skill: elemental-focus}
+    maintainerNote: Same name as a card with a different effect in another tree, so the tree is added to
+      the name (Craig 2026-11-17; DM question).
+
+  # High Priest
+  - id: ordainment
+    name: Ordainment
+    tree: high-priest
+    usage: passive
+    tier: normal
+    text: All non aura healing spells you cast are increased by your Holy Die
+    prerequisites:
+      all:
+      - {skill: calamons-wrath}
+      - {skill: calamons-gift}
+  - id: sermon
+    name: Sermon
+    tree: high-priest
+    usage: 1/day
+    tier: normal
+    text: 1/day Aid a Bard by giving a Sermon add your Holy Die to their Bardic Inspiration
+    prerequisites: {skill: ordainment}
+  - id: purge
+    name: Purge
+    tree: high-priest
+    usage: 1/day
+    tier: normal
+    text: 1/day Purge Evil from an object/place Contested CR
+    prerequisites: {skill: ordainment}
+  - id: holy-ray
+    name: Holy Ray
+    tree: high-priest
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Deal 5 hearts of holy damage to 1 target
+    prerequisites: {skill: purge}
+  - id: holy-blast
+    name: Holy Blast
+    tree: high-priest
+    usage: 1/day
+    tier: normal
+    text: 1/day Deal 5 hearts of Holy damage to all enemies
+    prerequisites: {skill: holy-ray}
+  - id: exorcism
+    name: Exorcism
+    tree: high-priest
+    usage: 1/day
+    tier: normal
+    text: 1/day Purge Evil from a Person or creature Contested CR
+    prerequisites: {skill: holy-blast}
+  - id: cure-moderate-mass
+    name: Cure Moderate Mass
+    tree: high-priest
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Roll 2d4 Recover that many Hearts to all allies
+    prerequisites: {skill: ordainment}
+  - id: healing-word
+    name: Healing Word
+    tree: high-priest
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Roll 3d6 Recover that many Hearts to 1 target
+    prerequisites: {skill: cure-moderate-mass}
+  - id: cure-critical-mass
+    name: Cure Critical Mass
+    tree: high-priest
+    usage: 1/combat
+    tier: normal
+    text: 1/combat Roll 4d4 Recover that many hearts to all allies
+    prerequisites: {skill: healing-word}
+  - id: healing-decree
+    name: Healing Decree
+    tree: high-priest
+    usage: 1/day
+    tier: epic
+    text: 1/day Heal 1 target to full health
+    prerequisites: {skill: cure-critical-mass}
+  - id: devotion-4
+    name: Devotion 4
+    tree: high-priest
+    usage: passive
+    tier: normal
+    text: Increase your Holy Die to a D12
+    prerequisites: {skill: ordainment}
+  - id: mass-purify
+    name: Mass Purify
+    tree: high-priest
+    usage: 1/day
+    tier: normal
+    text: 1/day Remove Corruption from all allies
+    prerequisites: {skill: devotion-4}
+  - id: devotion-5
+    name: Devotion 5
+    tree: high-priest
+    usage: passive
+    tier: normal
+    text: Increase your Holy die to a D20
+    prerequisites: {skill: mass-purify}
+  - id: sanctify-all
+    name: Sanctify All
+    tree: high-priest
+    usage: 1/combat
+    tier: normal
+    text: 1/combat All allies weapons and mage bolts deal holy damage and +1 heart until the end of combat
+    prerequisites: {skill: devotion-4}
+  - id: healing-aura
+    name: Healing Aura
+    tree: high-priest
+    usage: task, 1/combat
+    tier: normal
+    text: Task 1/combat Heal all allies for 5 hearts each round until the end of combat
+    prerequisites: {skill: sanctify-all}
+  - id: hallowed-ground
+    name: Hallowed Ground
+    tree: high-priest
+    usage: 1/day
+    tier: epic
+    text: 1/day Cleanse the battlefield dealing your Holy Die +4 hearts of damage to all undead + Evil Creatures
+      each round until the end of combat
+    prerequisites:
+      all:
+      - {skill: devotion-5}
+      - {skill: healing-aura}
+    maintainerNote: 'Two arrows, no lock icon: both needed (Craig 2026-11-17; in the DM feedback).'
+  - id: power-word-heal
+    name: Power Word Heal
+    tree: high-priest
+    usage: 1/weekend
+    tier: legendary
+    text: 1/weekend Revive and heal all allies to full hearts
+    prerequisites:
+      all:
+      - {skill: healing-decree}
+      - {skill: hallowed-ground}
+    maintainerNote: 'Two arrows, no lock icon: both needed (Craig 2026-11-17; in the DM feedback).'

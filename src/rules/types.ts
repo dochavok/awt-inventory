@@ -270,7 +270,7 @@ export interface Skill extends Retirable {
   trees?: SkillPlacement[];
   usage: string;
   tier: SkillTier;
-  /** Card text. Absent unless the game's owner agrees (SK-2, RD-8). */
+  /** Card text, when the skill list has it (SK-2, RD-8). */
   text?: string;
   prerequisites?: Prerequisite;
   /** How many times it can be taken (default 1), SK-3. */

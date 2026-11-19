@@ -100,7 +100,7 @@ export function buildSheet(
             usage: skill?.usage ?? "",
             tier: skill?.tier ?? "normal",
           };
-          // Card text only when ticked, and only once the game's owner has agreed (EX-1, SK-2).
+          // Card text only when ticked, and only while card text is turned on (EX-1, SK-2).
           if (options.includeSkillText && options.showSkillText && skill?.text !== undefined) line.text = skill.text;
           return line;
         })

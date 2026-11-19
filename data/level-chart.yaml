@@ -1,239 +1,252 @@
-# PLACEHOLDER: no level chart numbers until the game's owner agrees (RD-8, Q10).
-# Every number is 0 and every die 1d1, so nothing here is from the game's chart.
-# Only the cap (75, from the requirements' glossary) and the starting arcane
-# slots (requirements section 17) are real. Replace with the real chart once
-# Q10 allows it.
+# The AWT level chart (RD-1), levels 1 to 75, from "Level Chart.pdf" (Adventures
+# from the Wizard Tower). Game content, used with the owner's agreement (Q10,
+# 2026-11-17).
+#
+# How the PDF was read (decisions with Craig, 2026-11-17):
+# - The PDF prints a value only where it changes; a blank cell keeps the value
+#   above it. Every level here carries that value.
+# - Combat dice: one column for all three classes, copied into each.
+# - From level 11 the combat dice are two dice ("1d20 + 1d4"), written as
+#   printed.
+# - Rogue Stealth Bonus from level 10 is dice plus 3 ("1d4 + 3"): classBonus
+#   holds the number, classBonusDice the dice.
+# - Warrior Combat Bonus at levels 73 to 75: the PDF prints +81; corrected to
+#   +83, the chart's own step of 4 (Q13).
+# - Starting arcane slots aren't in the PDF: Warrior 0, Rogue 1, Mage 2 come
+#   from requirements section 17.
+# - skillGained: the class's column says "Skill" (Mage: "Spell") at that level.
+#   arcaneSlot: it says "Arcane Slot".
 Warrior:
   startingArcaneSlots: 0
   levels:
-    - { level: 1, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 2, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 3, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 4, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 5, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 6, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 7, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 8, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 9, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 10, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 11, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 12, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 13, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 14, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 15, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 16, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 17, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 18, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 19, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 20, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 21, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 22, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 23, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 24, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 25, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 26, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 27, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 28, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 29, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 30, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 31, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 32, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 33, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 34, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 35, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 36, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 37, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 38, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 39, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 40, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 41, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 42, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 43, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 44, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 45, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 46, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 47, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 48, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 49, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 50, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 51, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 52, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 53, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 54, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 55, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 56, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 57, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 58, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 59, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 60, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 61, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 62, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 63, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 64, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 65, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 66, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 67, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 68, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 69, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 70, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 71, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 72, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 73, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 74, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 75, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
+    - { level: 1, classBonus: 3, dice: 1d6, hearts: 4, skillGained: true, arcaneSlot: false }
+    - { level: 2, classBonus: 3, dice: 1d6, hearts: 4, skillGained: true, arcaneSlot: false }
+    - { level: 3, classBonus: 3, dice: 1d8, hearts: 5, skillGained: false, arcaneSlot: false }
+    - { level: 4, classBonus: 6, dice: 1d8, hearts: 5, skillGained: true, arcaneSlot: false }
+    - { level: 5, classBonus: 6, dice: 1d10, hearts: 5, skillGained: true, arcaneSlot: false }
+    - { level: 6, classBonus: 6, dice: 1d10, hearts: 6, skillGained: false, arcaneSlot: true }
+    - { level: 7, classBonus: 9, dice: 1d12, hearts: 6, skillGained: true, arcaneSlot: false }
+    - { level: 8, classBonus: 9, dice: 1d12, hearts: 6, skillGained: true, arcaneSlot: false }
+    - { level: 9, classBonus: 9, dice: 1d20, hearts: 7, skillGained: false, arcaneSlot: false }
+    - { level: 10, classBonus: 12, dice: 1d20, hearts: 7, skillGained: true, arcaneSlot: false }
+    - { level: 11, classBonus: 12, dice: 1d20 + 1d4, hearts: 7, skillGained: true, arcaneSlot: false }
+    - { level: 12, classBonus: 12, dice: 1d20 + 1d4, hearts: 8, skillGained: false, arcaneSlot: true }
+    - { level: 13, classBonus: 15, dice: 1d20 + 1d6, hearts: 8, skillGained: true, arcaneSlot: false }
+    - { level: 14, classBonus: 15, dice: 1d20 + 1d6, hearts: 8, skillGained: true, arcaneSlot: false }
+    - { level: 15, classBonus: 15, dice: 1d20 + 1d8, hearts: 9, skillGained: false, arcaneSlot: false }
+    - { level: 16, classBonus: 18, dice: 1d20 + 1d8, hearts: 9, skillGained: true, arcaneSlot: false }
+    - { level: 17, classBonus: 18, dice: 1d20 + 1d10, hearts: 9, skillGained: true, arcaneSlot: false }
+    - { level: 18, classBonus: 18, dice: 1d20 + 1d10, hearts: 10, skillGained: false, arcaneSlot: true }
+    - { level: 19, classBonus: 21, dice: 1d20 + 1d12, hearts: 10, skillGained: true, arcaneSlot: false }
+    - { level: 20, classBonus: 21, dice: 1d20 + 1d12, hearts: 10, skillGained: true, arcaneSlot: false }
+    - { level: 21, classBonus: 21, dice: 2d20, hearts: 11, skillGained: false, arcaneSlot: false }
+    - { level: 22, classBonus: 24, dice: 2d20, hearts: 11, skillGained: true, arcaneSlot: false }
+    - { level: 23, classBonus: 24, dice: 2d20 + 1d4, hearts: 11, skillGained: true, arcaneSlot: false }
+    - { level: 24, classBonus: 24, dice: 2d20 + 1d4, hearts: 12, skillGained: false, arcaneSlot: true }
+    - { level: 25, classBonus: 27, dice: 2d20 + 1d6, hearts: 12, skillGained: true, arcaneSlot: false }
+    - { level: 26, classBonus: 27, dice: 2d20 + 1d6, hearts: 12, skillGained: true, arcaneSlot: false }
+    - { level: 27, classBonus: 27, dice: 2d20 + 1d8, hearts: 13, skillGained: false, arcaneSlot: false }
+    - { level: 28, classBonus: 30, dice: 2d20 + 1d8, hearts: 13, skillGained: true, arcaneSlot: false }
+    - { level: 29, classBonus: 30, dice: 2d20 + 1d10, hearts: 13, skillGained: true, arcaneSlot: false }
+    - { level: 30, classBonus: 30, dice: 2d20 + 1d10, hearts: 14, skillGained: false, arcaneSlot: true }
+    - { level: 31, classBonus: 33, dice: 2d20 + 1d12, hearts: 14, skillGained: true, arcaneSlot: false }
+    - { level: 32, classBonus: 33, dice: 2d20 + 1d12, hearts: 14, skillGained: true, arcaneSlot: false }
+    - { level: 33, classBonus: 33, dice: 3d20, hearts: 15, skillGained: false, arcaneSlot: false }
+    - { level: 34, classBonus: 36, dice: 3d20, hearts: 15, skillGained: true, arcaneSlot: false }
+    - { level: 35, classBonus: 36, dice: 3d20 + 1d4, hearts: 15, skillGained: true, arcaneSlot: false }
+    - { level: 36, classBonus: 36, dice: 3d20 + 1d4, hearts: 16, skillGained: false, arcaneSlot: true }
+    - { level: 37, classBonus: 39, dice: 3d20 + 1d6, hearts: 16, skillGained: true, arcaneSlot: false }
+    - { level: 38, classBonus: 39, dice: 3d20 + 1d6, hearts: 16, skillGained: true, arcaneSlot: false }
+    - { level: 39, classBonus: 39, dice: 3d20 + 1d8, hearts: 17, skillGained: false, arcaneSlot: false }
+    - { level: 40, classBonus: 42, dice: 3d20 + 1d8, hearts: 17, skillGained: true, arcaneSlot: false }
+    - { level: 41, classBonus: 42, dice: 3d20 + 1d10, hearts: 17, skillGained: true, arcaneSlot: false }
+    - { level: 42, classBonus: 42, dice: 3d20 + 1d10, hearts: 18, skillGained: false, arcaneSlot: true }
+    - { level: 43, classBonus: 45, dice: 3d20 + 1d12, hearts: 18, skillGained: true, arcaneSlot: false }
+    - { level: 44, classBonus: 45, dice: 3d20 + 1d12, hearts: 18, skillGained: true, arcaneSlot: false }
+    - { level: 45, classBonus: 45, dice: 4d20, hearts: 19, skillGained: false, arcaneSlot: false }
+    - { level: 46, classBonus: 48, dice: 4d20, hearts: 19, skillGained: true, arcaneSlot: false }
+    - { level: 47, classBonus: 48, dice: 4d20 + 1d4, hearts: 19, skillGained: true, arcaneSlot: false }
+    - { level: 48, classBonus: 48, dice: 4d20 + 1d4, hearts: 20, skillGained: false, arcaneSlot: true }
+    - { level: 49, classBonus: 51, dice: 4d20 + 1d6, hearts: 20, skillGained: true, arcaneSlot: false }
+    - { level: 50, classBonus: 51, dice: 4d20 + 1d6, hearts: 20, skillGained: true, arcaneSlot: false }
+    - { level: 51, classBonus: 51, dice: 4d20 + 1d8, hearts: 21, skillGained: false, arcaneSlot: false }
+    - { level: 52, classBonus: 55, dice: 4d20 + 1d8, hearts: 21, skillGained: true, arcaneSlot: false }
+    - { level: 53, classBonus: 55, dice: 4d20 + 1d10, hearts: 21, skillGained: true, arcaneSlot: false }
+    - { level: 54, classBonus: 55, dice: 4d20 + 1d10, hearts: 22, skillGained: false, arcaneSlot: true }
+    - { level: 55, classBonus: 59, dice: 4d20 + 1d12, hearts: 22, skillGained: true, arcaneSlot: false }
+    - { level: 56, classBonus: 59, dice: 4d20 + 1d12, hearts: 22, skillGained: true, arcaneSlot: false }
+    - { level: 57, classBonus: 59, dice: 5d20, hearts: 23, skillGained: false, arcaneSlot: false }
+    - { level: 58, classBonus: 63, dice: 5d20, hearts: 23, skillGained: true, arcaneSlot: false }
+    - { level: 59, classBonus: 63, dice: 5d20 + 1d4, hearts: 23, skillGained: true, arcaneSlot: false }
+    - { level: 60, classBonus: 63, dice: 5d20 + 1d4, hearts: 24, skillGained: false, arcaneSlot: true }
+    - { level: 61, classBonus: 67, dice: 5d20 + 1d6, hearts: 24, skillGained: true, arcaneSlot: false }
+    - { level: 62, classBonus: 67, dice: 5d20 + 1d6, hearts: 24, skillGained: true, arcaneSlot: false }
+    - { level: 63, classBonus: 67, dice: 5d20 + 1d8, hearts: 25, skillGained: false, arcaneSlot: false }
+    - { level: 64, classBonus: 71, dice: 5d20 + 1d8, hearts: 25, skillGained: true, arcaneSlot: false }
+    - { level: 65, classBonus: 71, dice: 5d20 + 1d10, hearts: 25, skillGained: true, arcaneSlot: false }
+    - { level: 66, classBonus: 71, dice: 5d20 + 1d10, hearts: 26, skillGained: false, arcaneSlot: true }
+    - { level: 67, classBonus: 75, dice: 5d20 + 1d12, hearts: 26, skillGained: true, arcaneSlot: false }
+    - { level: 68, classBonus: 75, dice: 5d20 + 1d12, hearts: 26, skillGained: true, arcaneSlot: false }
+    - { level: 69, classBonus: 75, dice: 6d20, hearts: 27, skillGained: false, arcaneSlot: false }
+    - { level: 70, classBonus: 79, dice: 6d20, hearts: 27, skillGained: true, arcaneSlot: false }
+    - { level: 71, classBonus: 79, dice: 6d20 + 1d4, hearts: 27, skillGained: true, arcaneSlot: false }
+    - { level: 72, classBonus: 79, dice: 6d20 + 1d4, hearts: 28, skillGained: false, arcaneSlot: true }
+    - { level: 73, classBonus: 83, dice: 6d20 + 1d6, hearts: 28, skillGained: true, arcaneSlot: false }
+    - { level: 74, classBonus: 83, dice: 6d20 + 1d6, hearts: 28, skillGained: true, arcaneSlot: false }
+    - { level: 75, classBonus: 83, dice: 6d20 + 1d8, hearts: 29, skillGained: false, arcaneSlot: false }
 Mage:
   startingArcaneSlots: 2
   levels:
-    - { level: 1, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 2, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 3, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 4, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 5, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 6, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 7, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 8, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 9, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 10, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 11, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 12, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 13, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 14, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 15, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 16, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 17, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 18, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 19, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 20, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 21, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 22, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 23, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 24, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 25, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 26, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 27, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 28, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 29, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 30, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 31, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 32, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 33, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 34, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 35, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 36, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 37, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 38, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 39, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 40, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 41, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 42, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 43, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 44, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 45, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 46, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 47, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 48, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 49, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 50, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 51, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 52, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 53, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 54, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 55, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 56, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 57, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 58, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 59, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 60, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 61, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 62, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 63, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 64, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 65, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 66, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 67, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 68, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 69, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 70, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 71, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 72, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 73, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 74, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 75, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
+    - { level: 1, classBonus: 1, dice: 1d6, hearts: 2, skillGained: true, arcaneSlot: false }
+    - { level: 2, classBonus: 1, dice: 1d6, hearts: 2, skillGained: true, arcaneSlot: false }
+    - { level: 3, classBonus: 1, dice: 1d8, hearts: 2, skillGained: true, arcaneSlot: false }
+    - { level: 4, classBonus: 2, dice: 1d8, hearts: 2, skillGained: true, arcaneSlot: false }
+    - { level: 5, classBonus: 2, dice: 1d10, hearts: 2, skillGained: true, arcaneSlot: true }
+    - { level: 6, classBonus: 2, dice: 1d10, hearts: 3, skillGained: true, arcaneSlot: false }
+    - { level: 7, classBonus: 3, dice: 1d12, hearts: 3, skillGained: true, arcaneSlot: false }
+    - { level: 8, classBonus: 3, dice: 1d12, hearts: 3, skillGained: true, arcaneSlot: false }
+    - { level: 9, classBonus: 3, dice: 1d20, hearts: 3, skillGained: true, arcaneSlot: false }
+    - { level: 10, classBonus: 4, dice: 1d20, hearts: 3, skillGained: true, arcaneSlot: true }
+    - { level: 11, classBonus: 4, dice: 1d20 + 1d4, hearts: 3, skillGained: true, arcaneSlot: false }
+    - { level: 12, classBonus: 4, dice: 1d20 + 1d4, hearts: 4, skillGained: true, arcaneSlot: false }
+    - { level: 13, classBonus: 5, dice: 1d20 + 1d6, hearts: 4, skillGained: true, arcaneSlot: false }
+    - { level: 14, classBonus: 5, dice: 1d20 + 1d6, hearts: 4, skillGained: true, arcaneSlot: false }
+    - { level: 15, classBonus: 5, dice: 1d20 + 1d8, hearts: 4, skillGained: true, arcaneSlot: true }
+    - { level: 16, classBonus: 6, dice: 1d20 + 1d8, hearts: 4, skillGained: true, arcaneSlot: false }
+    - { level: 17, classBonus: 6, dice: 1d20 + 1d10, hearts: 4, skillGained: true, arcaneSlot: false }
+    - { level: 18, classBonus: 6, dice: 1d20 + 1d10, hearts: 5, skillGained: true, arcaneSlot: false }
+    - { level: 19, classBonus: 7, dice: 1d20 + 1d12, hearts: 5, skillGained: true, arcaneSlot: false }
+    - { level: 20, classBonus: 7, dice: 1d20 + 1d12, hearts: 5, skillGained: true, arcaneSlot: true }
+    - { level: 21, classBonus: 7, dice: 2d20, hearts: 5, skillGained: true, arcaneSlot: false }
+    - { level: 22, classBonus: 8, dice: 2d20, hearts: 5, skillGained: true, arcaneSlot: false }
+    - { level: 23, classBonus: 8, dice: 2d20 + 1d4, hearts: 5, skillGained: true, arcaneSlot: false }
+    - { level: 24, classBonus: 8, dice: 2d20 + 1d4, hearts: 6, skillGained: true, arcaneSlot: false }
+    - { level: 25, classBonus: 9, dice: 2d20 + 1d6, hearts: 6, skillGained: true, arcaneSlot: true }
+    - { level: 26, classBonus: 9, dice: 2d20 + 1d6, hearts: 6, skillGained: true, arcaneSlot: false }
+    - { level: 27, classBonus: 9, dice: 2d20 + 1d8, hearts: 6, skillGained: true, arcaneSlot: false }
+    - { level: 28, classBonus: 10, dice: 2d20 + 1d8, hearts: 6, skillGained: true, arcaneSlot: false }
+    - { level: 29, classBonus: 10, dice: 2d20 + 1d10, hearts: 6, skillGained: true, arcaneSlot: false }
+    - { level: 30, classBonus: 10, dice: 2d20 + 1d10, hearts: 7, skillGained: true, arcaneSlot: true }
+    - { level: 31, classBonus: 12, dice: 2d20 + 1d12, hearts: 7, skillGained: true, arcaneSlot: false }
+    - { level: 32, classBonus: 12, dice: 2d20 + 1d12, hearts: 7, skillGained: true, arcaneSlot: false }
+    - { level: 33, classBonus: 12, dice: 3d20, hearts: 7, skillGained: true, arcaneSlot: false }
+    - { level: 34, classBonus: 14, dice: 3d20, hearts: 7, skillGained: true, arcaneSlot: false }
+    - { level: 35, classBonus: 14, dice: 3d20 + 1d4, hearts: 7, skillGained: true, arcaneSlot: true }
+    - { level: 36, classBonus: 14, dice: 3d20 + 1d4, hearts: 8, skillGained: true, arcaneSlot: false }
+    - { level: 37, classBonus: 16, dice: 3d20 + 1d6, hearts: 8, skillGained: true, arcaneSlot: false }
+    - { level: 38, classBonus: 16, dice: 3d20 + 1d6, hearts: 8, skillGained: true, arcaneSlot: false }
+    - { level: 39, classBonus: 16, dice: 3d20 + 1d8, hearts: 8, skillGained: true, arcaneSlot: false }
+    - { level: 40, classBonus: 18, dice: 3d20 + 1d8, hearts: 8, skillGained: true, arcaneSlot: true }
+    - { level: 41, classBonus: 18, dice: 3d20 + 1d10, hearts: 8, skillGained: true, arcaneSlot: false }
+    - { level: 42, classBonus: 18, dice: 3d20 + 1d10, hearts: 9, skillGained: true, arcaneSlot: false }
+    - { level: 43, classBonus: 20, dice: 3d20 + 1d12, hearts: 9, skillGained: true, arcaneSlot: false }
+    - { level: 44, classBonus: 20, dice: 3d20 + 1d12, hearts: 9, skillGained: true, arcaneSlot: false }
+    - { level: 45, classBonus: 20, dice: 4d20, hearts: 9, skillGained: true, arcaneSlot: true }
+    - { level: 46, classBonus: 22, dice: 4d20, hearts: 9, skillGained: true, arcaneSlot: false }
+    - { level: 47, classBonus: 22, dice: 4d20 + 1d4, hearts: 9, skillGained: true, arcaneSlot: false }
+    - { level: 48, classBonus: 22, dice: 4d20 + 1d4, hearts: 10, skillGained: true, arcaneSlot: false }
+    - { level: 49, classBonus: 24, dice: 4d20 + 1d6, hearts: 10, skillGained: true, arcaneSlot: false }
+    - { level: 50, classBonus: 24, dice: 4d20 + 1d6, hearts: 10, skillGained: true, arcaneSlot: true }
+    - { level: 51, classBonus: 24, dice: 4d20 + 1d8, hearts: 10, skillGained: true, arcaneSlot: false }
+    - { level: 52, classBonus: 26, dice: 4d20 + 1d8, hearts: 10, skillGained: true, arcaneSlot: false }
+    - { level: 53, classBonus: 26, dice: 4d20 + 1d10, hearts: 10, skillGained: true, arcaneSlot: false }
+    - { level: 54, classBonus: 26, dice: 4d20 + 1d10, hearts: 11, skillGained: true, arcaneSlot: false }
+    - { level: 55, classBonus: 28, dice: 4d20 + 1d12, hearts: 11, skillGained: true, arcaneSlot: true }
+    - { level: 56, classBonus: 28, dice: 4d20 + 1d12, hearts: 11, skillGained: true, arcaneSlot: false }
+    - { level: 57, classBonus: 28, dice: 5d20, hearts: 11, skillGained: true, arcaneSlot: false }
+    - { level: 58, classBonus: 30, dice: 5d20, hearts: 11, skillGained: true, arcaneSlot: false }
+    - { level: 59, classBonus: 30, dice: 5d20 + 1d4, hearts: 11, skillGained: true, arcaneSlot: false }
+    - { level: 60, classBonus: 30, dice: 5d20 + 1d4, hearts: 12, skillGained: true, arcaneSlot: true }
+    - { level: 61, classBonus: 33, dice: 5d20 + 1d6, hearts: 12, skillGained: true, arcaneSlot: false }
+    - { level: 62, classBonus: 33, dice: 5d20 + 1d6, hearts: 12, skillGained: true, arcaneSlot: false }
+    - { level: 63, classBonus: 33, dice: 5d20 + 1d8, hearts: 12, skillGained: true, arcaneSlot: false }
+    - { level: 64, classBonus: 36, dice: 5d20 + 1d8, hearts: 12, skillGained: true, arcaneSlot: false }
+    - { level: 65, classBonus: 36, dice: 5d20 + 1d10, hearts: 12, skillGained: true, arcaneSlot: true }
+    - { level: 66, classBonus: 36, dice: 5d20 + 1d10, hearts: 13, skillGained: true, arcaneSlot: false }
+    - { level: 67, classBonus: 39, dice: 5d20 + 1d12, hearts: 13, skillGained: true, arcaneSlot: false }
+    - { level: 68, classBonus: 39, dice: 5d20 + 1d12, hearts: 13, skillGained: true, arcaneSlot: false }
+    - { level: 69, classBonus: 39, dice: 6d20, hearts: 13, skillGained: true, arcaneSlot: false }
+    - { level: 70, classBonus: 42, dice: 6d20, hearts: 13, skillGained: true, arcaneSlot: true }
+    - { level: 71, classBonus: 42, dice: 6d20 + 1d4, hearts: 13, skillGained: true, arcaneSlot: false }
+    - { level: 72, classBonus: 42, dice: 6d20 + 1d4, hearts: 14, skillGained: true, arcaneSlot: false }
+    - { level: 73, classBonus: 45, dice: 6d20 + 1d6, hearts: 14, skillGained: true, arcaneSlot: false }
+    - { level: 74, classBonus: 45, dice: 6d20 + 1d6, hearts: 14, skillGained: true, arcaneSlot: false }
+    - { level: 75, classBonus: 45, dice: 6d20 + 1d8, hearts: 14, skillGained: true, arcaneSlot: true }
 Rogue:
   startingArcaneSlots: 1
   levels:
-    - { level: 1, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 2, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 3, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 4, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 5, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 6, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 7, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 8, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 9, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 10, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 11, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 12, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 13, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 14, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 15, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 16, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 17, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 18, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 19, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 20, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 21, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 22, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 23, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 24, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 25, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 26, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 27, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 28, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 29, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 30, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 31, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 32, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 33, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 34, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 35, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 36, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 37, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 38, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 39, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 40, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 41, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 42, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 43, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 44, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 45, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 46, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 47, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 48, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 49, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 50, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 51, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 52, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 53, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 54, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 55, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 56, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 57, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 58, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 59, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 60, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 61, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 62, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 63, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 64, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 65, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 66, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 67, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 68, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 69, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 70, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 71, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 72, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 73, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 74, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
-    - { level: 75, classBonus: 0, dice: 1d1, hearts: 0, skillGained: false, arcaneSlot: false }
+    - { level: 1, classBonus: 1, dice: 1d6, hearts: 3, skillGained: true, arcaneSlot: false }
+    - { level: 2, classBonus: 1, dice: 1d6, hearts: 3, skillGained: true, arcaneSlot: false }
+    - { level: 3, classBonus: 1, dice: 1d8, hearts: 3, skillGained: true, arcaneSlot: false }
+    - { level: 4, classBonus: 2, dice: 1d8, hearts: 4, skillGained: false, arcaneSlot: false }
+    - { level: 5, classBonus: 2, dice: 1d10, hearts: 4, skillGained: true, arcaneSlot: false }
+    - { level: 6, classBonus: 2, dice: 1d10, hearts: 4, skillGained: true, arcaneSlot: true }
+    - { level: 7, classBonus: 3, dice: 1d12, hearts: 4, skillGained: true, arcaneSlot: false }
+    - { level: 8, classBonus: 3, dice: 1d12, hearts: 5, skillGained: false, arcaneSlot: false }
+    - { level: 9, classBonus: 3, dice: 1d20, hearts: 5, skillGained: true, arcaneSlot: false }
+    - { level: 10, classBonus: 3, dice: 1d20, hearts: 5, skillGained: true, arcaneSlot: false, classBonusDice: 1d4 }
+    - { level: 11, classBonus: 3, dice: 1d20 + 1d4, hearts: 5, skillGained: true, arcaneSlot: false, classBonusDice: 1d4 }
+    - { level: 12, classBonus: 3, dice: 1d20 + 1d4, hearts: 6, skillGained: false, arcaneSlot: true, classBonusDice: 1d4 }
+    - { level: 13, classBonus: 3, dice: 1d20 + 1d6, hearts: 6, skillGained: true, arcaneSlot: false, classBonusDice: 1d6 }
+    - { level: 14, classBonus: 3, dice: 1d20 + 1d6, hearts: 6, skillGained: true, arcaneSlot: false, classBonusDice: 1d6 }
+    - { level: 15, classBonus: 3, dice: 1d20 + 1d8, hearts: 6, skillGained: true, arcaneSlot: false, classBonusDice: 1d6 }
+    - { level: 16, classBonus: 3, dice: 1d20 + 1d8, hearts: 7, skillGained: false, arcaneSlot: false, classBonusDice: 1d8 }
+    - { level: 17, classBonus: 3, dice: 1d20 + 1d10, hearts: 7, skillGained: true, arcaneSlot: false, classBonusDice: 1d8 }
+    - { level: 18, classBonus: 3, dice: 1d20 + 1d10, hearts: 7, skillGained: true, arcaneSlot: true, classBonusDice: 1d8 }
+    - { level: 19, classBonus: 3, dice: 1d20 + 1d12, hearts: 7, skillGained: true, arcaneSlot: false, classBonusDice: 1d10 }
+    - { level: 20, classBonus: 3, dice: 1d20 + 1d12, hearts: 8, skillGained: false, arcaneSlot: false, classBonusDice: 1d10 }
+    - { level: 21, classBonus: 3, dice: 2d20, hearts: 8, skillGained: true, arcaneSlot: false, classBonusDice: 1d10 }
+    - { level: 22, classBonus: 3, dice: 2d20, hearts: 8, skillGained: true, arcaneSlot: false, classBonusDice: 1d12 }
+    - { level: 23, classBonus: 3, dice: 2d20 + 1d4, hearts: 8, skillGained: true, arcaneSlot: false, classBonusDice: 1d12 }
+    - { level: 24, classBonus: 3, dice: 2d20 + 1d4, hearts: 9, skillGained: false, arcaneSlot: true, classBonusDice: 1d12 }
+    - { level: 25, classBonus: 3, dice: 2d20 + 1d6, hearts: 9, skillGained: true, arcaneSlot: false, classBonusDice: 1d20 }
+    - { level: 26, classBonus: 3, dice: 2d20 + 1d6, hearts: 9, skillGained: true, arcaneSlot: false, classBonusDice: 1d20 }
+    - { level: 27, classBonus: 3, dice: 2d20 + 1d8, hearts: 9, skillGained: true, arcaneSlot: false, classBonusDice: 1d20 }
+    - { level: 28, classBonus: 3, dice: 2d20 + 1d8, hearts: 10, skillGained: false, arcaneSlot: false, classBonusDice: 1d20 + 1d4 }
+    - { level: 29, classBonus: 3, dice: 2d20 + 1d10, hearts: 10, skillGained: true, arcaneSlot: false, classBonusDice: 1d20 + 1d4 }
+    - { level: 30, classBonus: 3, dice: 2d20 + 1d10, hearts: 10, skillGained: true, arcaneSlot: true, classBonusDice: 1d20 + 1d4 }
+    - { level: 31, classBonus: 3, dice: 2d20 + 1d12, hearts: 10, skillGained: true, arcaneSlot: false, classBonusDice: 1d20 + 1d6 }
+    - { level: 32, classBonus: 3, dice: 2d20 + 1d12, hearts: 11, skillGained: false, arcaneSlot: false, classBonusDice: 1d20 + 1d6 }
+    - { level: 33, classBonus: 3, dice: 3d20, hearts: 11, skillGained: true, arcaneSlot: false, classBonusDice: 1d20 + 1d6 }
+    - { level: 34, classBonus: 3, dice: 3d20, hearts: 11, skillGained: true, arcaneSlot: false, classBonusDice: 1d20 + 1d8 }
+    - { level: 35, classBonus: 3, dice: 3d20 + 1d4, hearts: 11, skillGained: true, arcaneSlot: false, classBonusDice: 1d20 + 1d8 }
+    - { level: 36, classBonus: 3, dice: 3d20 + 1d4, hearts: 12, skillGained: false, arcaneSlot: true, classBonusDice: 1d20 + 1d8 }
+    - { level: 37, classBonus: 3, dice: 3d20 + 1d6, hearts: 12, skillGained: true, arcaneSlot: false, classBonusDice: 1d20 + 1d10 }
+    - { level: 38, classBonus: 3, dice: 3d20 + 1d6, hearts: 12, skillGained: true, arcaneSlot: false, classBonusDice: 1d20 + 1d10 }
+    - { level: 39, classBonus: 3, dice: 3d20 + 1d8, hearts: 12, skillGained: true, arcaneSlot: false, classBonusDice: 1d20 + 1d10 }
+    - { level: 40, classBonus: 3, dice: 3d20 + 1d8, hearts: 13, skillGained: false, arcaneSlot: false, classBonusDice: 1d20 + 1d12 }
+    - { level: 41, classBonus: 3, dice: 3d20 + 1d10, hearts: 13, skillGained: true, arcaneSlot: false, classBonusDice: 1d20 + 1d12 }
+    - { level: 42, classBonus: 3, dice: 3d20 + 1d10, hearts: 13, skillGained: true, arcaneSlot: true, classBonusDice: 1d20 + 1d12 }
+    - { level: 43, classBonus: 3, dice: 3d20 + 1d12, hearts: 13, skillGained: true, arcaneSlot: false, classBonusDice: 2d20 }
+    - { level: 44, classBonus: 3, dice: 3d20 + 1d12, hearts: 14, skillGained: false, arcaneSlot: false, classBonusDice: 2d20 }
+    - { level: 45, classBonus: 3, dice: 4d20, hearts: 14, skillGained: true, arcaneSlot: false, classBonusDice: 2d20 }
+    - { level: 46, classBonus: 3, dice: 4d20, hearts: 14, skillGained: true, arcaneSlot: false, classBonusDice: 2d20 + 1d4 }
+    - { level: 47, classBonus: 3, dice: 4d20 + 1d4, hearts: 14, skillGained: true, arcaneSlot: false, classBonusDice: 2d20 + 1d4 }
+    - { level: 48, classBonus: 3, dice: 4d20 + 1d4, hearts: 15, skillGained: false, arcaneSlot: true, classBonusDice: 2d20 + 1d4 }
+    - { level: 49, classBonus: 3, dice: 4d20 + 1d6, hearts: 15, skillGained: true, arcaneSlot: false, classBonusDice: 2d20 + 1d6 }
+    - { level: 50, classBonus: 3, dice: 4d20 + 1d6, hearts: 15, skillGained: true, arcaneSlot: false, classBonusDice: 2d20 + 1d6 }
+    - { level: 51, classBonus: 3, dice: 4d20 + 1d8, hearts: 15, skillGained: true, arcaneSlot: false, classBonusDice: 2d20 + 1d6 }
+    - { level: 52, classBonus: 3, dice: 4d20 + 1d8, hearts: 16, skillGained: false, arcaneSlot: false, classBonusDice: 2d20 + 1d8 }
+    - { level: 53, classBonus: 3, dice: 4d20 + 1d10, hearts: 16, skillGained: true, arcaneSlot: false, classBonusDice: 2d20 + 1d8 }
+    - { level: 54, classBonus: 3, dice: 4d20 + 1d10, hearts: 16, skillGained: true, arcaneSlot: true, classBonusDice: 2d20 + 1d8 }
+    - { level: 55, classBonus: 3, dice: 4d20 + 1d12, hearts: 16, skillGained: true, arcaneSlot: false, classBonusDice: 2d20 + 1d10 }
+    - { level: 56, classBonus: 3, dice: 4d20 + 1d12, hearts: 17, skillGained: false, arcaneSlot: false, classBonusDice: 2d20 + 1d10 }
+    - { level: 57, classBonus: 3, dice: 5d20, hearts: 17, skillGained: true, arcaneSlot: false, classBonusDice: 2d20 + 1d10 }
+    - { level: 58, classBonus: 3, dice: 5d20, hearts: 17, skillGained: true, arcaneSlot: false, classBonusDice: 2d20 + 1d12 }
+    - { level: 59, classBonus: 3, dice: 5d20 + 1d4, hearts: 17, skillGained: true, arcaneSlot: false, classBonusDice: 2d20 + 1d12 }
+    - { level: 60, classBonus: 3, dice: 5d20 + 1d4, hearts: 18, skillGained: false, arcaneSlot: true, classBonusDice: 2d20 + 1d12 }
+    - { level: 61, classBonus: 3, dice: 5d20 + 1d6, hearts: 18, skillGained: true, arcaneSlot: false, classBonusDice: 3d20 }
+    - { level: 62, classBonus: 3, dice: 5d20 + 1d6, hearts: 18, skillGained: true, arcaneSlot: false, classBonusDice: 3d20 }
+    - { level: 63, classBonus: 3, dice: 5d20 + 1d8, hearts: 18, skillGained: true, arcaneSlot: false, classBonusDice: 3d20 }
+    - { level: 64, classBonus: 3, dice: 5d20 + 1d8, hearts: 19, skillGained: false, arcaneSlot: false, classBonusDice: 3d20 + 1d4 }
+    - { level: 65, classBonus: 3, dice: 5d20 + 1d10, hearts: 19, skillGained: true, arcaneSlot: false, classBonusDice: 3d20 + 1d4 }
+    - { level: 66, classBonus: 3, dice: 5d20 + 1d10, hearts: 19, skillGained: true, arcaneSlot: true, classBonusDice: 3d20 + 1d4 }
+    - { level: 67, classBonus: 3, dice: 5d20 + 1d12, hearts: 19, skillGained: true, arcaneSlot: false, classBonusDice: 3d20 + 1d6 }
+    - { level: 68, classBonus: 3, dice: 5d20 + 1d12, hearts: 20, skillGained: false, arcaneSlot: false, classBonusDice: 3d20 + 1d6 }
+    - { level: 69, classBonus: 3, dice: 6d20, hearts: 20, skillGained: true, arcaneSlot: false, classBonusDice: 3d20 + 1d6 }
+    - { level: 70, classBonus: 3, dice: 6d20, hearts: 20, skillGained: true, arcaneSlot: false, classBonusDice: 3d20 + 1d8 }
+    - { level: 71, classBonus: 3, dice: 6d20 + 1d4, hearts: 20, skillGained: true, arcaneSlot: false, classBonusDice: 3d20 + 1d8 }
+    - { level: 72, classBonus: 3, dice: 6d20 + 1d4, hearts: 21, skillGained: false, arcaneSlot: true, classBonusDice: 3d20 + 1d8 }
+    - { level: 73, classBonus: 3, dice: 6d20 + 1d6, hearts: 21, skillGained: true, arcaneSlot: false, classBonusDice: 3d20 + 1d10 }
+    - { level: 74, classBonus: 3, dice: 6d20 + 1d6, hearts: 21, skillGained: true, arcaneSlot: false, classBonusDice: 3d20 + 1d10 }
+    - { level: 75, classBonus: 3, dice: 6d20 + 1d8, hearts: 21, skillGained: true, arcaneSlot: false, classBonusDice: 3d20 + 1d10 }
