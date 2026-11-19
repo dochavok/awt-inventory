@@ -51,6 +51,7 @@ Arcane Bonus 3
 CM 6
   Arcane Bonus 3, Items 2, Titles 1
 Mitigation 1
+  Armor 1
 Max hearts 4
   Level chart 3, Other 1
 Combat dice 1d20 + 1d6 (Moonlit Lantern)

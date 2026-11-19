@@ -117,7 +117,7 @@ export interface TotalView {
   label: string;
   /** e.g. "CM 170" (GR-8). */
   heading: string;
-  /** e.g. "Combat Bonus 63, Armor 71": shown when the total has more than one line, since one is the total itself. */
+  /** e.g. "Combat Bonus 63, Armor 71" (GR-8 to GR-10); none when it would be only the class bonus, shown on its own. */
   breakdown?: string;
   /** Every grant counted in it (GR-12). */
   grants: string[];
@@ -141,7 +141,11 @@ export function totalsView(totals: Totals): {
       grants: total.grants.map((g) => grantLineText(g, classBonus)),
       situational: total.situational.map((g) => grantLineText(g, classBonus)),
     };
-    if (row.lines.length > 1) out.breakdown = row.lines.map((l) => `${l.label} ${l.value}`).join(", ");
+    // A breakdown that's only the class bonus says no more than the class bonus's own line.
+    const onlyClassBonus = total.lines.length === 1 && total.lines[0]!.group === "class-bonus";
+    if (row.lines.length > 0 && !onlyClassBonus) {
+      out.breakdown = row.lines.map((l) => `${l.label} ${l.value}`).join(", ");
+    }
     return out;
   };
   return {
