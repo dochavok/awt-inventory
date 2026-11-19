@@ -3,6 +3,7 @@
 
 import { NotFoundError } from "../errors";
 import type {
+  Character,
   CharacterSheet,
   ClassName,
   Id,
@@ -211,8 +212,17 @@ export function skillRetired(skill: Skill, ref: ReferenceData): boolean {
 
 /** SK-6: levels up to the character's where the class's chart gives a skill but none has that Level gained. */
 export function recordCheck(sheet: CharacterSheet, ref: ReferenceData): MissingSkillLevel[] {
-  const { className, level } = sheet.character;
-  const recorded = new Set(sheet.entries.flatMap((e) => (e.category === "skills" ? [e.levelGained] : [])));
+  const levels = sheet.entries.flatMap((e) => (e.category === "skills" ? [e.levelGained] : []));
+  return missingSkillLevels(sheet.character, levels, ref);
+}
+
+/** recordCheck, given only the character and the levels its skills were gained at. */
+export function missingSkillLevels(
+  { className, level }: Pick<Character, "className" | "level">,
+  levelsGained: number[],
+  ref: ReferenceData,
+): MissingSkillLevel[] {
+  const recorded = new Set(levelsGained);
   // The chart has each level once (checked when the reference data loads).
   return ref.levelChart[className].levels
     .filter((row) => row.skillGained && row.level <= level && !recorded.has(row.level))

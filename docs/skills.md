@@ -33,7 +33,7 @@ A skill's grants come from the skill list, such as +2 CM or an extra arcane slot
 
 ## Record check
 
-The level chart says at which levels each class gains a skill or spell. Under **Record check**, the Skills page lists those levels, up to the character's, where no skill has that **level gained**. It's only a reminder: nothing is stopped. For the made-up sample character Mirela, a level 9 Mage with one spell recorded, at level 1:
+The level chart says at which levels each class gains a skill or spell. Under **Record check**, the Skills page lists those levels, up to the character's, where no skill has that **level gained**. It's only a reminder: nothing is stopped. For the guide's made-up sample character:
 
 <!-- generated: record-check-example -->
 ```text

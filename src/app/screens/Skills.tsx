@@ -6,14 +6,13 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { LIMITS } from "../../data/validate";
 import { levelCap } from "../../rules/levels";
-import { recordCheck } from "../../rules/skills";
+import { missingSkillLevels } from "../../rules/skills";
 import {
   HOW_GAINED_NAMES,
   SKILL_TIER_NAMES,
   type Character,
   type HowGained,
   type MissingSkillLevel,
-  type SkillEntry,
   type SkillOption,
   type SkillPicker,
 } from "../../rules/types";
@@ -31,17 +30,8 @@ export function Skills({ services, id }: { services: Services; id: string }) {
   const screen = useScreenData(async () => {
     const [character, skills] = await Promise.all([store.character(id), store.skills(id)]);
     // SK-6 needs only the character and its skills' levels, both read already (NF-5).
-    const entries = skills.map((s): SkillEntry => ({
-      id: s.entryId,
-      characterId: character.id,
-      category: "skills",
-      skillId: s.skillId,
-      howGained: s.howGained,
-      levelGained: s.levelGained,
-      quantity: 1,
-    }));
-    const sheet = { character, entries, equipped: [], titles: [], manualGrants: [] };
-    return { character, skills, missingLevels: recordCheck(sheet, services.ref) };
+    const levels = skills.map((s) => s.levelGained);
+    return { character, skills, missingLevels: missingSkillLevels(character, levels, services.ref) };
   });
   const [removing, setRemoving] = useState<string | null>(null);
   const action = useAction();

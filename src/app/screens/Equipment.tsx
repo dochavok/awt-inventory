@@ -5,7 +5,7 @@
 
 import { overLimitAlerts, slotState } from "../../rules/equipping";
 import type { CharacterSheet, OverLimitAlert, Occupant } from "../../rules/types";
-import { arcaneCount, sourceLabel } from "../grant-text";
+import { arcaneCount, slotParts, sourceLabel } from "../grant-text";
 import type { Services } from "../services";
 import { Feedback, useAction } from "../useAction";
 import { BackTo, CharacterNotFound, Loading, useScreenData } from "./common";
@@ -22,7 +22,8 @@ export async function sheetWithAlerts(
 ): Promise<{ sheet: CharacterSheet; alerts: OverLimitAlert[] }> {
   const [sheet, cause] = await Promise.all([store.sheet(id), store.lastChange(id)]);
   const alerts = overLimitAlerts(sheet, ref, cause);
-  if (alerts.length === 0 && cause) await store.alerts(id);
+  // The store's own answer, which also forgets the cause, and catches a change made meanwhile.
+  if (alerts.length === 0 && cause) return { sheet, alerts: await store.alerts(id) };
   return { sheet, alerts };
 }
 
@@ -82,21 +83,19 @@ export function Equipment({ services, id }: { services: Services; id: string }) 
         <h2 id="doll-title">Paper doll</h2>
         <ul className="slots" aria-label="Paper doll">
           {state.kinds.flatMap((kind) =>
-            kind.slots.map((slot, i) => (
-              <li key={slot.label}>
-                <span className="slot-name">{slot.label}</span>
-                {slot.source && <span className="hint">from {sourceLabel(slot.source)}</span>}
-                {i >= kind.allowed && <span className="tag">Over the limit</span>}
-                {slot.occupant ? (
-                  <>
-                    <span className="name">{slot.occupant.name}</span>
-                    {unequipButton(slot.occupant)}
-                  </>
-                ) : (
-                  <span className="hint">Empty</span>
-                )}
-              </li>
-            )),
+            kind.slots.map((slot, i) => {
+              // The same text the guide's example is made from (slotLine, DOC-4).
+              const { label, from, holds } = slotParts(slot);
+              return (
+                <li key={label}>
+                  <span className="slot-name">{label}</span>
+                  {from && <span className="hint">{from}</span>}
+                  {i >= kind.allowed && <span className="tag">Over the limit</span>}
+                  <span className={slot.occupant ? "name" : "hint"}>{holds}</span>
+                  {slot.occupant && unequipButton(slot.occupant)}
+                </li>
+              );
+            }),
           )}
         </ul>
       </section>

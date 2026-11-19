@@ -781,8 +781,13 @@ browserRule(
     await openFromCharacter(page, brin, /^Weapons/, "Weapons");
     // EQ-4: two of the same thing are separate entries; here they share a name.
     await addEntry(page, "Dagger");
-    await addEntry(page, "Dagger", (form) => form.getByLabel("Notes").fill("The second one."));
     await addEntry(page, "Shortsword");
+    // The second dagger by hand: the helper's check for its row would also find the first.
+    await tap(page.getByRole("button", { name: "Add an entry" }), "Add an entry");
+    const form = page.getByRole("form", { name: "New entry" });
+    await form.getByLabel("Name", { exact: true }).fill("Dagger");
+    await form.getByLabel("Notes").fill("The second one.");
+    await form.getByRole("button", { name: "Add entry" }).click();
     const daggers = rowFor(page, "Dagger");
     await expect(daggers, "Brin's two daggers").toHaveCount(2);
     for (const i of [0, 1]) {

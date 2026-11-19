@@ -88,9 +88,23 @@ export function grantText(grant: Grant | NewGrant, ref: ReferenceData): string {
 export const arcaneCount = (arcane: Pick<ArcaneState, "used" | "allowed">) =>
   `Arcane slots: ${arcane.used} of ${arcane.allowed} used`;
 
-/** A paper-doll slot as a line of text, e.g. "Back 2: Grey Cloak (from Wayfarer's Sash)" (EQ-5). */
-export const slotLine = (slot: SlotView) =>
-  `${slot.label}: ${slot.occupant?.name ?? "Empty"}${slot.source ? ` (from ${sourceLabel(slot.source)})` : ""}`;
+/**
+ * A paper-doll slot's text, as the equipment page shows it (EQ-5): its label, where it comes
+ * from if a grant gives it, and what's in it or "Empty".
+ */
+export function slotParts(slot: SlotView): { label: string; from?: string; holds: string } {
+  return {
+    label: slot.label,
+    ...(slot.source ? { from: `from ${sourceLabel(slot.source)}` } : {}),
+    holds: slot.occupant?.name ?? "Empty",
+  };
+}
+
+/** A paper-doll slot as one line, for the guide, e.g. "Back 2: Grey Cloak (from Wayfarer's Sash)". */
+export function slotLine(slot: SlotView): string {
+  const { label, from, holds } = slotParts(slot);
+  return `${label}: ${holds}${from ? ` (${from})` : ""}`;
+}
 
 const SOURCE_PREFIX: Record<SourceRef["type"], string> = {
   entry: "",
