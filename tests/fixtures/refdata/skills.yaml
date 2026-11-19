@@ -105,3 +105,13 @@ skills:
   - { id: cinder-mark-i, name: Cinder Mark I, tree: arcana, usage: passive, tier: normal, prerequisites: { skill: spark } }
   - { id: cinder-mark-ii, name: Cinder Mark II, tree: arcana, usage: passive, tier: normal, prerequisites: { skill: cinder-mark-i } }
   - { id: cinder-focus, name: Cinder Focus, tree: arcana, usage: passive, tier: epic, prerequisites: { skill: cinder-mark-ii } }
+
+  # Card text with the heart symbol, as the real cards write hearts (EX-1: the
+  # printable sheet draws it).
+  - id: ember-heart
+    name: Ember Heart
+    tree: arcana
+    usage: 1/combat
+    tier: normal
+    prerequisites: { skill: spark }
+    text: "Made-up card text for tests: heal 2♥, up to your maximum ♥s."

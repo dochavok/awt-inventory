@@ -386,6 +386,25 @@ rule(
   },
 );
 
+rule(
+  { req: ["EX-1", "SK-2"], m: "M3" },
+  "card text with hearts (♥) is printed with the heart symbol, not a question mark",
+  async () => {
+    const { bram, isolde } = await bramWithTwo({ showSkillText: true });
+    await bram.addSkill(isolde.character.id, { skillId: "ember-heart", howGained: "level-up", levelGained: 5 });
+    const print = { characterIds: [isolde.character.id], includeSkillText: true, paper: "letter" as const };
+    const ember = (await bram.printableSheet(print)).characters[0]!.skills.find((s) => s.name === "Ember Heart");
+    expect(ember?.text, "Ember Heart's text on Isolde's sheet").toBe(
+      "Made-up card text for tests: heal 2♥, up to your maximum ♥s.",
+    );
+    const page = (await pdfPageTexts((await bram.printablePdf(print)).bytes)).join("\n");
+    // The standard Symbol font draws the heart; in its encoding the heart is byte 0xA9, which
+    // reads back here as "©". Each run of one font is its own piece of text.
+    expect(page, "Isolde's page showing Ember Heart's text").toMatch(/heal 2\s*©\s*, up to your maximum\s*©\s*s\./);
+    expect(page, "Isolde's page, with no heart printed as ?").not.toMatch(/2\?|maximum \?/);
+  },
+);
+
 // ---------------------------------------------------------------- JSON export (EX-4)
 
 rule(
