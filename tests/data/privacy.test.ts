@@ -162,13 +162,14 @@ rule(
       (e) => e.entry.category === "allies" && e.entry.name === "Grey Fang",
     )!.entry.id;
     const wolfGrant = await x.bram.addGrant({ entryId: wolfId }, { kind: "cm", amount: 2 });
+    const titleGrant = await x.bram.addGrant({ titleId: x.titleId }, { kind: "cm", amount: 1 });
     const ruling = await x.bram.addManualGrant(x.characterId, "Made-up ruling", [{ kind: "cm", amount: 3 }]);
     const attempts: [string, (s: InventoryStore) => Promise<unknown>][] = [
       ["read Aldric's sheet with its alerts", (s) => s.sheetWithAlerts(x.characterId)],
       ["read a Healing Draught with its slot", (s) => s.entryWithSlot(x.characterId, x.entryId)],
       ["remove Aldric's manual grant", (s) => s.removeManualGrant(x.characterId, ruling.id)],
       ["remove Grey Fang's grant", (s) => s.removeGrantFrom({ entryId: wolfId }, wolfGrant.id)],
-      ["remove Bram's title's grant", (s) => s.removeGrantFrom({ titleId: x.titleId }, wolfGrant.id)],
+      ["remove Bram's title's grant", (s) => s.removeGrantFrom({ titleId: x.titleId }, titleGrant.id)],
       ["equip a Healing Draught", (s) => s.equipFirst(x.characterId, x.entryId, ["main-hand", "off-hand"])],
     ];
     for (const [who, store] of [
@@ -188,6 +189,11 @@ rule(
     expect(wolf?.category === "allies" ? wolf.grants?.map((g) => g.id) : undefined, "Grey Fang's grants").toEqual([
       wolfGrant.id,
     ]);
+    const title = (await x.bram.listTitles()).find((t) => t.id === x.titleId);
+    expect(
+      title?.grants?.some((g) => g.id === titleGrant.id),
+      "the grant on Bram's title, still there",
+    ).toBe(true);
   },
 );
 

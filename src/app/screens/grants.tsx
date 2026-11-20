@@ -295,9 +295,9 @@ function refused(check: EquipCheck): never {
 }
 
 /** Equips an entry in `target`; a block changes nothing and is thrown as a refusal. */
-export async function equipIn(services: Services, entryId: string, target: string): Promise<void> {
-  const check = await services.store.equip(entryId, target);
-  if (check.outcome === "blocked") refused(check);
+export async function equipIn(services: Services, entry: Entry, target: string): Promise<void> {
+  const [check] = await services.store.equipFirst(entry.characterId, entry.id, [target]);
+  if (check?.outcome === "blocked") refused(check);
 }
 
 /**

@@ -76,7 +76,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | EQ-2 | Must | M4 | access/firestore-store.test.ts (1), browser/equipping.spec.ts (4), data/grants.test.ts (5), properties/equipping.test.ts (1), rules/equipping.test.ts (5) |
 | EQ-3 | Must | M4 | browser/equipping.spec.ts (4), data/grants.test.ts (2), properties/equipping.test.ts (1), rules/equipping.test.ts (11) |
 | EQ-4 | Must | M4 | access/firestore-store.test.ts (1), access/privacy.test.ts (2), browser/equipping.spec.ts (2), data/grants.test.ts (8), data/inventory.test.ts (1), data/search-export.test.ts (1), rules/equipping.test.ts (3) |
-| EQ-5 | Must | M4 | browser/equipping.spec.ts (4), data/grants.test.ts (2), rules/equipping.test.ts (3) |
+| EQ-5 | Must | M4 | access/offline.test.ts (1), browser/equipping.spec.ts (4), data/grants.test.ts (2), rules/equipping.test.ts (3) |
 | EQ-6 | Must | M4 | browser/equipping.spec.ts (1), data/grants.test.ts (1), rules/equipping.test.ts (8) |
 | EQ-7 | Must | M4 | browser/equipping.spec.ts (1), properties/equipping.test.ts (1), rules/equipping.test.ts (7) |
 | EQ-8 | Must | M4 | access/offline.test.ts (1), browser/equipping.spec.ts (1), data/grants.test.ts (11), data/privacy.test.ts (1), properties/equipping.test.ts (1), properties/totals.test.ts (1), rules/equipping.test.ts (13) |
@@ -113,7 +113,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | RD-8 | Must | M2 | refdata/refdata.test.ts (2) |
 | NF-1 | Must | M2+ | browser/equipping.spec.ts (2), browser/inventory.spec.ts (2), browser/phone.spec.ts (1), browser/screens.spec.ts (3), browser/search-export.spec.ts (1) |
 | NF-2 | Must | M2 | browser/phone.spec.ts (2) |
-| NF-3 | Must | M3 | access/firestore-store.test.ts (2), access/offline.test.ts (19), access/privacy.test.ts (4), browser/screens.spec.ts (5), browser/search-export.spec.ts (3), data/grants.test.ts (2), rules/equipping.test.ts (1) |
+| NF-3 | Must | M3 | access/firestore-store.test.ts (2), access/offline.test.ts (20), access/privacy.test.ts (4), browser/screens.spec.ts (5), browser/search-export.spec.ts (3), data/grants.test.ts (2), rules/equipping.test.ts (1) |
 | NF-4 | Must | M2+ | browser/screens.spec.ts (1), rules/speed.test.ts (1) |
 | NF-5 | Must | M2+ | data/grants.test.ts (7), ops/operations.test.ts (1) |
 | NF-6 | Must | M2+ | access/privacy.test.ts (4), data/grants.test.ts (1), data/inventory.test.ts (1), data/limits.test.ts (7) |

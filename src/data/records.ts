@@ -435,35 +435,29 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
   // ---------------------------------------------------------------- grant sources (GR-2)
 
   /** Where a grant goes, or is: an entry as stored, or a title. */
-  type GrantSource =
-    | { kind: "entry"; entry: StoredEntry; id: Id; grants: Grant[] | undefined }
-    | { kind: "title"; title: Title; id: Id; grants: Grant[] | undefined };
+  type GrantSource = { kind: "entry"; entry: StoredEntry } | { kind: "title"; title: Title };
 
-  const entrySource = (entry: StoredEntry): GrantSource => ({
-    kind: "entry",
-    entry,
-    id: entry.id,
-    grants: ownGrants(entry),
-  });
-  const titleSource = (title: Title): GrantSource => ({ kind: "title", title, id: title.id, grants: title.grants });
+  const sourceId = (source: GrantSource) => (source.kind === "entry" ? source.entry.id : source.title.id);
+  const sourceGrants = (source: GrantSource): Grant[] =>
+    (source.kind === "entry" ? ownGrants(source.entry) : source.title.grants) ?? [];
 
   async function grantSource(target: GrantTarget): Promise<GrantSource> {
-    if ("entryId" in target) return entrySource(await storedEntry(target.entryId));
-    if ("titleId" in target) return titleSource(await ownTitle(target.titleId));
+    if ("entryId" in target) return { kind: "entry", entry: await storedEntry(target.entryId) };
+    if ("titleId" in target) return { kind: "title", title: await ownTitle(target.titleId) };
     throw new ValidationError("target", "A grant goes on an entry or a title.");
   }
 
   /** GR-5: a removed grant stops counting at once, which may raise an alert (EQ-8). One not on `source` isn't found. */
   async function removeFrom(source: GrantSource, grantId: Id): Promise<void> {
-    const grant = source.grants?.find((g) => g.id === grantId);
+    const grant = sourceGrants(source).find((g) => g.id === grantId);
     if (!grant) throw new NotFoundError("grant", grantId);
     let losing: Id[] = [];
     if (losesSlots([grant])) {
       if (source.kind === "title") losing = await charactersUnder(source.title.scope);
       else if (countsNow(source.entry)) losing = [source.entry.characterId];
     }
-    const grants = source.grants!.filter((g) => g !== grant);
-    await writeLosing(update(source.kind, source.id, { grants }), "grant-removed", losing);
+    const grants = sourceGrants(source).filter((g) => g.id !== grantId);
+    await writeLosing(update(source.kind, sourceId(source), { grants }), "grant-removed", losing);
   }
 
   // ---------------------------------------------------------------- titles (TI)
@@ -770,12 +764,18 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     entry: ownEntry,
 
     async entryWithSlot(characterId, entryId) {
-      // An entry that isn't the user's, or isn't in the inventory, is no entry of this character's.
-      const missing = (error: unknown) => {
-        if (error instanceof NotFoundError || error instanceof AccessDeniedError) return undefined;
-        throw error;
+      const read = async (): Promise<StoredEntry | undefined> => {
+        try {
+          return await storedEntry(entryId);
+        } catch (error) {
+          // An entry that isn't the user's, or isn't in the inventory, is no entry of this character's.
+          if (error instanceof NotFoundError || error instanceof AccessDeniedError) return undefined;
+          // Without signal, one entry the phone hasn't kept can't be read alone, but the
+          // character's entries can, from what the phone has (NF-3).
+          return (await storedEntriesOf(characterId)).find((e) => e.id === entryId);
+        }
       };
-      const [character, entry] = await Promise.all([ownCharacter(characterId), storedEntry(entryId).catch(missing)]);
+      const [character, entry] = await Promise.all([ownCharacter(characterId), read()]);
       if (entry?.characterId !== characterId) return { character, entry: null };
       return { character, entry: plainEntry(entry), slot: equippedAt(entry) };
     },
@@ -999,8 +999,8 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     async addGrant(target, input) {
       const source = await grantSource(target);
       if (source.kind === "entry") check.grantsAllowed(source.entry.category);
-      const grants = oneMore(source.grants, input);
-      await write(update(source.kind, source.id, { grants }));
+      const grants = oneMore(sourceGrants(source), input);
+      await write(update(source.kind, sourceId(source), { grants }));
       return grants.at(-1)!;
     },
 
@@ -1023,7 +1023,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       const without = (grants: Grant[] = []) => grants.filter((g) => g.id !== grantId);
       const find = (grants: Grant[] = []) => grants.find((g) => g.id === grantId);
       const title = (await myTitles()).find((t) => find(t.grants));
-      if (title) return removeFrom(titleSource(title), grantId);
+      if (title) return removeFrom({ kind: "title", title }, grantId);
       const characters = await storedCharacters();
       for (const character of characters) {
         const manual = character.manualGrants ?? [];
@@ -1043,7 +1043,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       const entries = (await Promise.all(characters.map((c) => storedEntriesOf(c.id)))).flat();
       const entry = entries.find((e) => find(ownGrants(e)));
       if (!entry) throw new NotFoundError("grant", grantId);
-      return removeFrom(entrySource(entry), grantId);
+      return removeFrom({ kind: "entry", entry }, grantId);
     },
 
     // NF-5: only the entry or title the grant is on is read.
@@ -1066,11 +1066,8 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       return (await equipOnSheet(await sheetFor(entry.characterId), entryId, [target]))[0]!;
     },
 
-    async equipFirst(characterId, entryId, targets) {
-      const sheet = await sheetFor(characterId);
-      if (!sheet.entries.some((e) => e.id === entryId)) throw new NotFoundError("entry", entryId);
-      return equipOnSheet(sheet, entryId, targets);
-    },
+    // checkEquip refuses an entry that isn't on this character's sheet.
+    equipFirst: async (characterId, entryId, targets) => equipOnSheet(await sheetFor(characterId), entryId, targets),
 
     async unequip(entryId) {
       const entry = await storedEntry(entryId);

@@ -951,7 +951,7 @@ function Equipping({
                 key={target}
                 type="button"
                 disabled={busy}
-                onClick={() => onChange(() => equipIn(services, entry.id, target), `${entry.name} equipped.`)}
+                onClick={() => onChange(() => equipIn(services, entry, target), `${entry.name} equipped.`)}
               >
                 {targets.length === 1 ? "Equip" : `Equip in ${slotTargetName(ref, target)}`}
               </button>

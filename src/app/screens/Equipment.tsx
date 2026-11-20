@@ -28,7 +28,7 @@ export function Alerts({ alerts }: { alerts: OverLimitAlert[] }) {
 
 export function Equipment({ services, id }: { services: Services; id: string }) {
   const { store, ref } = services;
-  // The sheet with its alerts, so the page never shows without them (EQ-8), from one read (NF-5).
+  // The sheet with its alerts, so the page never shows without them (EQ-8), from one read of the sheet (NF-5).
   const screen = useScreenData(() => store.sheetWithAlerts(id));
   const action = useAction();
 
