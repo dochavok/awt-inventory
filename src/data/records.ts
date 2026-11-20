@@ -449,14 +449,15 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
 
   /** GR-5: a removed grant stops counting at once, which may raise an alert (EQ-8). One not on `source` isn't found. */
   async function removeFrom(source: GrantSource, grantId: Id): Promise<void> {
-    const grant = sourceGrants(source).find((g) => g.id === grantId);
+    const all = sourceGrants(source);
+    const grant = all.find((g) => g.id === grantId);
     if (!grant) throw new NotFoundError("grant", grantId);
     let losing: Id[] = [];
     if (losesSlots([grant])) {
       if (source.kind === "title") losing = await charactersUnder(source.title.scope);
       else if (countsNow(source.entry)) losing = [source.entry.characterId];
     }
-    const grants = sourceGrants(source).filter((g) => g.id !== grantId);
+    const grants = all.filter((g) => g.id !== grantId);
     await writeLosing(update(source.kind, sourceId(source), { grants }), "grant-removed", losing);
   }
 
@@ -764,18 +765,12 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     entry: ownEntry,
 
     async entryWithSlot(characterId, entryId) {
-      const read = async (): Promise<StoredEntry | undefined> => {
-        try {
-          return await storedEntry(entryId);
-        } catch (error) {
-          // An entry that isn't the user's, or isn't in the inventory, is no entry of this character's.
-          if (error instanceof NotFoundError || error instanceof AccessDeniedError) return undefined;
-          // Without signal, one entry the phone hasn't kept can't be read alone, but the
-          // character's entries can, from what the phone has (NF-3).
-          return (await storedEntriesOf(characterId)).find((e) => e.id === entryId);
-        }
+      // An entry that isn't the user's, or isn't in the inventory, is no entry of this character's.
+      const missing = (error: unknown) => {
+        if (error instanceof NotFoundError || error instanceof AccessDeniedError) return undefined;
+        throw error;
       };
-      const [character, entry] = await Promise.all([ownCharacter(characterId), read()]);
+      const [character, entry] = await Promise.all([ownCharacter(characterId), storedEntry(entryId).catch(missing)]);
       if (entry?.characterId !== characterId) return { character, entry: null };
       return { character, entry: plainEntry(entry), slot: equippedAt(entry) };
     },
@@ -1046,7 +1041,8 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       return removeFrom({ kind: "entry", entry }, grantId);
     },
 
-    // NF-5: only the entry or title the grant is on is read.
+    // NF-5: the grant is looked for only on its entry or title. Removing one that gives a slot
+    // also reads the sheets it can take that slot from, as every removal does (EQ-8).
     removeGrantFrom: async (target, grantId) => removeFrom(await grantSource(target), grantId),
 
     async removeManualGrant(characterId, manualGrantId) {
