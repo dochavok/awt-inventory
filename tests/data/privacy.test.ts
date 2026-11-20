@@ -153,6 +153,44 @@ rule(
   },
 );
 
+rule(
+  { req: ["PV-1", "GR-5", "EQ-8"], m: "M4" },
+  "Cass and a signed-out visitor are refused the store's one-read methods on Bram's records, and nothing changes",
+  async () => {
+    const x = await setUp();
+    const wolfId = (await x.bram.listEntries(x.characterId, "allies")).find(
+      (e) => e.entry.category === "allies" && e.entry.name === "Grey Fang",
+    )!.entry.id;
+    const wolfGrant = await x.bram.addGrant({ entryId: wolfId }, { kind: "cm", amount: 2 });
+    const ruling = await x.bram.addManualGrant(x.characterId, "Made-up ruling", [{ kind: "cm", amount: 3 }]);
+    const attempts: [string, (s: InventoryStore) => Promise<unknown>][] = [
+      ["read Aldric's sheet with its alerts", (s) => s.sheetWithAlerts(x.characterId)],
+      ["read a Healing Draught with its slot", (s) => s.entryWithSlot(x.characterId, x.entryId)],
+      ["remove Aldric's manual grant", (s) => s.removeManualGrant(x.characterId, ruling.id)],
+      ["remove Grey Fang's grant", (s) => s.removeGrant(wolfGrant.id, { entryId: wolfId })],
+      ["remove Bram's title's grant", (s) => s.removeGrant(wolfGrant.id, { titleId: x.titleId })],
+      ["equip a Healing Draught", (s) => s.equipFirst(x.entryId, ["main-hand", "off-hand"])],
+    ];
+    for (const [who, store] of [
+      ["Cass", x.cass],
+      ["a signed-out visitor", x.nobody],
+    ] as const) {
+      for (const [what, attempt] of attempts) {
+        await expect(attempt(store), `${who} trying to ${what}`).rejects.toThrow(AccessDeniedError);
+      }
+    }
+    const sheet = await x.bram.sheet(x.characterId);
+    expect(
+      sheet.manualGrants.map((m) => m.id),
+      "Aldric's manual grants",
+    ).toEqual([ruling.id]);
+    const wolf = sheet.entries.find((e) => e.id === wolfId);
+    expect(wolf?.category === "allies" ? wolf.grants?.map((g) => g.id) : undefined, "Grey Fang's grants").toEqual([
+      wolfGrant.id,
+    ]);
+  },
+);
+
 // A name check only. The server's owner check (another user is refused) is
 // tested in tests/access/privacy.test.ts.
 rule({ req: ["PV-3"], m: "M2" }, "the data layer has no method named for browsing other users", async () => {

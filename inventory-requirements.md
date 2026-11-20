@@ -511,7 +511,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 - a **fake clock** in UTC;
 - **fake sign-in**.
 
-Later milestones implement these interfaces without changing them. An interface may gain an optional input, with a default that leaves every existing call's result unchanged, when a requirement change needs it.
+Later milestones implement these interfaces without changing them. An interface may gain an optional input, with a default that leaves every existing call's result unchanged, when a requirement change needs it. It may also gain a new method that does an existing task in fewer reads or writes (NF-5). Existing methods keep their inputs and results, so no existing test changes.
 
 **TF-3 · Must · M1: Fixtures.** Test data lives in `tests/fixtures/` as YAML: made-up users and characters (never real players), and a **test copy of the reference data** separate from the real files, so changing real data never breaks a test. The exception is the browser tests, which read what they need from the real data (TF-13): one fails only if what it needs is gone from it, and says so. The test copy includes a sample character whose CM adds up to the GR-8 example. Tests don't rely on an empty database: a test that sets up data more than once gives each setup its own user or character, and earlier data stays in place, as it would in use. A test that deletes an account checks what's left by reading as that account's own user, never by signing up again, since a new sign-up gets a new user. Records the store can no longer reach once their character is gone (entries and history) are checked in the test database itself.
 
