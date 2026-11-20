@@ -221,6 +221,11 @@ browserRule(
     await page.reload();
     await expectSignedIn(page);
     await page.waitForTimeout(6_000);
+    // The app has stored itself on the phone, so it reopens without signal (NF-3).
+    expect(
+      await page.evaluate(async () => (await navigator.serviceWorker.ready).active !== null),
+      "the app stored on the phone",
+    ).toBe(true);
     await context.setOffline(true);
     await page.reload();
     await expectSignedIn(page);
