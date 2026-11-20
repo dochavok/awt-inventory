@@ -469,15 +469,8 @@ export function createFirestoreStore(
       return (await getDocs(entries(characterId))).docs.map(toEntry);
     },
     async entry(id) {
-      try {
-        const snap = await read("entry", id);
-        return snap && toEntry(snap);
-      } catch (error) {
-        // Without signal, an entry this phone hasn't kept can't be read: as far as the
-        // phone knows, it isn't there (NF-3), as a list of the character's entries shows it.
-        if ((error as { code?: unknown }).code === "unavailable") return undefined;
-        throw error;
-      }
+      const snap = await read("entry", id);
+      return snap && toEntry(snap);
     },
     async history(characterId) {
       return (await getDocs(historyOf(characterId))).docs.map(toRecord);

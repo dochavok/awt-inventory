@@ -766,8 +766,11 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
 
     async entryWithSlot(characterId, entryId) {
       // An entry that isn't the user's, or isn't in the inventory, is no entry of this character's.
+      // So is one the phone can't read without signal because it has never kept it (NF-3): the
+      // backend's offline error, which only this read treats as "not here", as the sheet would.
       const missing = (error: unknown) => {
         if (error instanceof NotFoundError || error instanceof AccessDeniedError) return undefined;
+        if ((error as { code?: unknown } | null)?.code === "unavailable") return undefined;
         throw error;
       };
       const [character, entry] = await Promise.all([ownCharacter(characterId), storedEntry(entryId).catch(missing)]);
