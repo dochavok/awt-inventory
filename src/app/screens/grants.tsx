@@ -272,7 +272,7 @@ export function GrantsEditor({
         busy={remove.busy}
         onRemove={(g) =>
           void remove.run(async () => {
-            await store.removeGrant(g.id);
+            await store.removeGrant(g.id, target);
             await onChanged();
           })
         }
@@ -306,12 +306,8 @@ export async function equipIn(services: Services, entryId: string, target: strin
  * can be equipped somewhere (equipTargets isn't empty).
  */
 export async function equipWherever(services: Services, entry: Entry): Promise<void> {
-  const blocks: EquipCheck[] = [];
-  for (const target of equipTargets(entry)) {
-    const check = await services.store.equip(entry.id, target);
-    if (check.outcome === "allowed") return;
-    blocks.push(check);
-  }
+  const blocks = await services.store.equipFirst(entry.id, equipTargets(entry));
+  if (blocks.at(-1)?.outcome === "allowed") return;
   // A one-handed weapon tried in both hands: say both are full, and what's in each (EQ-3).
   const [main, off] = blocks.map((b) => (b.block?.reason === "slot-full" ? b.block.occupants[0] : undefined));
   if (blocks.length === 2 && main && off) {

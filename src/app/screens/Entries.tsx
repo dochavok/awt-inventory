@@ -769,14 +769,7 @@ export function EntryPage({ services, id, entryId }: { services: Services; id: s
   // One read for the character, the entry and where it's equipped (EQ-5). A character that
   // isn't there is "missing"; an entry that isn't (deleted, or all of it used, traded or given
   // away) is shown as gone from the character's inventory.
-  const screen = useScreenData(async () => {
-    const sheet = await store.sheet(id);
-    return {
-      character: sheet.character,
-      entry: sheet.entries.find((e) => e.id === entryId) ?? null,
-      slot: sheet.equipped.find((q) => q.entryId === entryId)?.slot,
-    };
-  });
+  const screen = useScreenData(() => store.entryWithSlot(id, entryId));
   const [panel, setPanel] = useState<"edit" | "delete" | null>(null);
   const action = useAction();
 

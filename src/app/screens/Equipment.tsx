@@ -3,30 +3,12 @@
 // (EQ-1, EQ-5), the arcane slots and their count (EQ-6, EQ-7), and over-limit
 // alerts (EQ-8). Anything equipped can be unequipped here (EQ-4).
 
-import { overLimitAlerts, slotState } from "../../rules/equipping";
-import type { CharacterSheet, OverLimitAlert, Occupant } from "../../rules/types";
+import { slotState } from "../../rules/equipping";
+import type { OverLimitAlert, Occupant } from "../../rules/types";
 import { arcaneCount, slotParts, sourceLabel } from "../grant-text";
 import type { Services } from "../services";
 import { Feedback, useAction } from "../useAction";
 import { BackTo, CharacterNotFound, Loading, useScreenData } from "./common";
-
-/**
- * A character's sheet with its alerts, so a page never shows without them (EQ-8). The alerts
- * are worked out from the sheet and the change that may have lost a grant, rather than read
- * again (NF-5). Once nothing is over its limit, store.alerts lets the store forget that
- * change, so a later alert never names it; that read happens only while it's still kept.
- * A change from another phone between the reads shows at the next refresh.
- */
-export async function sheetWithAlerts(
-  { store, ref }: Pick<Services, "store" | "ref">,
-  id: string,
-): Promise<{ sheet: CharacterSheet; alerts: OverLimitAlert[] }> {
-  const [sheet, cause] = await Promise.all([store.sheet(id), store.lastChange(id)]);
-  const alerts = overLimitAlerts(sheet, ref, cause);
-  // Only so the store forgets the cause. Its answer isn't shown: the page shows what this sheet says.
-  if (alerts.length === 0 && cause) await store.alerts(id);
-  return { sheet, alerts };
-}
 
 /** EQ-8's alerts; nothing when there are none. */
 export function Alerts({ alerts }: { alerts: OverLimitAlert[] }) {
@@ -46,7 +28,8 @@ export function Alerts({ alerts }: { alerts: OverLimitAlert[] }) {
 
 export function Equipment({ services, id }: { services: Services; id: string }) {
   const { store, ref } = services;
-  const screen = useScreenData(() => sheetWithAlerts(services, id));
+  // The sheet with its alerts, so the page never shows without them (EQ-8), from one read (NF-5).
+  const screen = useScreenData(() => store.sheetWithAlerts(id));
   const action = useAction();
 
   if (screen.missing) return <CharacterNotFound />;
