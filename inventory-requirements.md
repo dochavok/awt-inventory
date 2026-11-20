@@ -488,7 +488,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 
 - Merging to `main` deploys, but only after CI passes.
 - CI builds the server code (Cloud Functions) with the same build the deploy runs, so server code that wouldn't deploy can't merge.
-- Every CI job has a time limit of 30 minutes or less, so a stuck job fails instead of holding up merges and deploys for hours.
+- Every CI job has a time limit of 30 minutes or less, so a stuck job fails instead of holding up merges and deploys for hours. A job's limit leaves room for slow downloads it doesn't control: the browser job usually takes about 5 minutes, but its system packages once took 14 minutes to download.
 - The GitHub account uses two-factor authentication, and `main` requires a pull request.
 - Deploy credentials live only in a GitHub environment that only `main` can use.
 - Dependabot keeps dependencies up to date.
