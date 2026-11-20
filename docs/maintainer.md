@@ -60,8 +60,8 @@ deleted (RD-3). Raising the level cap means adding rows to `level-chart.yaml`
 The skill list (`data/skills.yaml`) is the app's own source (RD-6): it was
 built on 2026-11-17 from the updated skill sheets. Change a skill there, by
 pull request, never by rebuilding it from the Warrior, Rogue and Mage
-artifacts: they still show the older sheets. Keeping the artifacts in step
-with the file is a separate task. The game's owner agreed (Q10) to the card text and the level chart's
+artifacts: the file is the source, and keeping the artifacts in step with
+it is a separate task. The game's owner agreed (Q10) to the card text and the level chart's
 numbers being kept in this public repository; they remain the owner's (RD-8).
 
 Card text is shown in the app while `SHOW_SKILL_TEXT` is `true` in
