@@ -795,6 +795,24 @@ rule(
 );
 
 rule(
+  { req: ["GR-5", "EQ-8", "TI-5"], m: "M4" },
+  "removing a Back slot's grant from the title it's on raises an alert that names its removal",
+  async () => {
+    const s = await bramWithAldric();
+    const characterId = s.aldric.character.id;
+    const title = await s.bram.addTitle({ name: "Wanderer", grants: [{ kind: "slots", slotKind: "back", amount: 1 }] });
+    const pack = await s.bram.addEntry(characterId, { category: "armor", name: "Traveller's Pack", slotKind: "back" });
+    await s.bram.equip(s.id("aldric-cloak"), "back");
+    expect((await s.bram.equip(pack.id, "back")).outcome, "a second Back item with the title's grant").toBe("allowed");
+    await s.bram.removeGrantFrom({ titleId: title.id }, title.grants![0]!.id);
+    expect(
+      (await s.bram.alerts(characterId)).map((a) => [a.scope, a.equipped, a.allowed, a.lost?.reason]),
+      "Aldric's alerts after removing the title's grant",
+    ).toEqual([[{ type: "slot-kind", id: "back" }, 2, 1, "grant-removed"]]);
+  },
+);
+
+rule(
   { req: ["EQ-5", "IN-14", "NF-5"], m: "M4" },
   "an entry read with its slot gives the character, the entry and where it's equipped, or no entry once it's gone",
   async () => {
