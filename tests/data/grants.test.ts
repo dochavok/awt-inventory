@@ -759,16 +759,16 @@ rule(
     const onTitle = await bram.addGrant({ titleId: title.id }, { kind: "cm", amount: 2 });
     expect((await bram.totals(characterId)).cm.value, "Aldric's CM with both grants").toBe(176);
 
-    const wrong = bram.removeGrant(onHelm.id, { entryId: id("aldric-sword") });
+    const wrong = bram.removeGrantFrom({ entryId: id("aldric-sword") }, onHelm.id);
     await expect(wrong, "removing the helm's grant from Duskfang").rejects.toThrow(NotFoundError);
     await expect(wrong, "the refusal").rejects.toThrow(new RegExp(onHelm.id));
-    const wrongTitle = bram.removeGrant(onHelm.id, { titleId: title.id });
+    const wrongTitle = bram.removeGrantFrom({ titleId: title.id }, onHelm.id);
     await expect(wrongTitle, "removing the helm's grant from the title").rejects.toThrow(NotFoundError);
     expect((await bram.totals(characterId)).cm.value, "Aldric's CM after the refusals").toBe(176);
 
-    await bram.removeGrant(onHelm.id, { entryId: id("aldric-helm") });
+    await bram.removeGrantFrom({ entryId: id("aldric-helm") }, onHelm.id);
     expect((await bram.totals(characterId)).cm.value, "Aldric's CM without the helm's +4").toBe(172);
-    await bram.removeGrant(onTitle.id, { titleId: title.id });
+    await bram.removeGrantFrom({ titleId: title.id }, onTitle.id);
     expect((await bram.totals(characterId)).cm.value, "Aldric's CM without the title's +2").toBe(170);
   },
 );
@@ -786,7 +786,7 @@ rule(
     const pack = await s.bram.addEntry(characterId, { category: "armor", name: "Traveller's Pack", slotKind: "back" });
     await s.bram.equip(s.id("aldric-cloak"), "back");
     expect((await s.bram.equip(pack.id, "back")).outcome, "a second Back item with the wolf's grant").toBe("allowed");
-    await s.bram.removeGrant(grant.id, { entryId: s.id("aldric-wolf") });
+    await s.bram.removeGrantFrom({ entryId: s.id("aldric-wolf") }, grant.id);
     expect(
       (await s.bram.alerts(characterId)).map((a) => [a.scope, a.equipped, a.allowed, a.lost?.reason]),
       "Aldric's alerts after removing the wolf's grant",
@@ -863,7 +863,7 @@ rule(
       hands: 1,
       range: "melee",
     });
-    const checks = await bram.equipFirst(dagger.id, ["main-hand", "off-hand"]);
+    const checks = await bram.equipFirst(characterId, dagger.id, ["main-hand", "off-hand"]);
     expect(
       checks.map((c) => [c.outcome, c.block?.reason]),
       "the checks for the Main hand, then the Off hand",
@@ -898,7 +898,7 @@ rule(
       hands: 1,
       range: "melee",
     });
-    const tried = await bram.equipFirst(first.id, ["off-hand", "main-hand"]);
+    const tried = await bram.equipFirst(characterId, first.id, ["off-hand", "main-hand"]);
     expect(
       tried.map((c) => c.outcome),
       "the dagger tried in the free Off hand first",
@@ -910,7 +910,7 @@ rule(
       range: "melee",
     });
     const before = (await bram.sheet(characterId)).equipped;
-    const checks = await bram.equipFirst(second.id, ["main-hand", "off-hand"]);
+    const checks = await bram.equipFirst(characterId, second.id, ["main-hand", "off-hand"]);
     expect(
       checks.map((c) => [c.outcome, c.block?.reason, c.block?.occupants.map((o) => o.entryId)]),
       "the Bone Knife tried in each full hand",
@@ -919,5 +919,29 @@ rule(
       ["blocked", "slot-full", [first.id]],
     ]);
     expect((await bram.sheet(characterId)).equipped, "what Aldric has equipped afterwards").toEqual(before);
+  },
+);
+
+rule(
+  { req: ["EQ-2", "CH-1"], m: "M4" },
+  "equipping in the first free place refuses an entry that isn't that character's, naming it, and changes nothing",
+  async () => {
+    const { bram, aldric } = await bramWithAldric();
+    const isolde = await seedCharacter(bram, "isolde");
+    const dagger = await bram.addEntry(isolde.character.id, {
+      category: "weapons",
+      name: "Iron Dagger",
+      hands: 1,
+      range: "melee",
+    });
+    const before = (await bram.sheet(aldric.character.id)).equipped;
+    const attempt = bram.equipFirst(aldric.character.id, dagger.id, ["off-hand"]);
+    await expect(attempt, "equipping Isolde's dagger on Aldric").rejects.toThrow(NotFoundError);
+    await expect(attempt, "the refusal").rejects.toThrow(new RegExp(dagger.id));
+    expect((await bram.sheet(aldric.character.id)).equipped, "what Aldric has equipped afterwards").toEqual(before);
+    expect(
+      (await bram.sheet(isolde.character.id)).equipped.some((q) => q.entryId === dagger.id),
+      "Isolde's dagger equipped",
+    ).toBe(false);
   },
 );

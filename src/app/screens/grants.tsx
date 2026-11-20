@@ -272,7 +272,7 @@ export function GrantsEditor({
         busy={remove.busy}
         onRemove={(g) =>
           void remove.run(async () => {
-            await store.removeGrant(g.id, target);
+            await store.removeGrantFrom(target, g.id);
             await onChanged();
           })
         }
@@ -306,11 +306,11 @@ export async function equipIn(services: Services, entryId: string, target: strin
  * can be equipped somewhere (equipTargets isn't empty).
  */
 export async function equipWherever(services: Services, entry: Entry): Promise<void> {
-  const blocks = await services.store.equipFirst(entry.id, equipTargets(entry));
-  if (blocks.at(-1)?.outcome === "allowed") return;
-  // A one-handed weapon tried in both hands: say both are full, and what's in each (EQ-3).
-  const [main, off] = blocks.map((b) => (b.block?.reason === "slot-full" ? b.block.occupants[0] : undefined));
-  if (blocks.length === 2 && main && off) {
+  const checks = await services.store.equipFirst(entry.characterId, entry.id, equipTargets(entry));
+  if (checks.at(-1)?.outcome === "allowed") return;
+  // Every check was a block. A one-handed weapon tried in both hands: say both are full, and what's in each (EQ-3).
+  const [main, off] = checks.map((c) => (c.block?.reason === "slot-full" ? c.block.occupants[0] : undefined));
+  if (checks.length === 2 && main && off) {
     throw new ValidationError(
       "slot",
       // One entry in both hands is a two-handed weapon; two entries can share a name.
@@ -319,5 +319,5 @@ export async function equipWherever(services: Services, entry: Entry): Promise<v
         : `Both hands are full: ${main.name} is in the Main hand and ${off.name} in the Off hand.`,
     );
   }
-  if (blocks[0]) refused(blocks[0]);
+  if (checks[0]) refused(checks[0]);
 }

@@ -154,17 +154,19 @@ export interface InventoryStore {
   // ---------------------------------------------------------------- grants and equipping (GR, EQ)
   addGrant(target: GrantTarget, grant: NewGrant): Promise<Grant>;
   addManualGrant(characterId: Id, reason: string, grants: NewGrant[]): Promise<ManualGrant>;
-  /** GR-5. Given the entry or title it's on, only that is read (NF-5); a grant not on it isn't found. */
-  removeGrant(grantId: Id, target?: GrantTarget): Promise<void>;
+  removeGrant(grantId: Id): Promise<void>;
+  /** GR-5, reading only the entry or title the grant is on (NF-5). A grant that isn't on it isn't found. */
+  removeGrantFrom(target: GrantTarget, grantId: Id): Promise<void>;
   /** A manual grant and every grant in it (GR-2, GR-5). */
   removeManualGrant(characterId: Id, manualGrantId: Id): Promise<void>;
   /** Equips if allowed; otherwise changes nothing. Returns the check either way (EQ-2 to EQ-11). */
   equip(entryId: Id, target: SlotTarget): Promise<EquipCheck>;
   /**
-   * Equips in the first of `targets` that allows it, from one read (EQ-2, NF-5). Returns the
-   * checks made, in order, ending at the one allowed; if none is, nothing changes.
+   * Equips one of the character's entries in the first of `targets` that allows it, from one
+   * read of its sheet (EQ-2, NF-5). Returns the checks made, in order, ending at the one
+   * allowed; if none is, nothing changes.
    */
-  equipFirst(entryId: Id, targets: SlotTarget[]): Promise<EquipCheck[]>;
+  equipFirst(characterId: Id, entryId: Id, targets: SlotTarget[]): Promise<EquipCheck[]>;
   unequip(entryId: Id): Promise<void>;
   setActive(entryId: Id, active: boolean): Promise<void>;
   totals(characterId: Id): Promise<Totals>;

@@ -167,9 +167,9 @@ rule(
       ["read Aldric's sheet with its alerts", (s) => s.sheetWithAlerts(x.characterId)],
       ["read a Healing Draught with its slot", (s) => s.entryWithSlot(x.characterId, x.entryId)],
       ["remove Aldric's manual grant", (s) => s.removeManualGrant(x.characterId, ruling.id)],
-      ["remove Grey Fang's grant", (s) => s.removeGrant(wolfGrant.id, { entryId: wolfId })],
-      ["remove Bram's title's grant", (s) => s.removeGrant(wolfGrant.id, { titleId: x.titleId })],
-      ["equip a Healing Draught", (s) => s.equipFirst(x.entryId, ["main-hand", "off-hand"])],
+      ["remove Grey Fang's grant", (s) => s.removeGrantFrom({ entryId: wolfId }, wolfGrant.id)],
+      ["remove Bram's title's grant", (s) => s.removeGrantFrom({ titleId: x.titleId }, wolfGrant.id)],
+      ["equip a Healing Draught", (s) => s.equipFirst(x.characterId, x.entryId, ["main-hand", "off-hand"])],
     ];
     for (const [who, store] of [
       ["Cass", x.cass],
