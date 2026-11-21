@@ -1,6 +1,6 @@
 // Inventory entries (section 5: IN-1 to IN-16), through the data layer. Skills
 // are in tests/data/skills.test.ts; what entries grant, in grants.test.ts.
-// Weapons saved with the earlier extra damage field are read with it as a grant (IN-3).
+// A weapon's earlier extra damage field is no longer used (IN-3).
 
 import { expect } from "vitest";
 import { NotFoundError, ValidationError } from "../../src/errors";
@@ -140,81 +140,26 @@ rule(
   },
 );
 
-/** Bram's Aldric with a Hand Axe in the Off hand, stored as an earlier version of the app saved it: with `extraDamage`. */
-async function withEarlierAxe(extraDamage: number) {
-  const s = await bramWithAldric();
-  const axe = await s.bram.addEntry(s.characterId, { category: "weapons", name: "Hand Axe", hands: 1, range: "melee" });
-  expect((await s.bram.equip(axe.id, "off-hand")).outcome, "equipping the Hand Axe").toBe("allowed");
-  Object.assign(s.w.db.entries.get(axe.id)!, { extraDamage });
-  const raw = () => s.w.db.entries.get(axe.id) as unknown as Record<string, unknown>;
-  return { ...s, axe, raw };
-}
-
 rule(
   { req: ["IN-3", "GR-13"], m: "M4" },
-  "a weapon saved with the earlier extra damage field is read with that damage as a grant on it, counted while it's equipped",
+  "a weapon whose stored record still has the earlier extra damage field counts no damage from it; null for it is refused too",
   async () => {
-    const { bram, characterId, axe } = await withEarlierAxe(2);
-    const read = await bram.entry(axe.id);
-    expect(read, "the Hand Axe as read").not.toHaveProperty("extraDamage");
-    expect(read.category === "weapons" && read.grants, "the Hand Axe's grants as read").toEqual([
-      { id: expect.any(String), kind: "extra-damage", amount: 2 },
-    ]);
-    const damage = (await bram.totals(characterId)).damage;
-    expect(
-      damage.grants.map((d) => [d.source.type === "entry" && d.source.name, d.amount]),
-      "where Aldric's damage comes from",
-    ).toEqual([["Hand Axe", 2]]);
-    expect(damage.value, "Aldric's damage with the axe").toBe(3);
-    const exported = (await bram.exportJson()).characters[0]!.entries.find((e) => e.id === axe.id)!;
-    expect(exported, "the Hand Axe in the JSON export").not.toHaveProperty("extraDamage");
-    expect(exported.category === "weapons" && exported.grants, "the Hand Axe's grants in the export").toEqual([
-      { id: expect.any(String), kind: "extra-damage", amount: 2 },
-    ]);
-  },
-);
-
-rule(
-  { req: ["IN-3", "GR-13"], m: "M4" },
-  "the first save of a weapon with the earlier field stores its extra damage as a grant, once",
-  async () => {
-    const { bram, axe, raw } = await withEarlierAxe(2);
+    const { w, bram, characterId } = await bramWithAldric();
+    const axe = await bram.addEntry(characterId, { category: "weapons", name: "Hand Axe", hands: 1, range: "melee" });
+    expect((await bram.equip(axe.id, "off-hand")).outcome, "equipping the Hand Axe").toBe("allowed");
+    // As an earlier version of the app stored it.
+    Object.assign(w.db.entries.get(axe.id)!, { extraDamage: 2 });
+    const totals = await bram.totals(characterId);
+    expect(totals.damage.value, "Aldric's damage with the old field on the axe").toBe(1);
+    expect(totals.damage.grants, "where Aldric's damage comes from").toEqual([]);
+    const cleared = bram.updateEntry(axe.id, { extraDamage: null } as never);
+    await expect(cleared, "clearing the old field with null").rejects.toMatchObject({ field: "extraDamage" });
+    await expect(cleared, "the refusal points to Grants").rejects.toThrow(/Grants/);
+    // The field is no longer used, so it never stops an edit.
     await bram.updateEntry(axe.id, { notes: "Old, but sharp." });
-    expect(raw(), "the Hand Axe as stored after a save").not.toHaveProperty("extraDamage");
-    expect(raw().grants, "the Hand Axe's grants as stored").toEqual([
-      { id: expect.any(String), kind: "extra-damage", amount: 2 },
-    ]);
-    const read = await bram.entry(axe.id);
-    expect(read.category === "weapons" && read.grants?.length, "the Hand Axe's grants read again").toBe(1);
-    expect(read.notes, "the Hand Axe's notes").toBe("Old, but sharp.");
-  },
-);
-
-rule(
-  { req: ["IN-3", "GR-13", "GR-5"], m: "M4" },
-  "removing the grant a weapon's earlier field is read as removes it for good",
-  async () => {
-    const { bram, characterId, axe, raw } = await withEarlierAxe(2);
-    const read = await bram.entry(axe.id);
-    const grant = read.category === "weapons" ? read.grants![0]! : undefined;
-    await bram.removeGrantFrom({ entryId: axe.id }, grant!.id);
-    expect(raw(), "the Hand Axe as stored after removing it").not.toHaveProperty("extraDamage");
-    const again = await bram.entry(axe.id);
-    expect(again.category === "weapons" ? (again.grants ?? []) : undefined, "the Hand Axe's grants").toEqual([]);
-    expect((await bram.totals(characterId)).damage.value, "Aldric's damage without it").toBe(1);
-  },
-);
-
-rule(
-  { req: ["IN-3", "GR-13"], m: "M4" },
-  "a weapon's earlier extra damage field of 0 is read as no grant, and cleared on its first save",
-  async () => {
-    const { bram, axe, raw } = await withEarlierAxe(0);
     const read = await bram.entry(axe.id);
     expect(read, "the Hand Axe as read").not.toHaveProperty("extraDamage");
-    expect(read.category === "weapons" ? (read.grants ?? []) : undefined, "the Hand Axe's grants").toEqual([]);
-    await bram.updateEntry(axe.id, { notes: "Plain." });
-    expect(raw(), "the Hand Axe as stored after a save").not.toHaveProperty("extraDamage");
+    expect(read.notes, "the Hand Axe's notes after an edit").toBe("Old, but sharp.");
   },
 );
 

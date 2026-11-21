@@ -144,7 +144,7 @@ A character's inventory has seven categories. This section covers every category
 
 **IN-2 · Must · M2: Rarity and item family.** Weapons, Armor and Items can have an optional **rarity**, from the reference data. Any entry outside Skills can have an optional **item family** (free text, with suggestions: the user's earlier families and the common ones in the reference data). Players may have families the maintainer doesn't know about, so there's no fixed list.
 
-**IN-3 · Must · M2: Weapons.** Weapons also have: one-handed or two-handed; melee or ranged; and a **weapon group** (free text, with the user's earlier weapon groups offered as suggestions). A weapon's extra damage is a grant on it (GR-1), counted while it's equipped (GR-3, GR-13). A weapon saved with the earlier extra damage field keeps it, read as such a grant.
+**IN-3 · Must · M2: Weapons.** Weapons also have: one-handed or two-handed; melee or ranged; and a **weapon group** (free text, with the user's earlier weapon groups offered as suggestions). A weapon's extra damage is a grant on it (GR-1), counted while it's equipped (GR-3, GR-13).
 
 **IN-4 · Must · M2: Armor.** Armor also has the **paper-doll slot** it fits, from the reference data (a shield fits Off hand).
 
