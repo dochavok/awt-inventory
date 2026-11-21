@@ -65,7 +65,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | GR-3 | Must | M4 | browser/equipping.spec.ts (2), data/grants.test.ts (3), rules/totals.test.ts (14) |
 | GR-4 | Must | M4 | browser/equipping.spec.ts (2), properties/totals.test.ts (2), rules/totals.test.ts (9) |
 | GR-5 | Must | M4 | access/firestore-store.test.ts (1), browser/equipping.spec.ts (3), data/grants.test.ts (13), data/privacy.test.ts (1), properties/totals.test.ts (1), rules/equipping.test.ts (1), rules/totals.test.ts (4) |
-| GR-6 | Should | M5 | rules/totals.test.ts (2) |
+| GR-6 | Should | M4 | rules/totals.test.ts (2) |
 | GR-7 | Must | M4 | browser/equipping.spec.ts (1), data/search-export.test.ts (1), rules/totals.test.ts (8) |
 | GR-8 | Must | M4 | browser/equipping.spec.ts (4), properties/totals.test.ts (1), rules/totals.test.ts (5) |
 | GR-9 | Must | M4 | browser/equipping.spec.ts (2), properties/totals.test.ts (1), rules/totals.test.ts (4) |

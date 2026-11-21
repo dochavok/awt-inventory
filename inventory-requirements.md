@@ -266,7 +266,7 @@ A grant in the skill list (SK-7) can belong to a **group**, such as the Holy Die
 
 **GR-5 · Must · M4: Always worked out.** Totals, slot counts and allowances are recalculated from the grants on every change. Nothing that comes from a grant is stored as a number to keep up to date by hand. So trading, unequipping or deleting a source removes its grants immediately.
 
-**GR-6 · Should · M5: Effects as grants.** A source can also grant a **resistance**, an **immunity** or a **CR bonus**, in text (e.g. "Resistance: fire"). The character's Notes page lists the ones that currently apply, with their sources, above the character's free-text notes.
+**GR-6 · Should · M4: Effects as grants.** A source can also grant a **resistance**, an **immunity** or a **CR bonus**, in text (e.g. "Resistance: fire"). The character's page lists the ones that currently apply, with their sources, above the character's notes.
 
 ### 8.2 Totals
 
@@ -572,8 +572,8 @@ Each milestone from M2 on is done when all of its tests from M1 pass, with no te
 | **M1: Functional tests** | The test harness with stubbed interfaces (TF-2); fixtures and the test reference data (TF-3); rule scenarios, property tests and access rule tests for every requirement; the coverage table; CI that runs them as expected failures and enforces the test-change rule. No app logic. | none |
 | **M2: Core records** | Accounts and privacy (AC, PV); characters and titles (CH, TI-1 to TI-4); inventory (IN, except IN-11); skills from the list (SK-1 to SK-5, SK-8); history (HI-1 to HI-4); reference data and its CI checks (RD); home screen (NF-2); invite-only sign-up (NF-13). Runs in a test environment only. | none |
 | **M3: Search, export and first release** | Search (SE), both exports (EX), working offline (NF-3), reports to the maintainer (SP-1 to SP-3), acquisition sources (IN-11), history filters (HI-5). Operations: hosting, protected deployment, backups with a tested restore, error reports (NF-10 to NF-12); phone-sized browser tests (TF-13); the maintainer guide; the documentation site, with pages for everything built so far (section 19). Then Craig's trial (TF-14). | **0.x**, for Craig only |
-| **M4: Equipping and totals** | Grants (GR-1 to GR-5); class bonus, CM, mitigation, hearts and dice (GR-7 to GR-12); paper doll, hands, arcane slots and over-limit alerts (EQ-1 to EQ-8); title grants (TI-5); skill grants and the record check (SK-6, SK-7). | 0.x |
-| **M5: Permissions, rarity and 1.0** | Permissions and rarity (EQ-9 to EQ-11); effects as grants (GR-6); skill list changes (SK-9). Then a full review of the user documentation, and invite-only sign-up is lifted (NF-13). | **1.0**, open to players |
+| **M4: Equipping and totals** | Grants (GR-1 to GR-5), with effects as grants (GR-6); class bonus, CM, mitigation, hearts and dice (GR-7 to GR-12); paper doll, hands, arcane slots and over-limit alerts (EQ-1 to EQ-8); title grants (TI-5); skill grants and the record check (SK-6, SK-7). | 0.x |
+| **M5: Permissions, rarity and 1.0** | Permissions and rarity (EQ-9 to EQ-11); skill list changes (SK-9). Then a full review of the user documentation, and invite-only sign-up is lifted (NF-13). | **1.0**, open to players |
 | **M6: Waiting on the DMs** | Quickslots, DM Arcane and ally rules (QS-1, DA-1, AL-1), each written out in full and approved once its DM answer arrives. | 1.x |
 | **M7: Faire-day to-do list** | Reviewed with Craig first, then TD-1 to TD-6. | 1.x |
 
