@@ -113,7 +113,7 @@ export const skillsFile = z.strictObject({
 const grantBase = { id, condition: z.string().optional() };
 /**
  * GR-1: grants of the same kind in a group (for slots or an allowance, the same slot kind or rarity):
- * only the largest is used. Not on permissions or effects.
+ * only the largest is used. Not on permissions, extra damage or effects.
  */
 const grouped = { ...grantBase, group: id.optional() };
 
@@ -131,6 +131,13 @@ const grant = z.discriminatedUnion("kind", [
     ...grantBase,
     kind: z.literal("permission"),
     permission: z.enum(["weapon-use", "ranged-weapon-use", "armor-use", "dual-wielding"]),
+  }),
+  // GR-13: listed, never totalled, so never grouped.
+  z.strictObject({
+    ...grantBase,
+    kind: z.literal("extra-damage"),
+    amount: z.number().int().min(1),
+    damageType: name.optional(),
   }),
   z.strictObject({
     ...grantBase,

@@ -19,7 +19,7 @@ import {
   type ManualGrant,
   type Totals,
 } from "../../rules/types";
-import { effectLines, grantText, totalsView } from "../grant-text";
+import { effectLines, extraDamageLines, grantText, totalsView } from "../grant-text";
 import { go, href } from "../router";
 import type { Services } from "../services";
 import { VerifyEmail } from "../Shell";
@@ -281,10 +281,12 @@ export function CharacterPage({ services, id }: { services: Services; id: string
 
 /**
  * GR-7 to GR-12: the class bonus on its own line, each total with its breakdown, and a
- * button for each that opens every grant in it, situational ones apart; then the combat dice.
+ * button for each that opens every grant in it, situational ones apart; then the combat dice,
+ * and the extra damage that counts (GR-13).
  */
 function TotalsCard({ totals }: { totals: Totals }) {
   const view = totalsView(totals);
+  const extraDamage = extraDamageLines(totals);
   const [open, setOpen] = useState<string | null>(null);
   return (
     <section className="card totals" aria-labelledby="totals-title">
@@ -330,6 +332,17 @@ function TotalsCard({ totals }: { totals: Totals }) {
       <p className="total">{view.dice}</p>
       {view.situationalDice.length > 0 && (
         <p className="hint">Situational dice, not rolled every time: {view.situationalDice.join(", ")}</p>
+      )}
+      {/* GR-13: each on its own, never added together, since each may apply only to some attacks. */}
+      {extraDamage.length > 0 && (
+        <>
+          <h3 id="extra-damage-title">Extra damage</h3>
+          <ul aria-labelledby="extra-damage-title">
+            {extraDamage.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
+          </ul>
+        </>
       )}
     </section>
   );

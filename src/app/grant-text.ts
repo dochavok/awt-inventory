@@ -29,6 +29,7 @@ export const KIND_NAMES: Record<NewGrant["kind"], string> = {
   "arcane-slots": "Arcane slots",
   allowance: "Rarity allowance",
   permission: "Permission",
+  "extra-damage": "Extra damage",
   effect: "Effect",
 };
 
@@ -50,6 +51,10 @@ export const EFFECT_NAMES: Record<Effect, string> = {
 /** A reference data entry's name by its ID, or the ID if the list doesn't have it. */
 export const named = (list: { id: string; name: string }[], id: string) => list.find((x) => x.id === id)?.name ?? id;
 const plural = (n: number, word: string) => `${word}${n === 1 ? "" : "s"}`;
+
+/** Extra damage's amount and type (GR-13), e.g. "+1 heart fire" or "+2 hearts". */
+const damageText = ({ amount, damageType }: { amount: number; damageType?: string }) =>
+  `+${amount} ${amount === 1 ? "heart" : "hearts"}${damageType ? ` ${damageType}` : ""}`;
 
 /** A grant as the app lists it, e.g. "CM +2", "+1 Back slot", "Extra die 1d6 (vs Undead)". */
 export function grantText(grant: Grant | NewGrant, ref: ReferenceData): string {
@@ -79,6 +84,9 @@ export function grantText(grant: Grant | NewGrant, ref: ReferenceData): string {
     case "permission":
       // A value the app doesn't know (an older record) shows as stored, like `named`.
       text = `Permission: ${PERMISSION_NAMES[grant.permission] ?? grant.permission}`;
+      break;
+    case "extra-damage":
+      text = `Extra damage ${damageText(grant)}`;
       break;
     case "effect":
       text = `${EFFECT_NAMES[grant.effect] ?? grant.effect}: ${grant.text}`;
@@ -146,6 +154,17 @@ function grantLineText(line: GrantLine, classBonus: Totals["classBonus"]): strin
 export function effectLines(totals: Totals, ref: ReferenceData): string[] {
   return totals.effects.map(
     ({ source, ...effect }) => `${grantText({ kind: "effect", ...effect }, ref)} · ${sourceLabel(source)}`,
+  );
+}
+
+/**
+ * Every extra damage grant that counts (GR-13), each on its own with where it comes from as
+ * slots say it (EQ-5) and its condition, e.g. "+1 heart fire (Ember Mark)" or
+ * "+2 hearts (Title: Wanderer, vs Undead)".
+ */
+export function extraDamageLines(totals: Totals): string[] {
+  return totals.extraDamage.map(
+    (d) => `${damageText(d)} (${[sourceLabel(d.source), ...(d.condition ? [d.condition] : [])].join(", ")})`,
   );
 }
 

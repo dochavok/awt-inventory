@@ -1,6 +1,6 @@
 // Totals (section 8.2): class bonus, CM, mitigation, max hearts and combat dice,
 // each with its breakdown and every grant in it (GR-7 to GR-12), plus the
-// permissions and effects that apply. Pure functions.
+// permissions, extra damage (GR-13) and effects that apply. Pure functions.
 
 import { countedGrants, grantLine, isSituational, withCondition, type SourcedGrant } from "./grants";
 import {
@@ -79,7 +79,7 @@ export function dieSourceName(die: ExtraDie, classBonus: Totals["classBonus"]): 
   return die.source.type === "level-chart" ? classBonus.name : sourceName(die.source);
 }
 
-/** Class bonus, CM, mitigation, hearts, dice, permissions and effects (GR-1 to GR-12, EQ-9, GR-6). */
+/** Class bonus, CM, mitigation, hearts, dice, permissions, extra damage and effects (GR-1 to GR-13, EQ-9, GR-6). */
 export function computeTotals(sheet: CharacterSheet, ref: ReferenceData): Totals {
   const { className, level } = sheet.character;
   const row = levelRow(ref, className, level);
@@ -89,6 +89,7 @@ export function computeTotals(sheet: CharacterSheet, ref: ReferenceData): Totals
   const extra: ExtraDie[] = row.classBonusDice ? [{ die: row.classBonusDice, source: { type: "level-chart" } }] : [];
   const situationalDice: ExtraDie[] = [];
   const permissions = new Map<Permission, Totals["permissions"][number]["sources"]>();
+  const extraDamage: Totals["extraDamage"] = [];
   const effects: Totals["effects"] = [];
   for (const { grant, source } of counted) {
     if (grant.kind === "die") {
@@ -97,6 +98,15 @@ export function computeTotals(sheet: CharacterSheet, ref: ReferenceData): Totals
       const sources = permissions.get(grant.permission);
       if (sources) sources.push(source);
       else permissions.set(grant.permission, [source]);
+    } else if (grant.kind === "extra-damage") {
+      // GR-13: listed with its condition, if any, like every other; never added together.
+      const damageType = grant.damageType?.trim();
+      extraDamage.push({
+        amount: grant.amount,
+        ...(damageType ? { damageType } : {}),
+        source,
+        ...withCondition(grant),
+      });
     } else if (grant.kind === "effect") {
       effects.push({ effect: grant.effect, text: grant.text, source, ...withCondition(grant) });
     }
@@ -116,6 +126,7 @@ export function computeTotals(sheet: CharacterSheet, ref: ReferenceData): Totals
       const sources = permissions.get(permission);
       return sources ? [{ permission, sources }] : [];
     }),
+    extraDamage,
     effects,
   };
 }

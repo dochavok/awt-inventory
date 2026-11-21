@@ -46,6 +46,8 @@ export type Grant = GrantBase &
     | { kind: "arcane-slots"; amount: number }
     | { kind: "allowance"; rarity: Id; amount: number }
     | { kind: "permission"; permission: Permission }
+    /** Extra damage in hearts, optionally of a type such as "fire"; listed, never totalled (GR-13). */
+    | { kind: "extra-damage"; amount: number; damageType?: string }
     | { kind: "effect"; effect: Effect; text: string }
   );
 
@@ -374,6 +376,8 @@ export interface Totals {
   hearts: Total;
   dice: { base: string; extra: ExtraDie[]; situational: ExtraDie[] };
   permissions: { permission: Permission; sources: SourceRef[] }[];
+  /** GR-13: every extra damage grant that counts, each on its own, never added together. */
+  extraDamage: { amount: number; damageType?: string; source: SourceRef; condition?: string }[];
   /** GR-6: resistances, immunities and CR bonuses that apply now. */
   effects: { effect: Effect; text: string; source: SourceRef; condition?: string }[];
 }

@@ -326,13 +326,15 @@ const GRANT_FIELDS: Record<NewGrant["kind"], readonly string[]> = {
   "arcane-slots": ["amount"],
   allowance: ["rarity", "amount"],
   permission: ["permission"],
+  "extra-damage": ["amount", "damageType"],
   effect: ["effect", "text"],
 };
 
 /**
  * One grant, checked: a kind from GR-1 (or an effect, GR-6), a whole amount of
  * 1 or more, a die like 1d6, a slot kind or rarity from the reference data that
- * isn't retired, and an optional condition (GR-4). Every refusal names `grants`.
+ * isn't retired, an optional damage type (GR-13), and an optional condition
+ * (GR-4). Every refusal names `grants`.
  */
 export function grant(input: unknown, ref: ReferenceData): NewGrant {
   if (typeof input !== "object" || input === null || Array.isArray(input)) {
@@ -377,6 +379,11 @@ export function grant(input: unknown, ref: ReferenceData): NewGrant {
     case "permission":
       out = { kind, permission: choice("grants", g.permission, PERMISSIONS, "permission") };
       break;
+    case "extra-damage": {
+      const damageType = optionalText("grants", g.damageType, LIMITS.shortText, "damage type")?.trim();
+      out = { kind, amount: amount(), ...(damageType ? { damageType } : {}) };
+      break;
+    }
     case "effect":
       out = {
         kind,

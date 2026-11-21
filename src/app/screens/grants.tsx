@@ -32,6 +32,8 @@ interface Fields {
   slotKind: string;
   rarity: string;
   permission: Permission;
+  /** Extra damage's type, such as "fire" (GR-13). */
+  damageType: string;
   /** An effect's kind and text (GR-6). */
   effect: Effect;
   text: string;
@@ -51,6 +53,7 @@ function emptyFields(ref: ReferenceData): Fields {
     slotKind: chooseable(ref.slotKinds)[0]?.id ?? "",
     rarity: chooseable(ref.rarities)[0]?.id ?? "",
     permission: "weapon-use",
+    damageType: "",
     effect: "resistance",
     text: "",
     condition: "",
@@ -76,6 +79,10 @@ function grantFrom(f: Fields): NewGrant {
       return { kind: "allowance", rarity: f.rarity, amount, ...condition };
     case "permission":
       return { kind: "permission", permission: f.permission, ...condition };
+    case "extra-damage": {
+      const damageType = f.damageType.trim();
+      return { kind: "extra-damage", amount, ...(damageType ? { damageType } : {}), ...condition };
+    }
     case "effect":
       return { kind: "effect", effect: f.effect, text: f.text.trim(), ...condition };
   }
@@ -168,7 +175,11 @@ export function GrantForm({
           ))}
         </select>
       </div>
-      {(f.kind === "cm" || f.kind === "mitigation" || f.kind === "hearts" || f.kind === "allowance") &&
+      {(f.kind === "cm" ||
+        f.kind === "mitigation" ||
+        f.kind === "hearts" ||
+        f.kind === "allowance" ||
+        f.kind === "extra-damage") &&
         amount(LIMITS.grantAmount)}
       {(f.kind === "slots" || f.kind === "arcane-slots") && amount(LIMITS.slotGrant)}
       {f.kind === "die" && (
@@ -213,6 +224,17 @@ export function GrantForm({
           </select>
         </label>
       )}
+      {f.kind === "extra-damage" && (
+        <label>
+          Type
+          <input
+            maxLength={LIMITS.shortText}
+            value={f.damageType}
+            onChange={(e) => set("damageType")(e.target.value)}
+          />
+          <span className="hint">Optional, such as &quot;fire&quot;. The amount is in hearts.</span>
+        </label>
+      )}
       {f.kind === "effect" && (
         <>
           {/* Labelled apart, like Kind: a label around a select takes its options' text into its name too. */}
@@ -241,7 +263,9 @@ export function GrantForm({
         <span className="hint">
           {f.kind === "effect"
             ? 'Such as "1/day". Effects are listed, never added in, with or without one.'
-            : 'Such as "vs Evil". A grant with a condition is listed, but not added in.'}
+            : f.kind === "extra-damage"
+              ? 'Such as "vs Undead". Extra damage is listed, never added in, with or without one.'
+              : 'Such as "vs Evil". A grant with a condition is listed, but not added in.'}
         </span>
       </label>
       <Feedback error={add.error} notice={add.notice} />
