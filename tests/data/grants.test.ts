@@ -813,6 +813,97 @@ rule(
 );
 
 rule(
+  { req: ["GR-5", "EQ-8", "TI-5", "NF-5"], m: "M4" },
+  "however a Back slot's grant is removed, the alert names the manual grant, entry or title it came from",
+  async () => {
+    type Setup = Awaited<ReturnType<typeof bramWithAldric>>;
+    const back = { kind: "slots", slotKind: "back", amount: 1 } as const;
+    /** Gives Aldric a second Back slot from one source; the function it returns removes that grant. */
+    const cases: [string, object, string, (s: Setup) => Promise<() => Promise<unknown>>][] = [
+      [
+        "a manual grant's, by its ID alone",
+        { type: "manual", reason: "DM ruling" },
+        'came from the grant "DM ruling", which you removed',
+        async ({ bram, aldric }) => {
+          const manual = await bram.addManualGrant(aldric.character.id, "DM ruling", [back]);
+          return () => bram.removeGrant(manual.grants[0]!.id);
+        },
+      ],
+      [
+        "a whole manual grant",
+        { type: "manual", reason: "DM ruling" },
+        'came from the grant "DM ruling", which you removed',
+        async ({ bram, aldric }) => {
+          const manual = await bram.addManualGrant(aldric.character.id, "DM ruling", [back]);
+          return () => bram.removeManualGrant(aldric.character.id, manual.id);
+        },
+      ],
+      [
+        "Grey Fang's, by its ID alone",
+        { type: "entry", name: "Grey Fang" },
+        "came from Grey Fang, which you removed",
+        async ({ bram, id }) => {
+          const grant = await bram.addGrant({ entryId: id("aldric-wolf") }, back);
+          return () => bram.removeGrant(grant.id);
+        },
+      ],
+      [
+        "Grey Fang's, from Grey Fang",
+        { type: "entry", name: "Grey Fang" },
+        "came from Grey Fang, which you removed",
+        async ({ bram, id }) => {
+          const grant = await bram.addGrant({ entryId: id("aldric-wolf") }, back);
+          return () => bram.removeGrantFrom({ entryId: id("aldric-wolf") }, grant.id);
+        },
+      ],
+      [
+        "a player-level title's, by its ID alone",
+        { type: "title", name: "Wanderer" },
+        "came from the title Wanderer, which you removed",
+        async ({ bram }) => {
+          const title = await bram.addTitle({ name: "Wanderer", grants: [back] });
+          return () => bram.removeGrant(title.grants![0]!.id);
+        },
+      ],
+      [
+        "a player-level title's, from the title",
+        { type: "title", name: "Wanderer" },
+        "came from the title Wanderer, which you removed",
+        async ({ bram }) => {
+          const title = await bram.addTitle({ name: "Wanderer", grants: [back] });
+          return () => bram.removeGrantFrom({ titleId: title.id }, title.grants![0]!.id);
+        },
+      ],
+    ];
+    for (const [what, source, cause, setUp] of cases) {
+      const s = await bramWithAldric();
+      // Isolde's sheet is read too where the grant is looked for, or the title counts for her.
+      const isolde = await seedCharacter(s.bram, "isolde");
+      const characterId = s.aldric.character.id;
+      const remove = await setUp(s);
+      const pack = await s.bram.addEntry(characterId, {
+        category: "armor",
+        name: "Traveller's Pack",
+        slotKind: "back",
+      });
+      await s.bram.equip(s.id("aldric-cloak"), "back");
+      expect((await s.bram.equip(pack.id, "back")).outcome, `a second Back item before removing ${what}`).toBe(
+        "allowed",
+      );
+      await remove();
+      const alerts = await s.bram.alerts(characterId);
+      expect(
+        alerts.map((a) => [a.scope, a.equipped, a.allowed, a.lost?.reason]),
+        `Aldric's alerts after removing ${what}`,
+      ).toEqual([[{ type: "slot-kind", id: "back" }, 2, 1, "grant-removed"]]);
+      expect(alerts[0]!.lost?.source, `the source Aldric's alert names after removing ${what}`).toMatchObject(source);
+      expect(alerts[0]!.message, `Aldric's alert after removing ${what}`).toContain(cause);
+      expect(await s.bram.alerts(isolde.character.id), `Isolde's alerts after removing ${what}`).toEqual([]);
+    }
+  },
+);
+
+rule(
   { req: ["EQ-5", "IN-14", "NF-5"], m: "M4" },
   "an entry read with its slot gives the character, the entry and where it's equipped, or no entry once it's gone",
   async () => {
