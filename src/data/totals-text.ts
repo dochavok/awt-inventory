@@ -54,7 +54,8 @@ export interface TotalRow {
 /**
  * CM, mitigation, max hearts, combat dice and damage, each with its breakdown; the class
  * bonus's line under its own name. Damage's lines are the base, then each extra damage that
- * counts, e.g. "+1 heart fire" "(Title: Ember Mark)" (GR-13).
+ * counts, e.g. "+1 heart fire" "from Title: Ember Mark" (GR-13), so the sheet's brackets
+ * around a total's lines hold no brackets of their own.
  */
 export function totalRows(totals: Totals): {
   cm: TotalRow;
@@ -81,7 +82,7 @@ export function totalRows(totals: Totals): {
       value: hearts(damage.value),
       lines: [
         { label: "base", value: damage.base },
-        ...damage.grants.map((d) => ({ label: damageText(d), value: `(${damageSource(d)})` })),
+        ...damage.grants.map((d) => ({ label: damageText(d), value: `from ${damageSource(d)}` })),
       ],
     },
   };

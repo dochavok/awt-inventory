@@ -51,15 +51,15 @@ import * as check from "./validate";
 /** IN-15: how long Undo works after a hard delete. */
 export const UNDO_SECONDS = 10;
 
-/** IN-3: the ID of the grant an entry saved with the earlier extra damage field is read with. */
-const EARLIER_DAMAGE_GRANT = "extra-damage-field";
-
 /** EX-4: the JSON export's format version. */
 const EXPORT_FORMAT_VERSION = 1;
 
-/** An entry or character as the app sees it: without what only the store keeps (backend.ts). */
+/**
+ * An entry or character as the app sees it: without what only the store keeps (backend.ts),
+ * nor a weapon's earlier extra damage field, which is no longer used (IN-3).
+ */
 function plainEntry(stored: StoredEntry): Entry {
-  const { slot: _slot, ...entry } = stored;
+  const { slot: _slot, extraDamage: _earlier, ...entry } = stored as StoredEntry & { extraDamage?: unknown };
   return entry as Entry;
 }
 
@@ -106,19 +106,8 @@ function changedFields(before: object, after: object, skip: string[]): Record<st
   return out;
 }
 
-export function createRecordsStore(stored: Backend, context: StoreContext, label: string): InventoryStore {
+export function createRecordsStore(backend: Backend, context: StoreContext, label: string): InventoryStore {
   const { clock, ref, settings } = context;
-  // IN-3: every entry is read through `current`, wherever it's read from.
-  const backend: Backend = {
-    ...stored,
-    async entry(entryId) {
-      const found = await stored.entry(entryId);
-      return found === undefined || found === "not-mine" ? found : current(found);
-    },
-    async entries(characterId) {
-      return (await stored.entries(characterId)).map(current);
-    },
-  };
   const now = () => toStoredTime(clock.now());
   const later = (what: string, milestone: string) => laterIn(`${label}.${what}`, milestone);
 
@@ -147,34 +136,6 @@ export function createRecordsStore(stored: Backend, context: StoreContext, label
 
   async function ownCharacter(characterId: Id): Promise<Character> {
     return plainCharacter(await storedCharacter(characterId));
-  }
-
-  /**
-   * IN-3: the grants of each entry read with the earlier extra damage field, by entry ID. The
-   * next write to that entry saves them and clears the field (`update`).
-   */
-  const earlierField = new Map<Id, Grant[] | undefined>();
-
-  /**
-   * IN-3: a weapon saved with the earlier extra damage field is read with that damage as a grant
-   * on it instead (none for 0), so it counts while it's equipped like any other (GR-13). The
-   * grant isn't added twice if a write saved it but couldn't clear the field (each field is
-   * written on its own, NF-3).
-   */
-  function current(entry: StoredEntry): StoredEntry {
-    if (!("extraDamage" in entry) || entry.category === "skills") return entry;
-    const { extraDamage, ...rest } = entry as StoredEntry & { extraDamage: unknown };
-    const read = rest as Exclude<StoredEntry, { category: "skills" }>;
-    if (
-      typeof extraDamage === "number" &&
-      Number.isInteger(extraDamage) &&
-      extraDamage > 0 &&
-      !read.grants?.some((g) => g.id === EARLIER_DAMAGE_GRANT)
-    ) {
-      read.grants = [...(read.grants ?? []), { id: EARLIER_DAMAGE_GRANT, kind: "extra-damage", amount: extraDamage }];
-    }
-    earlierField.set(read.id, read.grants);
-    return read;
   }
 
   /** The entry as stored, with where it's equipped; one used up or traded away isn't found. */
@@ -416,14 +377,7 @@ export function createRecordsStore(stored: Backend, context: StoreContext, label
   }
 
   function update(kind: "character" | "entry" | "title", id: Id, fields: Record<string, unknown>): Change[] {
-    if (Object.keys(fields).length === 0) return [];
-    // IN-3: an entry read with the earlier extra damage field is saved with its grant instead.
-    if (kind === "entry" && earlierField.has(id)) {
-      const grants = earlierField.get(id);
-      fields = { ...(grants ? { grants } : {}), ...fields, extraDamage: undefined };
-      earlierField.delete(id);
-    }
-    return [{ op: "update", kind, id, fields, at: now() }];
+    return Object.keys(fields).length === 0 ? [] : [{ op: "update", kind, id, fields, at: now() }];
   }
 
   // ---------------------------------------------------------------- skills (SK)

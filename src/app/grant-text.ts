@@ -184,7 +184,10 @@ export function totalsView(totals: Totals): {
     ),
     damage: {
       heading: `${rows.damage.label} ${rows.damage.value}`,
-      lines: rows.damage.lines.map((l) => `${l.label} ${l.value}`),
+      lines: [
+        `base ${totals.damage.base}`,
+        ...totals.damage.grants.map((d) => `${damageText(d)} (${damageSource(d)})`),
+      ],
       situational: totals.damage.situational.map((d) => `${damageText(d)} (${damageSource(d)})`),
     },
   };

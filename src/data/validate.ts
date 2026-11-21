@@ -242,7 +242,7 @@ export function itemEntry(
     throw new ValidationError("category", `${String(input.category)} isn't a category entries can be added to.`);
   }
   // IN-3: the earlier field is refused with where extra damage goes now, not as an unknown field.
-  if (category === "weapons" && input.extraDamage !== undefined && input.extraDamage !== null) {
+  if (category === "weapons" && input.extraDamage !== undefined) {
     throw new ValidationError("extraDamage", "A weapon's extra damage is a grant now: add it under Grants.");
   }
   const allowed = new Set<string>([...COMMON, ...CATEGORY_FIELDS[category]]);
