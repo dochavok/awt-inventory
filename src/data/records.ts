@@ -354,7 +354,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     return (await storedCharacters()).filter((c) => titleApplies(scope, c.id));
   }
 
-  const charactersUnder = async (scope: TitleScope): Promise<Id[]> => (await storedUnder(scope)).map((c) => c.id);
+  const ids = (characters: StoredCharacter[]): Id[] => characters.map((c) => c.id);
 
   /** The class a correction changes to (CH-2a): a class, and not the one the character has. */
   function classCorrection(character: Character, to: unknown): ClassName {
@@ -472,16 +472,16 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     const grant = all.find((g) => g.id === grantId);
     if (!grant) throw new NotFoundError("grant", grantId);
     let losing: Id[] = [];
+    let characters: StoredCharacter[] | undefined;
     if (losesSlots([grant])) {
       if (source.kind === "title") {
-        // A title's characters, read as stored, are the sheets its removal reads.
-        const characters = await storedUnder(source.title.scope);
-        known = { ...known, characters };
-        losing = characters.map((c) => c.id);
+        characters = await storedUnder(source.title.scope);
+        losing = ids(characters);
       } else if (countsNow(source.entry)) losing = [source.entry.characterId];
     }
     const grants = all.filter((g) => g.id !== grantId);
-    await writeLosing(update(source.kind, sourceId(source), { grants }), "grant-removed", losing, known);
+    const read = characters ? { ...known, characters } : known;
+    await writeLosing(update(source.kind, sourceId(source), { grants }), "grant-removed", losing, read);
   }
 
   // ---------------------------------------------------------------- titles (TI)
@@ -698,16 +698,20 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       const checked = await checkScope(scope);
       // EQ-8: the characters it no longer applies to lose its slots.
       const losing = losesSlots(title.grants)
-        ? (await charactersUnder(title.scope)).filter((id) => !titleApplies(checked, id))
+        ? (await storedUnder(title.scope)).filter((c) => !titleApplies(checked, c.id))
         : [];
-      await writeLosing(update("title", titleId, { scope: checked }), "title-moved", losing);
+      await writeLosing(update("title", titleId, { scope: checked }), "title-moved", ids(losing), {
+        characters: losing,
+      });
       return { ...title, scope: checked };
     },
 
     async removeTitle(titleId) {
       const title = await ownTitle(titleId);
-      const losing = losesSlots(title.grants) ? await charactersUnder(title.scope) : [];
-      await writeLosing([{ op: "delete", kind: "title", id: titleId }], "title-removed", losing);
+      const losing = losesSlots(title.grants) ? await storedUnder(title.scope) : [];
+      await writeLosing([{ op: "delete", kind: "title", id: titleId }], "title-removed", ids(losing), {
+        characters: losing,
+      });
     },
 
     async listTitles() {
