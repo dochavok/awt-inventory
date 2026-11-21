@@ -268,7 +268,10 @@ rule(
       amount: 2,
     });
     const title = (await bram.listTitles()).find((t) => t.name === "Friend of the Forest")!;
-    const onTitle = await bram.addGrant({ titleId: title.id }, { kind: "extra-damage", amount: 1, damageType: " fire " });
+    const onTitle = await bram.addGrant(
+      { titleId: title.id },
+      { kind: "extra-damage", amount: 1, damageType: " fire " },
+    );
     expect(onTitle, "the title's extra damage as kept, its type trimmed").toMatchObject({
       kind: "extra-damage",
       amount: 1,

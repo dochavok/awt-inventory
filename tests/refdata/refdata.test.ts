@@ -282,7 +282,9 @@ rule(
       const files = withDamage(damage);
       expect(problemsFor(files), `problems with extra damage ${JSON.stringify(damage)}`).toEqual([]);
       expect(
-        loadReferenceData(files).skillGrants.find((g) => g.skill === "iron-guard")?.grants.at(-1),
+        loadReferenceData(files)
+          .skillGrants.find((g) => g.skill === "iron-guard")
+          ?.grants.at(-1),
         `Iron Guard's extra damage ${JSON.stringify(damage)}`,
       ).toEqual({ id: "sg-x-guard-dmg", kind: "extra-damage", ...damage });
     }
