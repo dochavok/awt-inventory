@@ -144,7 +144,7 @@ A character's inventory has seven categories. This section covers every category
 
 **IN-2 · Must · M2: Rarity and item family.** Weapons, Armor and Items can have an optional **rarity**, from the reference data. Any entry outside Skills can have an optional **item family** (free text, with suggestions: the user's earlier families and the common ones in the reference data). Players may have families the maintainer doesn't know about, so there's no fixed list.
 
-**IN-3 · Must · M2: Weapons.** Weapons also have: one-handed or two-handed; melee or ranged; a **weapon group** (free text, with the user's earlier weapon groups offered as suggestions); and **extra damage** in hearts (shown on the weapon, never added to a total).
+**IN-3 · Must · M2: Weapons.** Weapons also have: one-handed or two-handed; melee or ranged; and a **weapon group** (free text, with the user's earlier weapon groups offered as suggestions). A weapon's extra damage is a grant on it (GR-1), counted while it's equipped (GR-3, GR-13). A weapon saved with the earlier extra damage field keeps it, read as such a grant.
 
 **IN-4 · Must · M2: Armor.** Armor also has the **paper-doll slot** it fits, from the reference data (a shield fits Off hand).
 
@@ -284,7 +284,7 @@ A grant in the skill list (SK-7) can belong to a **group**, such as the Holy Die
 
 **GR-12 · Must · M4: Where it comes from.** For each total, the user can open a list of every grant in it: the source, its category and the amount. Situational grants are listed separately under each total they would affect.
 
-**GR-13 · Should · M4: Extra damage.** The character's page lists every extra damage grant that counts, each with its amount, type and source, e.g. *+1 heart fire (Ember Mark)*. They're listed, never added into one total, since each may apply only to some attacks.
+**GR-13 · Should · M4: Damage.** A character's damage is a base of 1 heart plus every extra damage grant that counts and isn't situational, whatever its type. It's shown as a total with one line per grant, each with its amount, type and source, e.g. *Damage 3 hearts: base 1, +1 heart fire (Ember Mark), +1 heart (True Warrior)*. Each equipped weapon adds its own: two weapons with +2 each make 5 hearts. Situational extra damage, such as Berserk's (1/combat), is listed apart and never added in (GR-4).
 
 ## 9. Equipping
 
@@ -354,7 +354,7 @@ A two-handed weapon gives no Dual Wielding warning until Q1 is answered.
 **EX-1 · Must · M3: Printable character sheet.** The user can create a PDF for one character, or for all characters that aren't retired. For each character it shows:
 
 - name, class and level;
-- the totals with their breakdowns (once M4 exists);
+- the totals with their breakdowns (once M4 exists), including damage with where it comes from (GR-13);
 - what's equipped (the paper doll and arcane slots);
 - every category with quantities, and skills with their usage and tier;
 - titles with their descriptions;
@@ -575,7 +575,7 @@ Each milestone from M2 on is done when all of its tests from M1 pass, with no te
 | **M1: Functional tests** | The test harness with stubbed interfaces (TF-2); fixtures and the test reference data (TF-3); rule scenarios, property tests and access rule tests for every requirement; the coverage table; CI that runs them as expected failures and enforces the test-change rule. No app logic. | none |
 | **M2: Core records** | Accounts and privacy (AC, PV); characters and titles (CH, TI-1 to TI-4); inventory (IN, except IN-11); skills from the list (SK-1 to SK-5, SK-8); history (HI-1 to HI-4); reference data and its CI checks (RD); home screen (NF-2); invite-only sign-up (NF-13). Runs in a test environment only. | none |
 | **M3: Search, export and first release** | Search (SE), both exports (EX), working offline (NF-3), reports to the maintainer (SP-1 to SP-3), acquisition sources (IN-11), history filters (HI-5). Operations: hosting, protected deployment, backups with a tested restore, error reports (NF-10 to NF-12); phone-sized browser tests (TF-13); the maintainer guide; the documentation site, with pages for everything built so far (section 19). Then Craig's trial (TF-14). | **0.x**, for Craig only |
-| **M4: Equipping and totals** | Grants (GR-1 to GR-5), with effects as grants (GR-6); class bonus, CM, mitigation, hearts and dice (GR-7 to GR-12); extra damage (GR-13); paper doll, hands, arcane slots and over-limit alerts (EQ-1 to EQ-8); title grants (TI-5); skill grants and the record check (SK-6, SK-7). | 0.x |
+| **M4: Equipping and totals** | Grants (GR-1 to GR-5), with effects as grants (GR-6); class bonus, CM, mitigation, hearts and dice (GR-7 to GR-12); damage (GR-13); paper doll, hands, arcane slots and over-limit alerts (EQ-1 to EQ-8); title grants (TI-5); skill grants and the record check (SK-6, SK-7). | 0.x |
 | **M5: Permissions, rarity and 1.0** | Permissions and rarity (EQ-9 to EQ-11); skill list changes (SK-9). Then a full review of the user documentation, and invite-only sign-up is lifted (NF-13). | **1.0**, open to players |
 | **M6: Waiting on the DMs** | Quickslots, DM Arcane and ally rules (QS-1, DA-1, AL-1), each written out in full and approved once its DM answer arrives. | 1.x |
 | **M7: Faire-day to-do list** | Reviewed with Craig first, then TD-1 to TD-6. | 1.x |

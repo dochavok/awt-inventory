@@ -452,7 +452,10 @@ rule(
     expect(
       sword && "grants" in sword && sword.grants?.map((g) => [g.kind, "amount" in g && g.amount]),
       "Duskfang's grants",
-    ).toEqual([["cm", 15]]);
+    ).toEqual([
+      ["cm", 15],
+      ["extra-damage", 2],
+    ]);
     expect(
       out.manualGrants.map((m) => m.reason),
       "Aldric's manual grants",
@@ -504,7 +507,7 @@ rule(
         hands: 1,
         range: "melee",
         weaponGroup: "Sword",
-        extraDamage: 1,
+        grants: [{ kind: "extra-damage", amount: 1 }],
       },
       gain,
     );
@@ -548,7 +551,7 @@ rule(
     expect(keys(file.profile), "the profile's fields").toEqual(["displayName"]);
     const base = ["category", "characterId", "description", "id", "itemFamily", "name", "notes", "quantity"];
     const entryFields: Record<string, string[]> = {
-      weapons: [...base, "extraDamage", "hands", "range", "rarity", "weaponGroup"],
+      weapons: [...base, "grants", "hands", "range", "rarity", "weaponGroup"],
       armor: [...base, "rarity", "slotKind"],
       items: [...base, "arcane", "rarity"],
       allies: [...base, "active", "allyType", "hearts"],

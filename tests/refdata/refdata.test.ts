@@ -271,14 +271,18 @@ rule(
 
 rule(
   { req: ["RD-1", "GR-13", "GR-1", "RD-4"], m: "M4" },
-  "a skill's grant can be extra damage, with a type or none; a bad amount, a group or another kind's field is a problem naming the grant",
+  "a skill's grant can be extra damage, with a type or none, in a group or not; a bad amount or another kind's field is a problem naming the grant",
   () => {
     const of = (list: any[], skill: string) => list.find((g: any) => g.skill === skill).grants;
     const withDamage = (damage: Record<string, unknown>) =>
       edited("skill-grants.yaml", (list) =>
         of(list, "iron-guard").push({ id: "sg-x-guard-dmg", kind: "extra-damage", ...damage }),
       );
-    for (const damage of [{ amount: 1, damageType: "cold" }, { amount: 2 }]) {
+    for (const damage of [
+      { amount: 1, damageType: "cold" },
+      { amount: 2 },
+      { amount: 2, condition: "while raging", group: "rage" },
+    ]) {
       const files = withDamage(damage);
       expect(problemsFor(files), `problems with extra damage ${JSON.stringify(damage)}`).toEqual([]);
       expect(
@@ -293,7 +297,7 @@ rule(
       ["a fractional amount", { amount: 1.5 }],
       ["no amount", { damageType: "cold" }],
       ["a type that isn't text", { amount: 1, damageType: 3 }],
-      ["a group", { amount: 1, group: "cinder-die" }],
+      ["a group that isn't an ID", { amount: 1, group: "Rage Group" }],
       ["a die", { amount: 1, die: "1d6" }],
     ] as const) {
       expect(problemsFor(withDamage(damage)).join("\n"), `problems with extra damage with ${what}`).toMatch(
