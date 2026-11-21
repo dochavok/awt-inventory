@@ -103,6 +103,35 @@ rule(
 );
 
 rule(
+  { req: ["NF-3", "EQ-5"], m: "M4" },
+  "without signal, an entry this phone has never seen reads as not in the inventory, and one it has, with its slot",
+  async () => {
+    const { a, b, characterId } = await setUp();
+    const dagger = await a.store.addEntry(characterId, {
+      category: "weapons",
+      name: "Iron Dagger",
+      hands: 1,
+      range: "melee",
+    });
+    expect((await a.store.equip(dagger.id, "off-hand")).outcome, "equipping the dagger on phone A").toBe("allowed");
+    await a.db.waitForPendingWrites();
+    // Phone B opens Aldric with signal, so the dagger is on it.
+    await b.store.sheet(characterId);
+    await b.db.disableNetwork();
+    const lamp = await a.store.addEntry(characterId, { category: "items", name: "Storm Lamp", arcane: false });
+    await a.db.waitForPendingWrites();
+    const unseen = await b.store.entryWithSlot(characterId, lamp.id);
+    expect([unseen.character.name, unseen.entry, unseen.slot], "the Storm Lamp on phone B, offline").toEqual([
+      "Aldric",
+      null,
+      undefined,
+    ]);
+    const seen = await b.store.entryWithSlot(characterId, dagger.id);
+    expect([seen.entry?.id, seen.slot], "the Iron Dagger on phone B, offline").toEqual([dagger.id, "off-hand"]);
+  },
+);
+
+rule(
   { req: ["NF-3"], m: "M3" },
   "the app shows it's offline and how many changes are waiting, then sends them",
   async () => {

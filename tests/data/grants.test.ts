@@ -1,9 +1,11 @@
 // Grants through the data layer (GR-2, GR-5, TI-4, TI-5): which sources can
 // carry them, and that totals follow every change at once.
 // Also equipping through the store (EQ-2, EQ-4, EQ-8) and the checks on each grant (GR-1).
+// The methods that do a page's work in fewer reads (TF-2, NF-5) give the same answers as
+// the ones they replace.
 
 import { expect } from "vitest";
-import { ValidationError } from "../../src/errors";
+import { NotFoundError, ValidationError } from "../../src/errors";
 import { rule } from "../support/rule";
 import { seedCharacter, seedProfile, world } from "../support/world";
 
@@ -630,5 +632,334 @@ rule(
     ).toEqual([[{ type: "slot-kind", id: "back" }, 2, 1]]);
     expect(alerts[0]!.lost?.reason, "why the slot was lost").toBe("title-removed");
     expect(alerts[0]!.message, "the alert message").toContain("Wanderer");
+  },
+);
+
+// ---------------------------------------------------------------- fewer reads (TF-2, NF-5)
+
+/** Aldric with the cloak that gives a second Back slot, and two things in Back. */
+async function aldricWithTwoInBack() {
+  const s = await bramWithAldric();
+  const characterId = s.aldric.character.id;
+  const cloak = await s.bram.addEntry(characterId, {
+    category: "items",
+    name: "Cloak of the Wanderer",
+    arcane: true,
+    grants: [{ kind: "slots", slotKind: "back", amount: 1 }],
+  });
+  const pack = await s.bram.addEntry(characterId, { category: "armor", name: "Traveller's Pack", slotKind: "back" });
+  for (const [entryId, slot] of [
+    [cloak.id, "arcane"],
+    [s.id("aldric-cloak"), "back"],
+    [pack.id, "back"],
+  ] as const) {
+    expect((await s.bram.equip(entryId, slot)).outcome, `equipping ${entryId} in ${slot}`).toBe("allowed");
+  }
+  return { ...s, characterId, cloak, pack };
+}
+
+rule(
+  { req: ["EQ-8", "NF-5"], m: "M4" },
+  "the sheet with its alerts is the sheet and the alerts, read once, naming the trade that lost a Back slot",
+  async () => {
+    const { bram, characterId, cloak } = await aldricWithTwoInBack();
+    await bram.markTraded(cloak.id, { kind: "traded" });
+    const { sheet, alerts } = await bram.sheetWithAlerts(characterId);
+    expect(sheet, "Aldric's sheet, read with its alerts").toEqual(await bram.sheet(characterId));
+    expect(
+      alerts.map((a) => [a.scope, a.equipped, a.allowed, a.lost?.reason]),
+      "Aldric's alerts, read with the sheet",
+    ).toEqual([[{ type: "slot-kind", id: "back" }, 2, 1, "traded"]]);
+    expect(alerts[0]!.message, "the alert names the traded cloak").toContain("Cloak of the Wanderer");
+    expect(alerts, "the same alerts as alerts() gives").toEqual(await bram.alerts(characterId));
+  },
+);
+
+rule(
+  { req: ["EQ-8", "NF-5"], m: "M4" },
+  "the sheet with its alerts forgets the cause once nothing is over its limit, so a later alert never names it",
+  async () => {
+    const { bram, characterId, cloak, pack } = await aldricWithTwoInBack();
+    await bram.markTraded(cloak.id, { kind: "traded" });
+    expect((await bram.lastChange(characterId))?.reason, "Aldric's last change after the trade").toBe("traded");
+    await bram.unequip(pack.id);
+    expect((await bram.sheetWithAlerts(characterId)).alerts, "Aldric's alerts once the pack is off").toEqual([]);
+    expect(await bram.lastChange(characterId), "the cause, once there's no alert").toBeUndefined();
+  },
+);
+
+rule(
+  { req: ["GR-2", "GR-5", "NF-5"], m: "M4" },
+  "removing a manual grant removes all its grants at once, and leaves Aldric's other manual grant",
+  async () => {
+    const { bram, aldric } = await bramWithAldric();
+    const characterId = aldric.character.id;
+    const ruling = await bram.addManualGrant(characterId, "DM ruling, Faire 2026", [
+      { kind: "cm", amount: 3 },
+      { kind: "mitigation", amount: 1 },
+    ]);
+    await bram.addManualGrant(characterId, "Made-up boon", [{ kind: "cm", amount: 2 }]);
+    await bram.removeManualGrant(characterId, ruling.id);
+    const totals = await bram.totals(characterId);
+    expect([totals.cm.value, totals.mitigation.value], "Aldric's CM and mitigation after removing the ruling").toEqual([
+      172, 3,
+    ]);
+    expect(
+      (await bram.sheet(characterId)).manualGrants.map((m) => m.reason),
+      "Aldric's manual grants afterwards",
+    ).toEqual(["Made-up boon"]);
+  },
+);
+
+rule(
+  { req: ["GR-5", "EQ-8"], m: "M4" },
+  "removing a manual grant that gave a Back slot raises an alert that names its removal",
+  async () => {
+    const s = await bramWithAldric();
+    const characterId = s.aldric.character.id;
+    const manual = await s.bram.addManualGrant(characterId, "DM ruling", [
+      { kind: "slots", slotKind: "back", amount: 1 },
+    ]);
+    const pack = await s.bram.addEntry(characterId, { category: "armor", name: "Traveller's Pack", slotKind: "back" });
+    await s.bram.equip(s.id("aldric-cloak"), "back");
+    expect((await s.bram.equip(pack.id, "back")).outcome, "a second Back item with the ruling").toBe("allowed");
+    await s.bram.removeManualGrant(characterId, manual.id);
+    expect(
+      (await s.bram.alerts(characterId)).map((a) => [a.scope, a.equipped, a.allowed, a.lost?.reason]),
+      "Aldric's alerts after removing the ruling",
+    ).toEqual([[{ type: "slot-kind", id: "back" }, 2, 1, "grant-removed"]]);
+  },
+);
+
+rule(
+  { req: ["GR-2"], m: "M4" },
+  "removing a manual grant that isn't Aldric's is refused, naming it, and changes nothing",
+  async () => {
+    const { bram, aldric } = await bramWithAldric();
+    const isolde = await seedCharacter(bram, "isolde");
+    const ruling = await bram.addManualGrant(isolde.character.id, "Isolde's ruling", [{ kind: "cm", amount: 4 }]);
+    const attempt = bram.removeManualGrant(aldric.character.id, ruling.id);
+    await expect(attempt, "removing Isolde's ruling from Aldric").rejects.toThrow(NotFoundError);
+    await expect(attempt, "the refusal").rejects.toThrow(new RegExp(ruling.id));
+    expect(
+      (await bram.sheet(isolde.character.id)).manualGrants.map((m) => m.reason),
+      "Isolde's manual grants afterwards",
+    ).toEqual(["Isolde's ruling"]);
+  },
+);
+
+rule(
+  { req: ["GR-5", "NF-5"], m: "M4" },
+  "a grant removed from the entry or title it's on stops counting; named on another, it's refused and stays",
+  async () => {
+    const { bram, aldric, id } = await bramWithAldric();
+    const characterId = aldric.character.id;
+    const onHelm = await bram.addGrant({ entryId: id("aldric-helm") }, { kind: "cm", amount: 4 });
+    const title = (await bram.listTitles()).find((t) => t.name === "Friend of the Forest")!;
+    const onTitle = await bram.addGrant({ titleId: title.id }, { kind: "cm", amount: 2 });
+    expect((await bram.totals(characterId)).cm.value, "Aldric's CM with both grants").toBe(176);
+
+    const wrong = bram.removeGrantFrom({ entryId: id("aldric-sword") }, onHelm.id);
+    await expect(wrong, "removing the helm's grant from Duskfang").rejects.toThrow(NotFoundError);
+    await expect(wrong, "the refusal").rejects.toThrow(new RegExp(onHelm.id));
+    const wrongTitle = bram.removeGrantFrom({ titleId: title.id }, onHelm.id);
+    await expect(wrongTitle, "removing the helm's grant from the title").rejects.toThrow(NotFoundError);
+    expect((await bram.totals(characterId)).cm.value, "Aldric's CM after the refusals").toBe(176);
+
+    await bram.removeGrantFrom({ entryId: id("aldric-helm") }, onHelm.id);
+    expect((await bram.totals(characterId)).cm.value, "Aldric's CM without the helm's +4").toBe(172);
+    await bram.removeGrantFrom({ titleId: title.id }, onTitle.id);
+    expect((await bram.totals(characterId)).cm.value, "Aldric's CM without the title's +2").toBe(170);
+  },
+);
+
+rule(
+  { req: ["GR-5", "EQ-8"], m: "M4" },
+  "removing a Back slot's grant from the entry it's on raises an alert that names its removal",
+  async () => {
+    const s = await bramWithAldric();
+    const characterId = s.aldric.character.id;
+    const grant = await s.bram.addGrant(
+      { entryId: s.id("aldric-wolf") },
+      { kind: "slots", slotKind: "back", amount: 1 },
+    );
+    const pack = await s.bram.addEntry(characterId, { category: "armor", name: "Traveller's Pack", slotKind: "back" });
+    await s.bram.equip(s.id("aldric-cloak"), "back");
+    expect((await s.bram.equip(pack.id, "back")).outcome, "a second Back item with the wolf's grant").toBe("allowed");
+    await s.bram.removeGrantFrom({ entryId: s.id("aldric-wolf") }, grant.id);
+    expect(
+      (await s.bram.alerts(characterId)).map((a) => [a.scope, a.equipped, a.allowed, a.lost?.reason]),
+      "Aldric's alerts after removing the wolf's grant",
+    ).toEqual([[{ type: "slot-kind", id: "back" }, 2, 1, "grant-removed"]]);
+  },
+);
+
+rule(
+  { req: ["GR-5", "EQ-8", "TI-5"], m: "M4" },
+  "removing a Back slot's grant from the title it's on raises an alert that names its removal",
+  async () => {
+    const s = await bramWithAldric();
+    const characterId = s.aldric.character.id;
+    const title = await s.bram.addTitle({ name: "Wanderer", grants: [{ kind: "slots", slotKind: "back", amount: 1 }] });
+    const pack = await s.bram.addEntry(characterId, { category: "armor", name: "Traveller's Pack", slotKind: "back" });
+    await s.bram.equip(s.id("aldric-cloak"), "back");
+    expect((await s.bram.equip(pack.id, "back")).outcome, "a second Back item with the title's grant").toBe("allowed");
+    await s.bram.removeGrantFrom({ titleId: title.id }, title.grants![0]!.id);
+    expect(
+      (await s.bram.alerts(characterId)).map((a) => [a.scope, a.equipped, a.allowed, a.lost?.reason]),
+      "Aldric's alerts after removing the title's grant",
+    ).toEqual([[{ type: "slot-kind", id: "back" }, 2, 1, "grant-removed"]]);
+  },
+);
+
+rule(
+  { req: ["EQ-5", "IN-14", "NF-5"], m: "M4" },
+  "an entry read with its slot gives the character, the entry and where it's equipped, or no entry once it's gone",
+  async () => {
+    const { bram, aldric, id } = await bramWithAldric();
+    const characterId = aldric.character.id;
+    const sword = await bram.entryWithSlot(characterId, id("aldric-sword"));
+    expect([sword.character.name, sword.slot], "Duskfang's character and slot").toEqual(["Aldric", "main-hand"]);
+    expect(sword.entry, "Duskfang, as entry() gives it").toEqual(await bram.entry(id("aldric-sword")));
+    const lantern = await bram.entryWithSlot(characterId, id("aldric-lantern"));
+    expect(lantern.entry, "the Hooded Lantern, as entry() gives it").toEqual(await bram.entry(id("aldric-lantern")));
+    expect(lantern.slot, "where the Hooded Lantern is equipped").toBeUndefined();
+    await bram.markTraded(id("aldric-sword"), { kind: "traded" });
+    const traded = await bram.entryWithSlot(characterId, id("aldric-sword"));
+    expect([traded.character.name, traded.entry, traded.slot], "Duskfang once traded away").toEqual([
+      "Aldric",
+      null,
+      undefined,
+    ]);
+  },
+);
+
+rule(
+  { req: ["EQ-5", "CH-1"], m: "M4" },
+  "an entry read under another of Bram's characters isn't found there, and a character that isn't there is refused",
+  async () => {
+    const { bram, aldric, id } = await bramWithAldric();
+    const isolde = await seedCharacter(bram, "isolde");
+    const elsewhere = await bram.entryWithSlot(isolde.character.id, id("aldric-sword"));
+    expect([elsewhere.character.name, elsewhere.entry, elsewhere.slot], "Duskfang read under Isolde").toEqual([
+      "Isolde",
+      null,
+      undefined,
+    ]);
+    await bram.deleteCharacter(isolde.character.id, "Isolde");
+    await expect(
+      bram.entryWithSlot(isolde.character.id, id("aldric-sword")),
+      "reading under a deleted character",
+    ).rejects.toThrow(NotFoundError);
+    expect((await bram.entryWithSlot(aldric.character.id, id("aldric-sword"))).slot, "Duskfang under Aldric").toBe(
+      "main-hand",
+    );
+  },
+);
+
+rule(
+  { req: ["EQ-4", "NF-3"], m: "M4" },
+  "an entry read with its slot isn't equipped where it no longer fits, as two offline phones can leave it",
+  async () => {
+    const { w, bram, aldric, id } = await bramWithAldric();
+    Object.assign(w.db.entries.get(id("aldric-helm"))!, { slotKind: "neck" });
+    const helm = await bram.entryWithSlot(aldric.character.id, id("aldric-helm"));
+    expect(helm.entry?.id, "Hawkeye Helm, stored in Head but now fitting Neck").toBe(id("aldric-helm"));
+    expect(helm.slot, "where Hawkeye Helm is equipped").toBeUndefined();
+  },
+);
+
+rule(
+  { req: ["EQ-2", "EQ-3", "NF-5"], m: "M4" },
+  "equipping in the first free place tries each in turn: a dagger finds the Main hand full and goes in the Off hand",
+  async () => {
+    const { bram, aldric, id } = await bramWithAldric();
+    const characterId = aldric.character.id;
+    const dagger = await bram.addEntry(characterId, {
+      category: "weapons",
+      name: "Iron Dagger",
+      hands: 1,
+      range: "melee",
+    });
+    const checks = await bram.equipFirst(characterId, dagger.id, ["main-hand", "off-hand"]);
+    expect(
+      checks.map((c) => [c.outcome, c.block?.reason]),
+      "the checks for the Main hand, then the Off hand",
+    ).toEqual([
+      ["blocked", "slot-full"],
+      ["allowed", undefined],
+    ]);
+    expect(checks[0]!.block?.message, "the Main hand's block names what's in it").toContain("Duskfang");
+    const hands = (await bram.sheet(characterId)).equipped.filter((q) => q.slot.endsWith("hand"));
+    expect(
+      hands.map((q) => [q.slot, q.entryId]),
+      "Aldric's hands afterwards",
+    ).toEqual(
+      expect.arrayContaining([
+        ["main-hand", id("aldric-sword")],
+        ["off-hand", dagger.id],
+      ]),
+    );
+    expect(hands, "what's in Aldric's hands").toHaveLength(2);
+  },
+);
+
+rule(
+  { req: ["EQ-2", "EQ-3", "NF-5"], m: "M4" },
+  "equipping in the first free place stops at the first that's free, and with every place full changes nothing",
+  async () => {
+    const { bram, aldric, id } = await bramWithAldric();
+    const characterId = aldric.character.id;
+    const first = await bram.addEntry(characterId, {
+      category: "weapons",
+      name: "Iron Dagger",
+      hands: 1,
+      range: "melee",
+    });
+    const tried = await bram.equipFirst(characterId, first.id, ["off-hand", "main-hand"]);
+    expect(
+      tried.map((c) => c.outcome),
+      "the dagger tried in the free Off hand first",
+    ).toEqual(["allowed"]);
+    const second = await bram.addEntry(characterId, {
+      category: "weapons",
+      name: "Bone Knife",
+      hands: 1,
+      range: "melee",
+    });
+    const before = (await bram.sheet(characterId)).equipped;
+    const checks = await bram.equipFirst(characterId, second.id, ["main-hand", "off-hand"]);
+    expect(
+      checks.map((c) => [c.outcome, c.block?.reason, c.block?.occupants.map((o) => o.entryId)]),
+      "the Bone Knife tried in each full hand",
+    ).toEqual([
+      ["blocked", "slot-full", [id("aldric-sword")]],
+      ["blocked", "slot-full", [first.id]],
+    ]);
+    expect((await bram.sheet(characterId)).equipped, "what Aldric has equipped afterwards").toEqual(before);
+  },
+);
+
+rule(
+  { req: ["EQ-2", "CH-1"], m: "M4" },
+  "equipping in the first free place refuses an entry that isn't that character's, naming it, and changes nothing",
+  async () => {
+    const { bram, aldric } = await bramWithAldric();
+    const isolde = await seedCharacter(bram, "isolde");
+    const dagger = await bram.addEntry(isolde.character.id, {
+      category: "weapons",
+      name: "Iron Dagger",
+      hands: 1,
+      range: "melee",
+    });
+    const before = (await bram.sheet(aldric.character.id)).equipped;
+    const attempt = bram.equipFirst(aldric.character.id, dagger.id, ["off-hand"]);
+    await expect(attempt, "equipping Isolde's dagger on Aldric").rejects.toThrow(NotFoundError);
+    await expect(attempt, "the refusal").rejects.toThrow(new RegExp(dagger.id));
+    expect((await bram.sheet(aldric.character.id)).equipped, "what Aldric has equipped afterwards").toEqual(before);
+    expect(
+      (await bram.sheet(isolde.character.id)).equipped.some((q) => q.entryId === dagger.id),
+      "Isolde's dagger equipped",
+    ).toBe(false);
   },
 );

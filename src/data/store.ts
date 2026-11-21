@@ -115,6 +115,15 @@ export interface InventoryStore {
   /** Any field (IN-8). Raising the quantity is recorded as acquired; other edits aren't recorded. */
   updateEntry(entryId: Id, patch: EntryPatch, options?: GainOptions): Promise<ItemEntry>;
   entry(entryId: Id): Promise<Entry>;
+  /**
+   * The entry page's read (EQ-5, NF-5): the character, the entry, and where it's equipped.
+   * `entry` is null when it isn't in that character's inventory (deleted, under another
+   * character, or all of it used, traded or given away).
+   */
+  entryWithSlot(
+    characterId: Id,
+    entryId: Id,
+  ): Promise<{ character: Character; entry: Entry | null; slot?: SlotTarget }>;
   /** A category's entries, alphabetical, with equipped or active marked (IN-9), optionally filtered (SE-3). */
   listEntries(characterId: Id, category: Category, filter?: ListFilter): Promise<EntryListItem[]>;
   /** IN-12: a consumable or component, one fewer. */
@@ -146,8 +155,18 @@ export interface InventoryStore {
   addGrant(target: GrantTarget, grant: NewGrant): Promise<Grant>;
   addManualGrant(characterId: Id, reason: string, grants: NewGrant[]): Promise<ManualGrant>;
   removeGrant(grantId: Id): Promise<void>;
+  /** GR-5, reading only the entry or title the grant is on (NF-5). A grant that isn't on it isn't found. */
+  removeGrantFrom(target: GrantTarget, grantId: Id): Promise<void>;
+  /** A manual grant and every grant in it (GR-2, GR-5). */
+  removeManualGrant(characterId: Id, manualGrantId: Id): Promise<void>;
   /** Equips if allowed; otherwise changes nothing. Returns the check either way (EQ-2 to EQ-11). */
   equip(entryId: Id, target: SlotTarget): Promise<EquipCheck>;
+  /**
+   * Equips one of the character's entries in the first of `targets` that allows it, from one
+   * read of its sheet (EQ-2, NF-5). Returns the checks made, in order, ending at the one
+   * allowed; if none is, nothing changes.
+   */
+  equipFirst(characterId: Id, entryId: Id, targets: SlotTarget[]): Promise<EquipCheck[]>;
   unequip(entryId: Id): Promise<void>;
   setActive(entryId: Id, active: boolean): Promise<void>;
   totals(characterId: Id): Promise<Totals>;
@@ -156,6 +175,11 @@ export interface InventoryStore {
   /** The character as the rules core sees it, and the last change that may have lost a grant. */
   sheet(characterId: Id): Promise<CharacterSheet>;
   lastChange(characterId: Id): Promise<SheetChange | undefined>;
+  /**
+   * The sheet and its alerts from one read (NF-5), as sheet() and alerts() give them. Like
+   * alerts(), it forgets the last change once nothing is over its limit (EQ-8).
+   */
+  sheetWithAlerts(characterId: Id): Promise<{ sheet: CharacterSheet; alerts: OverLimitAlert[] }>;
 
   // ---------------------------------------------------------------- history (HI)
   history(characterId: Id, filter?: HistoryFilter): Promise<HistoryRecord[]>;

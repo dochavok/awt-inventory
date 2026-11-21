@@ -25,7 +25,7 @@ import type { Services } from "../services";
 import { VerifyEmail } from "../Shell";
 import { Feedback, useAction } from "../useAction";
 import { CharacterNotFound, LevelInput, Loading, useScreenData } from "./common";
-import { Alerts, sheetWithAlerts } from "./Equipment";
+import { Alerts } from "./Equipment";
 import { GrantForm } from "./grants";
 
 const describe = (c: Pick<Character, "className" | "level">) => `${c.className} · level ${c.level}`;
@@ -170,7 +170,7 @@ function InventoryLinks({ id, entries }: { id: string; entries: Entry[] }) {
 export function CharacterPage({ services, id }: { services: Services; id: string }) {
   const { store, ref } = services;
   // The character, its entries (for the counts and totals) and its titles (TI-2), with its alerts.
-  const screen = useScreenData(() => sheetWithAlerts(services, id));
+  const screen = useScreenData(() => store.sheetWithAlerts(id));
   const [panel, setPanel] = useState<"edit" | "class" | null>(null);
   const action = useAction();
 
@@ -356,8 +356,7 @@ function ManualGrants({
                 disabled={remove.busy}
                 onClick={() =>
                   void remove.run(async () => {
-                    // A manual grant left with no grants is removed with its last one.
-                    for (const g of m.grants) await store.removeGrant(g.id);
+                    await store.removeManualGrant(characterId, m.id);
                     await onChanged();
                   })
                 }

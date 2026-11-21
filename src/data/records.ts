@@ -14,12 +14,14 @@ import type {
   Character,
   ClassName,
   Entry,
+  EquipCheck,
   Grant,
   Id,
   ItemEntry,
   LossReason,
   ManualGrant,
   NewGrant,
+  OverLimitAlert,
   SheetChange,
   SkillEntry,
   SkillGrant,
@@ -40,6 +42,7 @@ import type {
   PrintOptions,
   Profile,
   Report,
+  GrantTarget,
   SkillView,
 } from "./types";
 import { REPORT_KINDS, REPORTS_PER_DAY } from "./types";
@@ -404,6 +407,60 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     return sheetOf(stored, entries, all);
   }
 
+  /** The sheet and its alerts, from one read (NF-5). */
+  async function sheetWithAlerts(characterId: Id): Promise<{ sheet: CharacterSheet; alerts: OverLimitAlert[] }> {
+    const cause = lastChanges.get(characterId);
+    const sheet = await sheetFor(characterId);
+    const alerts = overLimitAlerts(sheet, ref, cause);
+    // With nothing over its limit, the cause is done with: a later alert has a cause of its own.
+    // Unless a change made during the read has kept a new one.
+    if (alerts.length === 0 && cause) forget(cause);
+    return { sheet, alerts };
+  }
+
+  /** Equips an entry of `sheet` in the first of `targets` that allows it, checking each against that one read (NF-5). */
+  async function equipOnSheet(sheet: CharacterSheet, entryId: Id, targets: SlotTarget[]): Promise<EquipCheck[]> {
+    const checks: EquipCheck[] = [];
+    for (const target of targets) {
+      const result = checkEquip(sheet, ref, entryId, target);
+      checks.push(result);
+      if (result.outcome === "allowed") {
+        await write(update("entry", entryId, { slot: target }));
+        break;
+      }
+    }
+    return checks;
+  }
+
+  // ---------------------------------------------------------------- grant sources (GR-2)
+
+  /** Where a grant goes, or is: an entry as stored, or a title. */
+  type GrantSource = { kind: "entry"; entry: StoredEntry } | { kind: "title"; title: Title };
+
+  const sourceId = (source: GrantSource) => (source.kind === "entry" ? source.entry.id : source.title.id);
+  const sourceGrants = (source: GrantSource): Grant[] =>
+    (source.kind === "entry" ? ownGrants(source.entry) : source.title.grants) ?? [];
+
+  async function grantSource(target: GrantTarget): Promise<GrantSource> {
+    if ("entryId" in target) return { kind: "entry", entry: await storedEntry(target.entryId) };
+    if ("titleId" in target) return { kind: "title", title: await ownTitle(target.titleId) };
+    throw new ValidationError("target", "A grant goes on an entry or a title.");
+  }
+
+  /** GR-5: a removed grant stops counting at once, which may raise an alert (EQ-8). One not on `source` isn't found. */
+  async function removeFrom(source: GrantSource, grantId: Id): Promise<void> {
+    const all = sourceGrants(source);
+    const grant = all.find((g) => g.id === grantId);
+    if (!grant) throw new NotFoundError("grant", grantId);
+    let losing: Id[] = [];
+    if (losesSlots([grant])) {
+      if (source.kind === "title") losing = await charactersUnder(source.title.scope);
+      else if (countsNow(source.entry)) losing = [source.entry.characterId];
+    }
+    const grants = all.filter((g) => g.id !== grantId);
+    await writeLosing(update(source.kind, sourceId(source), { grants }), "grant-removed", losing);
+  }
+
   // ---------------------------------------------------------------- titles (TI)
 
   /** The titles that apply to a character: player-level ones and its own, by name. */
@@ -707,6 +764,20 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
 
     entry: ownEntry,
 
+    async entryWithSlot(characterId, entryId) {
+      // An entry that isn't the user's, or isn't in the inventory, is no entry of this character's.
+      // So is one the phone can't read without signal because it has never kept it (NF-3): the
+      // backend's offline error, which only this read treats as "not here", as the sheet would.
+      const missing = (error: unknown) => {
+        if (error instanceof NotFoundError || error instanceof AccessDeniedError) return undefined;
+        if ((error as { code?: unknown } | null)?.code === "unavailable") return undefined;
+        throw error;
+      };
+      const [character, entry] = await Promise.all([ownCharacter(characterId), storedEntry(entryId).catch(missing)]);
+      if (entry?.characterId !== characterId) return { character, entry: null };
+      return { character, entry: plainEntry(entry), slot: equippedAt(entry) };
+    },
+
     async listEntries(characterId, category, filter = {}) {
       await ownCharacter(characterId);
       // IN-9: equipped, or active for an ally; SE-3 can filter on it.
@@ -924,19 +995,10 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
 
     // ---------------------------------------------------------------- grants and equipping (GR, EQ)
     async addGrant(target, input) {
-      let source: { kind: "entry" | "title"; id: Id; grants: Grant[] | undefined };
-      if ("entryId" in target) {
-        const entry = await ownEntry(target.entryId);
-        check.grantsAllowed(entry.category);
-        source = { kind: "entry", id: entry.id, grants: ownGrants(entry) };
-      } else if ("titleId" in target) {
-        const title = await ownTitle(target.titleId);
-        source = { kind: "title", id: title.id, grants: title.grants };
-      } else {
-        throw new ValidationError("target", "A grant goes on an entry or a title.");
-      }
-      const grants = oneMore(source.grants, input);
-      await write(update(source.kind, source.id, { grants }));
+      const source = await grantSource(target);
+      if (source.kind === "entry") check.grantsAllowed(source.entry.category);
+      const grants = oneMore(sourceGrants(source), input);
+      await write(update(source.kind, sourceId(source), { grants }));
       return grants.at(-1)!;
     },
 
@@ -958,16 +1020,8 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     async removeGrant(grantId) {
       const without = (grants: Grant[] = []) => grants.filter((g) => g.id !== grantId);
       const find = (grants: Grant[] = []) => grants.find((g) => g.id === grantId);
-      // GR-5: a removed grant stops counting at once, which may raise an alert (EQ-8).
       const title = (await myTitles()).find((t) => find(t.grants));
-      if (title) {
-        const losing = losesSlots([find(title.grants)!]) ? await charactersUnder(title.scope) : [];
-        return void (await writeLosing(
-          update("title", title.id, { grants: without(title.grants) }),
-          "grant-removed",
-          losing,
-        ));
-      }
+      if (title) return removeFrom({ kind: "title", title }, grantId);
       const characters = await storedCharacters();
       for (const character of characters) {
         const manual = character.manualGrants ?? [];
@@ -987,20 +1041,32 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       const entries = (await Promise.all(characters.map((c) => storedEntriesOf(c.id)))).flat();
       const entry = entries.find((e) => find(ownGrants(e)));
       if (!entry) throw new NotFoundError("grant", grantId);
-      const losing = losesSlots([find(ownGrants(entry))!]) && countsNow(entry) ? [entry.characterId] : [];
-      return void (await writeLosing(
-        update("entry", entry.id, { grants: without(ownGrants(entry)) }),
+      return removeFrom({ kind: "entry", entry }, grantId);
+    },
+
+    // NF-5: the grant is looked for only on its entry or title. Removing one that gives a slot
+    // also reads the sheets it can take that slot from, as every removal does (EQ-8).
+    removeGrantFrom: async (target, grantId) => removeFrom(await grantSource(target), grantId),
+
+    async removeManualGrant(characterId, manualGrantId) {
+      const character = await storedCharacter(characterId);
+      const manual = character.manualGrants ?? [];
+      const removed = manual.find((m) => m.id === manualGrantId);
+      if (!removed) throw new NotFoundError("manual grant", manualGrantId);
+      await writeLosing(
+        update("character", characterId, { manualGrants: manual.filter((m) => m !== removed) }),
         "grant-removed",
-        losing,
-      ));
+        losesSlots(removed.grants) ? [characterId] : [],
+      );
     },
 
     async equip(entryId, target) {
       const entry = await ownEntry(entryId);
-      const result = checkEquip(await sheetFor(entry.characterId), ref, entryId, target);
-      if (result.outcome === "allowed") await write(update("entry", entryId, { slot: target }));
-      return result;
+      return (await equipOnSheet(await sheetFor(entry.characterId), entryId, [target]))[0]!;
     },
+
+    // checkEquip refuses an entry that isn't on this character's sheet.
+    equipFirst: async (characterId, entryId, targets) => equipOnSheet(await sheetFor(characterId), entryId, targets),
 
     async unequip(entryId) {
       const entry = await storedEntry(entryId);
@@ -1023,15 +1089,8 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       return computeTotals(await sheetFor(characterId), ref);
     },
 
-    async alerts(characterId) {
-      const cause = lastChanges.get(characterId);
-      const alerts = overLimitAlerts(await sheetFor(characterId), ref, cause);
-      // With nothing over its limit, the cause is done with: a later alert has a cause of its own.
-      // Unless a change made during the read has kept a new one.
-      if (alerts.length === 0 && cause) forget(cause);
-      return alerts;
-    },
-
+    alerts: async (characterId) => (await sheetWithAlerts(characterId)).alerts,
+    sheetWithAlerts,
     sheet: (characterId) => sheetFor(characterId),
 
     async lastChange(characterId) {
