@@ -579,3 +579,19 @@ rule(
     expect(totals.damage.value, "Isolde's damage: 1 + 1 fire + 2 cold").toBe(4);
   },
 );
+
+rule(
+  { req: ["GR-13", "GR-1"], m: "M4" },
+  "a group's extra damage of one type in different cases is one growing bonus: only the largest counts",
+  () => {
+    const ref = testReferenceData();
+    const grantsOf = (skill: string) => ref.skillGrants.find((g) => g.skill === skill)!.grants;
+    grantsOf("cinder-mark-i").push({ id: "sg-x-f1", kind: "extra-damage", amount: 1, damageType: "Fire", group: "x" });
+    grantsOf("cinder-mark-ii").push({ id: "sg-x-f2", kind: "extra-damage", amount: 2, damageType: "fire", group: "x" });
+    const totals = computeTotals(isoldeWith("cinder-mark-i", "cinder-mark-ii"), ref);
+    expect(damageOf(totals.damage.grants), "where Isolde's damage comes from").toEqual([
+      ["Cinder Mark II", "skill", 2, "fire", undefined],
+    ]);
+    expect(totals.damage.value, "Isolde's damage: 1 + the larger fire").toBe(3);
+  },
+);
