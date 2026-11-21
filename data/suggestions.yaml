@@ -20,3 +20,4 @@ acquisitionSources:
   - { id: quest, name: Quest }
   - { id: dm-award, name: DM award }
   - { id: trade, name: Trade }
+  - { id: crafted, name: Crafted }

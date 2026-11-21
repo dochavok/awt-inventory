@@ -1,6 +1,6 @@
 # The inventory
 
-reviewed: 2026-11-19
+reviewed: 2026-11-20
 
 A character's inventory has seven categories: **Weapons, Armor, Skills, Familiars/Allies, Consumables, Items** and **Components**. Skills have their own page: [Skills](skills.md). The app has no item catalog: you type in your own items.
 
@@ -24,7 +24,7 @@ You can change any field of an entry at any time. If you change what an equipped
 
 ## Gaining, using and losing entries
 
-- **Adding** an entry, or raising its quantity, is recorded in the history as *acquired*. You can say where it came from (a vendor, a quest, a DM award or a trade) and add a link, such as to the post in Discord's rewards channel.
+- **Adding** an entry, or raising its quantity, is recorded in the history as *acquired*. You can say where it came from (a vendor, a quest, a DM award, a trade, or something you crafted) and add a link, such as to the post in Discord's rewards channel.
 - **Used:** in the Consumables or Components list, tap **Used** next to an entry and its quantity drops by one. To give a date or a note, use **Used, with a date or note** on the entry's own page. At zero it leaves the list but stays in the history. A use marked by mistake can be **restored** from the history.
 - **Traded or given away:** on the entry's page, for all or part of the quantity, with an optional note of who to. If it was equipped, it's unequipped first. The history keeps a copy of the entry as it was.
 - **Delete** an entry added by mistake, at the bottom of its page. The app asks first. It leaves no trace in the history. **Undo** is offered for about 10 seconds. An entry that was equipped comes back where it was, if it can still go there; otherwise it comes back unequipped. Undo isn't possible once the character has the most entries it can hold.
