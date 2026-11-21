@@ -300,7 +300,6 @@ interface Fields {
   hands: string;
   range: string;
   weaponGroup: string;
-  extraDamage: string;
   slotKind: string;
   arcane: boolean;
   allyType: string;
@@ -327,7 +326,6 @@ function fieldsOf(entry: ItemEntry | undefined, ref: ReferenceData): Fields {
     hands: e.hands === 2 ? "2" : "1",
     range: e.range === "ranged" ? "ranged" : "melee",
     weaponGroup: text("weaponGroup"),
-    extraDamage: count("extraDamage"),
     slotKind: text("slotKind") || (chooseable(ref.slotKinds)[0]?.id ?? ""),
     arcane: e.arcane === true,
     allyType: text("allyType"),
@@ -363,7 +361,6 @@ function entryFrom(category: ItemCategory, f: Fields): Record<string, unknown> {
         hands: Number(f.hands),
         range: f.range,
         weaponGroup: f.weaponGroup,
-        extraDamage: count(f.extraDamage),
       };
     case "armor":
       return { ...base, rarity: f.rarity, slotKind: f.slotKind };
@@ -615,13 +612,6 @@ function EntryForm({
             onChange={set("weaponGroup")}
             suggestions={suggestions.weaponGroup ?? []}
           />
-          <CountField
-            label="Extra damage (hearts)"
-            value={f.extraDamage}
-            onChange={set("extraDamage")}
-            min={0}
-            max={LIMITS.extraDamage}
-          />
         </>
       )}
       {category === "armor" && (
@@ -733,12 +723,6 @@ function details(entry: ItemEntry, ref: ReferenceData): [string, string][] {
         ["Hands", entry.hands === 2 ? "Two-handed" : "One-handed"],
         ["Range", entry.range === "ranged" ? "Ranged" : "Melee"],
         ["Weapon group", entry.weaponGroup],
-        [
-          "Extra damage",
-          entry.extraDamage === undefined
-            ? undefined
-            : `${entry.extraDamage} ${entry.extraDamage === 1 ? "heart" : "hearts"}`,
-        ],
       );
       break;
     case "armor":

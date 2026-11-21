@@ -1,6 +1,6 @@
 # The inventory
 
-reviewed: 2026-11-20
+reviewed: 2026-11-21
 
 A character's inventory has seven categories: **Weapons, Armor, Skills, Familiars/Allies, Consumables, Items** and **Components**. Skills have their own page: [Skills](skills.md). The app has no item catalog: you type in your own items.
 
@@ -14,7 +14,7 @@ Every entry has a name, a quantity (1 unless you say otherwise), a description (
 
 - **Weapons, Armor and Items** can have a rarity: Epic, Legendary, Divine or Mythic.
 - Any entry outside Skills can have an **item family**, a group it belongs to by origin or theme. Type any family; the app suggests ones you've used before and common ones.
-- **Weapons** are one-handed or two-handed, melee or ranged, with a weapon group (such as Sword or Bow) and any extra damage in hearts.
+- **Weapons** are one-handed or two-handed, melee or ranged, with a weapon group (such as Sword or Bow). A weapon's extra damage is a grant on it, added under **Grants** on its page ([Equipping and totals](equipping-and-totals.md)).
 - **Armor** has the paper-doll slot it fits. A shield fits the Off hand.
 - **Items** are arcane or not.
 - **Familiars and allies** have a type, their own hearts, and whether they're active.

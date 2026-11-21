@@ -1,6 +1,6 @@
 # Search and export
 
-reviewed: 2026-11-19
+reviewed: 2026-11-21
 
 ## Search
 
@@ -20,7 +20,7 @@ A category's list can be filtered by rarity and by item family, and by what's eq
 
 Tap **Print or export** on a character's page or on your account page. Choose one character, or all characters that aren't retired, and Letter or A4 paper, then tap **Create PDF** and **Save**.
 
-The sheet shows each character's name, class and level, its totals with where they come from, what's equipped, every category with quantities, skills with their usage and tier, titles, and notes. Each character starts on a new page. Tick **include skill text** to add the skills' card text. Every page shows when the sheet was made, so an old copy is easy to spot.
+The sheet shows each character's name, class and level, its totals with where they come from (damage included), what's equipped, every category with quantities, skills with their usage and tier, titles, and notes. Each character starts on a new page. Tick **include skill text** to add the skills' card text. Every page shows when the sheet was made, so an old copy is easy to spot.
 
 Save the PDF to your phone's files (on iPhone, the Files app) to open it later without signal. It prints on Letter or A4 paper. The sheet is made on your phone, so it works without signal too.
 

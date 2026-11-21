@@ -46,7 +46,7 @@ export type Grant = GrantBase &
     | { kind: "arcane-slots"; amount: number }
     | { kind: "allowance"; rarity: Id; amount: number }
     | { kind: "permission"; permission: Permission }
-    /** Extra damage in hearts, optionally of a type such as "fire"; listed, never totalled (GR-13). */
+    /** Extra damage in hearts, optionally of a type such as "fire", added to the damage (GR-13). */
     | { kind: "extra-damage"; amount: number; damageType?: string }
     | { kind: "effect"; effect: Effect; text: string }
   );
@@ -99,8 +99,6 @@ export interface Weapon extends EntryBase {
   hands: 1 | 2;
   range: "melee" | "ranged";
   weaponGroup?: string;
-  /** Extra damage in hearts, shown on the weapon, never totalled (IN-3). */
-  extraDamage?: number;
 }
 
 export interface Armor extends EntryBase {
@@ -366,6 +364,15 @@ export interface ExtraDie {
   condition?: string;
 }
 
+/** One extra damage grant in a character's damage (GR-13). */
+export interface DamageLine {
+  amount: number;
+  /** e.g. "fire"; absent for plain damage. */
+  damageType?: string;
+  source: SourceRef;
+  condition?: string;
+}
+
 export type ClassBonusName = "Combat Bonus" | "Arcane Bonus" | "Stealth Bonus";
 
 export interface Totals {
@@ -376,8 +383,8 @@ export interface Totals {
   hearts: Total;
   dice: { base: string; extra: ExtraDie[]; situational: ExtraDie[] };
   permissions: { permission: Permission; sources: SourceRef[] }[];
-  /** GR-13: every extra damage grant that counts, each on its own, never added together. */
-  extraDamage: { amount: number; damageType?: string; source: SourceRef; condition?: string }[];
+  /** GR-13: the base of 1 heart plus every extra damage grant that counts; situational ones apart. */
+  damage: { base: number; value: number; grants: DamageLine[]; situational: DamageLine[] };
   /** GR-6: resistances, immunities and CR bonuses that apply now. */
   effects: { effect: Effect; text: string; source: SourceRef; condition?: string }[];
 }

@@ -51,6 +51,9 @@ import * as check from "./validate";
 /** IN-15: how long Undo works after a hard delete. */
 export const UNDO_SECONDS = 10;
 
+/** IN-3: the ID of the grant an entry saved with the earlier extra damage field is read with. */
+const EARLIER_DAMAGE_GRANT = "extra-damage-field";
+
 /** EX-4: the JSON export's format version. */
 const EXPORT_FORMAT_VERSION = 1;
 
@@ -135,10 +138,37 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     return plainCharacter(await storedCharacter(characterId));
   }
 
+  /**
+   * IN-3: the grants of each entry read with the earlier extra damage field, by entry ID. The
+   * next write to that entry saves them and clears the field (`update`).
+   */
+  const earlierField = new Map<Id, Grant[] | undefined>();
+
+  /**
+   * IN-3: a weapon saved with the earlier extra damage field is read with that damage as a grant
+   * on it instead (none for 0), so it counts while it's equipped like any other (GR-13).
+   */
+  function current(stored: StoredEntry): StoredEntry {
+    if (!("extraDamage" in stored)) return stored;
+    const { extraDamage, ...rest } = stored as StoredEntry & { extraDamage: unknown };
+    const entry = rest as StoredEntry;
+    if (
+      entry.category !== "skills" &&
+      typeof extraDamage === "number" &&
+      Number.isInteger(extraDamage) &&
+      extraDamage > 0 &&
+      !entry.grants?.some((g) => g.id === EARLIER_DAMAGE_GRANT)
+    ) {
+      entry.grants = [...(entry.grants ?? []), { id: EARLIER_DAMAGE_GRANT, kind: "extra-damage", amount: extraDamage }];
+    }
+    earlierField.set(entry.id, entry.category === "skills" ? undefined : entry.grants);
+    return entry;
+  }
+
   /** The entry as stored, with where it's equipped; one used up or traded away isn't found. */
   async function storedEntry(entryId: Id): Promise<StoredEntry> {
     uid();
-    const entry = mine(await backend.entry(entryId), "entry", entryId, "That character isn't yours.");
+    const entry = current(mine(await backend.entry(entryId), "entry", entryId, "That character isn't yours."));
     if (entry.quantity <= 0) throw new NotFoundError("entry", entryId);
     return entry;
   }
@@ -168,7 +198,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
 
   /** A character's entries still in the inventory (quantity above 0), as stored. */
   const storedEntriesOf = async (characterId: Id): Promise<StoredEntry[]> =>
-    (await backend.entries(characterId)).filter((e) => e.quantity > 0);
+    (await backend.entries(characterId)).filter((e) => e.quantity > 0).map(current);
 
   /** A character's entries still in the inventory (quantity above 0). */
   const entriesOf = async (characterId: Id) => (await storedEntriesOf(characterId)).map(plainEntry);
@@ -374,7 +404,14 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
   }
 
   function update(kind: "character" | "entry" | "title", id: Id, fields: Record<string, unknown>): Change[] {
-    return Object.keys(fields).length === 0 ? [] : [{ op: "update", kind, id, fields, at: now() }];
+    if (Object.keys(fields).length === 0) return [];
+    // IN-3: an entry read with the earlier extra damage field is saved with its grant instead.
+    if (kind === "entry" && earlierField.has(id)) {
+      const grants = earlierField.get(id);
+      fields = { ...(grants ? { grants } : {}), ...fields, extraDamage: undefined };
+      earlierField.delete(id);
+    }
+    return [{ op: "update", kind, id, fields, at: now() }];
   }
 
   // ---------------------------------------------------------------- skills (SK)

@@ -44,7 +44,7 @@ A grant with a **condition**, such as "vs Evil" or "ranged weapons only", is *si
 
 Effects aren't totals: the character's page lists the ones that count under **Effects**, above its notes, each with where it comes from.
 
-Extra damage isn't added up either, since each may apply only to some attacks: the totals list every extra damage grant that counts under **Extra damage**, after the combat dice, each with its amount, its type, where it comes from and its condition, if it has one. A weapon's own **Extra damage** field is shown on the weapon only.
+A weapon's extra damage, such as a sword's +2 hearts, is a grant on the weapon like any other: add it under **Grants** on the weapon's page. It counts while the weapon is equipped, so two equipped weapons each add their own.
 
 Trading, unequipping or deleting a source takes its grants away at once.
 
@@ -56,7 +56,7 @@ The character's page shows its totals, worked out again after every change:
 - **CM**: the class bonus's number plus every CM grant that counts, with a line for each kind of source: class bonus, Armor, Weapons, Skills, Ally, Items, Titles, Other (manual grants);
 - **Mitigation**, the hearts taken off each hit, and **Max hearts**, from the level chart plus grants;
 - the **combat dice**: the level chart's, then each extra die with where it comes from. A Rogue's Stealth Bonus dice are rolled with them;
-- **Extra damage**, if any counts: each grant on its own line, never added together.
+- **Damage**: a base of 1 heart plus every extra damage grant that counts, whatever its type, with a line for each. Situational extra damage, such as a skill used once a combat, is listed apart and not added in.
 
 Tap **Where CM comes from** (or mitigation, or max hearts) to see every grant in it: its source, the kind of source and the amount, with situational grants listed apart. For the guide's made-up sample character:
 

@@ -232,7 +232,7 @@ export function GrantForm({
             value={f.damageType}
             onChange={(e) => set("damageType")(e.target.value)}
           />
-          <span className="hint">Optional, such as &quot;fire&quot;. The amount is in hearts.</span>
+          <span className="hint">Optional, such as &quot;fire&quot;.</span>
         </label>
       )}
       {f.kind === "effect" && (
@@ -263,9 +263,7 @@ export function GrantForm({
         <span className="hint">
           {f.kind === "effect"
             ? 'Such as "1/day". Effects are listed, never added in, with or without one.'
-            : f.kind === "extra-damage"
-              ? 'Such as "vs Undead". Extra damage is listed, never added in, with or without one.'
-              : 'Such as "vs Evil". A grant with a condition is listed, but not added in.'}
+            : 'Such as "vs Evil". A grant with a condition is listed, but not added in.'}
         </span>
       </label>
       <Feedback error={add.error} notice={add.notice} />

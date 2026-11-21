@@ -26,10 +26,10 @@ export interface SheetInput {
 
 type SheetPage = SheetDocument["characters"][number];
 
-/** EX-1: CM, mitigation, max hearts and combat dice, each with its breakdown, as the character's page shows them. */
+/** EX-1: CM, mitigation, max hearts, combat dice and damage, each with its breakdown, as the character's page shows them. */
 function sheetTotals(totals: Totals): NonNullable<SheetPage["totals"]> {
-  const { cm, mitigation, hearts, dice } = totalRows(totals);
-  return [cm, mitigation, hearts, dice];
+  const { cm, mitigation, hearts, dice, damage } = totalRows(totals);
+  return [cm, mitigation, hearts, dice, damage];
 }
 
 /** EX-1: what's equipped, slot by slot in paper-doll order, then the arcane slots (EQ-5, EQ-7). */
