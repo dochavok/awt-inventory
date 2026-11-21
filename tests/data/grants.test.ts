@@ -6,6 +6,7 @@
 
 import { expect, vi } from "vitest";
 import { NotFoundError, ValidationError } from "../../src/errors";
+import { sourceName } from "../../src/rules/totals";
 import type { LossReason } from "../../src/rules/types";
 import { rule } from "../support/rule";
 import { seedCharacter, seedProfile, world } from "../support/world";
@@ -231,11 +232,11 @@ rule(
     ]);
     const effects = (await bram.totals(aldric.character.id)).effects;
     expect(
-      effects.map((e) => [e.effect, e.text, e.source.type, e.condition]).sort(),
+      effects.map((e) => [e.effect, e.text, e.source.type, sourceName(e.source), e.condition]).sort(),
       "Aldric's effects: the equipped helm's immunity and the manual CR bonus, with its condition",
     ).toEqual([
-      ["cr-bonus", "+1 vs Undead", "manual", "at night"],
-      ["immunity", "fall damage", "entry", undefined],
+      ["cr-bonus", "+1 vs Undead", "manual", "DM ruling, Faire 2026", "at night"],
+      ["immunity", "fall damage", "entry", "Hawkeye Helm", undefined],
     ]);
   },
 );
