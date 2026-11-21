@@ -132,7 +132,9 @@ jobs:
         run: |
           playwright=$(npx playwright --version | awk '{print $2}')
           echo "prefix=apt-$ImageOS-" >> "$GITHUB_OUTPUT"
-          echo "key=apt-$ImageOS-$ImageVersion-pw$playwright" >> "$GITHUB_OUTPUT"
+          # The image's week only: runners in the same week report different build
+          # numbers after it (20261116.88.1, 20261116.202.1).
+          echo "key=apt-$ImageOS-${ImageVersion%%.*}-pw$playwright" >> "$GITHUB_OUTPUT"
       - uses: actions/cache/restore@v6
         id: apt-cache
         with:
