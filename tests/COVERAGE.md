@@ -72,7 +72,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | GR-10 | Should | M4 | browser/equipping.spec.ts (2), properties/totals.test.ts (1), rules/totals.test.ts (3) |
 | GR-11 | Must | M4 | browser/equipping.spec.ts (3), data/search-export.test.ts (1), properties/totals.test.ts (1), rules/totals.test.ts (12) |
 | GR-12 | Must | M4 | browser/equipping.spec.ts (3), properties/totals.test.ts (1), rules/totals.test.ts (11) |
-| GR-13 | Should | M4 | browser/equipping.spec.ts (1), browser/inventory.spec.ts (1), data/grants.test.ts (1), data/inventory.test.ts (1), refdata/refdata.test.ts (1), rules/totals.test.ts (6) |
+| GR-13 | Should | M4 | browser/equipping.spec.ts (1), browser/inventory.spec.ts (1), data/grants.test.ts (1), data/inventory.test.ts (1), data/search-export.test.ts (1), refdata/refdata.test.ts (1), rules/totals.test.ts (6) |
 | EQ-1 | Must | M4 | browser/equipping.spec.ts (1), data/inventory.test.ts (1), rules/equipping.test.ts (10), rules/totals.test.ts (2) |
 | EQ-2 | Must | M4 | access/firestore-store.test.ts (1), browser/equipping.spec.ts (4), data/grants.test.ts (5), properties/equipping.test.ts (1), rules/equipping.test.ts (5) |
 | EQ-3 | Must | M4 | browser/equipping.spec.ts (4), data/grants.test.ts (2), properties/equipping.test.ts (1), rules/equipping.test.ts (11) |
@@ -87,7 +87,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | SE-1 | Must | M3 | access/firestore-store.test.ts (1), browser/search-export.spec.ts (1), data/privacy.test.ts (1), data/search-export.test.ts (9) |
 | SE-2 | Must | M3 | browser/search-export.spec.ts (2), data/privacy.test.ts (1), data/search-export.test.ts (3) |
 | SE-3 | Should | M3 | browser/search-export.spec.ts (5), data/privacy.test.ts (1), data/search-export.test.ts (2) |
-| EX-1 | Must | M3 | browser/search-export.spec.ts (5), data/privacy.test.ts (1), data/search-export.test.ts (8) |
+| EX-1 | Must | M3 | browser/search-export.spec.ts (5), data/privacy.test.ts (1), data/search-export.test.ts (9) |
 | EX-2 | Must | M3 | browser/search-export.spec.ts (2), data/search-export.test.ts (2) |
 | EX-3 | Must | M3 | browser/search-export.spec.ts (1), data/search-export.test.ts (2) |
 | EX-4 | Must | M3 | access/firestore-store.test.ts (1), browser/search-export.spec.ts (2), data/search-export.test.ts (5) |
