@@ -976,6 +976,8 @@ browserRule(
     const edit = card.getByRole("form", { name: "Edit Ember Mark" });
     await edit.getByLabel("Applies to").selectOption({ label: "Only Cass" });
     await edit.getByRole("button", { name: "Save" }).click();
+    // Once saved: while editing, the form's own "Only Cass" option would satisfy the check below.
+    await expect(edit, "the edit form, closed once saved").toBeHidden();
     await expect(card, "the Ember Mark title once moved").toContainText("Only Cass");
     await openCharacter(page, brin, "Brin");
     await expectDamage(page, "Brin, the title moved", baseOnly);
