@@ -266,10 +266,18 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
    */
   const lastChanges = new Map<Id, SheetChange>();
 
-  /** An entry's grants: its own, or a skill's from the skill list (SK-7). */
+  /** What a change has read already, as stored, so its sheets don't read it again (NF-5). */
+  interface Known {
+    titles?: Title[];
+    characters?: StoredCharacter[];
+    /** Each character's entries still in the inventory. */
+    entries?: ReadonlyMap<Id, StoredEntry[]>;
+  }
+
   /** The grants the user gave an entry (GR-2); a skill has none of its own. */
   const ownGrants = (entry: Entry): Grant[] | undefined => (entry.category === "skills" ? undefined : entry.grants);
 
+  /** An entry's grants: its own, or a skill's from the skill list (SK-7). */
   function grantsOf(entry: Entry): SkillGrant[] | undefined {
     if (entry.category === "skills") return ref.skillGrants.find((s) => s.skill === entry.skillId)?.grants;
     return ownGrants(entry);
@@ -303,11 +311,17 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
    * slots from), keeps the sheet as it was and why it changed, so an alert can name the
    * slot lost (EQ-8). Kept before the write, so a screen that reads the alerts as the
    * change lands sees its cause, and put back as it was if the write fails. Returns the
-   * causes it kept, so whoever undoes the change can forget just those.
+   * causes it kept, so whoever undoes the change can forget just those. `known` is what
+   * the caller has read already for this change, so those sheets aren't read again (NF-5).
    */
-  async function writeLosing(changes: Change[], reason: LossReason, characterIds: Id[]): Promise<SheetChange[]> {
-    const titles = characterIds.length > 0 ? await myTitles() : [];
-    const sheets = await Promise.all(characterIds.map((id) => sheetFor(id, titles)));
+  async function writeLosing(
+    changes: Change[],
+    reason: LossReason,
+    characterIds: Id[],
+    known: Known = {},
+  ): Promise<SheetChange[]> {
+    const titles = characterIds.length > 0 ? (known.titles ?? (await myTitles())) : [];
+    const sheets = await Promise.all(characterIds.map((id) => sheetFor(id, { ...known, titles })));
     const kept = sheets.map((before) => ({
       id: before.character.id,
       earlier: lastChanges.get(before.character.id),
@@ -334,11 +348,13 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     if (lastChanges.get(id) === change) lastChanges.delete(id);
   }
 
-  /** The characters a title's grants count for (TI-5). */
-  async function charactersUnder(scope: TitleScope): Promise<Id[]> {
+  /** The characters a title's grants count for (TI-5), as stored. */
+  async function storedUnder(scope: TitleScope): Promise<StoredCharacter[]> {
     // A character-level title can outlive its character (CH-6 keeps it if the delete fails part-way).
-    return (await myCharacters()).map((c) => c.id).filter((id) => titleApplies(scope, id));
+    return (await storedCharacters()).filter((c) => titleApplies(scope, c.id));
   }
+
+  const ids = (characters: StoredCharacter[]): Id[] => characters.map((c) => c.id);
 
   /** The class a correction changes to (CH-2a): a class, and not the one the character has. */
   function classCorrection(character: Character, to: unknown): ClassName {
@@ -397,14 +413,14 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     };
   }
 
-  /** sheetOf, read: `titles` are the user's titles where the caller has them already. */
-  async function sheetFor(characterId: Id, titles?: Title[]): Promise<CharacterSheet> {
-    const [stored, entries, all] = await Promise.all([
-      storedCharacter(characterId),
-      storedEntriesOf(characterId),
-      titles ?? myTitles(),
+  /** sheetOf, read: only what the caller doesn't already have in `known` (NF-5). */
+  async function sheetFor(characterId: Id, known: Known = {}): Promise<CharacterSheet> {
+    const [stored, entries, titles] = await Promise.all([
+      known.characters?.find((c) => c.id === characterId) ?? storedCharacter(characterId),
+      known.entries?.get(characterId) ?? storedEntriesOf(characterId),
+      known.titles ?? myTitles(),
     ]);
-    return sheetOf(stored, entries, all);
+    return sheetOf(stored, entries, titles);
   }
 
   /** The sheet and its alerts, from one read (NF-5). */
@@ -447,18 +463,25 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     throw new ValidationError("target", "A grant goes on an entry or a title.");
   }
 
-  /** GR-5: a removed grant stops counting at once, which may raise an alert (EQ-8). One not on `source` isn't found. */
-  async function removeFrom(source: GrantSource, grantId: Id): Promise<void> {
+  /**
+   * GR-5: a removed grant stops counting at once, which may raise an alert (EQ-8). One not on
+   * `source` isn't found. `known` is what the caller read to find it (NF-5).
+   */
+  async function removeFrom(source: GrantSource, grantId: Id, known: Known = {}): Promise<void> {
     const all = sourceGrants(source);
     const grant = all.find((g) => g.id === grantId);
     if (!grant) throw new NotFoundError("grant", grantId);
     let losing: Id[] = [];
+    let characters: StoredCharacter[] | undefined;
     if (losesSlots([grant])) {
-      if (source.kind === "title") losing = await charactersUnder(source.title.scope);
-      else if (countsNow(source.entry)) losing = [source.entry.characterId];
+      if (source.kind === "title") {
+        characters = await storedUnder(source.title.scope);
+        losing = ids(characters);
+      } else if (countsNow(source.entry)) losing = [source.entry.characterId];
     }
     const grants = all.filter((g) => g.id !== grantId);
-    await writeLosing(update(source.kind, sourceId(source), { grants }), "grant-removed", losing);
+    const read = characters ? { ...known, characters } : known;
+    await writeLosing(update(source.kind, sourceId(source), { grants }), "grant-removed", losing, read);
   }
 
   // ---------------------------------------------------------------- titles (TI)
@@ -675,16 +698,20 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       const checked = await checkScope(scope);
       // EQ-8: the characters it no longer applies to lose its slots.
       const losing = losesSlots(title.grants)
-        ? (await charactersUnder(title.scope)).filter((id) => !titleApplies(checked, id))
+        ? (await storedUnder(title.scope)).filter((c) => !titleApplies(checked, c.id))
         : [];
-      await writeLosing(update("title", titleId, { scope: checked }), "title-moved", losing);
+      await writeLosing(update("title", titleId, { scope: checked }), "title-moved", ids(losing), {
+        characters: losing,
+      });
       return { ...title, scope: checked };
     },
 
     async removeTitle(titleId) {
       const title = await ownTitle(titleId);
-      const losing = losesSlots(title.grants) ? await charactersUnder(title.scope) : [];
-      await writeLosing([{ op: "delete", kind: "title", id: titleId }], "title-removed", losing);
+      const losing = losesSlots(title.grants) ? await storedUnder(title.scope) : [];
+      await writeLosing([{ op: "delete", kind: "title", id: titleId }], "title-removed", ids(losing), {
+        characters: losing,
+      });
     },
 
     async listTitles() {
@@ -1020,8 +1047,10 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     async removeGrant(grantId) {
       const without = (grants: Grant[] = []) => grants.filter((g) => g.id !== grantId);
       const find = (grants: Grant[] = []) => grants.find((g) => g.id === grantId);
-      const title = (await myTitles()).find((t) => find(t.grants));
-      if (title) return removeFrom({ kind: "title", title }, grantId);
+      // What's read to find the grant is what its removal's sheets are read from (NF-5).
+      const titles = await myTitles();
+      const title = titles.find((t) => find(t.grants));
+      if (title) return removeFrom({ kind: "title", title }, grantId, { titles });
       const characters = await storedCharacters();
       for (const character of characters) {
         const manual = character.manualGrants ?? [];
@@ -1034,14 +1063,17 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
           update("character", character.id, { manualGrants: kept }),
           "grant-removed",
           losing,
+          { titles, characters },
         ));
       }
       // Only then the entries, which take the most reading. A skill's grants are the skill
       // list's (SK-7), so they can't be removed here.
-      const entries = (await Promise.all(characters.map((c) => storedEntriesOf(c.id)))).flat();
-      const entry = entries.find((e) => find(ownGrants(e)));
+      const entries = new Map(
+        await Promise.all(characters.map(async (c) => [c.id, await storedEntriesOf(c.id)] as const)),
+      );
+      const entry = [...entries.values()].flat().find((e) => find(ownGrants(e)));
       if (!entry) throw new NotFoundError("grant", grantId);
-      return removeFrom({ kind: "entry", entry }, grantId);
+      return removeFrom({ kind: "entry", entry }, grantId, { titles, characters, entries });
     },
 
     // NF-5: the grant is looked for only on its entry or title. Removing one that gives a slot
@@ -1057,6 +1089,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
         update("character", characterId, { manualGrants: manual.filter((m) => m !== removed) }),
         "grant-removed",
         losesSlots(removed.grants) ? [characterId] : [],
+        { characters: [character] },
       );
     },
 
