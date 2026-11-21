@@ -284,7 +284,7 @@ A grant in the skill list (SK-7) can belong to a **group**, such as the Holy Die
 
 **GR-12 · Must · M4: Where it comes from.** For each total, the user can open a list of every grant in it: the source, its category and the amount. Situational grants are listed separately under each total they would affect.
 
-**GR-13 · Should · M4: Damage.** A character's damage is a base of 1 heart plus every extra damage grant that counts and isn't situational, whatever its type. It's shown as a total with one line per grant, each with its amount, type and source, e.g. *Damage 3 hearts: base 1, +1 heart fire (Ember Mark), +1 heart (True Warrior)*. Each equipped weapon adds its own: two weapons with +2 each make 5 hearts. Situational extra damage, such as Berserk's (1/combat), is listed apart and never added in (GR-4).
+**GR-13 · Should · M4: Damage.** A character's damage is a base of 1 heart plus every extra damage grant that counts and isn't situational, whatever its type. It's shown as a total with one line per grant, each with its amount, type and source, e.g. *Damage 3 hearts: base 1, +1 heart fire (Title: Ember Mark), +1 heart (Skill: True Warrior)*. Each equipped weapon adds its own: two weapons with +2 each make 5 hearts. Situational extra damage, such as Berserk's (1/combat), is listed apart and never added in (GR-4).
 
 ## 9. Equipping
 
