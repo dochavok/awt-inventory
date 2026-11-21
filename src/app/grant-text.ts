@@ -19,8 +19,8 @@ import type {
   Totals,
 } from "../rules/types";
 
-/** GR-1's kinds as the grant form offers them, in GR-1's order. Effects (GR-6) come in M5. */
-export const KIND_NAMES: Record<Exclude<NewGrant["kind"], "effect">, string> = {
+/** GR-1's kinds as the grant form offers them, in GR-1's order, then effects (GR-6). */
+export const KIND_NAMES: Record<NewGrant["kind"], string> = {
   cm: "CM",
   mitigation: "Mitigation",
   hearts: "Max hearts",
@@ -29,6 +29,7 @@ export const KIND_NAMES: Record<Exclude<NewGrant["kind"], "effect">, string> = {
   "arcane-slots": "Arcane slots",
   allowance: "Rarity allowance",
   permission: "Permission",
+  effect: "Effect",
 };
 
 /** GR-1's permissions, as the game names them. */
@@ -39,7 +40,8 @@ export const PERMISSION_NAMES: Record<Permission, string> = {
   "dual-wielding": "Dual Wielding",
 };
 
-const EFFECT_NAMES: Record<Effect, string> = {
+/** GR-6's effects, as the game names them. */
+export const EFFECT_NAMES: Record<Effect, string> = {
   resistance: "Resistance",
   immunity: "Immunity",
   "cr-bonus": "CR bonus",
@@ -134,6 +136,17 @@ function grantLineText(line: GrantLine, classBonus: Totals["classBonus"]): strin
   const parts = source === group ? [source, amount] : [source, group, amount];
   if (line.condition) parts.push(line.condition);
   return parts.join(" · ");
+}
+
+/**
+ * The effects that apply now (GR-6), each with its source, e.g.
+ * "Immunity: fall damage · Moth Cape" or "Resistance: fire (1/day) · Moth Cape".
+ */
+export function effectLines(totals: Totals, ref: ReferenceData): string[] {
+  return totals.effects.map(
+    ({ effect, text, source, condition }) =>
+      `${grantText({ kind: "effect", effect, text, ...(condition ? { condition } : {}) }, ref)} · ${sourceName(source)}`,
+  );
 }
 
 export interface TotalView {

@@ -1,6 +1,6 @@
 # Characters and titles
 
-reviewed: 2026-11-19
+reviewed: 2026-11-20
 
 ## Your characters
 
@@ -18,7 +18,7 @@ A character's page also links to its **Equipment**, each category of its invento
 
 ### Totals and manual grants
 
-A character's page shows its totals: the class bonus, CM, mitigation, max hearts and combat dice, each worked out from the level chart and what's equipped. Tap **Where CM comes from** to see every grant in it. If more is equipped than the character is allowed, an alert at the top says so. Under **Manual grants** you can add a grant with a reason, such as a DM's ruling. See [Equipping and totals](equipping-and-totals.md).
+A character's page shows its totals: the class bonus, CM, mitigation, max hearts and combat dice, each worked out from the level chart and what's equipped. Tap **Where CM comes from** to see every grant in it. If more is equipped than the character is allowed, an alert at the top says so. Resistances, immunities and CR bonuses it has now are listed under **Effects**, above its notes. Under **Manual grants** you can add a grant with a reason, such as a DM's ruling. See [Equipping and totals](equipping-and-totals.md).
 
 ### Correcting the class
 

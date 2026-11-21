@@ -9,7 +9,9 @@ import { LIMITS } from "../../data/validate";
 import { ValidationError } from "../../errors";
 import { equipTargets } from "../../rules/equipping";
 import {
+  EFFECTS,
   PERMISSIONS,
+  type Effect,
   type EquipCheck,
   type Entry,
   type Grant,
@@ -17,7 +19,7 @@ import {
   type Permission,
   type ReferenceData,
 } from "../../rules/types";
-import { grantText, KIND_NAMES, PERMISSION_NAMES } from "../grant-text";
+import { EFFECT_NAMES, grantText, KIND_NAMES, PERMISSION_NAMES } from "../grant-text";
 import type { Services } from "../services";
 import { Feedback, useAction } from "../useAction";
 
@@ -30,6 +32,9 @@ interface Fields {
   slotKind: string;
   rarity: string;
   permission: Permission;
+  /** An effect's kind and text (GR-6). */
+  effect: Effect;
+  text: string;
   condition: string;
   /** A manual grant's reason (GR-2); unused otherwise. */
   reason: string;
@@ -46,6 +51,8 @@ function emptyFields(ref: ReferenceData): Fields {
     slotKind: chooseable(ref.slotKinds)[0]?.id ?? "",
     rarity: chooseable(ref.rarities)[0]?.id ?? "",
     permission: "weapon-use",
+    effect: "resistance",
+    text: "",
     condition: "",
     reason: "",
   };
@@ -69,6 +76,8 @@ function grantFrom(f: Fields): NewGrant {
       return { kind: "allowance", rarity: f.rarity, amount, ...condition };
     case "permission":
       return { kind: "permission", permission: f.permission, ...condition };
+    case "effect":
+      return { kind: "effect", effect: f.effect, text: f.text.trim(), ...condition };
   }
 }
 
@@ -92,6 +101,7 @@ export function GrantForm({
   const { ref } = services;
   const [f, setF] = useState(() => emptyFields(ref));
   const kindId = useId();
+  const effectId = useId();
   const add = useAction();
   const set =
     <K extends keyof Fields>(key: K) =>
@@ -200,6 +210,28 @@ export function GrantForm({
             ))}
           </select>
         </label>
+      )}
+      {f.kind === "effect" && (
+        <>
+          {/* Labelled apart, like Kind, so its name is "Effect" alone. */}
+          <div className="field">
+            <label htmlFor={effectId}>Effect</label>
+            <select id={effectId} value={f.effect} onChange={(e) => set("effect")(e.target.value as Effect)}>
+              {EFFECTS.map((x) => (
+                <option key={x} value={x}>
+                  {EFFECT_NAMES[x]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <label>
+            Text
+            <input required maxLength={LIMITS.shortText} value={f.text} onChange={(e) => set("text")(e.target.value)} />
+            <span className="hint">
+              What it&apos;s against or adds, such as &quot;fall damage&quot; or &quot;+1&quot;.
+            </span>
+          </label>
+        </>
       )}
       <label>
         Condition
