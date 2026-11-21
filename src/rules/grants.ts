@@ -120,10 +120,17 @@ const groupOf = (c: Collected): Id | undefined => (c.skillList ? c.grant.group :
 function resolveGroups(collected: Collected[]): SourcedGrant[] {
   const always = new Set<Id>();
   const largest = new Map<string, Collected>();
-  // One growing bonus: the same kind, for the same slot kind or rarity.
+  // One growing bonus: the same kind, for the same slot kind or rarity, or extra damage of the same type.
   const keyOf = (c: Collected, group: Id) => {
     const { grant } = c;
-    const target = grant.kind === "slots" ? grant.slotKind : grant.kind === "allowance" ? grant.rarity : "";
+    const target =
+      grant.kind === "slots"
+        ? grant.slotKind
+        : grant.kind === "allowance"
+          ? grant.rarity
+          : grant.kind === "extra-damage"
+            ? (grant.damageType ?? "")
+            : "";
     return `${grant.kind} ${target} ${group}`;
   };
   const beats = (a: Collected, b: Collected) => {

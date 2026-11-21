@@ -70,6 +70,9 @@ Mitigation 1
 Max hearts 4
   Level chart 3, Other 1
 Combat dice 1d20 + 1d6 (Moonlit Lantern)
+Damage 2 hearts
+  base 1, +1 heart fire (Title: Keeper of the Lanterns)
+  Situational, not added in: +2 hearts (Manual grant: DM ruling, made-up faire, vs Undead)
 ```
 
 **Where CM comes from:**

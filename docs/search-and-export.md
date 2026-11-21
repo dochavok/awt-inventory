@@ -163,20 +163,26 @@ The export of a made-up character, Mirela, with a lantern found on a quest, one 
       ],
       "manualGrants": [
         {
-          "id": "g33",
+          "id": "g35",
           "reason": "DM ruling, made-up faire",
           "grants": [
             {
               "kind": "hearts",
               "amount": 1,
-              "id": "g32"
+              "id": "g33"
+            },
+            {
+              "kind": "extra-damage",
+              "amount": 2,
+              "condition": "vs Undead",
+              "id": "g34"
             }
           ]
         }
       ],
       "history": [
         {
-          "id": "h34",
+          "id": "h36",
           "characterId": "c1",
           "enteredAt": "2026-05-02T18:00:00.000Z",
           "event": "traded",
@@ -308,6 +314,12 @@ The export of a made-up character, Mirela, with a lantern found on a quest, one 
           "kind": "cm",
           "amount": 1,
           "id": "g31"
+        },
+        {
+          "kind": "extra-damage",
+          "amount": 1,
+          "damageType": "fire",
+          "id": "g32"
         }
       ],
       "description": "Made-up title for the guide.",

@@ -550,3 +550,32 @@ rule(
     expect(totals.damage.value, "Isolde's damage, the growing one not added in").toBe(1);
   },
 );
+
+rule(
+  { req: ["GR-13", "GR-1"], m: "M4" },
+  "a group's extra damage of different types doesn't replace each other",
+  () => {
+    const ref = testReferenceData();
+    const grantsOf = (skill: string) => ref.skillGrants.find((g) => g.skill === skill)!.grants;
+    grantsOf("cinder-mark-i").push({
+      id: "sg-x-fire",
+      kind: "extra-damage",
+      amount: 1,
+      damageType: "fire",
+      group: "x",
+    });
+    grantsOf("cinder-mark-ii").push({
+      id: "sg-x-cold",
+      kind: "extra-damage",
+      amount: 2,
+      damageType: "cold",
+      group: "x",
+    });
+    const totals = computeTotals(isoldeWith("cinder-mark-i", "cinder-mark-ii"), ref);
+    expect(damageOf(totals.damage.grants), "where Isolde's damage comes from").toEqual([
+      ["Cinder Mark I", "skill", 1, "fire", undefined],
+      ["Cinder Mark II", "skill", 2, "cold", undefined],
+    ]);
+    expect(totals.damage.value, "Isolde's damage: 1 + 1 fire + 2 cold").toBe(4);
+  },
+);
