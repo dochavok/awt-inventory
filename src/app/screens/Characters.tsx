@@ -1,8 +1,8 @@
 // Characters (section 4.1): the list, main and retired (CH-5); adding one
 // (CH-1); and a character's page, where it's edited (CH-2, CH-3), its class
 // corrected (CH-2a), retired or brought back (CH-5), or deleted (CH-6), with
-// the titles that apply to it (TI-2) and links to its inventory, skills and
-// history.
+// the titles that apply to it (TI-2), the effects it has now (GR-6), and links
+// to its inventory, skills and history.
 
 import { useEffect, useState, type FormEvent } from "react";
 import type { ClassCorrectionNotice } from "../../data/types";
@@ -19,7 +19,7 @@ import {
   type ManualGrant,
   type Totals,
 } from "../../rules/types";
-import { grantText, totalsView } from "../grant-text";
+import { effectLines, grantText, totalsView } from "../grant-text";
 import { go, href } from "../router";
 import type { Services } from "../services";
 import { VerifyEmail } from "../Shell";
@@ -178,6 +178,8 @@ export function CharacterPage({ services, id }: { services: Services; id: string
   if (!screen.data) return <Loading error={screen.error} />;
   const { sheet, alerts } = screen.data;
   const { character, entries, titles } = sheet;
+  const totals = computeTotals(sheet, ref);
+  const effects = effectLines(totals, ref);
 
   const done = async (message: string) => {
     await screen.refresh();
@@ -192,9 +194,20 @@ export function CharacterPage({ services, id }: { services: Services; id: string
         {describe(character)}
         {character.retired && <span className="tag">Retired</span>}
       </p>
-      {character.notes && <p className="notes">{character.notes}</p>}
       <Alerts alerts={alerts} />
-      <TotalsCard totals={computeTotals(sheet, ref)} />
+      {/* GR-6: the effects that apply now, with their sources, above the character's notes. */}
+      {effects.length > 0 && (
+        <section className="card" aria-labelledby="effects-title">
+          <h2 id="effects-title">Effects</h2>
+          <ul>
+            {effects.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {character.notes && <p className="notes">{character.notes}</p>}
+      <TotalsCard totals={totals} />
       <InventoryLinks id={character.id} entries={entries} />
       <Feedback error={action.error} notice={action.notice} />
       <div className="actions">
@@ -347,7 +360,8 @@ function ManualGrants({
           {manualGrants.map((m) => (
             <li key={m.id}>
               <span>
-                <strong>{m.reason}</strong>: {m.grants.map((g) => grantText(g, ref)).join(", ")}
+                <strong>{m.reason}</strong>: {/* Not commas: an effect's own text may have them (GR-6). */}
+                {m.grants.map((g) => grantText(g, ref)).join(" · ")}
               </span>
               <button
                 type="button"

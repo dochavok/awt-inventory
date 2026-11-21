@@ -3,7 +3,8 @@
 // slot and what's in it (EQ-2, EQ-3), the paper doll and arcane slots (EQ-5 to
 // EQ-7), over-limit alerts (EQ-8), grants on entries, titles and manual grants
 // (GR-2, TI-5), the totals on the character's page with where they come from
-// (GR-7 to GR-12), and the record check on the Skills page (SK-6). Each test
+// (GR-7 to GR-12), effects such as an immunity listed there (GR-6), and the
+// record check on the Skills page (SK-6). Each test
 // signs up its own made-up player. The build uses the real reference data in
 // data/: what a test needs from it, such as a class bonus, it reads from there
 // and never names (TF-13).
@@ -804,5 +805,90 @@ browserRule(
     await expect(page.getByRole("alert"), "the block with a dagger in each hand").toHaveText(
       "Both hands are full: Dagger is in the Main hand and Dagger in the Off hand.",
     );
+  },
+);
+
+/** Fills an effect grant's fields in `form` (GR-6) and adds it. */
+async function addEffect(
+  form: Locator,
+  effect: { effect: string; text: string; condition?: string },
+  button = "Add grant",
+): Promise<void> {
+  await expect(form, "the form to add a grant").toBeVisible();
+  await form.getByLabel("Kind").selectOption({ label: "Effect" });
+  await form.getByLabel("Effect", { exact: true }).selectOption({ label: effect.effect });
+  await form.getByLabel("Text").fill(effect.text);
+  if (effect.condition !== undefined) await form.getByLabel("Condition").fill(effect.condition);
+  await form.getByRole("button", { name: button }).click();
+}
+
+browserRule(
+  { req: ["GR-6", "GR-2", "GR-3", "GR-4", "GR-5"], m: "M4" },
+  "an armor's immunity and a manual CR bonus are listed on the character's page with their sources, above the notes, the armor's only while it's equipped",
+  async ({ page }) => {
+    await signUp(page);
+    const brin = await addCharacter(page, { name: "Brin", className: "Warrior", level: 8, notes: "Keeps a journal." });
+    await openFromCharacter(page, brin, /^Armor/, "Armor");
+    await addArmor(page, "Moth Cape", "Back");
+    await openEntry(page, "Moth Cape");
+    const form = page.getByRole("form", { name: "Add a grant" });
+    await addEffect(form, { effect: "Immunity", text: "fall damage" });
+    await expect(page.getByRole("list", { name: "Grants" }).getByRole("listitem"), "the cape's grants").toHaveText([
+      /Immunity: fall damage/,
+    ]);
+    // The form starts afresh but keeps what was chosen, for the next one.
+    await expect(form.getByLabel("Kind").locator("option:checked"), "the kind after adding").toHaveText("Effect");
+    await expect(
+      form.getByLabel("Effect", { exact: true }).locator("option:checked"),
+      "the effect after adding",
+    ).toHaveText("Immunity");
+    await expect(form.getByLabel("Text"), "the text after adding").toHaveValue("");
+    await addEffect(form, { effect: "Resistance", text: "fire", condition: "1/day" });
+    await expect(page.getByRole("list", { name: "Grants" }).getByRole("listitem"), "the cape's grants").toHaveText([
+      /Immunity: fall damage/,
+      /Resistance: fire \(1\/day\)/,
+    ]);
+
+    // GR-3: the cape isn't equipped, so its effects aren't listed.
+    await page.goto(`/#/characters/${brin}`);
+    await expect(totalsOf(page), "Brin's totals").toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("region", { name: "Effects" }), "Brin's effects, the cape unequipped").toHaveCount(0);
+
+    // A manual grant's effect always counts, with its reason as its source.
+    const manualForm = page.getByRole("form", { name: "Add a manual grant" });
+    await manualForm.getByLabel("Reason").fill("DM ruling, made-up faire");
+    await addEffect(manualForm, { effect: "CR bonus", text: "+1 vs Undead" }, "Add manual grant");
+    const effects = page.getByRole("region", { name: "Effects" }).getByRole("listitem");
+    await expect(effects, "Brin's effects with the manual grant").toHaveText([
+      "CR bonus: +1 vs Undead · Manual grant: DM ruling, made-up faire",
+    ]);
+
+    await openFromCharacter(page, brin, /^Armor/, "Armor");
+    await tap(rowFor(page, "Moth Cape").getByRole("button", { name: "Equip Moth Cape" }), "Equip Moth Cape");
+    await expect(rowFor(page, "Moth Cape"), "the cape once equipped").toContainText("Equipped");
+    await page.goto(`/#/characters/${brin}`);
+    await expect(effects, "Brin's effects, the cape on").toHaveText([
+      "Immunity: fall damage · Moth Cape",
+      "Resistance: fire (1/day) · Moth Cape",
+      "CR bonus: +1 vs Undead · Manual grant: DM ruling, made-up faire",
+    ]);
+    // Above the character's notes.
+    const effectsFirst = await page
+      .getByRole("region", { name: "Effects" })
+      .evaluate(
+        (region, notes) =>
+          notes !== null && (region.compareDocumentPosition(notes) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
+        await page.getByText("Keeps a journal.", { exact: true }).elementHandle(),
+      );
+    expect(effectsFirst, "Brin's effects come before Brin's notes").toBe(true);
+
+    // GR-5: unequipping takes the cape's effects away at once.
+    await openFromCharacter(page, brin, /^Equipment/, "Equipment");
+    await tap(slotRow(page, "Back").getByRole("button", { name: "Unequip Moth Cape" }), "Unequip Moth Cape");
+    await expect(slotRow(page, "Back"), "Brin's Back slot after unequipping").toContainText("Empty");
+    await page.goto(`/#/characters/${brin}`);
+    await expect(effects, "Brin's effects, the cape off again").toHaveText([
+      "CR bonus: +1 vs Undead · Manual grant: DM ruling, made-up faire",
+    ]);
   },
 );

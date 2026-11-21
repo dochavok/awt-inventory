@@ -386,7 +386,7 @@
 
 - id: effects-listed-with-sources
   req: [GR-6]
-  milestone: M5
+  milestone: M4
   title: Brin's resistance from Night Eyes and an immunity from a manual grant are listed with their sources
   given:
     character: brin
@@ -402,7 +402,7 @@
 
 - id: effects-only-from-counted-sources
   req: [GR-6, GR-3]
-  milestone: M5
+  milestone: M4
   title: An effect on an unequipped item isn't listed for Aldric
   given:
     character: aldric

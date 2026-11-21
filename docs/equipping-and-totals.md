@@ -1,6 +1,6 @@
 # Equipping and totals
 
-reviewed: 2026-11-19
+reviewed: 2026-11-20
 
 A character's totals are never typed in. The app works them out from the level chart and from **grants**: what the character's equipped entries, skills, titles and manual grants add.
 
@@ -33,7 +33,7 @@ Arcane slots: 1 of 3 used
 
 ## Grants
 
-A grant is one of: CM, mitigation, max hearts, an extra die (such as 1d6), extra slots of a kind (such as +1 Back), extra arcane slots, an allowance for a rarity (such as +1 Legendary), or a permission (Weapon Use, Ranged Weapon Use, Armor Use, Dual Wielding).
+A grant is one of: CM, mitigation, max hearts, an extra die (such as 1d6), extra slots of a kind (such as +1 Back), extra arcane slots, an allowance for a rarity (such as +1 Legendary), a permission (Weapon Use, Ranged Weapon Use, Armor Use, Dual Wielding), or an **effect**: a resistance, an immunity or a CR bonus, in your own words (such as an immunity to fall damage).
 
 - **Weapons, armor, items and allies** get their grants on their own page, under **Grants**. They count only while the entry is equipped, or for an ally, while it's active. An item that isn't arcane can't be equipped, so its grants never count.
 - **Titles** get theirs on the Titles screen. A title for all your characters adds its grants to each of them; one character's title, only to that character.
@@ -41,6 +41,8 @@ A grant is one of: CM, mitigation, max hearts, an extra die (such as 1d6), extra
 - **Manual grants**, on the character's page, are for anything the app can't see, such as a DM's ruling. Each has a reason, and always counts.
 
 A grant with a **condition**, such as "vs Evil" or "ranged weapons only", is *situational*: it's listed, but never added in. Some skills grow one die or bonus over several skills (such as a Holy Die); only the largest is used, and it stays situational unless a skill makes it always count.
+
+Effects aren't totals: the character's page lists the ones that count under **Effects**, above its notes, each with where it comes from.
 
 Trading, unequipping or deleting a source takes its grants away at once.
 
