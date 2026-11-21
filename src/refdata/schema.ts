@@ -112,7 +112,8 @@ export const skillsFile = z.strictObject({
 
 const grantBase = { id, condition: z.string().optional() };
 /**
- * GR-1: grants of the same kind in a group (for slots or an allowance, the same slot kind or rarity):
+ * GR-1: grants of the same kind in a group (for slots, an allowance or extra damage, the same slot
+ * kind, rarity or damage type):
  * only the largest is used. Not on permissions or effects.
  */
 const grouped = { ...grantBase, group: id.optional() };
