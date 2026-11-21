@@ -25,6 +25,9 @@ import { Feedback, useAction } from "../useAction";
 
 type Kind = keyof typeof KIND_NAMES;
 
+/** The kinds with an amount up to LIMITS.grantAmount (slots have their own, smaller limit). */
+const AMOUNT_KINDS: readonly Kind[] = ["cm", "mitigation", "hearts", "allowance", "extra-damage"];
+
 interface Fields {
   kind: Kind;
   amount: string;
@@ -175,12 +178,7 @@ export function GrantForm({
           ))}
         </select>
       </div>
-      {(f.kind === "cm" ||
-        f.kind === "mitigation" ||
-        f.kind === "hearts" ||
-        f.kind === "allowance" ||
-        f.kind === "extra-damage") &&
-        amount(LIMITS.grantAmount)}
+      {AMOUNT_KINDS.includes(f.kind) && amount(LIMITS.grantAmount)}
       {(f.kind === "slots" || f.kind === "arcane-slots") && amount(LIMITS.slotGrant)}
       {f.kind === "die" && (
         <label>

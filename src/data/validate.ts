@@ -241,7 +241,7 @@ export function itemEntry(
   if (!(category in CATEGORY_FIELDS)) {
     throw new ValidationError("category", `${String(input.category)} isn't a category entries can be added to.`);
   }
-  // IN-3: the earlier field, as an older version of the app may still send it.
+  // IN-3: the earlier field is refused with where extra damage goes now, not as an unknown field.
   if (category === "weapons" && input.extraDamage !== undefined && input.extraDamage !== null) {
     throw new ValidationError("extraDamage", "A weapon's extra damage is a grant now: add it under Grants.");
   }
@@ -380,7 +380,7 @@ export function grant(input: unknown, ref: ReferenceData): NewGrant {
       out = { kind, permission: choice("grants", g.permission, PERMISSIONS, "permission") };
       break;
     case "extra-damage": {
-      const damageType = optionalText("grants", g.damageType, LIMITS.shortText, "damage type")?.trim();
+      const damageType = shortText("grants", g.damageType, "damage type");
       out = { kind, amount: amount(), ...(damageType ? { damageType } : {}) };
       break;
     }

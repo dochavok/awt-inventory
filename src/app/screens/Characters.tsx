@@ -314,16 +314,7 @@ function TotalsCard({ totals }: { totals: Totals }) {
                   ))}
                 </ul>
               )}
-              {t.situational.length > 0 && (
-                <>
-                  <h3>Situational, not added in</h3>
-                  <ul aria-label={`Situational for ${t.label}`}>
-                    {t.situational.map((g, i) => (
-                      <li key={i}>{g}</li>
-                    ))}
-                  </ul>
-                </>
-              )}
+              <Situational label={t.label} lines={t.situational} />
             </>
           )}
         </div>
@@ -340,18 +331,24 @@ function TotalsCard({ totals }: { totals: Totals }) {
             <li key={i}>{line}</li>
           ))}
         </ul>
-        {view.damage.situational.length > 0 && (
-          <>
-            <h3>Situational damage, not added in</h3>
-            <ul aria-label="Situational for Damage">
-              {view.damage.situational.map((line, i) => (
-                <li key={i}>{line}</li>
-              ))}
-            </ul>
-          </>
-        )}
+        <Situational label="Damage" lines={view.damage.situational} />
       </div>
     </section>
+  );
+}
+
+/** GR-4: the situational grants that would affect a total, listed apart; nothing when there are none. */
+function Situational({ label, lines }: { label: string; lines: string[] }) {
+  if (lines.length === 0) return null;
+  return (
+    <>
+      <h3>Situational, not added in</h3>
+      <ul aria-label={`Situational for ${label}`}>
+        {lines.map((line, i) => (
+          <li key={i}>{line}</li>
+        ))}
+      </ul>
+    </>
   );
 }
 

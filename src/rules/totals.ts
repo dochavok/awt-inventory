@@ -104,7 +104,8 @@ export function computeTotals(sheet: CharacterSheet, ref: ReferenceData): Totals
       if (sources) sources.push(source);
       else permissions.set(grant.permission, [source]);
     } else if (grant.kind === "extra-damage") {
-      const damageType = grant.damageType?.trim();
+      // The type comes trimmed: the store's checks and the skill list's schema both trim it.
+      const { damageType } = grant;
       (isSituational(grant) ? situationalDamage : damage).push({
         amount: grant.amount,
         ...(damageType ? { damageType } : {}),

@@ -18,8 +18,6 @@ import type {
   Totals,
 } from "../rules/types";
 
-export { sourceLabel };
-
 /** GR-1's kinds as the grant form offers them, in GR-1's order, then effects (GR-6). */
 export const KIND_NAMES: Record<NewGrant["kind"], string> = {
   cm: "CM",
