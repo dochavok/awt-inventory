@@ -918,11 +918,15 @@ rule(
   async () => {
     type Setup = Awaited<ReturnType<typeof bramWithAldric>> & { isoldeId: string };
     const back = { kind: "slots", slotKind: "back", amount: 1 } as const;
-    /** What's read: [titles lists, entry lists]. Isolde's are read only where she's looked through or loses the slot. */
-    const cases: [string, [number, number], (s: Setup) => Promise<() => Promise<unknown>>][] = [
+    /**
+     * What's read: [titles lists, entry lists, characters]. Isolde's entries are read only where she's
+     * looked through or loses the slot; no character is read again for the sheets kept for an alert.
+     */
+    const cases: [string, [number, number, number], (s: Setup) => Promise<() => Promise<unknown>>][] = [
       [
         "a whole manual grant",
-        [1, 1],
+        // Aldric read to find it, and written.
+        [1, 1, 2],
         async ({ bram, aldric }) => {
           const manual = await bram.addManualGrant(aldric.character.id, "DM ruling", [back]);
           return () => bram.removeManualGrant(aldric.character.id, manual.id);
@@ -930,7 +934,8 @@ rule(
       ],
       [
         "a manual grant's, by its ID alone",
-        [1, 1],
+        // Aldric written.
+        [1, 1, 1],
         async ({ bram, aldric }) => {
           const manual = await bram.addManualGrant(aldric.character.id, "DM ruling", [back]);
           return () => bram.removeGrant(manual.grants[0]!.id);
@@ -938,7 +943,7 @@ rule(
       ],
       [
         "Grey Fang's, by its ID alone",
-        [1, 2],
+        [1, 2, 0],
         async ({ bram, id }) => {
           const grant = await bram.addGrant({ entryId: id("aldric-wolf") }, back);
           return () => bram.removeGrant(grant.id);
@@ -946,7 +951,7 @@ rule(
       ],
       [
         "a player-level title's, by its ID alone",
-        [1, 2],
+        [1, 2, 0],
         async ({ bram }) => {
           const title = await bram.addTitle({ name: "Wanderer", grants: [back] });
           return () => bram.removeGrant(title.grants![0]!.id);
@@ -954,7 +959,7 @@ rule(
       ],
       [
         "a player-level title's, from the title",
-        [1, 2],
+        [1, 2, 0],
         async ({ bram }) => {
           const title = await bram.addTitle({ name: "Wanderer", grants: [back] });
           return () => bram.removeGrantFrom({ titleId: title.id }, title.grants![0]!.id);
@@ -962,7 +967,7 @@ rule(
       ],
       [
         "a player-level title",
-        [1, 2],
+        [1, 2, 0],
         async ({ bram }) => {
           const title = await bram.addTitle({ name: "Wanderer", grants: [back] });
           return () => bram.removeTitle(title.id);
@@ -970,26 +975,29 @@ rule(
       ],
       [
         "a player-level title, by moving it to Isolde",
-        [1, 1],
+        // Isolde read to check the new scope.
+        [1, 1, 1],
         async ({ bram, isoldeId }) => {
           const title = await bram.addTitle({ name: "Wanderer", grants: [back] });
           return () => bram.setTitleScope(title.id, { level: "character", characterId: isoldeId });
         },
       ],
     ];
-    for (const [what, [titleReads, entryReads], setUp] of cases) {
+    for (const [what, expected, setUp] of cases) {
       const s = await bramWithAldric();
       const isolde = await seedCharacter(s.bram, "isolde");
       const remove = await setUp({ ...s, isoldeId: isolde.character.id });
       const titles = vi.spyOn(s.w.db.titles, "values");
       const entries = vi.spyOn(s.w.db.entries, "values");
+      const characters = vi.spyOn(s.w.db.characters, "get");
       await remove();
+      // The memory database also looks a character up to list its entries, which is counted already.
+      const entryLists = entries.mock.calls.length;
       expect(
-        [titles.mock.calls.length, entries.mock.calls.length],
-        `[titles, entry lists] read removing ${what}`,
-      ).toEqual([titleReads, entryReads]);
-      titles.mockRestore();
-      entries.mockRestore();
+        [titles.mock.calls.length, entryLists, characters.mock.calls.length - entryLists],
+        `[titles, entry lists, characters] read or written removing ${what}`,
+      ).toEqual(expected);
+      vi.restoreAllMocks();
     }
   },
 );
