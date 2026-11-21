@@ -98,7 +98,8 @@ jobs:
     runs-on: ubuntu-latest
     # Usually about 5 minutes, but the system packages for the browsers come from
     # Ubuntu's mirror, which is sometimes slow: those downloads took 14 minutes on
-    # 2026-11-20. NF-11 allows 30.
+    # 2026-11-20. NF-11 allows 30. So most runs skip the mirror, the packages are
+    # cached too (below).
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -121,7 +122,41 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ hashFiles('package-lock.json') }}
           restore-keys: playwright-
+      # The browsers' system packages (NF-11): apt's package files are cached per
+      # runner image (new each week) and Playwright version. A miss restores the
+      # newest older entry, so apt downloads only what has changed. apt checks
+      # every file against Ubuntu's signed package lists, so a cached file can't
+      # install anything it wouldn't download.
+      - name: Name the system packages' cache
+        id: apt-key
+        run: |
+          playwright=$(npx playwright --version | awk '{print $2}')
+          echo "prefix=apt-$ImageOS-" >> "$GITHUB_OUTPUT"
+          echo "key=apt-$ImageOS-$ImageVersion-pw$playwright" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@v6
+        id: apt-cache
+        with:
+          path: ~/.cache/apt-archives
+          key: ${{ steps.apt-key.outputs.key }}
+          restore-keys: ${{ steps.apt-key.outputs.prefix }}
+      - name: Put the cached package files where apt looks
+        if: steps.apt-cache.outputs.cache-matched-key != ''
+        run: find ~/.cache/apt-archives -name '*.deb' -exec sudo cp -t /var/cache/apt/archives/ {} +
       # Installs only the browsers the cache doesn't already have, plus their system packages.
       - run: npx playwright install --with-deps chromium webkit
+      # Saved straight after the install, so a run whose tests fail still saves it.
+      - name: Collect the package files for the cache
+        if: steps.apt-cache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get autoclean -qq
+          rm -rf ~/.cache/apt-archives
+          mkdir -p ~/.cache/apt-archives
+          find /var/cache/apt/archives -maxdepth 1 -name '*.deb' -exec cp -t ~/.cache/apt-archives/ {} +
+          du -sh ~/.cache/apt-archives
+      - uses: actions/cache/save@v6
+        if: steps.apt-cache.outputs.cache-hit != 'true'
+        with:
+          path: ~/.cache/apt-archives
+          key: ${{ steps.apt-key.outputs.key }}
       - name: Phone-sized browser tests
         run: npm run test:browser
