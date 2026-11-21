@@ -206,6 +206,41 @@ rule(
 );
 
 rule(
+  { req: ["GR-6", "GR-1", "GR-2"], m: "M4" },
+  "an entry or a manual grant can grant a resistance, an immunity or a CR bonus in text; a made-up effect or no text is refused",
+  async () => {
+    const { bram, aldric, id } = await bramWithAldric();
+    const helm = { entryId: id("aldric-helm") };
+    for (const [what, grant] of [
+      ["a made-up effect", { kind: "effect", effect: "flight", text: "wings" }],
+      ["an effect with no text", { kind: "effect", effect: "immunity", text: "  " }],
+      ["an effect with an amount", { kind: "effect", effect: "cr-bonus", text: "+1", amount: 1 }],
+    ] as const) {
+      const attempt = bram.addGrant(helm, grant as never);
+      await expect(attempt, `a grant with ${what}`).rejects.toThrow(ValidationError);
+      await expect(attempt, `the refusal of ${what}`).rejects.toMatchObject({ field: "grants" });
+    }
+    const immunity = await bram.addGrant(helm, { kind: "effect", effect: "immunity", text: "fall damage" });
+    expect(immunity, "the helm's immunity as kept").toMatchObject({
+      kind: "effect",
+      effect: "immunity",
+      text: "fall damage",
+    });
+    await bram.addManualGrant(aldric.character.id, "DM ruling, Faire 2026", [
+      { kind: "effect", effect: "cr-bonus", text: "+1 vs Undead", condition: "at night" },
+    ]);
+    const effects = (await bram.totals(aldric.character.id)).effects;
+    expect(
+      effects.map((e) => [e.effect, e.text, e.source.type, e.condition]).sort(),
+      "Aldric's effects: the equipped helm's immunity and the manual CR bonus, with its condition",
+    ).toEqual([
+      ["cr-bonus", "+1 vs Undead", "manual", "at night"],
+      ["immunity", "fall damage", "entry", undefined],
+    ]);
+  },
+);
+
+rule(
   { req: ["GR-1", "GR-2"], m: "M4" },
   "a player's grant can't be in a group or make a group's die always count: only the skill list's can",
   async () => {
