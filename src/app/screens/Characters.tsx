@@ -342,7 +342,8 @@ function Situational({ label, lines }: { label: string; lines: string[] }) {
   if (lines.length === 0) return null;
   return (
     <>
-      <h3>Situational, not added in</h3>
+      {/* Named for its total: the card can show several at once (Damage's, and an opened total's). */}
+      <h3>{`Situational for ${label}, not added in`}</h3>
       <ul aria-label={`Situational for ${label}`}>
         {lines.map((line, i) => (
           <li key={i}>{line}</li>
