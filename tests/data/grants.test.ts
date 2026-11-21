@@ -4,7 +4,7 @@
 // The methods that do a page's work in fewer reads (TF-2, NF-5) give the same answers as
 // the ones they replace.
 
-import { expect } from "vitest";
+import { expect, vi } from "vitest";
 import { NotFoundError, ValidationError } from "../../src/errors";
 import { rule } from "../support/rule";
 import { seedCharacter, seedProfile, world } from "../support/world";
@@ -875,10 +875,19 @@ rule(
         },
       ],
     ];
-    for (const [what, source, cause, setUp] of cases) {
-      const s = await bramWithAldric();
-      // Isolde's sheet is read too where the grant is looked for, or the title counts for her.
-      const isolde = await seedCharacter(s.bram, "isolde");
+    // Isolde's sheet is read too where the grant is looked for, or the title counts for her:
+    // created before Aldric and after, so neither is simply the first one read.
+    for (const [order, [removed, source, cause, setUp]] of ["Isolde first", "Aldric first"].flatMap((o) =>
+      cases.map((c) => [o, c] as const),
+    )) {
+      const w = world();
+      const bram = w.as("bram");
+      await seedProfile(bram, "bram");
+      const first = order === "Isolde first" ? await seedCharacter(bram, "isolde") : undefined;
+      const aldric = await seedCharacter(bram, "aldric", { full: true });
+      const isolde = first ?? (await seedCharacter(bram, "isolde"));
+      const s: Setup = { w, bram, aldric, id: (fixtureId) => aldric.entries.get(fixtureId)!.id };
+      const what = `${removed} (${order})`;
       const characterId = s.aldric.character.id;
       const remove = await setUp(s);
       const pack = await s.bram.addEntry(characterId, {
@@ -899,6 +908,88 @@ rule(
       expect(alerts[0]!.lost?.source, `the source Aldric's alert names after removing ${what}`).toMatchObject(source);
       expect(alerts[0]!.message, `Aldric's alert after removing ${what}`).toContain(cause);
       expect(await s.bram.alerts(isolde.character.id), `Isolde's alerts after removing ${what}`).toEqual([]);
+    }
+  },
+);
+
+rule(
+  { req: ["NF-5", "GR-5", "TI-4"], m: "M4" },
+  "removing a Back slot's grant, or a title that gives one, reads the titles once and each character's entries once",
+  async () => {
+    type Setup = Awaited<ReturnType<typeof bramWithAldric>> & { isoldeId: string };
+    const back = { kind: "slots", slotKind: "back", amount: 1 } as const;
+    /** What's read: [titles lists, entry lists]. Isolde's are read only where she's looked through or loses the slot. */
+    const cases: [string, [number, number], (s: Setup) => Promise<() => Promise<unknown>>][] = [
+      [
+        "a whole manual grant",
+        [1, 1],
+        async ({ bram, aldric }) => {
+          const manual = await bram.addManualGrant(aldric.character.id, "DM ruling", [back]);
+          return () => bram.removeManualGrant(aldric.character.id, manual.id);
+        },
+      ],
+      [
+        "a manual grant's, by its ID alone",
+        [1, 1],
+        async ({ bram, aldric }) => {
+          const manual = await bram.addManualGrant(aldric.character.id, "DM ruling", [back]);
+          return () => bram.removeGrant(manual.grants[0]!.id);
+        },
+      ],
+      [
+        "Grey Fang's, by its ID alone",
+        [1, 2],
+        async ({ bram, id }) => {
+          const grant = await bram.addGrant({ entryId: id("aldric-wolf") }, back);
+          return () => bram.removeGrant(grant.id);
+        },
+      ],
+      [
+        "a player-level title's, by its ID alone",
+        [1, 2],
+        async ({ bram }) => {
+          const title = await bram.addTitle({ name: "Wanderer", grants: [back] });
+          return () => bram.removeGrant(title.grants![0]!.id);
+        },
+      ],
+      [
+        "a player-level title's, from the title",
+        [1, 2],
+        async ({ bram }) => {
+          const title = await bram.addTitle({ name: "Wanderer", grants: [back] });
+          return () => bram.removeGrantFrom({ titleId: title.id }, title.grants![0]!.id);
+        },
+      ],
+      [
+        "a player-level title",
+        [1, 2],
+        async ({ bram }) => {
+          const title = await bram.addTitle({ name: "Wanderer", grants: [back] });
+          return () => bram.removeTitle(title.id);
+        },
+      ],
+      [
+        "a player-level title, by moving it to Isolde",
+        [1, 1],
+        async ({ bram, isoldeId }) => {
+          const title = await bram.addTitle({ name: "Wanderer", grants: [back] });
+          return () => bram.setTitleScope(title.id, { level: "character", characterId: isoldeId });
+        },
+      ],
+    ];
+    for (const [what, [titleReads, entryReads], setUp] of cases) {
+      const s = await bramWithAldric();
+      const isolde = await seedCharacter(s.bram, "isolde");
+      const remove = await setUp({ ...s, isoldeId: isolde.character.id });
+      const titles = vi.spyOn(s.w.db.titles, "values");
+      const entries = vi.spyOn(s.w.db.entries, "values");
+      await remove();
+      expect(
+        [titles.mock.calls.length, entries.mock.calls.length],
+        `[titles, entry lists] read removing ${what}`,
+      ).toEqual([titleReads, entryReads]);
+      titles.mockRestore();
+      entries.mockRestore();
     }
   },
 );

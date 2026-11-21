@@ -274,10 +274,10 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     entries?: ReadonlyMap<Id, StoredEntry[]>;
   }
 
-  /** An entry's grants: its own, or a skill's from the skill list (SK-7). */
   /** The grants the user gave an entry (GR-2); a skill has none of its own. */
   const ownGrants = (entry: Entry): Grant[] | undefined => (entry.category === "skills" ? undefined : entry.grants);
 
+  /** An entry's grants: its own, or a skill's from the skill list (SK-7). */
   function grantsOf(entry: Entry): SkillGrant[] | undefined {
     if (entry.category === "skills") return ref.skillGrants.find((s) => s.skill === entry.skillId)?.grants;
     return ownGrants(entry);
