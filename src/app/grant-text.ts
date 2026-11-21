@@ -144,8 +144,7 @@ function grantLineText(line: GrantLine, classBonus: Totals["classBonus"]): strin
  */
 export function effectLines(totals: Totals, ref: ReferenceData): string[] {
   return totals.effects.map(
-    ({ effect, text, source, condition }) =>
-      `${grantText({ kind: "effect", effect, text, ...(condition ? { condition } : {}) }, ref)} · ${sourceName(source)}`,
+    ({ source, ...effect }) => `${grantText({ kind: "effect", ...effect }, ref)} · ${sourceName(source)}`,
   );
 }
 

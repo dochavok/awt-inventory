@@ -213,7 +213,7 @@ export function GrantForm({
       )}
       {f.kind === "effect" && (
         <>
-          {/* Labelled apart, like Kind, so its name is "Effect" alone. */}
+          {/* Labelled apart, like Kind: a label around a select takes its options' text into its name too. */}
           <div className="field">
             <label htmlFor={effectId}>Effect</label>
             <select id={effectId} value={f.effect} onChange={(e) => set("effect")(e.target.value as Effect)}>
