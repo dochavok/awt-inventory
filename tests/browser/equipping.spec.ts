@@ -836,6 +836,13 @@ browserRule(
     await expect(page.getByRole("list", { name: "Grants" }).getByRole("listitem"), "the cape's grants").toHaveText([
       /Immunity: fall damage/,
     ]);
+    // The form starts afresh but keeps what was chosen, for the next one.
+    await expect(form.getByLabel("Kind").locator("option:checked"), "the kind after adding").toHaveText("Effect");
+    await expect(
+      form.getByLabel("Effect", { exact: true }).locator("option:checked"),
+      "the effect after adding",
+    ).toHaveText("Immunity");
+    await expect(form.getByLabel("Text"), "the text after adding").toHaveValue("");
     await addEffect(form, { effect: "Resistance", text: "fire", condition: "1/day" });
     await expect(page.getByRole("list", { name: "Grants" }).getByRole("listitem"), "the cape's grants").toHaveText([
       /Immunity: fall damage/,

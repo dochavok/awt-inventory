@@ -113,7 +113,9 @@ export function GrantForm({
     // The form starts afresh as soon as a grant is sent, so the next can be typed while it saves.
     // If it's refused, what was sent comes back, unless something new has been typed meanwhile.
     const sent = f;
-    const fresh = { ...emptyFields(ref), kind: f.kind };
+    // It keeps what was chosen, so several immunities (or Back slots) in a row need no choosing again.
+    const { kind, slotKind, rarity, permission, effect } = f;
+    const fresh = { ...emptyFields(ref), kind, slotKind, rarity, permission, effect };
     setF(fresh);
     void add.run(async () => {
       try {

@@ -77,10 +77,11 @@ export function grantText(grant: Grant | NewGrant, ref: ReferenceData): string {
       text = `+${grant.amount} ${named(ref.rarities, grant.rarity)} allowance`;
       break;
     case "permission":
-      text = `Permission: ${PERMISSION_NAMES[grant.permission]}`;
+      // A value the app doesn't know (an older record) shows as stored, like `named`.
+      text = `Permission: ${PERMISSION_NAMES[grant.permission] ?? grant.permission}`;
       break;
     case "effect":
-      text = `${EFFECT_NAMES[grant.effect]}: ${grant.text}`;
+      text = `${EFFECT_NAMES[grant.effect] ?? grant.effect}: ${grant.text}`;
       break;
   }
   return grant.condition ? `${text} (${grant.condition})` : text;
