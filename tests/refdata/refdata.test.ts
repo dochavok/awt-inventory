@@ -270,6 +270,38 @@ rule(
 );
 
 rule(
+  { req: ["RD-1", "GR-13", "GR-1", "RD-4"], m: "M4" },
+  "a skill's grant can be extra damage, with a type or none; a bad amount, a group or another kind's field is a problem naming the grant",
+  () => {
+    const of = (list: any[], skill: string) => list.find((g: any) => g.skill === skill).grants;
+    const withDamage = (damage: Record<string, unknown>) =>
+      edited("skill-grants.yaml", (list) =>
+        of(list, "iron-guard").push({ id: "sg-x-guard-dmg", kind: "extra-damage", ...damage }),
+      );
+    for (const damage of [{ amount: 1, damageType: "cold" }, { amount: 2 }]) {
+      const files = withDamage(damage);
+      expect(problemsFor(files), `problems with extra damage ${JSON.stringify(damage)}`).toEqual([]);
+      expect(
+        loadReferenceData(files).skillGrants.find((g) => g.skill === "iron-guard")?.grants.at(-1),
+        `Iron Guard's extra damage ${JSON.stringify(damage)}`,
+      ).toEqual({ id: "sg-x-guard-dmg", kind: "extra-damage", ...damage });
+    }
+    for (const [what, damage] of [
+      ["an amount of 0", { amount: 0 }],
+      ["a fractional amount", { amount: 1.5 }],
+      ["no amount", { damageType: "cold" }],
+      ["a type that isn't text", { amount: 1, damageType: 3 }],
+      ["a group", { amount: 1, group: "cinder-die" }],
+      ["a die", { amount: 1, die: "1d6" }],
+    ] as const) {
+      expect(problemsFor(withDamage(damage)).join("\n"), `problems with extra damage with ${what}`).toMatch(
+        /^skill-grants\.yaml sg-x-guard-dmg: /m,
+      );
+    }
+  },
+);
+
+rule(
   { req: ["RD-1", "GR-1", "RD-4"], m: "M4" },
   "each problem with class bonus dice, groups or die-always names its file and the exact entry",
   () => {

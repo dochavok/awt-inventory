@@ -1,10 +1,12 @@
-// Grants and totals (section 8: GR-1 to GR-12), in the rules core.
+// Grants and totals (section 8: GR-1 to GR-13), in the rules core.
 // The scenarios in tests/scenarios/totals.yaml, plus checks a scenario can't
-// express: each grant line's category and source details (GR-12), and that the
-// level chart is read rather than built in (TF-3).
+// express: each grant line's category and source details (GR-12), that the
+// level chart is read rather than built in (TF-3), and extra damage listed,
+// never totalled (GR-13).
 
 import { expect } from "vitest";
 import { computeTotals, slotState, type Grant, type SkillEntry, type SourceRef } from "../../src/rules";
+import { sourceName } from "../../src/rules/totals";
 import { fixtureSheet, testReferenceData } from "../support/fixtures";
 import { rule } from "../support/rule";
 import { runScenarios } from "../support/scenarios";
@@ -428,5 +430,53 @@ rule(
     const totals = computeTotals(fixtureSheet("aldric"), ref);
     expect(totals.classBonus, "Aldric's class bonus with an edited chart").toEqual({ name: "Combat Bonus", value: 99 });
     expect(totals.cm.value, "Aldric's CM with an edited chart").toBe(206);
+  },
+);
+
+rule(
+  { req: ["GR-13", "GR-1", "GR-2", "GR-3", "GR-4"], m: "M4" },
+  "every extra damage grant that counts is listed with its amount, type and source, and none is added to a total",
+  () => {
+    const ref = testReferenceData();
+    ref.skillGrants
+      .find((g) => g.skill === "iron-guard")!
+      .grants.push({ id: "sg-x-guard-dmg", kind: "extra-damage", amount: 1, damageType: "cold" });
+    const sheet = fixtureSheet("aldric");
+    const grantOn = (entryId: string, grant: Grant) => {
+      const entry = sheet.entries.find((e) => e.id === entryId)!;
+      if (entry.category === "skills") throw new Error(`${entryId} can't hold grants`);
+      entry.grants = [...(entry.grants ?? []), grant];
+    };
+    // Equipped Duskfang: extra damage with no type. Its own extraDamage field (IN-3) isn't a grant.
+    grantOn("aldric-sword", { id: "g-x-sword-dmg", kind: "extra-damage", amount: 2 });
+    // The Spare Cloak isn't equipped, so its extra damage doesn't count (GR-3).
+    grantOn("aldric-cloak", { id: "g-x-cloak-dmg", kind: "extra-damage", amount: 5, damageType: "acid" });
+    sheet.titles[0]!.grants = [{ id: "g-x-title-dmg", kind: "extra-damage", amount: 1, damageType: "fire" }];
+    sheet.manualGrants.push({
+      id: "m-x-dmg",
+      reason: "DM ruling, made-up faire",
+      grants: [
+        { id: "g-x-manual-dmg", kind: "extra-damage", amount: 3, damageType: "radiant", condition: "vs Undead" },
+        { id: "g-x-bad-dmg", kind: "extra-damage", amount: Number.NaN, damageType: "bad data" },
+      ],
+    });
+    const plain = computeTotals(fixtureSheet("aldric"), testReferenceData());
+    const totals = computeTotals(sheet, ref);
+
+    expect(
+      totals.extraDamage.map((d) => [sourceName(d.source), d.source.type, d.amount, d.damageType, d.condition]),
+      "Aldric's extra damage, in sheet order: entries, then skills, titles and manual grants",
+    ).toEqual([
+      ["Duskfang", "entry", 2, undefined, undefined],
+      ["Iron Guard", "skill", 1, "cold", undefined],
+      ["Friend of the Forest", "title", 1, "fire", undefined],
+      ["DM ruling, made-up faire", "manual", 3, "radiant", "vs Undead"],
+    ]);
+    expect(plain.extraDamage, "Aldric's extra damage with no such grants").toEqual([]);
+    // GR-13: listed, never added into a total, so every total is as it was without them.
+    for (const total of ["cm", "mitigation", "hearts"] as const) {
+      expect(totals[total], `Aldric's ${total} with extra damage grants`).toEqual(plain[total]);
+    }
+    expect(totals.dice, "Aldric's combat dice with extra damage grants").toEqual(plain.dice);
   },
 );

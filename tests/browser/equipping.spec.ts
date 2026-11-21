@@ -3,7 +3,8 @@
 // slot and what's in it (EQ-2, EQ-3), the paper doll and arcane slots (EQ-5 to
 // EQ-7), over-limit alerts (EQ-8), grants on entries, titles and manual grants
 // (GR-2, TI-5), the totals on the character's page with where they come from
-// (GR-7 to GR-12), effects such as an immunity listed there (GR-6), and the
+// (GR-7 to GR-12), effects such as an immunity listed there (GR-6), extra
+// damage listed there, never totalled (GR-13), and the
 // record check on the Skills page (SK-6). Each test
 // signs up its own made-up player. The build uses the real reference data in
 // data/: what a test needs from it, such as a class bonus, it reads from there
@@ -64,6 +65,8 @@ interface NewGrantFields {
   amount?: number;
   die?: string;
   slotKind?: string;
+  /** Extra damage's type (GR-13). */
+  damageType?: string;
   condition?: string;
 }
 
@@ -74,6 +77,7 @@ async function addGrant(form: Locator, grant: NewGrantFields, button = "Add gran
   if (grant.amount !== undefined) await form.getByLabel("Amount").fill(String(grant.amount));
   if (grant.die !== undefined) await form.getByLabel("Die").fill(grant.die);
   if (grant.slotKind !== undefined) await form.getByLabel("Slot kind").selectOption({ label: grant.slotKind });
+  if (grant.damageType !== undefined) await form.getByLabel("Type").fill(grant.damageType);
   if (grant.condition !== undefined) await form.getByLabel("Condition").fill(grant.condition);
   await form.getByRole("button", { name: button }).click();
 }
@@ -890,5 +894,84 @@ browserRule(
     await expect(effects, "Brin's effects, the cape off again").toHaveText([
       "CR bonus: +1 vs Undead · Manual grant: DM ruling, made-up faire",
     ]);
+  },
+);
+
+/** The extra damage listed on the character's page showing (GR-13). */
+const extraDamageOf = (page: Page) => totalsOf(page).getByRole("list", { name: "Extra damage" }).getByRole("listitem");
+
+/** Opens a character's page and waits for its totals, so a list that's absent is really absent. */
+async function openCharacter(page: Page, characterId: string, name: string): Promise<void> {
+  await page.goto(`/#/characters/${characterId}`);
+  await expect(page.getByRole("heading", { level: 1 }), `${name}'s page`).toHaveText(name);
+  await expect(totalsOf(page), `${name}'s totals`).toBeVisible({ timeout: 15_000 });
+}
+
+browserRule(
+  { req: ["GR-13", "GR-1", "GR-4", "GR-5", "TI-4", "TI-5"], m: "M4" },
+  "a title's extra damage is listed with its amount, type and source on its character's page, never totalled, and goes when the title moves or is removed",
+  async ({ page }) => {
+    const row = chartRow("Warrior", 8);
+    await signUp(page);
+    const brin = await addCharacter(page, { name: "Brin", className: "Warrior", level: 8 });
+    const cass = await addCharacter(page, { name: "Cass", className: "Warrior", level: 8 });
+    await page.goto("/#/titles");
+    const add = page.getByRole("form", { name: "Add a title" });
+    await add.getByLabel("Name").fill("Ember Mark");
+    await add.getByLabel("Applies to").selectOption({ label: "Only Brin" });
+    await add.getByRole("button", { name: "Add title" }).click();
+    const card = page
+      .getByRole("list", { name: "Your titles" })
+      .locator(":scope > li")
+      .filter({ hasText: "Ember Mark" });
+    await expect(card, "the Ember Mark title").toContainText("Only Brin");
+    const form = card.getByRole("form", { name: "Add a grant" });
+    await addGrant(form, { kind: "Extra damage", amount: 1, damageType: "fire" });
+    await expect(card.getByRole("list", { name: "Grants" }).getByRole("listitem"), "the title's grants").toHaveText([
+      /Extra damage \+1 heart fire/,
+    ]);
+    // The form starts afresh but keeps the kind, with no type left over.
+    await expect(form.getByLabel("Kind").locator("option:checked"), "the kind after adding").toHaveText("Extra damage");
+    await expect(form.getByLabel("Type"), "the type after adding").toHaveValue("");
+    await addGrant(form, { kind: "Extra damage", amount: 2, condition: "vs Undead" });
+    await expect(card.getByRole("list", { name: "Grants" }).getByRole("listitem"), "the title's grants").toHaveText([
+      /Extra damage \+1 heart fire/,
+      /Extra damage \+2 hearts \(vs Undead\)/,
+    ]);
+
+    await openCharacter(page, brin, "Brin");
+    await expect(extraDamageOf(page), "Brin's extra damage").toHaveText([
+      "+1 heart fire (Title: Ember Mark)",
+      "+2 hearts (Title: Ember Mark, vs Undead)",
+    ]);
+    // Listed, never added in: Brin's totals are the chart's alone.
+    const totals = totalsOf(page);
+    await expect(totals.getByText(`CM ${row.classBonus}`, { exact: true }), "Brin's CM").toBeVisible();
+    await expect(totals.getByText(`Max hearts ${row.hearts}`, { exact: true }), "Brin's max hearts").toBeVisible();
+    await expect(totals.getByText(`Combat dice ${row.dice}`, { exact: true }), "Brin's combat dice").toBeVisible();
+    await openCharacter(page, cass, "Cass");
+    await expect(extraDamageOf(page), "Cass's extra damage, the title Brin's").toHaveCount(0);
+
+    // TI-4: moving the title to Cass moves its extra damage with it.
+    await page.goto("/#/titles");
+    await tap(card.getByRole("button", { name: "Edit" }), "Edit Ember Mark");
+    const edit = card.getByRole("form", { name: "Edit Ember Mark" });
+    await edit.getByLabel("Applies to").selectOption({ label: "Only Cass" });
+    await edit.getByRole("button", { name: "Save" }).click();
+    await expect(card, "the Ember Mark title once moved").toContainText("Only Cass");
+    await openCharacter(page, brin, "Brin");
+    await expect(extraDamageOf(page), "Brin's extra damage once the title moved").toHaveCount(0);
+    await openCharacter(page, cass, "Cass");
+    await expect(extraDamageOf(page), "Cass's extra damage once the title moved").toHaveText([
+      "+1 heart fire (Title: Ember Mark)",
+      "+2 hearts (Title: Ember Mark, vs Undead)",
+    ]);
+
+    // GR-5: removing the title takes its extra damage away at once.
+    await page.goto("/#/titles");
+    await tap(card.getByRole("button", { name: "Remove", exact: true }), "Remove Ember Mark");
+    await expect(page.getByRole("list", { name: "Your titles" }), "the titles once removed").toHaveCount(0);
+    await openCharacter(page, cass, "Cass");
+    await expect(extraDamageOf(page), "Cass's extra damage once the title is removed").toHaveCount(0);
   },
 );
