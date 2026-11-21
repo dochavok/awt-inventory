@@ -33,7 +33,7 @@ Arcane slots: 1 of 3 used
 
 ## Grants
 
-A grant is one of: CM, mitigation, max hearts, an extra die (such as 1d6), extra slots of a kind (such as +1 Back), extra arcane slots, an allowance for a rarity (such as +1 Legendary), a permission (Weapon Use, Ranged Weapon Use, Armor Use, Dual Wielding), or an **effect**: a resistance, an immunity or a CR bonus, in your own words (such as "Immunity: fall damage").
+A grant is one of: CM, mitigation, max hearts, an extra die (such as 1d6), extra slots of a kind (such as +1 Back), extra arcane slots, an allowance for a rarity (such as +1 Legendary), a permission (Weapon Use, Ranged Weapon Use, Armor Use, Dual Wielding), or an **effect**: a resistance, an immunity or a CR bonus, in your own words (such as an immunity to fall damage).
 
 - **Weapons, armor, items and allies** get their grants on their own page, under **Grants**. They count only while the entry is equipped, or for an ally, while it's active. An item that isn't arcane can't be equipped, so its grants never count.
 - **Titles** get theirs on the Titles screen. A title for all your characters adds its grants to each of them; one character's title, only to that character.

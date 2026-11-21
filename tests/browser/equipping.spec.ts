@@ -853,7 +853,7 @@ browserRule(
     await addEffect(manualForm, { effect: "CR bonus", text: "+1 vs Undead" }, "Add manual grant");
     const effects = page.getByRole("region", { name: "Effects" }).getByRole("listitem");
     await expect(effects, "Brin's effects with the manual grant").toHaveText([
-      "CR bonus: +1 vs Undead · DM ruling, made-up faire",
+      "CR bonus: +1 vs Undead · Manual grant: DM ruling, made-up faire",
     ]);
 
     await openFromCharacter(page, brin, /^Armor/, "Armor");
@@ -863,7 +863,7 @@ browserRule(
     await expect(effects, "Brin's effects, the cape on").toHaveText([
       "Immunity: fall damage · Moth Cape",
       "Resistance: fire (1/day) · Moth Cape",
-      "CR bonus: +1 vs Undead · DM ruling, made-up faire",
+      "CR bonus: +1 vs Undead · Manual grant: DM ruling, made-up faire",
     ]);
     // Above the character's notes.
     const effectsFirst = await page
@@ -881,7 +881,7 @@ browserRule(
     await expect(slotRow(page, "Back"), "Brin's Back slot after unequipping").toContainText("Empty");
     await page.goto(`/#/characters/${brin}`);
     await expect(effects, "Brin's effects, the cape off again").toHaveText([
-      "CR bonus: +1 vs Undead · DM ruling, made-up faire",
+      "CR bonus: +1 vs Undead · Manual grant: DM ruling, made-up faire",
     ]);
   },
 );

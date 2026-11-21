@@ -139,12 +139,12 @@ function grantLineText(line: GrantLine, classBonus: Totals["classBonus"]): strin
 }
 
 /**
- * The effects that apply now (GR-6), each with its source, e.g.
- * "Immunity: fall damage · Moth Cape" or "Resistance: fire (1/day) · Moth Cape".
+ * The effects that apply now (GR-6), each with where it comes from as slots say it (EQ-5),
+ * e.g. "Immunity: fall damage · Moth Cape" or "CR bonus: +1 · Manual grant: DM ruling".
  */
 export function effectLines(totals: Totals, ref: ReferenceData): string[] {
   return totals.effects.map(
-    ({ source, ...effect }) => `${grantText({ kind: "effect", ...effect }, ref)} · ${sourceName(source)}`,
+    ({ source, ...effect }) => `${grantText({ kind: "effect", ...effect }, ref)} · ${sourceLabel(source)}`,
   );
 }
 

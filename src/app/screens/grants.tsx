@@ -236,7 +236,11 @@ export function GrantForm({
       <label>
         Condition
         <input maxLength={LIMITS.shortText} value={f.condition} onChange={(e) => set("condition")(e.target.value)} />
-        <span className="hint">Such as &quot;vs Evil&quot;. A grant with a condition is listed, but not added in.</span>
+        <span className="hint">
+          {f.kind === "effect"
+            ? 'Such as "1/day". Effects are listed, never added in, with or without one.'
+            : 'Such as "vs Evil". A grant with a condition is listed, but not added in.'}
+        </span>
       </label>
       <Feedback error={add.error} notice={add.notice} />
       <button type="submit" disabled={add.busy}>

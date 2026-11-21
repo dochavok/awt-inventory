@@ -194,6 +194,7 @@ export function CharacterPage({ services, id }: { services: Services; id: string
         {describe(character)}
         {character.retired && <span className="tag">Retired</span>}
       </p>
+      <Alerts alerts={alerts} />
       {/* GR-6: the effects that apply now, with their sources, above the character's notes. */}
       {effects.length > 0 && (
         <section className="card" aria-labelledby="effects-title">
@@ -206,7 +207,6 @@ export function CharacterPage({ services, id }: { services: Services; id: string
         </section>
       )}
       {character.notes && <p className="notes">{character.notes}</p>}
-      <Alerts alerts={alerts} />
       <TotalsCard totals={totals} />
       <InventoryLinks id={character.id} entries={entries} />
       <Feedback error={action.error} notice={action.notice} />
@@ -360,7 +360,8 @@ function ManualGrants({
           {manualGrants.map((m) => (
             <li key={m.id}>
               <span>
-                <strong>{m.reason}</strong>: {m.grants.map((g) => grantText(g, ref)).join(", ")}
+                <strong>{m.reason}</strong>: {/* Not commas: an effect's own text may have them (GR-6). */}
+                {m.grants.map((g) => grantText(g, ref)).join(" · ")}
               </span>
               <button
                 type="button"
