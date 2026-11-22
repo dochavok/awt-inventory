@@ -24,7 +24,12 @@ export interface HelpPage {
 const MODULE = "virtual:help-pages";
 const RESOLVED = `\0${MODULE}`;
 
-/** Documents for the maintainer, in the repository only (DOC-5). */
+/**
+ * Documents for the maintainer, in the repository only (DOC-5).
+ *
+ * TODO: a deny-list, so a new maintainer page becomes a help page unless it's added here. An
+ * allow-list, or a `help:` line at the top of each help page, would fail safe.
+ */
 export const NOT_HELP = ["maintainer.md", "restore-runbook.md"];
 
 const REVIEWED = /^reviewed: (\d{4}-\d{2}-\d{2})$/m;

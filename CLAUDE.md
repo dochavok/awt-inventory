@@ -38,6 +38,11 @@ If Craig says the test is right, fix the code instead.
 Adding **new** tests for existing requirements is fine without this sequence.
 When a DM answers a question in `dm-rule-questions.md`, start at step 2.
 
+`test-change-rule.yml` runs on `pull_request_target`, as it is on `main` (TF-7):
+it must never run anything from the PR (no `npm ci` or scripts in the PR's
+checkout). Keep `actions/checkout`'s default refusal of fork PRs; opt out only
+with a TF-7 edit, if outside contributors arrive.
+
 ## Where things live
 
 - `data/`: the reference data (level chart, slot kinds, rarities, suggestions,
@@ -98,6 +103,29 @@ Each is a CI job, and all five are required checks on `main`:
   workers, none at 2). CI's runners already use 2. The warm-up (TF-13) stopped
   the first test on each worker timing out on a fresh build (2 of 3 full runs
   failed without it, none of 3 with it).
+
+## Pitfalls
+
+- **Playwright matches a role's name as a case-insensitive substring.** A name
+  that's part of another ("Equip" in "Unequip") needs `exact: true`, and a hint
+  near a field can match `getByLabel` ("The amount is in hearts" matched
+  "Amount").
+- **The DOC-1 tests find the help link by `/help/i`,** so no other link on a
+  screen may say "help".
+- **On WebKit, going to the address already open reloads the page** and loses
+  in-memory state (such as an alert's cause, EQ-8); tap the app's own link
+  instead.
+- **An unfinished milestone's failing browser test prints as ✓,** and the
+  browser job has no milestone table. Before finishing a milestone, check its
+  browser tests really pass on both phones.
+- **An existing test file can't import a support file added in the same PR**
+  (TF-7). Give a new test its own file, or its own reader.
+- **Guard each tap with `expect` at the default 5 s.** A long wait on a missing
+  screen runs past the 30 s test limit and fails as a timeout, not as an
+  expected failure.
+- **`hasOnly` in `firestore.rules` checks the whole document after a write.**
+  Removing a field from its list makes records still holding it uneditable,
+  unless the app removes the field in the same write (IN-3).
 
 ## Other conventions
 

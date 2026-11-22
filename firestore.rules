@@ -73,6 +73,8 @@ service cloud.firestore {
         .union(editedNow.diff(editedBefore).affectedKeys());
     }
 
+    // TODO: the field lists in fresh*() repeat those in valid*()'s hasOnly, so a field added to
+    // one and not the other drops out of "later change wins" (NF-3) unnoticed.
     function freshCharacter() {
       let changed = changedKeys();
       return fresh(changed, 'name') && fresh(changed, 'className') && fresh(changed, 'level')
