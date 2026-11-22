@@ -58,9 +58,11 @@ const SEP = "~";
 
 /**
  * Fields earlier versions of the app kept on an entry and the rules no longer allow: every
- * change to an entry removes them, so an old record stays editable (IN-3).
+ * change to an entry removes them, and an entry written whole (Undo) leaves them out, so an
+ * old record stays editable (IN-3).
  */
 const EARLIER_ENTRY_FIELDS = { extraDamage: deleteField() };
+const EARLIER_KEYS = Object.keys(EARLIER_ENTRY_FIELDS);
 
 /** What a refused change was about, for telling the user (NF-3). */
 export interface RefusedChange {
@@ -279,7 +281,7 @@ export function createFirestoreStore(
           claimName(b, change.value.name, change.value.id);
           break;
         case "set-entry":
-          b.set(refFor("entry", change.value.id)!, stored(change.value, ["id", "characterId"]));
+          b.set(refFor("entry", change.value.id)!, stored(change.value, ["id", "characterId", ...EARLIER_KEYS]));
           break;
         case "set-history":
           b.set(refFor("history", change.value.record.id)!, {
