@@ -44,7 +44,7 @@ A grant with a **condition**, such as "vs Evil" or "ranged weapons only", is *si
 
 Effects aren't totals: the character's page lists the ones that count under **Effects**, above its notes, each with where it comes from.
 
-A weapon's extra damage, such as a sword's +2 hearts, is a grant on the weapon like any other: add it under **Grants** on the weapon's page. It counts while the weapon is equipped, so two equipped weapons each add their own.
+A weapon's extra damage, such as a sword's +2 hearts, is a grant on the weapon like any other: add it under **Grants** on the weapon's page. It counts while the weapon is equipped, so two equipped weapons each add their own. Extra damage typed into a weapon's own field in an earlier version of the app isn't used any more: add it again as a grant.
 
 Trading, unequipping or deleting a source takes its grants away at once.
 
