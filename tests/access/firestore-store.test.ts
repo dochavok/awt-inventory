@@ -276,6 +276,124 @@ rule(
   },
 );
 
+/** The address of one of Bram's stored documents, for reading it past the rules (the emulator's owner access). */
+function storedUrl(path: string): string {
+  return `http://${process.env.FIRESTORE_EMULATOR_HOST}/v1/projects/${PROJECT_ID}/databases/(default)/documents/${path}`;
+}
+
+/** The fields one of Bram's documents holds on the server, read past the rules. */
+async function storedFields(path: string): Promise<string[]> {
+  const response = await fetch(storedUrl(path), { headers: { Authorization: "Bearer owner" } });
+  expect(response.ok, `reading ${path} past the rules`).toBe(true);
+  const body = (await response.json()) as { fields?: Record<string, unknown> };
+  return Object.keys(body.fields ?? {}).sort();
+}
+
+/** Gives a stored entry the extra damage field, as an earlier version of the app stored it (IN-3). */
+async function withEarlierField(path: string): Promise<void> {
+  const response = await fetch(`${storedUrl(path)}?updateMask.fieldPaths=extraDamage`, {
+    method: "PATCH",
+    headers: { Authorization: "Bearer owner", "Content-Type": "application/json" },
+    body: JSON.stringify({ fields: { extraDamage: { integerValue: "2" } } }),
+  });
+  expect(response.ok, "setting up the earlier extra damage field").toBe(true);
+  expect(await storedFields(path), "the stored fields once set up").toContain("extraDamage");
+}
+
+rule(
+  { req: ["IN-3", "GR-13", "NF-6"], m: "M4" },
+  "through Firestore, a weapon still holding the earlier extra damage field can be edited, equipped, unequipped, given a grant and traded; each change is kept and removes the field",
+  async () => {
+    const bram = await signedUp("bram");
+    const aldric = await seedCharacter(bram.store, "aldric");
+    const characterId = aldric.character.id;
+    const entries = `users/${uid("bram")}/characters/${characterId}/entries`;
+    const equipped = async (id: string) =>
+      expect((await bram.store.equip(id, "off-hand")).outcome, "equipping a Hand Axe in the off-hand").toBe("allowed");
+    // Unequipping comes first, so its axe has left the off-hand before another is equipped there.
+    const changes: [string, (id: string) => Promise<unknown>, ((id: string) => Promise<unknown>)?][] = [
+      ["unequipping", (id) => bram.store.unequip(id), equipped],
+      ["an edit", (id) => bram.store.updateEntry(id, { notes: "Old, but sharp." })],
+      ["equipping", equipped],
+      ["a grant", (id) => bram.store.addGrant({ entryId: id }, { kind: "cm", amount: 1 })],
+      ["trading one", (id) => bram.store.markTraded(id, { kind: "traded", quantity: 1 })],
+    ];
+    const axes: Record<string, string> = {};
+    for (const [what, change, before] of changes) {
+      const axe = await bram.store.addEntry(characterId, {
+        category: "weapons",
+        name: `Hand Axe (${what})`,
+        quantity: 2,
+        hands: 1,
+        range: "melee",
+      });
+      await before?.(axe.id);
+      await synced(bram);
+      await withEarlierField(`${entries}/${axe.id}`);
+      if (what === "unequipping") {
+        // Equipped and still holding the field, as a new phone reads it from the server.
+        const totals = await phone("bram").store.totals(characterId);
+        expect(totals.damage.value, "Aldric's damage with the old field on the equipped Hand Axe").toBe(1);
+        expect(totals.damage.grants, "where Aldric's damage comes from, the old field on the Hand Axe").toEqual([]);
+      }
+      await change(axe.id);
+      await synced(bram);
+      expect(await storedFields(`${entries}/${axe.id}`), `the stored Hand Axe after ${what}`).not.toContain(
+        "extraDamage",
+      );
+      axes[what] = axe.id;
+    }
+    // Each change is kept, as a new phone reads it from the server.
+    const other = phone("bram");
+    const read = async (what: string) => other.store.entry(axes[what]!);
+    const edited = await read("an edit");
+    expect(edited.category !== "skills" && edited.notes, "the edited Hand Axe's notes").toBe("Old, but sharp.");
+    expect((await read("trading one")).quantity, "the traded Hand Axe's quantity").toBe(1);
+    const granted = await read("a grant");
+    expect(
+      granted.category !== "skills" && granted.grants?.map((g) => [g.kind, g.kind === "cm" && g.amount]),
+      "the granted Hand Axe's grants",
+    ).toEqual([["cm", 1]]);
+    const sheet = await other.store.sheet(characterId);
+    expect(
+      sheet.equipped.map((q) => [q.entryId, q.slot]),
+      "where Aldric's Hand Axes are equipped",
+    ).toEqual([[axes["equipping"], "off-hand"]]);
+    for (const id of Object.values(axes)) {
+      expect(await other.store.entry(id), "a Hand Axe as read").not.toHaveProperty("extraDamage");
+    }
+  },
+);
+
+rule(
+  { req: ["IN-3", "IN-15", "NF-6"], m: "M4" },
+  "through Firestore, Undo brings back a deleted weapon that still held the earlier extra damage field, without it",
+  async () => {
+    const bram = await signedUp("bram");
+    const aldric = await seedCharacter(bram.store, "aldric");
+    const axe = await bram.store.addEntry(aldric.character.id, {
+      category: "weapons",
+      name: "Hand Axe",
+      hands: 1,
+      range: "melee",
+    });
+    await synced(bram);
+    const path = `users/${uid("bram")}/characters/${aldric.character.id}/entries/${axe.id}`;
+    await withEarlierField(path);
+    // A new phone reads the record as the server holds it, field and all.
+    const other = phone("bram");
+    const deleted = await other.store.deleteEntry(axe.id);
+    await synced(other);
+    await deleted.undo();
+    await synced(other);
+    const fieldsBack = await storedFields(path);
+    expect(fieldsBack, "the stored Hand Axe after Undo").toContain("name");
+    expect(fieldsBack, "the stored Hand Axe after Undo").not.toContain("extraDamage");
+    const back = await phone("bram").store.entry(axe.id);
+    expect(back.category !== "skills" && back.name, "the Hand Axe after Undo, read on a third phone").toBe("Hand Axe");
+  },
+);
+
 /** The IDs of the documents in one of Bram's collections, read from the server by a new phone of his. */
 async function storedIds(path: string): Promise<string[]> {
   return (await device("bram").collection(path).get()).docs.map((d) => d.id).sort();

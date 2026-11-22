@@ -14,6 +14,8 @@
 // Each test checks the owner is allowed AND the other user (Cass) and a
 // signed-out visitor are refused (TF-8).
 
+import firebase from "firebase/compat/app";
+import "firebase/compat/firestore";
 import { expect } from "vitest";
 import { LIMITS } from "../../src/data/validate";
 import { rule } from "../support/rule";
@@ -299,6 +301,60 @@ rule(
         .set({ category: "consumables", name: "Tonic", quantity: 1, notes: "short" }),
       "an ordinary entry",
     );
+  },
+);
+
+rule(
+  { req: ["IN-3", "NF-6", "TF-11"], m: "M4" },
+  "no write may leave the earlier extra damage field on an entry; Bram may remove it from an old record, and Cass can't touch it",
+  async () => {
+    await seedAldric();
+    const entries = `${character()}/entries`;
+    await seed({
+      [`${entries}/old-axe`]: { category: "weapons", name: "Hand Axe", quantity: 1, notes: "Old", extraDamage: 2 },
+    });
+    const mine = signedIn("bram").firestore();
+    const weapon = { category: "weapons", name: "Throwing Axe", quantity: 1, hands: 1, range: "ranged" };
+    for (const [i, value] of ([2, 0, null, "two", { amount: 2 }] as const).entries()) {
+      const shown = JSON.stringify(value);
+      await expectRefused(
+        mine.doc(`${entries}/new-${i}`).set({ ...weapon, extraDamage: value }),
+        `Bram adding a weapon with extraDamage ${shown}`,
+      );
+      await expectRefused(
+        mine.doc(`${entries}/aldric-sword`).set({ extraDamage: value }, { merge: true }),
+        `Bram giving Duskfang extraDamage ${shown}`,
+      );
+      await expectRefused(
+        mine.doc(`${entries}/old-axe`).update({ extraDamage: value }),
+        `Bram changing the old Hand Axe's extraDamage to ${shown}`,
+      );
+    }
+    await expectRefused(
+      mine.doc(`${entries}/old-axe`).update({ notes: "Sharp" }),
+      "Bram editing the old Hand Axe and leaving the field on it",
+    );
+    for (const [who, db] of [
+      ["Cass", signedIn("cass").firestore()],
+      ["a signed-out visitor", signedOut().firestore()],
+    ] as const) {
+      await expectRefused(
+        db.doc(`${entries}/old-axe`).update({ notes: "Mine now", extraDamage: firebase.firestore.FieldValue.delete() }),
+        `${who} removing the field from Bram's old Hand Axe`,
+      );
+      await expectRefused(
+        db.doc(`${entries}/aldric-sword`).set({ extraDamage: 2 }, { merge: true }),
+        `${who} giving Bram's Duskfang extraDamage`,
+      );
+    }
+    await expectAllowed(mine.doc(`${entries}/new-ok`).set(weapon), "Bram adding a weapon without the field");
+    await expectAllowed(
+      mine.doc(`${entries}/old-axe`).update({ notes: "Sharp", extraDamage: firebase.firestore.FieldValue.delete() }),
+      "Bram editing the old Hand Axe and removing the field",
+    );
+    const axe = (await mine.doc(`${entries}/old-axe`).get()).data();
+    expect(axe, "Bram's old Hand Axe after the edit").toMatchObject({ name: "Hand Axe", notes: "Sharp" });
+    expect(axe, "Bram's old Hand Axe after the edit").not.toHaveProperty("extraDamage");
   },
 );
 
