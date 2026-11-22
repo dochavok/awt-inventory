@@ -87,6 +87,8 @@ export function useRoute(): Route | null {
   return route;
 }
 
+// TODO: `href` and `go` take any string; typed routes would catch a link to an address the
+// router doesn't know.
 export function go(path: string): void {
   window.location.hash = href(path);
 }

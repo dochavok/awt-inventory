@@ -348,6 +348,8 @@ export function grant(input: unknown, ref: ReferenceData): NewGrant {
   const allowed = new Set(["kind", "condition", "id", ...GRANT_FIELDS[kind]]);
   for (const [field, value] of Object.entries(g)) {
     if (value !== undefined && !allowed.has(field)) {
+      // TODO: wording: "A effect grant doesn't have a amount." needs "a"/"an" and the kind's
+      // display name. The grant form can't reach it today.
       throw new ValidationError("grants", `A ${kind} grant doesn't have a ${field}.`);
     }
   }

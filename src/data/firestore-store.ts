@@ -382,6 +382,8 @@ export function createFirestoreStore(
   // ---------------------------------------------------------------- the backend
 
   const backend: Backend = {
+    // TODO: entry and history IDs carry their character (`{characterId}~{id}`). Giving entry and
+    // history changes their characterId instead would let newId take only the kind.
     newId(kind, characterId) {
       const id = doc(collection(db, "ids")).id;
       if (kind === "entry" || kind === "history") return `${characterId}${SEP}${id}`;
@@ -511,6 +513,8 @@ export function createFirestoreStore(
     async syncStatus() {
       const isOnline = await online();
       // Let writes the server has just answered settle before counting what's still waiting.
+      // TODO: this relies on a zero-delay timer; counting down `pending` as each write commits,
+      // or using hasPendingWrites, wouldn't.
       await new Promise((resolve) => setTimeout(resolve, 0));
       return { online: isOnline, pendingChanges: pending };
     },

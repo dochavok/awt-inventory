@@ -505,6 +505,9 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
    * Everything in a character, in an order a backend can apply in parts: its
    * entries, their records, the character, its other records, then its
    * character-level titles.
+   *
+   * TODO: the same delete order (HI-4) is written again in both stores' deleteAccount; build
+   * account deletion from this instead.
    */
   async function removeCharacterData(characterId: Id): Promise<Change[]> {
     const [entries, history, titles] = await Promise.all([
@@ -575,6 +578,9 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       return character;
     },
 
+    // TODO: here and in correctClass, ownCharacter reads the character and writeLosing reads it
+    // again through sheetFor. Passing the stored one would save a read (NF-5), as long as the
+    // result keeps no stored-only fields (TF-2).
     async updateCharacter(characterId, patch, options = {}) {
       const character = await ownCharacter(characterId);
       const next = { ...character };
@@ -850,6 +856,8 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       const used = stored.record;
       if (used.event !== "used")
         throw new ValidationError("event", `Only a used record can be restored, not ${used.event}.`);
+      // TODO: reads the character's whole history, which grows with use; a backend query by
+      // `restores` (or the offline cache) would read only what's needed.
       if ((await backend.history(used.characterId)).some((h) => h.record.restores === historyId)) {
         throw new ValidationError("event", `That use of ${used.entryName} was restored already.`);
       }
@@ -922,6 +930,8 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
     async deleteEntry(entryId) {
       // As stored, so Undo brings it back where it was equipped (IN-15).
       const entry = await storedEntry(entryId);
+      // TODO: reads the character's whole history to find this entry's records; a backend query
+      // by `entryId` would read only those.
       const records = (await backend.history(entry.characterId)).filter((h) => h.record.entryId === entryId);
       const causes = await writeLosing(
         [
@@ -965,6 +975,8 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       let typed: unknown[];
       let common: { name: string; retired?: boolean }[];
       if (field === "acquisitionSource") {
+        // TODO: reads every character's whole history, which grows with use; read only the
+        // records that have a source, or from the offline cache.
         const history = (await Promise.all(characters.map((c) => backend.history(c.id)))).flat();
         typed = history.map((h) => h.record.source);
         common = ref.acquisitionSources;
