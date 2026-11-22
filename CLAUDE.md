@@ -88,9 +88,12 @@ Each is a CI job, and all five are required checks on `main`:
   they're stale.
 - **Scenarios (TF-9):** YAML in `tests/scenarios/`, checked against a strict
   schema (`tests/support/scenarios.ts`); IDs are permanent.
-- **On this PC:** Norton quarantined Playwright's WebKit, so run browser tests
-  locally with `npx playwright test --project android --workers 2`; CI runs
-  both phones. Use 2 workers: Playwright's default here is 6, and on a fresh
+- **On this PC:** Playwright's WebKit runs here again (reinstalled
+  2026-11-22), but it's unreliable on Windows: a full iPhone run took 9
+  minutes with 23 of 70 tests failing, and a test that passes in CI failed 1
+  of 3 runs on `main`. So run browser tests locally with
+  `npx playwright test --project android --workers 2`, and let CI (WebKit on
+  Linux) check the iPhone. Use 2 workers: Playwright's default here is 6, and on a fresh
   build that overloads this PC and tests time out (2 of 3 runs failed at 6
   workers, none at 2). CI's runners already use 2. The warm-up (TF-13) stopped
   the first test on each worker timing out on a fresh build (2 of 3 full runs
