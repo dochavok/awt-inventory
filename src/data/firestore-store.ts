@@ -56,6 +56,12 @@ const PROBE_MS = 3_000;
 
 const SEP = "~";
 
+/**
+ * Fields earlier versions of the app kept on an entry and the rules no longer allow: every
+ * change to an entry removes them, so an old record stays editable (IN-3).
+ */
+const EARLIER_ENTRY_FIELDS = { extraDamage: deleteField() };
+
 /** What a refused change was about, for telling the user (NF-3). */
 export interface RefusedChange {
   kind: RecordKind | "profile";
@@ -252,9 +258,10 @@ export function createFirestoreStore(
         const ref = refFor(change.kind, change.id);
         if (!ref) continue;
         const at = Date.parse(change.at);
+        const earlier = change.kind === "entry" ? EARLIER_ENTRY_FIELDS : {};
         for (const [key, value] of Object.entries(change.fields)) {
           const own = writeBatch(db);
-          own.update(ref, { [key]: value === undefined ? deleteField() : value, [`edited.${key}`]: at });
+          own.update(ref, { [key]: value === undefined ? deleteField() : value, [`edited.${key}`]: at, ...earlier });
           if (change.kind === "character" && key === "name" && typeof value === "string") {
             claimName(own, value, change.id);
           }
@@ -287,7 +294,7 @@ export function createFirestoreStore(
           b.set(doc(reports(), change.value.id), stored(change.value, ["id", "uid"]));
           break;
         case "add-quantity":
-          b.update(refFor("entry", change.entryId)!, { quantity: increment(change.by) });
+          b.update(refFor("entry", change.entryId)!, { quantity: increment(change.by), ...EARLIER_ENTRY_FIELDS });
           break;
         case "delete":
           b.delete(refFor(change.kind, change.id)!);

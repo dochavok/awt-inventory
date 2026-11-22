@@ -89,7 +89,7 @@ service cloud.firestore {
       let changed = changedKeys();
       return fresh(changed, 'name') && fresh(changed, 'description') && fresh(changed, 'notes')
         && fresh(changed, 'itemFamily') && fresh(changed, 'rarity') && fresh(changed, 'hands')
-        && fresh(changed, 'range') && fresh(changed, 'weaponGroup') && fresh(changed, 'extraDamage')
+        && fresh(changed, 'range') && fresh(changed, 'weaponGroup')
         && fresh(changed, 'slotKind') && fresh(changed, 'arcane') && fresh(changed, 'allyType')
         && fresh(changed, 'hearts') && fresh(changed, 'active') && fresh(changed, 'tier')
         && fresh(changed, 'howGained') && fresh(changed, 'levelGained') && fresh(changed, 'grants')
@@ -128,7 +128,7 @@ service cloud.firestore {
     function validEntry() {
       let data = request.resource.data;
       return data.keys().hasOnly(['category', 'name', 'quantity', 'description', 'notes', 'itemFamily', 'grants',
-          'rarity', 'hands', 'range', 'weaponGroup', 'extraDamage', 'slotKind', 'arcane', 'allyType', 'hearts',
+          'rarity', 'hands', 'range', 'weaponGroup', 'slotKind', 'arcane', 'allyType', 'hearts',
           'active', 'tier', 'skillId', 'howGained', 'levelGained', 'slot', 'edited']) && edits(data)
         && text(data, 'slot', 100)
         && text(data, 'category', 20) && text(data, 'name', 100) && wholeNumber(data, 'quantity')
