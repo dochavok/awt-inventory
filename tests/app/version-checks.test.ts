@@ -1,15 +1,16 @@
 // When the app looks for a new version of itself (NF-14): as it opens, each time
-// it's brought back from the background, and every hour while it stays open,
-// but only with signal. Finding and offering the new version is the browser
-// test's (tests/browser/phone.spec.ts).
+// it's brought back from the background, when signal comes back, and every hour
+// while it stays open, but only with signal. Finding and offering the new
+// version is the browser test's (tests/browser/phone.spec.ts).
 
 import { afterEach, expect, vi } from "vitest";
 import { CHECK_EVERY_MS, checkForNewVersions } from "../../src/app/version-checks";
 import { rule } from "../support/rule";
 
-/** A page the test controls: signal, whether it's in view, and its visibility events. */
+/** A page the test controls: signal, whether it's in view, and its visibility and signal events. */
 function fakePage() {
   const listeners = new Set<() => void>();
+  const onlineListeners = new Set<() => void>();
   const page = {
     signal: true,
     inView: true,
@@ -19,12 +20,21 @@ function fakePage() {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
+    onOnline(listener: () => void) {
+      onlineListeners.add(listener);
+      return () => onlineListeners.delete(listener);
+    },
     /** The app goes to the background, or comes back. */
     show(inView: boolean) {
       page.inView = inView;
       listeners.forEach((l) => l());
     },
-    listening: () => listeners.size,
+    /** Signal comes back. */
+    reconnect() {
+      page.signal = true;
+      onlineListeners.forEach((l) => l());
+    },
+    listening: () => listeners.size + onlineListeners.size,
   };
   return page;
 }
@@ -85,15 +95,29 @@ rule(
   },
 );
 
+rule({ req: ["NF-14"], m: "M4" }, "when signal comes back while the app is in view, it looks again", () => {
+  const page = fakePage();
+  page.signal = false;
+  const check = vi.fn();
+  checkForNewVersions(check, page);
+  page.reconnect();
+  expect(check, "checks once signal is back, in view").toHaveBeenCalledTimes(1);
+  page.signal = false;
+  page.inView = false;
+  page.reconnect();
+  expect(check, "checks once signal is back, in the background").toHaveBeenCalledTimes(1);
+});
+
 rule({ req: ["NF-14"], m: "M4" }, "once stopped, the app no longer looks", () => {
   vi.useFakeTimers();
   const page = fakePage();
   const check = vi.fn();
   const stop = checkForNewVersions(check, page);
   stop();
-  expect(page.listening(), "visibility listeners left").toBe(0);
+  expect(page.listening(), "visibility and signal listeners left").toBe(0);
   vi.advanceTimersByTime(3 * CHECK_EVERY_MS);
   page.show(false);
   page.show(true);
+  page.reconnect();
   expect(check, "checks after stopping: only the one as it opened").toHaveBeenCalledTimes(1);
 });

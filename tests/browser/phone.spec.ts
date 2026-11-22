@@ -4,7 +4,7 @@
 // version published while the app is open (NF-14).
 // Runs as iPhone (Safari) and Android (Chrome, 360 pixels wide).
 
-import { closeSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { expect, type Page } from "@playwright/test";
 import { browserRule } from "../support/browser-rule";
 
@@ -114,6 +114,8 @@ const LOCK = new URL("../../dist/new-version-test.lock", import.meta.url);
 const NEW_VERSION = "\n// A new version, published by an NF-14 browser test: ";
 // Below the 30 s a test may take, so a test kept waiting says why. One usually holds it for seconds.
 const NEW_VERSION_WAIT_MS = 20_000;
+// Longer than any test may run, so an older lock was left behind.
+const STALE_LOCK_MS = 60_000;
 
 /** The app opened before on this phone: stored, and running this page. */
 async function openStored(page: Page) {
@@ -138,15 +140,23 @@ async function markLoaded(page: Page) {
 }
 
 /**
- * Publishes a new version of the app for as long as `body` runs, then puts the
- * build back. One test at a time, since both phones run against the same build.
+ * Runs `body` with the build to itself: `publish()` publishes a new version of
+ * the app, and the build is put back afterwards. One test at a time, since both
+ * phones run against the same build; a test opens its pages inside, so no other
+ * test's new version reaches them first.
  */
-async function withNewVersion(body: () => Promise<void>): Promise<void> {
+async function withNewVersion(body: (publish: () => void) => Promise<void>): Promise<void> {
   for (let waited = 0; ; waited += 100) {
     try {
       closeSync(openSync(LOCK, "wx"));
       break;
     } catch (error) {
+      // Left by a test that was stopped before it could put the build back.
+      const taken = statSync(LOCK, { throwIfNoEntry: false })?.mtimeMs;
+      if (taken !== undefined && Date.now() - taken > STALE_LOCK_MS) {
+        rmSync(LOCK, { force: true });
+        continue;
+      }
       if (waited > NEW_VERSION_WAIT_MS) {
         throw new Error(`Another test held ${LOCK.pathname} too long`, { cause: error });
       }
@@ -155,8 +165,8 @@ async function withNewVersion(body: () => Promise<void>): Promise<void> {
   }
   const published = readFileSync(SERVICE_WORKER, "utf8").split(NEW_VERSION)[0]!;
   try {
-    writeFileSync(SERVICE_WORKER, `${published}${NEW_VERSION}${Date.now()}-${Math.random()}\n`);
-    await body();
+    writeFileSync(SERVICE_WORKER, published);
+    await body(() => writeFileSync(SERVICE_WORKER, `${published}${NEW_VERSION}${Date.now()}-${Math.random()}\n`));
   } finally {
     writeFileSync(SERVICE_WORKER, published);
     rmSync(LOCK, { force: true });
@@ -170,23 +180,25 @@ async function withNewVersion(body: () => Promise<void>): Promise<void> {
  */
 async function newVersionOffered(page: Page, openedBefore: boolean) {
   const signIn = page.getByRole("heading", { name: /sign in/i });
-  if (openedBefore) await openStored(page);
-  else {
-    await page.goto("/");
-    await expect(signIn, "the sign-in heading").toBeVisible();
-    expect(
-      await page.evaluate(async () => (await navigator.serviceWorker.ready).active !== null),
-      "the app stored on the phone",
-    ).toBe(true);
-  }
-  await page.getByLabel("Email").fill("half-typed@example.test");
-  const loadedBefore = await markLoaded(page);
   const waitingVersion = () =>
     page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.waiting != null);
   const bar = page.getByRole("status", { name: "New version" });
-  await expect(bar, "the new-version bar before there is a new version").toBeHidden();
 
-  await withNewVersion(async () => {
+  await withNewVersion(async (publish) => {
+    if (openedBefore) await openStored(page);
+    else {
+      await page.goto("/");
+      await expect(signIn, "the sign-in heading").toBeVisible();
+      expect(
+        await page.evaluate(async () => (await navigator.serviceWorker.ready).active !== null),
+        "the app stored on the phone",
+      ).toBe(true);
+    }
+    await page.getByLabel("Email").fill("half-typed@example.test");
+    const loadedBefore = await markLoaded(page);
+    await expect(bar, "the new-version bar before there is a new version").toBeHidden();
+
+    publish();
     // The app is brought back from the background.
     await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
     await expect(bar, "the new-version bar").toContainText("A new version is ready", { timeout: 15_000 });
@@ -225,9 +237,10 @@ browserRule(
   { req: ["NF-14"], m: "M4" },
   "a new version published while the app was closed is offered when the app is opened again",
   async ({ page }) => {
-    await openStored(page);
     const bar = page.getByRole("status", { name: "New version" });
-    await withNewVersion(async () => {
+    await withNewVersion(async (publish) => {
+      await openStored(page);
+      publish();
       await page.reload();
       await expect(page.getByRole("heading", { name: /sign in/i }), "the sign-in heading, opened").toBeVisible();
       await expect(bar, "the new-version bar").toContainText("A new version is ready", { timeout: 15_000 });
@@ -239,14 +252,16 @@ browserRule(
   { req: ["NF-14"], m: "M4" },
   "with the app open twice, Reload in one leaves the other alone, and its own Reload then works",
   async ({ page, context }) => {
-    await openStored(page);
-    const other = await context.newPage();
-    await other.goto("/");
-    await expect(other.getByRole("heading", { name: /sign in/i }), "the sign-in heading, open twice").toBeVisible();
-    const otherLoadedBefore = await markLoaded(other);
     const bar = (p: Page) => p.getByRole("status", { name: "New version" });
 
-    await withNewVersion(async () => {
+    await withNewVersion(async (publish) => {
+      await openStored(page);
+      const other = await context.newPage();
+      await other.goto("/");
+      await expect(other.getByRole("heading", { name: /sign in/i }), "the sign-in heading, open twice").toBeVisible();
+      const otherLoadedBefore = await markLoaded(other);
+
+      publish();
       for (const p of [page, other]) {
         await p.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
         await expect(bar(p), "the new-version bar").toContainText("A new version is ready", { timeout: 15_000 });
