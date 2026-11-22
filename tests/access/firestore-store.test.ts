@@ -284,6 +284,7 @@ function storedUrl(path: string): string {
 /** The fields one of Bram's documents holds on the server, read past the rules. */
 async function storedFields(path: string): Promise<string[]> {
   const response = await fetch(storedUrl(path), { headers: { Authorization: "Bearer owner" } });
+  expect(response.ok, `reading ${path} past the rules`).toBe(true);
   const body = (await response.json()) as { fields?: Record<string, unknown> };
   return Object.keys(body.fields ?? {}).sort();
 }
@@ -329,6 +330,12 @@ rule(
       await before?.(axe.id);
       await synced(bram);
       await withEarlierField(`${entries}/${axe.id}`);
+      if (what === "unequipping") {
+        // Equipped and still holding the field, as a new phone reads it from the server.
+        const totals = await phone("bram").store.totals(characterId);
+        expect(totals.damage.value, "Aldric's damage with the old field on the equipped Hand Axe").toBe(1);
+        expect(totals.damage.grants, "where Aldric's damage comes from, the old field on the Hand Axe").toEqual([]);
+      }
       await change(axe.id);
       await synced(bram);
       expect(await storedFields(`${entries}/${axe.id}`), `the stored Hand Axe after ${what}`).not.toContain(
@@ -355,9 +362,6 @@ rule(
     for (const id of Object.values(axes)) {
       expect(await other.store.entry(id), "a Hand Axe as read").not.toHaveProperty("extraDamage");
     }
-    const totals = await other.store.totals(characterId);
-    expect(totals.damage.value, "Aldric's damage with the equipped Hand Axe").toBe(1);
-    expect(totals.damage.grants, "where Aldric's damage comes from").toEqual([]);
   },
 );
 
