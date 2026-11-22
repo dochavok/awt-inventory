@@ -10,20 +10,26 @@ export interface PageState {
   visible(): boolean;
   /** Calls the listener each time the page is hidden or shown; returns a function that stops it. */
   onVisibilityChange(listener: () => void): () => void;
+  /** Calls the listener each time signal comes back; returns a function that stops it. */
+  onOnline(listener: () => void): () => void;
 }
 
-/** Calls `check` as the app opens, when it's brought back, and every hour, with signal only. Returns a stop function. */
+/**
+ * Calls `check` as the app opens, when it's brought back or signal comes back while it's in view,
+ * and every hour, with signal only. Returns a stop function.
+ */
 export function checkForNewVersions(check: () => void, page: PageState): () => void {
   const look = () => {
     if (page.online()) check();
   };
-  const stopListening = page.onVisibilityChange(() => {
+  const lookIfVisible = () => {
     if (page.visible()) look();
-  });
+  };
+  const stops = [page.onVisibilityChange(lookIfVisible), page.onOnline(lookIfVisible)];
   const timer = setInterval(look, CHECK_EVERY_MS);
   look();
   return () => {
-    stopListening();
+    stops.forEach((stop) => stop());
     clearInterval(timer);
   };
 }

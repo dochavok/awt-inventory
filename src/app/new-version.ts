@@ -13,7 +13,14 @@ const browserPage: PageState = {
     document.addEventListener("visibilitychange", listener);
     return () => document.removeEventListener("visibilitychange", listener);
   },
+  onOnline(listener) {
+    window.addEventListener("online", listener);
+    return () => window.removeEventListener("online", listener);
+  },
 };
+
+/** How long Reload waits for the new version to take over before reloading anyway. */
+const SWITCH_WAIT_MS = 3_000;
 
 /** What the new-version bar needs: whether one is ready, and a way to switch to it. */
 export interface NewVersion {
@@ -27,16 +34,26 @@ export interface NewVersion {
 export function watchForNewVersions(): NewVersion {
   let ready = false;
   let registration: ServiceWorkerRegistration | undefined;
+  let switching = false;
   const listeners = new Set<() => void>();
-
-  // A new version is stored on the phone and waiting behind the one running this page: offer it,
-  // never switch by itself (NF-14). Followed here rather than through the plugin's events, which
-  // miss a version already installing when the page registers, and stop after one that fails.
-  const offerIfWaiting = () => {
-    if (ready || !registration?.waiting || !navigator.serviceWorker.controller) return;
+  const offer = () => {
+    if (ready) return;
     ready = true;
     listeners.forEach((l) => l());
   };
+
+  // A new version is stored on the phone and waiting behind an older one: offer it, never switch
+  // by itself (NF-14). Followed here rather than through the plugin's events, which miss a version
+  // already installing when the page registers, and stop after one that fails.
+  const offerIfWaiting = () => {
+    if (registration?.waiting && registration.active) offer();
+  };
+  // Another window switched to a new version while this one wasn't looking: this page still runs
+  // the old one, so offer the reload too.
+  const hadController = navigator.serviceWorker.controller !== null;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (hadController && !switching) offer();
+  });
   const follow = (worker: ServiceWorker | null) => {
     worker?.addEventListener("statechange", () => {
       if (worker.state === "installed") offerIfWaiting();
@@ -72,9 +89,12 @@ export function watchForNewVersions(): NewVersion {
         window.location.reload();
         return;
       }
-      // Once the waiting version takes over the page, load the page again from it.
+      // Once the waiting version takes over the page, load the page again from it; if it hasn't
+      // taken over in a few seconds (it was replaced, or the message was lost), reload anyway.
+      switching = true;
       navigator.serviceWorker.addEventListener("controllerchange", () => window.location.reload(), { once: true });
       await updateSW(true);
+      setTimeout(() => window.location.reload(), SWITCH_WAIT_MS);
     },
   };
 }
