@@ -276,21 +276,21 @@ rule(
   },
 );
 
-/** One of Bram's stored documents as the server holds it, read past the rules (the emulator's owner access). */
-function storedDoc(path: string): string {
+/** The address of one of Bram's stored documents, for reading it past the rules (the emulator's owner access). */
+function storedUrl(path: string): string {
   return `http://${process.env.FIRESTORE_EMULATOR_HOST}/v1/projects/${PROJECT_ID}/databases/(default)/documents/${path}`;
 }
 
 /** The fields one of Bram's documents holds on the server, read past the rules. */
 async function storedFields(path: string): Promise<string[]> {
-  const response = await fetch(storedDoc(path), { headers: { Authorization: "Bearer owner" } });
+  const response = await fetch(storedUrl(path), { headers: { Authorization: "Bearer owner" } });
   const body = (await response.json()) as { fields?: Record<string, unknown> };
   return Object.keys(body.fields ?? {}).sort();
 }
 
 /** Gives a stored entry the extra damage field, as an earlier version of the app stored it (IN-3). */
 async function withEarlierField(path: string): Promise<void> {
-  const response = await fetch(`${storedDoc(path)}?updateMask.fieldPaths=extraDamage`, {
+  const response = await fetch(`${storedUrl(path)}?updateMask.fieldPaths=extraDamage`, {
     method: "PATCH",
     headers: { Authorization: "Bearer owner", "Content-Type": "application/json" },
     body: JSON.stringify({ fields: { extraDamage: { integerValue: "2" } } }),
@@ -310,14 +310,14 @@ rule(
     const equipped = async (id: string) =>
       expect((await bram.store.equip(id, "off-hand")).outcome, "equipping a Hand Axe in the off-hand").toBe("allowed");
     // Unequipping comes first, so its axe has left the off-hand before another is equipped there.
-    const changes: [string, (id: string) => Promise<unknown>, (id: string) => Promise<unknown>][] = [
+    const changes: [string, (id: string) => Promise<unknown>, ((id: string) => Promise<unknown>)?][] = [
       ["unequipping", (id) => bram.store.unequip(id), equipped],
-      ["an edit", (id) => bram.store.updateEntry(id, { notes: "Old, but sharp." }), async () => undefined],
-      ["equipping", equipped, async () => undefined],
-      ["a grant", (id) => bram.store.addGrant({ entryId: id }, { kind: "cm", amount: 1 }), async () => undefined],
-      ["trading one", (id) => bram.store.markTraded(id, { kind: "traded", quantity: 1 }), async () => undefined],
+      ["an edit", (id) => bram.store.updateEntry(id, { notes: "Old, but sharp." })],
+      ["equipping", equipped],
+      ["a grant", (id) => bram.store.addGrant({ entryId: id }, { kind: "cm", amount: 1 })],
+      ["trading one", (id) => bram.store.markTraded(id, { kind: "traded", quantity: 1 })],
     ];
-    const axes = new Map<string, string>();
+    const axes: Record<string, string> = {};
     for (const [what, change, before] of changes) {
       const axe = await bram.store.addEntry(characterId, {
         category: "weapons",
@@ -326,7 +326,7 @@ rule(
         hands: 1,
         range: "melee",
       });
-      await before(axe.id);
+      await before?.(axe.id);
       await synced(bram);
       await withEarlierField(`${entries}/${axe.id}`);
       await change(axe.id);
@@ -334,11 +334,11 @@ rule(
       expect(await storedFields(`${entries}/${axe.id}`), `the stored Hand Axe after ${what}`).not.toContain(
         "extraDamage",
       );
-      axes.set(what, axe.id);
+      axes[what] = axe.id;
     }
     // Each change is kept, as a new phone reads it from the server.
     const other = phone("bram");
-    const read = async (what: string) => other.store.entry(axes.get(what)!);
+    const read = async (what: string) => other.store.entry(axes[what]!);
     const edited = await read("an edit");
     expect(edited.category !== "skills" && edited.notes, "the edited Hand Axe's notes").toBe("Old, but sharp.");
     expect((await read("trading one")).quantity, "the traded Hand Axe's quantity").toBe(1);
@@ -351,13 +351,42 @@ rule(
     expect(
       sheet.equipped.map((q) => [q.entryId, q.slot]),
       "where Aldric's Hand Axes are equipped",
-    ).toEqual([[axes.get("equipping"), "off-hand"]]);
-    for (const id of axes.values()) {
+    ).toEqual([[axes["equipping"], "off-hand"]]);
+    for (const id of Object.values(axes)) {
       expect(await other.store.entry(id), "a Hand Axe as read").not.toHaveProperty("extraDamage");
     }
     const totals = await other.store.totals(characterId);
     expect(totals.damage.value, "Aldric's damage with the equipped Hand Axe").toBe(1);
     expect(totals.damage.grants, "where Aldric's damage comes from").toEqual([]);
+  },
+);
+
+rule(
+  { req: ["IN-3", "IN-15", "NF-6"], m: "M4" },
+  "through Firestore, Undo brings back a deleted weapon that still held the earlier extra damage field, without it",
+  async () => {
+    const bram = await signedUp("bram");
+    const aldric = await seedCharacter(bram.store, "aldric");
+    const axe = await bram.store.addEntry(aldric.character.id, {
+      category: "weapons",
+      name: "Hand Axe",
+      hands: 1,
+      range: "melee",
+    });
+    await synced(bram);
+    const path = `users/${uid("bram")}/characters/${aldric.character.id}/entries/${axe.id}`;
+    await withEarlierField(path);
+    // A new phone reads the record as the server holds it, field and all.
+    const other = phone("bram");
+    const deleted = await other.store.deleteEntry(axe.id);
+    await synced(other);
+    await deleted.undo();
+    await synced(other);
+    const fieldsBack = await storedFields(path);
+    expect(fieldsBack, "the stored Hand Axe after Undo").toContain("name");
+    expect(fieldsBack, "the stored Hand Axe after Undo").not.toContain("extraDamage");
+    const back = await phone("bram").store.entry(axe.id);
+    expect(back.category !== "skills" && back.name, "the Hand Axe after Undo, read on a third phone").toBe("Hand Axe");
   },
 );
 
