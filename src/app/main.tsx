@@ -3,6 +3,7 @@ import { StrictMode, type ErrorInfo } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { reportError } from "./error-service";
+import { watchForNewVersions } from "./new-version";
 import { createServices } from "./services";
 import "./styles.css";
 
@@ -12,11 +13,13 @@ function renderError(error: unknown, info: ErrorInfo) {
   reportError(error);
 }
 
+const newVersion = watchForNewVersions();
+
 createRoot(document.getElementById("root")!, {
   onUncaughtError: renderError,
   onCaughtError: renderError,
 }).render(
   <StrictMode>
-    <App services={createServices()} />
+    <App services={createServices()} newVersion={newVersion} />
   </StrictMode>,
 );

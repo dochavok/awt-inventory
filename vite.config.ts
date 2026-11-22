@@ -13,10 +13,11 @@ export default defineConfig({
     // DOC-1: the user guide in docs/, built into the app.
     helpPages(fileURLToPath(new URL(".", import.meta.url))),
     // NF-3, DOC-1: the app and its help pages are stored on the phone, so they open without signal.
-    // The manifest is our own (public/manifest.webmanifest, NF-2).
+    // The manifest is our own (public/manifest.webmanifest, NF-2). NF-14: a new version waits
+    // until the player taps Reload (src/app/new-version.ts registers the service worker).
     VitePWA({
-      registerType: "autoUpdate",
-      injectRegister: "inline",
+      registerType: "prompt",
+      injectRegister: false,
       manifest: false,
       workbox: {
         globPatterns: ["**/*.{js,css,html,png,webmanifest}"],
@@ -24,7 +25,6 @@ export default defineConfig({
         // Firebase's own pages (Google sign-in's /__/auth/handler) must reach Hosting, never the app.
         navigateFallbackDenylist: [/^\/__\//],
         clientsClaim: true,
-        skipWaiting: true,
       },
     }),
   ],
