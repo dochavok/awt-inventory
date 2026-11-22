@@ -205,7 +205,7 @@ browserRule(
 
 browserRule(
   { req: ["TF-13", "IN-2", "IN-3", "IN-8"], m: "M3" },
-  "a weapon is added with its hands, range, group, damage and rarity, and its fields can be changed",
+  "a weapon is added with its hands, range, group and rarity, and its fields can be changed",
   async ({ page }) => {
     await signUp(page);
     const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
@@ -214,7 +214,8 @@ browserRule(
       await form.getByLabel("Hands").selectOption({ label: "Two-handed" });
       await form.getByLabel("Range").selectOption({ label: "Melee" });
       await form.getByLabel("Weapon group").fill("Sword");
-      await form.getByLabel("Extra damage (hearts)").fill("1");
+      // IN-3: extra damage is a grant on the weapon, not a field of its own.
+      await expect(form.getByLabel(/damage/i), "a damage field on a new weapon").toHaveCount(0);
       await form.getByLabel("Rarity").selectOption({ label: "Epic" });
       await form.getByLabel("Item family").fill("Passion");
     });
@@ -224,7 +225,6 @@ browserRule(
     for (const detail of ["Two-handed", "Melee", "Sword", "Epic", "Passion"]) {
       await expect(main, `Duskfang's ${detail}`).toContainText(detail);
     }
-    await expect(main, "Duskfang's extra damage").toContainText(/1 heart/);
 
     await page.getByRole("button", { name: "Edit" }).click();
     const edit = page.getByRole("form", { name: "Edit Duskfang" });
@@ -525,24 +525,140 @@ browserRule(
 );
 
 browserRule(
-  { req: ["IN-8", "IN-3"], m: "M3" },
-  "an emptied extra damage is cleared when the weapon is edited",
+  { req: ["IN-3", "GR-13", "GR-3"], m: "M4" },
+  "a weapon's extra damage is a grant that counts; once it's removed, the weapon is no longer named as a source of damage",
   async ({ page }) => {
     await signUp(page);
     const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
     await openFromCharacter(page, wren, /^Weapons/, "Weapons");
-    await addEntry(page, { name: "Hand Axe" }, async (form) => {
-      await form.getByLabel("Extra damage (hearts)").fill("2");
-    });
+    await addEntry(page, { name: "Hand Axe" });
     await rowFor(page, "Hand Axe").getByRole("link", { name: "Hand Axe" }).click();
-    const main = page.getByRole("main");
-    await expect(main, "Hand Axe's extra damage").toContainText("2 hearts");
-    await page.getByRole("button", { name: "Edit" }).click();
-    const edit = page.getByRole("form", { name: "Edit Hand Axe" });
-    await edit.getByLabel("Extra damage (hearts)").fill("");
-    await edit.getByRole("button", { name: "Save" }).click();
-    await expect(edit, "the edit form, closed once saved").toBeHidden();
-    await expect(main, "Hand Axe's page after emptying its extra damage").not.toContainText("Extra damage");
+    await expect(page.getByRole("heading", { level: 1 }), "Hand Axe's page").toHaveText("Hand Axe");
+    const axeGrant = page.getByRole("form", { name: "Add a grant" });
+    await axeGrant.getByLabel("Kind").selectOption({ label: "Extra damage" });
+    await axeGrant.getByLabel("Amount").fill("2");
+    await axeGrant.getByRole("button", { name: "Add grant" }).click();
+    await expect(page.getByRole("list", { name: "Grants" }), "Hand Axe's grants").toContainText(
+      "Extra damage +2 hearts",
+    );
+    await page.getByRole("button", { name: "Equip in Main hand" }).click();
+    await expect(page.getByRole("main"), "Hand Axe once equipped").toContainText("Equipped in Main hand");
+
+    // A second source: a title for all characters.
+    await page.goto("/#/titles");
+    const add = page.getByRole("form", { name: "Add a title" });
+    await add.getByLabel("Name").fill("Ember Mark");
+    await add.getByRole("button", { name: "Add title" }).click();
+    const card = page
+      .getByRole("list", { name: "Your titles" })
+      .locator(":scope > li")
+      .filter({ hasText: "Ember Mark" });
+    const titleGrant = card.getByRole("form", { name: "Add a grant" });
+    await titleGrant.getByLabel("Kind").selectOption({ label: "Extra damage" });
+    await titleGrant.getByLabel("Amount").fill("1");
+    await titleGrant.getByLabel("Type").fill("fire");
+    await titleGrant.getByRole("button", { name: "Add grant" }).click();
+    await expect(card.getByRole("list", { name: "Grants" }), "Ember Mark's grants").toContainText(
+      "Extra damage +1 heart fire",
+    );
+
+    const totals = page.getByRole("region", { name: "Totals" });
+    const damage = totals.getByRole("list", { name: "Damage", exact: true }).getByRole("listitem");
+    await page.goto(`/#/characters/${wren}`);
+    await expect(totals.getByText("Damage 4 hearts", { exact: true }), "Wren's damage, axe and title").toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(damage, "where Wren's damage comes from").toHaveText([
+      "base 1",
+      "+2 hearts (Hand Axe)",
+      "+1 heart fire (Title: Ember Mark)",
+    ]);
+
+    await openFromCharacter(page, wren, /^Weapons/, "Weapons");
+    await rowFor(page, "Hand Axe").getByRole("link", { name: "Hand Axe" }).click();
+    await page.getByRole("button", { name: "Remove Extra damage +2 hearts" }).click();
+    await expect(page.getByRole("list", { name: "Grants" }), "Hand Axe's grants once removed").toHaveCount(0);
+
+    await page.goto(`/#/characters/${wren}`);
+    await expect(totals.getByText("Damage 2 hearts", { exact: true }), "Wren's damage, the title's only").toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(damage, "where Wren's damage comes from, the axe's grant gone").toHaveText([
+      "base 1",
+      "+1 heart fire (Title: Ember Mark)",
+    ]);
+    await expect(damage.filter({ hasText: "Hand Axe" }), "a damage line naming Hand Axe").toHaveCount(0);
+  },
+);
+
+browserRule(
+  { req: ["GR-13", "GR-3", "IN-3"], m: "M4" },
+  "a weapon's extra damage counts only while it's equipped: unequipping the Hand Axe takes its line away",
+  async ({ page }) => {
+    await signUp(page);
+    const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+    await page.goto("/#/titles");
+    const add = page.getByRole("form", { name: "Add a title" });
+    await add.getByLabel("Name").fill("Ember Mark");
+    await add.getByRole("button", { name: "Add title" }).click();
+    const card = page
+      .getByRole("list", { name: "Your titles" })
+      .locator(":scope > li")
+      .filter({ hasText: "Ember Mark" });
+    const titleGrant = card.getByRole("form", { name: "Add a grant" });
+    await titleGrant.getByLabel("Kind").selectOption({ label: "Extra damage" });
+    await titleGrant.getByLabel("Amount").fill("1");
+    await titleGrant.getByLabel("Type").fill("fire");
+    await titleGrant.getByRole("button", { name: "Add grant" }).click();
+    await expect(card.getByRole("list", { name: "Grants" }), "Ember Mark's grants").toContainText(
+      "Extra damage +1 heart fire",
+    );
+
+    await openFromCharacter(page, wren, /^Weapons/, "Weapons");
+    await addEntry(page, { name: "Hand Axe" });
+    await rowFor(page, "Hand Axe").getByRole("link", { name: "Hand Axe" }).click();
+    await expect(page.getByRole("heading", { level: 1 }), "Hand Axe's page").toHaveText("Hand Axe");
+    const axeGrant = page.getByRole("form", { name: "Add a grant" });
+    await axeGrant.getByLabel("Kind").selectOption({ label: "Extra damage" });
+    await axeGrant.getByLabel("Amount").fill("2");
+    await axeGrant.getByRole("button", { name: "Add grant" }).click();
+    await expect(page.getByRole("list", { name: "Grants" }), "Hand Axe's grants").toContainText(
+      "Extra damage +2 hearts",
+    );
+    await page.getByRole("button", { name: "Equip in Main hand" }).click();
+    await expect(page.getByRole("main"), "Hand Axe once equipped").toContainText("Equipped in Main hand");
+
+    const totals = page.getByRole("region", { name: "Totals" });
+    const damage = totals.getByRole("list", { name: "Damage", exact: true }).getByRole("listitem");
+    await page.goto(`/#/characters/${wren}`);
+    await expect(totals.getByText("Damage 4 hearts", { exact: true }), "Wren's damage, the axe equipped").toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(damage, "where Wren's damage comes from, the axe equipped").toHaveText([
+      "base 1",
+      "+2 hearts (Hand Axe)",
+      "+1 heart fire (Title: Ember Mark)",
+    ]);
+
+    await openFromCharacter(page, wren, /^Weapons/, "Weapons");
+    await rowFor(page, "Hand Axe").getByRole("button", { name: "Unequip Hand Axe" }).click();
+    // Exact: "Equip Hand Axe" is also part of "Unequip Hand Axe".
+    await expect(
+      rowFor(page, "Hand Axe").getByRole("button", { name: "Equip Hand Axe", exact: true }),
+      "Equip on the Hand Axe's row once unequipped",
+    ).toBeVisible();
+
+    await page.goto(`/#/characters/${wren}`);
+    await expect(totals.getByText("Damage 2 hearts", { exact: true }), "Wren's damage, the axe unequipped").toBeVisible(
+      {
+        timeout: 15_000,
+      },
+    );
+    await expect(damage, "where Wren's damage comes from, the axe unequipped").toHaveText([
+      "base 1",
+      "+1 heart fire (Title: Ember Mark)",
+    ]);
+    await expect(totals, "the Totals card once the axe is unequipped").not.toContainText("Hand Axe");
   },
 );
 

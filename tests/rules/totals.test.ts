@@ -1,10 +1,12 @@
-// Grants and totals (section 8: GR-1 to GR-12), in the rules core.
+// Grants and totals (section 8: GR-1 to GR-13), in the rules core.
 // The scenarios in tests/scenarios/totals.yaml, plus checks a scenario can't
-// express: each grant line's category and source details (GR-12), and that the
-// level chart is read rather than built in (TF-3).
+// express: each grant line's category and source details (GR-12), that the
+// level chart is read rather than built in (TF-3), and damage: the base plus
+// each extra damage that counts, situational ones listed apart (GR-13).
 
 import { expect } from "vitest";
 import { computeTotals, slotState, type Grant, type SkillEntry, type SourceRef } from "../../src/rules";
+import { sourceName } from "../../src/rules/totals";
 import { fixtureSheet, testReferenceData } from "../support/fixtures";
 import { rule } from "../support/rule";
 import { runScenarios } from "../support/scenarios";
@@ -430,3 +432,228 @@ rule(
     expect(totals.cm.value, "Aldric's CM with an edited chart").toBe(206);
   },
 );
+
+/** Damage lines as [source name, source type, amount, type, condition], to tie each amount to its source. */
+const damageOf = (lines: { source: SourceRef; amount: number; damageType?: string; condition?: string }[]) =>
+  lines.map((d) => [sourceName(d.source), d.source.type, d.amount, d.damageType, d.condition]);
+
+/** Adds a grant to one of the sheet's entries (not a skill). */
+function grantOn(sheet: ReturnType<typeof fixtureSheet>, entryId: string, grant: Grant): void {
+  const entry = sheet.entries.find((e) => e.id === entryId)!;
+  if (entry.category === "skills") throw new Error(`${entryId} can't hold grants`);
+  entry.grants = [...(entry.grants ?? []), grant];
+}
+
+rule(
+  { req: ["GR-13", "GR-1", "GR-2", "GR-3"], m: "M4" },
+  "damage is the base of 1 heart plus the equipped Duskfang's extra damage grant",
+  () => {
+    const totals = computeTotals(fixtureSheet("aldric"), testReferenceData());
+    expect(totals.damage.base, "Aldric's base damage").toBe(1);
+    expect(damageOf(totals.damage.grants), "where Aldric's damage comes from").toEqual([
+      ["Duskfang", "entry", 2, undefined, undefined],
+    ]);
+    expect(totals.damage.value, "Aldric's damage").toBe(3);
+    expect(totals.damage.situational, "Aldric's situational damage").toEqual([]);
+  },
+);
+
+rule(
+  { req: ["GR-13", "GR-1", "GR-2", "GR-3", "GR-4"], m: "M4" },
+  "every extra damage grant that counts adds to the damage, whatever its type; a situational one is listed apart",
+  () => {
+    const ref = testReferenceData();
+    ref.skillGrants
+      .find((g) => g.skill === "iron-guard")!
+      .grants.push({ id: "sg-x-guard-dmg", kind: "extra-damage", amount: 1, damageType: "cold" });
+    const sheet = fixtureSheet("aldric");
+    // The Spare Cloak isn't equipped, so its extra damage doesn't count (GR-3).
+    grantOn(sheet, "aldric-cloak", { id: "g-x-cloak-dmg", kind: "extra-damage", amount: 5, damageType: "acid" });
+    sheet.titles[0]!.grants = [{ id: "g-x-title-dmg", kind: "extra-damage", amount: 1, damageType: "fire" }];
+    sheet.manualGrants.push({
+      id: "m-x-dmg",
+      reason: "DM ruling, made-up faire",
+      grants: [
+        { id: "g-x-manual-dmg", kind: "extra-damage", amount: 3, damageType: "radiant", condition: "vs Undead" },
+        { id: "g-x-bad-dmg", kind: "extra-damage", amount: Number.NaN, damageType: "bad data" },
+      ],
+    });
+    const plain = computeTotals(fixtureSheet("aldric"), testReferenceData());
+    const totals = computeTotals(sheet, ref);
+
+    expect(
+      damageOf(totals.damage.grants),
+      "where Aldric's damage comes from, in sheet order: entries, then skills and titles",
+    ).toEqual([
+      ["Duskfang", "entry", 2, undefined, undefined],
+      ["Iron Guard", "skill", 1, "cold", undefined],
+      ["Friend of the Forest", "title", 1, "fire", undefined],
+    ]);
+    expect(totals.damage.value, "Aldric's damage: 1 + 2 + 1 cold + 1 fire").toBe(5);
+    expect(damageOf(totals.damage.situational), "Aldric's situational damage, not added in").toEqual([
+      ["DM ruling, made-up faire", "manual", 3, "radiant", "vs Undead"],
+    ]);
+    // Extra damage adds only to the damage.
+    for (const total of ["cm", "mitigation", "hearts"] as const) {
+      expect(totals[total], `Aldric's ${total} with extra damage grants`).toEqual(plain[total]);
+    }
+    expect(totals.dice, "Aldric's combat dice with extra damage grants").toEqual(plain.dice);
+  },
+);
+
+rule({ req: ["GR-13", "GR-3"], m: "M4" }, "two equipped weapons with +2 each make 5 hearts", () => {
+  const sheet = fixtureSheet("aldric");
+  sheet.entries.push({
+    id: "x-axe",
+    characterId: "aldric",
+    category: "weapons",
+    name: "Hand Axe",
+    quantity: 1,
+    hands: 1,
+    range: "melee",
+    grants: [{ id: "g-x-axe-dmg", kind: "extra-damage", amount: 2 }],
+  });
+  sheet.equipped.push({ entryId: "x-axe", slot: "off-hand" });
+  const totals = computeTotals(sheet, testReferenceData());
+  expect(damageOf(totals.damage.grants), "where Aldric's damage comes from, two weapons").toEqual([
+    ["Duskfang", "entry", 2, undefined, undefined],
+    ["Hand Axe", "entry", 2, undefined, undefined],
+  ]);
+  expect(totals.damage.value, "Aldric's damage with two +2 weapons").toBe(5);
+});
+
+rule(
+  { req: ["GR-13", "GR-1", "GR-4"], m: "M4" },
+  "a growing extra damage in the skill list is a group: only the largest is listed, situational",
+  () => {
+    // An edited list: the Cinder Marks grow one situational extra damage, as Berserk's skills do.
+    const ref = testReferenceData();
+    const grantsOf = (skill: string) => ref.skillGrants.find((g) => g.skill === skill)!.grants;
+    grantsOf("cinder-mark-i").push({
+      id: "sg-x-rage-1",
+      kind: "extra-damage",
+      amount: 1,
+      condition: "while raging",
+      group: "rage",
+    });
+    grantsOf("cinder-mark-ii").push({
+      id: "sg-x-rage-2",
+      kind: "extra-damage",
+      amount: 2,
+      condition: "while raging",
+      group: "rage",
+    });
+    const totals = computeTotals(isoldeWith("cinder-mark-ii", "cinder-mark-i"), ref);
+    expect(damageOf(totals.damage.situational), "Isolde's situational damage").toEqual([
+      ["Cinder Mark II", "skill", 2, undefined, "while raging"],
+    ]);
+    expect(totals.damage.value, "Isolde's damage, the growing one not added in").toBe(1);
+  },
+);
+
+rule(
+  { req: ["GR-13", "GR-1"], m: "M4" },
+  "a group's extra damage of different types doesn't replace each other",
+  () => {
+    const ref = testReferenceData();
+    const grantsOf = (skill: string) => ref.skillGrants.find((g) => g.skill === skill)!.grants;
+    grantsOf("cinder-mark-i").push({
+      id: "sg-x-fire",
+      kind: "extra-damage",
+      amount: 1,
+      damageType: "fire",
+      group: "x",
+    });
+    grantsOf("cinder-mark-ii").push({
+      id: "sg-x-cold",
+      kind: "extra-damage",
+      amount: 2,
+      damageType: "cold",
+      group: "x",
+    });
+    const totals = computeTotals(isoldeWith("cinder-mark-i", "cinder-mark-ii"), ref);
+    expect(damageOf(totals.damage.grants), "where Isolde's damage comes from").toEqual([
+      ["Cinder Mark I", "skill", 1, "fire", undefined],
+      ["Cinder Mark II", "skill", 2, "cold", undefined],
+    ]);
+    expect(totals.damage.value, "Isolde's damage: 1 + 1 fire + 2 cold").toBe(4);
+  },
+);
+
+rule(
+  { req: ["GR-13", "GR-1"], m: "M4" },
+  "a group's extra damage of one type in different cases is one growing bonus: only the largest counts",
+  () => {
+    const ref = testReferenceData();
+    const grantsOf = (skill: string) => ref.skillGrants.find((g) => g.skill === skill)!.grants;
+    grantsOf("cinder-mark-i").push({ id: "sg-x-f1", kind: "extra-damage", amount: 1, damageType: "Fire", group: "x" });
+    grantsOf("cinder-mark-ii").push({ id: "sg-x-f2", kind: "extra-damage", amount: 2, damageType: "fire", group: "x" });
+    const totals = computeTotals(isoldeWith("cinder-mark-i", "cinder-mark-ii"), ref);
+    expect(damageOf(totals.damage.grants), "where Isolde's damage comes from").toEqual([
+      ["Cinder Mark II", "skill", 2, "fire", undefined],
+    ]);
+    expect(totals.damage.value, "Isolde's damage: 1 + the larger fire").toBe(3);
+  },
+);
+
+rule(
+  { req: ["GR-13", "GR-3"], m: "M4" },
+  "an unequipped weapon's and an inactive ally's extra damage don't count, and aren't listed as situational",
+  () => {
+    const sheet = fixtureSheet("aldric");
+    sheet.equipped = sheet.equipped.filter((q) => q.entryId !== "aldric-sword");
+    // Old Mule, Aldric's ally, isn't active.
+    grantOn(sheet, "aldric-mule", { id: "g-x-mule-dmg", kind: "extra-damage", amount: 4, damageType: "kick" });
+    const totals = computeTotals(sheet, testReferenceData());
+    expect(damageOf(totals.damage.grants), "where Aldric's damage comes from, Duskfang unequipped").toEqual([]);
+    expect(totals.damage.value, "Aldric's damage, Duskfang unequipped and the mule inactive").toBe(1);
+    expect(totals.damage.situational, "Aldric's situational damage").toEqual([]);
+
+    const active = fixtureSheet("aldric");
+    grantOn(active, "aldric-wolf", { id: "g-x-wolf-dmg", kind: "extra-damage", amount: 4, damageType: "bite" });
+    expect(
+      damageOf(computeTotals(active, testReferenceData()).damage.grants),
+      "where Aldric's damage comes from, the active wolf too",
+    ).toEqual([
+      ["Duskfang", "entry", 2, undefined, undefined],
+      ["Grey Fang", "entry", 4, "bite", undefined],
+    ]);
+  },
+);
+
+rule({ req: ["GR-13", "GR-1"], m: "M4" }, "a manual grant's extra damage with no condition counts", () => {
+  const sheet = fixtureSheet("aldric");
+  sheet.manualGrants.push({
+    id: "m-x-dmg",
+    reason: "DM ruling, made-up faire",
+    grants: [{ id: "g-x-manual-dmg", kind: "extra-damage", amount: 3, damageType: "radiant" }],
+  });
+  const totals = computeTotals(sheet, testReferenceData());
+  expect(damageOf(totals.damage.grants), "where Aldric's damage comes from, with the ruling").toEqual([
+    ["Duskfang", "entry", 2, undefined, undefined],
+    ["DM ruling, made-up faire", "manual", 3, "radiant", undefined],
+  ]);
+  expect(totals.damage.value, "Aldric's damage: 1 + 2 + 3 radiant").toBe(6);
+  expect(totals.damage.situational, "Aldric's situational damage").toEqual([]);
+});
+
+rule({ req: ["GR-13", "GR-3"], m: "M4" }, "a two-handed weapon's extra damage counts once, in both hands", () => {
+  const sheet = fixtureSheet("aldric");
+  sheet.equipped = sheet.equipped.filter((q) => q.entryId !== "aldric-sword");
+  sheet.entries.push({
+    id: "x-maul",
+    characterId: "aldric",
+    category: "weapons",
+    name: "Stone Maul",
+    quantity: 1,
+    hands: 2,
+    range: "melee",
+    grants: [{ id: "g-x-maul-dmg", kind: "extra-damage", amount: 3 }],
+  });
+  sheet.equipped.push({ entryId: "x-maul", slot: "both-hands" });
+  const totals = computeTotals(sheet, testReferenceData());
+  expect(damageOf(totals.damage.grants), "where Aldric's damage comes from, the maul in both hands").toEqual([
+    ["Stone Maul", "entry", 3, undefined, undefined],
+  ]);
+  expect(totals.damage.value, "Aldric's damage with the maul").toBe(4);
+});

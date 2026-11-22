@@ -25,6 +25,9 @@ import { Feedback, useAction } from "../useAction";
 
 type Kind = keyof typeof KIND_NAMES;
 
+/** The kinds with an amount up to LIMITS.grantAmount (slots have their own, smaller limit). */
+const AMOUNT_KINDS: readonly Kind[] = ["cm", "mitigation", "hearts", "allowance", "extra-damage"];
+
 interface Fields {
   kind: Kind;
   amount: string;
@@ -32,6 +35,8 @@ interface Fields {
   slotKind: string;
   rarity: string;
   permission: Permission;
+  /** Extra damage's type, such as "fire" (GR-13). */
+  damageType: string;
   /** An effect's kind and text (GR-6). */
   effect: Effect;
   text: string;
@@ -51,6 +56,7 @@ function emptyFields(ref: ReferenceData): Fields {
     slotKind: chooseable(ref.slotKinds)[0]?.id ?? "",
     rarity: chooseable(ref.rarities)[0]?.id ?? "",
     permission: "weapon-use",
+    damageType: "",
     effect: "resistance",
     text: "",
     condition: "",
@@ -76,6 +82,10 @@ function grantFrom(f: Fields): NewGrant {
       return { kind: "allowance", rarity: f.rarity, amount, ...condition };
     case "permission":
       return { kind: "permission", permission: f.permission, ...condition };
+    case "extra-damage": {
+      const damageType = f.damageType.trim();
+      return { kind: "extra-damage", amount, ...(damageType ? { damageType } : {}), ...condition };
+    }
     case "effect":
       return { kind: "effect", effect: f.effect, text: f.text.trim(), ...condition };
   }
@@ -168,8 +178,7 @@ export function GrantForm({
           ))}
         </select>
       </div>
-      {(f.kind === "cm" || f.kind === "mitigation" || f.kind === "hearts" || f.kind === "allowance") &&
-        amount(LIMITS.grantAmount)}
+      {AMOUNT_KINDS.includes(f.kind) && amount(LIMITS.grantAmount)}
       {(f.kind === "slots" || f.kind === "arcane-slots") && amount(LIMITS.slotGrant)}
       {f.kind === "die" && (
         <label>
@@ -211,6 +220,17 @@ export function GrantForm({
               </option>
             ))}
           </select>
+        </label>
+      )}
+      {f.kind === "extra-damage" && (
+        <label>
+          Type
+          <input
+            maxLength={LIMITS.shortText}
+            value={f.damageType}
+            onChange={(e) => set("damageType")(e.target.value)}
+          />
+          <span className="hint">Optional, such as &quot;fire&quot;.</span>
         </label>
       )}
       {f.kind === "effect" && (

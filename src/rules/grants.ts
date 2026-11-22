@@ -111,8 +111,8 @@ interface Collected extends Omit<SourcedGrant, "grant"> {
 const groupOf = (c: Collected): Id | undefined => (c.skillList ? c.grant.group : undefined);
 
 /**
- * GR-1's groups: within a group (of one kind, and for slots or an allowance
- * one slot kind or rarity: one growing bonus) only the largest grant is kept,
+ * GR-1's groups: within a group (of one kind, and for slots, an allowance or extra
+ * damage one slot kind, rarity or damage type: one growing bonus) only the largest grant is kept,
  * whatever order the sheet lists them in. A grouped die that a `die-always`
  * grant names loses its condition, so it counts (GR-4's exception), and the
  * `die-always` grants themselves go.
@@ -120,10 +120,17 @@ const groupOf = (c: Collected): Id | undefined => (c.skillList ? c.grant.group :
 function resolveGroups(collected: Collected[]): SourcedGrant[] {
   const always = new Set<Id>();
   const largest = new Map<string, Collected>();
-  // One growing bonus: the same kind, for the same slot kind or rarity.
+  // One growing bonus: the same kind, for the same slot kind or rarity, or extra damage of the same type.
   const keyOf = (c: Collected, group: Id) => {
     const { grant } = c;
-    const target = grant.kind === "slots" ? grant.slotKind : grant.kind === "allowance" ? grant.rarity : "";
+    const target =
+      grant.kind === "slots"
+        ? grant.slotKind
+        : grant.kind === "allowance"
+          ? grant.rarity
+          : grant.kind === "extra-damage"
+            ? (grant.damageType ?? "").toLowerCase()
+            : "";
     return `${grant.kind} ${target} ${group}`;
   };
   const beats = (a: Collected, b: Collected) => {

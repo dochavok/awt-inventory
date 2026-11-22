@@ -76,7 +76,9 @@ titles:
     earned: "2026-04-18"
     grants:
       - { kind: cm, amount: 1 }
+      - { kind: extra-damage, amount: 1, damageType: fire }
 manualGrants:
   - reason: DM ruling, made-up faire
     grants:
       - { kind: hearts, amount: 1 }
+      - { kind: extra-damage, amount: 2, condition: vs Undead }

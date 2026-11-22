@@ -144,7 +144,7 @@ A character's inventory has seven categories. This section covers every category
 
 **IN-2 · Must · M2: Rarity and item family.** Weapons, Armor and Items can have an optional **rarity**, from the reference data. Any entry outside Skills can have an optional **item family** (free text, with suggestions: the user's earlier families and the common ones in the reference data). Players may have families the maintainer doesn't know about, so there's no fixed list.
 
-**IN-3 · Must · M2: Weapons.** Weapons also have: one-handed or two-handed; melee or ranged; a **weapon group** (free text, with the user's earlier weapon groups offered as suggestions); and **extra damage** in hearts (shown on the weapon, never added to a total).
+**IN-3 · Must · M2: Weapons.** Weapons also have: one-handed or two-handed; melee or ranged; and a **weapon group** (free text, with the user's earlier weapon groups offered as suggestions). A weapon's extra damage is a grant on it (GR-1), counted while it's equipped (GR-3, GR-13). The separate extra damage field earlier versions of the app kept on a weapon is no longer used: an old record's value is never counted, shown or exported, and a change that sets that field, even to clear it, is refused with a message saying to add the extra damage under Grants.
 
 **IN-4 · Must · M2: Armor.** Armor also has the **paper-doll slot** it fits, from the reference data (a shield fits Off hand).
 
@@ -250,8 +250,9 @@ A character's totals are never typed in. They're worked out from the level chart
 - +n arcane slots
 - +n allowance for a rarity (e.g. +1 Legendary)
 - a permission (Weapon Use, Ranged Weapon Use, Armor Use, Dual Wielding)
+- extra damage +n hearts, optionally of a type (e.g. fire)
 
-A grant in the skill list (SK-7) can belong to a **group**, such as the Holy Die or the bonus vs Evil. Within a group only the largest grant is used (for dice, the one with the highest roll): a larger die or bonus replaces a smaller one, as the level chart's dice do, and the smaller ones aren't listed. A group is one growing die or bonus, such as the Holy Die from Devotion I, II and III. A grant outside the group, such as another skill's own extra 1d6, is added as usual, alongside the group's largest. Only the skill list's grants are grouped. An item's, title's or manual grant always adds up, so two equipped Back items both add their CM. A group is set on each of a skill's grants, since one skill can grow two things (Devotion I's bonus vs Evil and its Holy Die). For slots and allowances, a group's grants replace each other only for the same slot kind or rarity. A grouped die is situational (GR-4) unless one of the character's skills makes that group's die always count (e.g. Divine Instrument for the Holy Die). It's then listed among the combat dice (GR-11), with its source.
+A grant in the skill list (SK-7) can belong to a **group**, such as the Holy Die or the bonus vs Evil. Within a group only the largest grant is used (for dice, the one with the highest roll): a larger die or bonus replaces a smaller one, as the level chart's dice do, and the smaller ones aren't listed. A group is one growing die or bonus, such as the Holy Die from Devotion I, II and III. A grant outside the group, such as another skill's own extra 1d6, is added as usual, alongside the group's largest. Only the skill list's grants are grouped. An item's, title's or manual grant always adds up, so two equipped Back items both add their CM. A group is set on each of a skill's grants, since one skill can grow two things (Devotion I's bonus vs Evil and its Holy Die). For slots, allowances and extra damage, a group's grants replace each other only for the same slot kind, rarity or damage type (ignoring case). A grouped die is situational (GR-4) unless one of the character's skills makes that group's die always count (e.g. Divine Instrument for the Holy Die). It's then listed among the combat dice (GR-11), with its source.
 
 **GR-2 · Must · M4: Sources.** The user can add grants to any entry in Weapons, Armor, Items or Familiars/Allies, and to any title. Skills get their grants from the skill list (SK-7). A **manual grant**, with a reason (e.g. "DM ruling, Faire 2026"), can be added directly to a character. One source can have several grants.
 
@@ -282,6 +283,8 @@ A grant in the skill list (SK-7) can belong to a **group**, such as the Holy Die
 **GR-11 · Must · M4: Combat dice.** The level chart's combat dice for the level, as the chart gives them (e.g. *1d20 + 1d4*), then each extra die listed with its source, e.g. *3d20 + 1d8 + 1d6 (Shadow, familiar)*. A Rogue's Stealth Bonus dice are listed the same way, e.g. *1d20 + 1d4 + 1d4 (Stealth Bonus)*. Dice aren't merged into one expression: each extra die keeps its own source in brackets.
 
 **GR-12 · Must · M4: Where it comes from.** For each total, the user can open a list of every grant in it: the source, its category and the amount. Situational grants are listed separately under each total they would affect.
+
+**GR-13 · Should · M4: Damage.** A character's damage is a base of 1 heart plus every extra damage grant that counts and isn't situational, whatever its type. It's shown as a total with one line per grant, each with its amount, type and source, e.g. *Damage 3 hearts: base 1, +1 heart fire (Title: Ember Mark), +1 heart (Skill: True Warrior)*. Each equipped weapon adds its own: two weapons with +2 each make 5 hearts. Situational extra damage, such as Berserk's (1/combat), is listed apart and never added in (GR-4).
 
 ## 9. Equipping
 
@@ -351,7 +354,7 @@ A two-handed weapon gives no Dual Wielding warning until Q1 is answered.
 **EX-1 · Must · M3: Printable character sheet.** The user can create a PDF for one character, or for all characters that aren't retired. For each character it shows:
 
 - name, class and level;
-- the totals with their breakdowns (once M4 exists);
+- the totals with their breakdowns (once M4 exists), including damage with where it comes from (GR-13);
 - what's equipped (the paper doll and arcane slots);
 - every category with quantities, and skills with their usage and tier;
 - titles with their descriptions;
@@ -572,7 +575,7 @@ Each milestone from M2 on is done when all of its tests from M1 pass, with no te
 | **M1: Functional tests** | The test harness with stubbed interfaces (TF-2); fixtures and the test reference data (TF-3); rule scenarios, property tests and access rule tests for every requirement; the coverage table; CI that runs them as expected failures and enforces the test-change rule. No app logic. | none |
 | **M2: Core records** | Accounts and privacy (AC, PV); characters and titles (CH, TI-1 to TI-4); inventory (IN, except IN-11); skills from the list (SK-1 to SK-5, SK-8); history (HI-1 to HI-4); reference data and its CI checks (RD); home screen (NF-2); invite-only sign-up (NF-13). Runs in a test environment only. | none |
 | **M3: Search, export and first release** | Search (SE), both exports (EX), working offline (NF-3), reports to the maintainer (SP-1 to SP-3), acquisition sources (IN-11), history filters (HI-5). Operations: hosting, protected deployment, backups with a tested restore, error reports (NF-10 to NF-12); phone-sized browser tests (TF-13); the maintainer guide; the documentation site, with pages for everything built so far (section 19). Then Craig's trial (TF-14). | **0.x**, for Craig only |
-| **M4: Equipping and totals** | Grants (GR-1 to GR-5), with effects as grants (GR-6); class bonus, CM, mitigation, hearts and dice (GR-7 to GR-12); paper doll, hands, arcane slots and over-limit alerts (EQ-1 to EQ-8); title grants (TI-5); skill grants and the record check (SK-6, SK-7). | 0.x |
+| **M4: Equipping and totals** | Grants (GR-1 to GR-5), with effects as grants (GR-6); class bonus, CM, mitigation, hearts and dice (GR-7 to GR-12); damage (GR-13); paper doll, hands, arcane slots and over-limit alerts (EQ-1 to EQ-8); title grants (TI-5); skill grants and the record check (SK-6, SK-7). | 0.x |
 | **M5: Permissions, rarity and 1.0** | Permissions and rarity (EQ-9 to EQ-11); skill list changes (SK-9). Then a full review of the user documentation, and invite-only sign-up is lifted (NF-13). | **1.0**, open to players |
 | **M6: Waiting on the DMs** | Quickslots, DM Arcane and ally rules (QS-1, DA-1, AL-1), each written out in full and approved once its DM answer arrives. | 1.x |
 | **M7: Faire-day to-do list** | Reviewed with Craig first, then TD-1 to TD-6. | 1.x |

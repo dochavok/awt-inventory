@@ -281,7 +281,8 @@ export function CharacterPage({ services, id }: { services: Services; id: string
 
 /**
  * GR-7 to GR-12: the class bonus on its own line, each total with its breakdown, and a
- * button for each that opens every grant in it, situational ones apart; then the combat dice.
+ * button for each that opens every grant in it, situational ones apart; then the combat dice,
+ * and the damage with where it comes from (GR-13).
  */
 function TotalsCard({ totals }: { totals: Totals }) {
   const view = totalsView(totals);
@@ -313,16 +314,7 @@ function TotalsCard({ totals }: { totals: Totals }) {
                   ))}
                 </ul>
               )}
-              {t.situational.length > 0 && (
-                <>
-                  <h3>Situational, not added in</h3>
-                  <ul aria-label={`Situational for ${t.label}`}>
-                    {t.situational.map((g, i) => (
-                      <li key={i}>{g}</li>
-                    ))}
-                  </ul>
-                </>
-              )}
+              <Situational label={t.label} lines={t.situational} />
             </>
           )}
         </div>
@@ -331,7 +323,33 @@ function TotalsCard({ totals }: { totals: Totals }) {
       {view.situationalDice.length > 0 && (
         <p className="hint">Situational dice, not rolled every time: {view.situationalDice.join(", ")}</p>
       )}
+      {/* GR-13: the base and each extra damage that counts; situational ones apart, never added in. */}
+      <div className="total-block">
+        <p className="total">{view.damage.heading}</p>
+        <ul aria-label="Damage">
+          {view.damage.lines.map((line, i) => (
+            <li key={i}>{line}</li>
+          ))}
+        </ul>
+        <Situational label="Damage" lines={view.damage.situational} />
+      </div>
     </section>
+  );
+}
+
+/** GR-4: the situational grants that would affect a total, listed apart; nothing when there are none. */
+function Situational({ label, lines }: { label: string; lines: string[] }) {
+  if (lines.length === 0) return null;
+  return (
+    <>
+      {/* Named for its total: the card can show several at once (Damage's, and an opened total's). */}
+      <h3>{`Situational for ${label}, not added in`}</h3>
+      <ul aria-label={`Situational for ${label}`}>
+        {lines.map((line, i) => (
+          <li key={i}>{line}</li>
+        ))}
+      </ul>
+    </>
   );
 }
 

@@ -190,14 +190,18 @@ browserRule(
 
     await page.goto("/#/titles");
     await edited.getByRole("button", { name: "Edit" }).click();
-    await page.getByRole("form", { name: "Edit Patron of the High Tower" }).getByLabel("Applies to").selectOption({
-      label: "All characters",
-    });
-    await page
-      .getByRole("form", { name: "Edit Patron of the High Tower" })
-      .getByRole("button", { name: "Save" })
-      .click();
+    const editAgain = page.getByRole("form", { name: "Edit Patron of the High Tower" });
+    await editAgain.getByLabel("Applies to").selectOption({ label: "All characters" });
+    await editAgain.getByRole("button", { name: "Save" }).click();
+    // The form's own select says "All characters" too, so wait for it to close first.
+    await expect(editAgain, "the edit form once saved").toBeHidden();
     await expect(edited, "the title, back to every character").toContainText("All characters");
+    await page.goto(`/#/characters/${brin}`);
+    await expect(page.getByRole("heading", { level: 1, name: "Brin" }), "Brin's page").toBeVisible();
+    await expect(page.getByRole("region", { name: "Titles" }), "Brin's titles, the title back").toContainText(
+      "Patron of the High Tower",
+    );
+    await page.goto("/#/titles");
 
     await edited.getByRole("button", { name: "Remove" }).click();
     await expect(edited, "the removed title").toHaveCount(0);

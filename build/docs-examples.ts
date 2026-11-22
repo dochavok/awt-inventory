@@ -126,7 +126,10 @@ async function totalsExample({ store, characterId }: SampleAccount): Promise<str
   const view = totalsView(await store.totals(characterId));
   const lines = [view.classBonus];
   for (const t of view.totals) lines.push(t.heading, ...(t.breakdown ? [`  ${t.breakdown}`] : []));
-  lines.push(view.dice);
+  lines.push(view.dice, view.damage.heading, `  ${view.damage.lines.join(", ")}`);
+  if (view.damage.situational.length > 0) {
+    lines.push(`  Situational, not added in: ${view.damage.situational.join(", ")}`);
+  }
   const cm = view.totals[0]!;
   return [
     "```text",

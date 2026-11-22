@@ -301,6 +301,58 @@ rule(
   },
 );
 
+rule(
+  { req: ["EX-1", "GR-13"], m: "M4" },
+  "the sheet shows damage with where it comes from: the base, then each extra damage that counts",
+  async () => {
+    const w = world();
+    const bram = w.as("bram");
+    await seedProfile(bram, "bram");
+    const aldric = await seedCharacter(bram, "aldric", { full: true });
+    const title = (await bram.listTitles()).find((t) => t.name === "Friend of the Forest")!;
+    await bram.addGrant({ titleId: title.id }, { kind: "extra-damage", amount: 1, damageType: "fire" });
+    const page = (
+      await bram.printableSheet({ characterIds: [aldric.character.id], includeSkillText: false, paper: "letter" })
+    ).characters[0]!;
+    const damage = page.totals?.find((t) => t.label === "Damage");
+    expect(damage?.value, "Aldric's damage on the sheet").toBe("4 hearts");
+    expect(
+      damage?.lines.map((l) => [l.label, l.value]),
+      "where Aldric's damage comes from on the sheet",
+    ).toEqual([
+      ["base", 1],
+      ["+2 hearts", "from Duskfang"],
+      ["+1 heart fire", "from Title: Friend of the Forest"],
+    ]);
+  },
+);
+
+rule(
+  { req: ["EX-1", "GR-13", "GR-4"], m: "M4" },
+  "a situational extra damage isn't added to the sheet's damage or listed in its lines",
+  async () => {
+    const w = world();
+    const bram = w.as("bram");
+    await seedProfile(bram, "bram");
+    const aldric = await seedCharacter(bram, "aldric", { full: true });
+    await bram.addManualGrant(aldric.character.id, "Shrine blessing", [
+      { kind: "extra-damage", amount: 3, damageType: "radiant", condition: "vs Undead" },
+    ]);
+    const page = (
+      await bram.printableSheet({ characterIds: [aldric.character.id], includeSkillText: false, paper: "letter" })
+    ).characters[0]!;
+    const damage = page.totals?.find((t) => t.label === "Damage");
+    expect(damage?.value, "Aldric's damage on the sheet, the blessing not added").toBe("3 hearts");
+    expect(
+      damage?.lines.map((l) => [l.label, l.value]),
+      "where Aldric's damage comes from on the sheet, the blessing not listed",
+    ).toEqual([
+      ["base", 1],
+      ["+2 hearts", "from Duskfang"],
+    ]);
+  },
+);
+
 rule({ req: ["EX-1"], m: "M3" }, "the PDF prints on Letter or A4 paper", async () => {
   const { bram, aldric } = await bramWithTwo();
   for (const [paper, size] of [
@@ -452,7 +504,10 @@ rule(
     expect(
       sword && "grants" in sword && sword.grants?.map((g) => [g.kind, "amount" in g && g.amount]),
       "Duskfang's grants",
-    ).toEqual([["cm", 15]]);
+    ).toEqual([
+      ["cm", 15],
+      ["extra-damage", 2],
+    ]);
     expect(
       out.manualGrants.map((m) => m.reason),
       "Aldric's manual grants",
@@ -504,7 +559,7 @@ rule(
         hands: 1,
         range: "melee",
         weaponGroup: "Sword",
-        extraDamage: 1,
+        grants: [{ kind: "extra-damage", amount: 1 }],
       },
       gain,
     );
@@ -548,7 +603,7 @@ rule(
     expect(keys(file.profile), "the profile's fields").toEqual(["displayName"]);
     const base = ["category", "characterId", "description", "id", "itemFamily", "name", "notes", "quantity"];
     const entryFields: Record<string, string[]> = {
-      weapons: [...base, "extraDamage", "hands", "range", "rarity", "weaponGroup"],
+      weapons: [...base, "grants", "hands", "range", "rarity", "weaponGroup"],
       armor: [...base, "rarity", "slotKind"],
       items: [...base, "arcane", "rarity"],
       allies: [...base, "active", "allyType", "hearts"],

@@ -32,7 +32,6 @@ export const LIMITS = {
   /** A link with a gain, e.g. to a post in Discord's rewards channel (IN-11). */
   link: 2_000,
   quantity: 9_999,
-  extraDamage: 999,
   hearts: 999,
   entriesPerCharacter: 1_000,
   /** Grants on one entry, title or manual grant (GR-2). Also in firestore.rules. */
@@ -183,7 +182,7 @@ const COMMON = ["category", "name", "quantity", "description", "notes", "itemFam
 
 /** The fields each category may have, beyond the common ones. */
 const CATEGORY_FIELDS: Record<ItemEntry["category"], readonly string[]> = {
-  weapons: ["rarity", "hands", "range", "weaponGroup", "extraDamage"],
+  weapons: ["rarity", "hands", "range", "weaponGroup"],
   armor: ["rarity", "slotKind"],
   items: ["rarity", "arcane"],
   allies: ["allyType", "hearts", "active"],
@@ -242,6 +241,10 @@ export function itemEntry(
   if (!(category in CATEGORY_FIELDS)) {
     throw new ValidationError("category", `${String(input.category)} isn't a category entries can be added to.`);
   }
+  // IN-3: the earlier field is refused with where extra damage goes now, not as an unknown field.
+  if (category === "weapons" && input.extraDamage !== undefined) {
+    throw new ValidationError("extraDamage", "A weapon's extra damage is a grant now: add it under Grants.");
+  }
   const allowed = new Set<string>([...COMMON, ...CATEGORY_FIELDS[category]]);
   for (const [field, value] of Object.entries(input)) {
     if (value !== undefined && !allowed.has(field)) {
@@ -267,9 +270,6 @@ export function itemEntry(
       set("hands", choice("hands", input.hands, [1, 2], "number of hands"));
       set("range", choice("range", input.range, ["melee", "ranged"], "range"));
       set("weaponGroup", shortText("weaponGroup", input.weaponGroup, "weapon group"));
-      if (input.extraDamage !== undefined && input.extraDamage !== null) {
-        set("extraDamage", wholeNumber("extraDamage", input.extraDamage, 0, LIMITS.extraDamage, "extra damage"));
-      }
       break;
     case "armor":
       set("slotKind", referenceId("slotKind", input.slotKind, ref.slotKinds, "paper-doll slot", before.slotKind));
@@ -326,13 +326,15 @@ const GRANT_FIELDS: Record<NewGrant["kind"], readonly string[]> = {
   "arcane-slots": ["amount"],
   allowance: ["rarity", "amount"],
   permission: ["permission"],
+  "extra-damage": ["amount", "damageType"],
   effect: ["effect", "text"],
 };
 
 /**
  * One grant, checked: a kind from GR-1 (or an effect, GR-6), a whole amount of
  * 1 or more, a die like 1d6, a slot kind or rarity from the reference data that
- * isn't retired, and an optional condition (GR-4). Every refusal names `grants`.
+ * isn't retired, an optional damage type (GR-13), and an optional condition
+ * (GR-4). Every refusal names `grants`.
  */
 export function grant(input: unknown, ref: ReferenceData): NewGrant {
   if (typeof input !== "object" || input === null || Array.isArray(input)) {
@@ -377,6 +379,11 @@ export function grant(input: unknown, ref: ReferenceData): NewGrant {
     case "permission":
       out = { kind, permission: choice("grants", g.permission, PERMISSIONS, "permission") };
       break;
+    case "extra-damage": {
+      const damageType = shortText("grants", g.damageType, "damage type");
+      out = { kind, amount: amount(), ...(damageType ? { damageType } : {}) };
+      break;
+    }
     case "effect":
       out = {
         kind,

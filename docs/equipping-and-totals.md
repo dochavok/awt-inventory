@@ -1,6 +1,6 @@
 # Equipping and totals
 
-reviewed: 2026-11-20
+reviewed: 2026-11-21
 
 A character's totals are never typed in. The app works them out from the level chart and from **grants**: what the character's equipped entries, skills, titles and manual grants add.
 
@@ -33,7 +33,7 @@ Arcane slots: 1 of 3 used
 
 ## Grants
 
-A grant is one of: CM, mitigation, max hearts, an extra die (such as 1d6), extra slots of a kind (such as +1 Back), extra arcane slots, an allowance for a rarity (such as +1 Legendary), a permission (Weapon Use, Ranged Weapon Use, Armor Use, Dual Wielding), or an **effect**: a resistance, an immunity or a CR bonus, in your own words (such as an immunity to fall damage).
+A grant is one of: CM, mitigation, max hearts, an extra die (such as 1d6), extra slots of a kind (such as +1 Back), extra arcane slots, an allowance for a rarity (such as +1 Legendary), a permission (Weapon Use, Ranged Weapon Use, Armor Use, Dual Wielding), **extra damage** in hearts, with a type such as fire or none, or an **effect**: a resistance, an immunity or a CR bonus, in your own words (such as an immunity to fall damage).
 
 - **Weapons, armor, items and allies** get their grants on their own page, under **Grants**. They count only while the entry is equipped, or for an ally, while it's active. An item that isn't arcane can't be equipped, so its grants never count.
 - **Titles** get theirs on the Titles screen. A title for all your characters adds its grants to each of them; one character's title, only to that character.
@@ -44,6 +44,8 @@ A grant with a **condition**, such as "vs Evil" or "ranged weapons only", is *si
 
 Effects aren't totals: the character's page lists the ones that count under **Effects**, above its notes, each with where it comes from.
 
+A weapon's extra damage, such as a sword's +2 hearts, is a grant on the weapon like any other: add it under **Grants** on the weapon's page. It counts while the weapon is equipped, so two equipped weapons each add their own. Extra damage typed into a weapon's own field in an earlier version of the app isn't used any more: add it again as a grant.
+
 Trading, unequipping or deleting a source takes its grants away at once.
 
 ## Totals
@@ -53,7 +55,8 @@ The character's page shows its totals, worked out again after every change:
 - the **class bonus**, under its own name: Combat Bonus (Warrior), Arcane Bonus (Mage) or Stealth Bonus (Rogue). From level 10 a Rogue's Stealth Bonus is dice plus a number, such as 1d4 + 3, and it's always shown that way;
 - **CM**: the class bonus's number plus every CM grant that counts, with a line for each kind of source: class bonus, Armor, Weapons, Skills, Ally, Items, Titles, Other (manual grants);
 - **Mitigation**, the hearts taken off each hit, and **Max hearts**, from the level chart plus grants;
-- the **combat dice**: the level chart's, then each extra die with where it comes from. A Rogue's Stealth Bonus dice are rolled with them.
+- the **combat dice**: the level chart's, then each extra die with where it comes from. A Rogue's Stealth Bonus dice are rolled with them;
+- **Damage**: a base of 1 heart plus every extra damage grant that counts, whatever its type, with a line for each. Situational extra damage, such as a skill used once a combat, is listed apart and not added in.
 
 Tap **Where CM comes from** (or mitigation, or max hearts) to see every grant in it: its source, the kind of source and the amount, with situational grants listed apart. For the guide's made-up sample character:
 
@@ -67,6 +70,9 @@ Mitigation 1
 Max hearts 4
   Level chart 3, Other 1
 Combat dice 1d20 + 1d6 (Moonlit Lantern)
+Damage 2 hearts
+  base 1, +1 heart fire (Title: Keeper of the Lanterns)
+  Situational, not added in: +2 hearts (Manual grant: DM ruling, made-up faire, vs Undead)
 ```
 
 **Where CM comes from:**

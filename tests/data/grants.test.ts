@@ -242,6 +242,62 @@ rule(
 );
 
 rule(
+  { req: ["GR-13", "GR-1", "GR-2"], m: "M4" },
+  "an entry, a title or a manual grant can grant extra damage in hearts, with a type or none, added to the damage; a bad amount or another kind's field is refused",
+  async () => {
+    const { bram, aldric, id } = await bramWithAldric();
+    const sword = { entryId: id("aldric-sword") };
+    for (const [what, grant] of [
+      ["an amount of 0", { kind: "extra-damage", amount: 0 }],
+      ["an amount over the limit", { kind: "extra-damage", amount: 1000 }],
+      ["a fractional amount", { kind: "extra-damage", amount: 1.5 }],
+      ["no amount", { kind: "extra-damage", damageType: "fire" }],
+      ["a die", { kind: "extra-damage", amount: 1, die: "1d6" }],
+      ["an effect's text", { kind: "extra-damage", amount: 1, text: "fire" }],
+      ["a type that isn't text", { kind: "extra-damage", amount: 1, damageType: 3 }],
+      ["a type that's too long", { kind: "extra-damage", amount: 1, damageType: "f".repeat(101) }],
+    ] as const) {
+      const attempt = bram.addGrant(sword, grant as never);
+      await expect(attempt, `a grant with ${what}`).rejects.toThrow(ValidationError);
+      await expect(attempt, `the refusal of ${what}`).rejects.toMatchObject({ field: "grants" });
+    }
+    const onHelm = await bram.addGrant({ entryId: id("aldric-helm") }, { kind: "extra-damage", amount: 1 });
+    expect(onHelm, "the helm's extra damage as kept, with no type").toEqual({
+      id: onHelm.id,
+      kind: "extra-damage",
+      amount: 1,
+    });
+    const title = (await bram.listTitles()).find((t) => t.name === "Friend of the Forest")!;
+    const onTitle = await bram.addGrant(
+      { titleId: title.id },
+      { kind: "extra-damage", amount: 1, damageType: " fire " },
+    );
+    expect(onTitle, "the title's extra damage as kept, its type trimmed").toMatchObject({
+      kind: "extra-damage",
+      amount: 1,
+      damageType: "fire",
+    });
+    // A blank type is no type.
+    await bram.addManualGrant(aldric.character.id, "DM ruling, Faire 2026", [
+      { kind: "extra-damage", amount: 3, damageType: "  ", condition: "vs Undead" },
+    ]);
+    const totals = await bram.totals(aldric.character.id);
+    const lines = (list: typeof totals.damage.grants) =>
+      list.map((d) => [sourceName(d.source), d.source.type, d.amount, d.damageType, d.condition]);
+    expect(lines(totals.damage.grants), "where Aldric's damage comes from: the helm, Duskfang and the title").toEqual([
+      ["Hawkeye Helm", "entry", 1, undefined, undefined],
+      ["Duskfang", "entry", 2, undefined, undefined],
+      ["Friend of the Forest", "title", 1, "fire", undefined],
+    ]);
+    expect(totals.damage.value, "Aldric's damage: 1 + 1 + 2 + 1 fire").toBe(5);
+    expect(lines(totals.damage.situational), "Aldric's situational damage: the manual grant").toEqual([
+      ["DM ruling, Faire 2026", "manual", 3, undefined, "vs Undead"],
+    ]);
+    expect(totals.cm.value, "Aldric's CM, extra damage not added to it").toBe(170);
+  },
+);
+
+rule(
   { req: ["GR-1", "GR-2"], m: "M4" },
   "a player's grant can't be in a group or make a group's die always count: only the skill list's can",
   async () => {
@@ -262,6 +318,48 @@ rule(
     }
     const cm = await bram.totals(aldric.character.id);
     expect([cm.cm.value, cm.dice.extra.length], "Aldric's CM and extra dice after the refusals").toEqual([170, 1]);
+  },
+);
+
+rule({ req: ["GR-1", "GR-2", "GR-13"], m: "M4" }, "a player's extra damage can't be in a group", async () => {
+  const { bram, aldric, id } = await bramWithAldric();
+  const grouped = { kind: "extra-damage", amount: 2, condition: "while raging", group: "rage" };
+  const onEntry = bram.addGrant({ entryId: id("aldric-sword") }, grouped as never);
+  await expect(onEntry, "grouped extra damage on Duskfang").rejects.toThrow(ValidationError);
+  await expect(onEntry, "the refusal of grouped extra damage on Duskfang").rejects.toMatchObject({ field: "grants" });
+  await expect(onEntry, "the refusal of grouped extra damage on Duskfang").rejects.toThrow(/group/);
+  const manual = bram.addManualGrant(aldric.character.id, "Made-up ruling", [grouped as never]);
+  await expect(manual, "grouped extra damage as a manual grant").rejects.toThrow(/group/);
+  const totals = await bram.totals(aldric.character.id);
+  expect(
+    [totals.damage.value, totals.damage.situational.length],
+    "Aldric's damage and situational damage after the refusals",
+  ).toEqual([3, 0]);
+});
+
+rule(
+  { req: ["GR-13", "GR-1"], m: "M4" },
+  "each refused extra damage says what's wrong with it; 999 hearts and a 100-character type are kept",
+  async () => {
+    const { bram, id } = await bramWithAldric();
+    const sword = { entryId: id("aldric-sword") };
+    for (const [what, grant, says] of [
+      ["an amount of 0", { kind: "extra-damage", amount: 0 }, /amount.*1 to 999/],
+      ["an amount over the limit", { kind: "extra-damage", amount: 1000 }, /amount.*1 to 999/],
+      ["a fractional amount", { kind: "extra-damage", amount: 1.5 }, /amount.*whole number/],
+      ["no amount", { kind: "extra-damage", damageType: "fire" }, /amount/],
+      ["a die", { kind: "extra-damage", amount: 1, die: "1d6" }, /die/],
+      ["a type that isn't text", { kind: "extra-damage", amount: 1, damageType: 3 }, /damage type must be text/],
+      [
+        "a type that's too long",
+        { kind: "extra-damage", amount: 1, damageType: "f".repeat(101) },
+        /damage type can be at most 100/,
+      ],
+    ] as const) {
+      await expect(bram.addGrant(sword, grant as never), `the refusal of ${what}`).rejects.toThrow(says);
+    }
+    const most = await bram.addGrant(sword, { kind: "extra-damage", amount: 999, damageType: "f".repeat(100) });
+    expect(most, "the largest extra damage, as kept").toMatchObject({ amount: 999, damageType: "f".repeat(100) });
   },
 );
 
@@ -635,8 +733,11 @@ rule(
   async () => {
     const { bram, aldric, id } = await bramWithAldric();
     const sword = { entryId: id("aldric-sword") };
-    // Duskfang has 1 grant from the fixture: 49 more fill it.
-    for (let i = 0; i < 49; i++) await bram.addGrant(sword, { kind: "cm", amount: 1 });
+    // Fill Duskfang to 50 grants, whatever the fixture gives it.
+    const duskfang = await bram.entry(sword.entryId);
+    const has = duskfang.category === "weapons" ? (duskfang.grants?.length ?? 0) : 0;
+    expect(has, "Duskfang's grants from the fixture").toBeGreaterThan(0);
+    for (let i = has; i < 50; i++) await bram.addGrant(sword, { kind: "cm", amount: 1 });
     const fiftyFirst = bram.addGrant(sword, { kind: "cm", amount: 1 });
     await expect(fiftyFirst, "a 51st grant on Duskfang").rejects.toMatchObject({ field: "grants" });
     await expect(fiftyFirst, "the refusal").rejects.toThrow(/50/);

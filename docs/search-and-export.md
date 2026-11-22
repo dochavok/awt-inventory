@@ -1,6 +1,6 @@
 # Search and export
 
-reviewed: 2026-11-19
+reviewed: 2026-11-21
 
 ## Search
 
@@ -20,7 +20,7 @@ A category's list can be filtered by rarity and by item family, and by what's eq
 
 Tap **Print or export** on a character's page or on your account page. Choose one character, or all characters that aren't retired, and Letter or A4 paper, then tap **Create PDF** and **Save**.
 
-The sheet shows each character's name, class and level, its totals with where they come from, what's equipped, every category with quantities, skills with their usage and tier, titles, and notes. Each character starts on a new page. Tick **include skill text** to add the skills' card text. Every page shows when the sheet was made, so an old copy is easy to spot.
+The sheet shows each character's name, class and level, its totals with where they come from (damage included), what's equipped, every category with quantities, skills with their usage and tier, titles, and notes. Each character starts on a new page. Tick **include skill text** to add the skills' card text. Every page shows when the sheet was made, so an old copy is easy to spot.
 
 Save the PDF to your phone's files (on iPhone, the Files app) to open it later without signal. It prints on Letter or A4 paper. The sheet is made on your phone, so it works without signal too.
 
@@ -163,20 +163,26 @@ The export of a made-up character, Mirela, with a lantern found on a quest, one 
       ],
       "manualGrants": [
         {
-          "id": "g33",
+          "id": "g35",
           "reason": "DM ruling, made-up faire",
           "grants": [
             {
               "kind": "hearts",
               "amount": 1,
-              "id": "g32"
+              "id": "g33"
+            },
+            {
+              "kind": "extra-damage",
+              "amount": 2,
+              "condition": "vs Undead",
+              "id": "g34"
             }
           ]
         }
       ],
       "history": [
         {
-          "id": "h34",
+          "id": "h36",
           "characterId": "c1",
           "enteredAt": "2026-05-02T18:00:00.000Z",
           "event": "traded",
@@ -308,6 +314,12 @@ The export of a made-up character, Mirela, with a lantern found on a quest, one 
           "kind": "cm",
           "amount": 1,
           "id": "g31"
+        },
+        {
+          "kind": "extra-damage",
+          "amount": 1,
+          "damageType": "fire",
+          "id": "g32"
         }
       ],
       "description": "Made-up title for the guide.",

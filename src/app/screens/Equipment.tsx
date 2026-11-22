@@ -3,9 +3,10 @@
 // (EQ-1, EQ-5), the arcane slots and their count (EQ-6, EQ-7), and over-limit
 // alerts (EQ-8). Anything equipped can be unequipped here (EQ-4).
 
+import { sourceLabel } from "../../data/totals-text";
 import { slotState } from "../../rules/equipping";
 import type { OverLimitAlert, Occupant } from "../../rules/types";
-import { arcaneCount, slotParts, sourceLabel } from "../grant-text";
+import { arcaneCount, slotParts } from "../grant-text";
 import type { Services } from "../services";
 import { Feedback, useAction } from "../useAction";
 import { BackTo, CharacterNotFound, Loading, useScreenData } from "./common";

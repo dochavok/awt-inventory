@@ -1,9 +1,9 @@
 // How grants and totals read on screen (sections 8 and 9): a grant's text, where
 // one comes from, and each total with its breakdown and every grant in it
-// (GR-7 to GR-12). Plain functions, so the user guide's examples come from the
+// (GR-7 to GR-13). Plain functions, so the user guide's examples come from the
 // same code as the screens (DOC-4).
 
-import { GROUP_NAMES, totalRows, type TotalRow } from "../data/totals-text";
+import { damageSource, damageText, GROUP_NAMES, sourceLabel, totalRows, type TotalRow } from "../data/totals-text";
 import { classBonusShown, dieSourceName, sourceName } from "../rules/totals";
 import type {
   ArcaneState,
@@ -14,7 +14,6 @@ import type {
   NewGrant,
   Permission,
   ReferenceData,
-  SourceRef,
   Total,
   Totals,
 } from "../rules/types";
@@ -29,6 +28,7 @@ export const KIND_NAMES: Record<NewGrant["kind"], string> = {
   "arcane-slots": "Arcane slots",
   allowance: "Rarity allowance",
   permission: "Permission",
+  "extra-damage": "Extra damage",
   effect: "Effect",
 };
 
@@ -80,6 +80,9 @@ export function grantText(grant: Grant | NewGrant, ref: ReferenceData): string {
       // A value the app doesn't know (an older record) shows as stored, like `named`.
       text = `Permission: ${PERMISSION_NAMES[grant.permission] ?? grant.permission}`;
       break;
+    case "extra-damage":
+      text = `Extra damage ${damageText(grant)}`;
+      break;
     case "effect":
       text = `${EFFECT_NAMES[grant.effect] ?? grant.effect}: ${grant.text}`;
       break;
@@ -107,22 +110,6 @@ export function slotParts(slot: SlotView): { label: string; from?: string; holds
 export function slotLine(slot: SlotView): string {
   const { label, from, holds } = slotParts(slot);
   return `${label}: ${holds}${from ? ` (${from})` : ""}`;
-}
-
-const SOURCE_PREFIX: Record<SourceRef["type"], string> = {
-  entry: "",
-  title: "Title: ",
-  skill: "Skill: ",
-  manual: "Manual grant: ",
-  "level-chart": "",
-};
-
-/**
- * Where an extra slot comes from (EQ-5): an entry by its name, otherwise what it is and
- * its name, e.g. "Title: Wanderer".
- */
-export function sourceLabel(source: SourceRef): string {
-  return SOURCE_PREFIX[source.type] + sourceName(source);
 }
 
 /**
@@ -162,12 +149,14 @@ export interface TotalView {
   situational: string[];
 }
 
-/** The class bonus, CM, mitigation, max hearts and combat dice, as the character's page shows them. */
+/** The class bonus, CM, mitigation, max hearts, combat dice and damage, as the character's page shows them. */
 export function totalsView(totals: Totals): {
   classBonus: string;
   totals: TotalView[];
   dice: string;
   situationalDice: string[];
+  /** GR-13: e.g. "Damage 3 hearts", then "base 1" and a line for each extra damage that counts. */
+  damage: { heading: string; lines: string[]; situational: string[] };
 } {
   const { classBonus } = totals;
   const rows = totalRows(totals);
@@ -193,5 +182,13 @@ export function totalsView(totals: Totals): {
     situationalDice: totals.dice.situational.map(
       (d) => `${d.die} (${dieSourceName(d, classBonus)}${d.condition ? `, ${d.condition}` : ""})`,
     ),
+    damage: {
+      heading: `${rows.damage.label} ${rows.damage.value}`,
+      lines: [
+        `base ${totals.damage.base}`,
+        ...totals.damage.grants.map((d) => `${damageText(d)} (${damageSource(d)})`),
+      ],
+      situational: totals.damage.situational.map((d) => `${damageText(d)} (${damageSource(d)})`),
+    },
   };
 }

@@ -54,9 +54,12 @@ export const UNDO_SECONDS = 10;
 /** EX-4: the JSON export's format version. */
 const EXPORT_FORMAT_VERSION = 1;
 
-/** An entry or character as the app sees it: without what only the store keeps (backend.ts). */
+/**
+ * An entry or character as the app sees it: without what only the store keeps (backend.ts),
+ * nor a weapon's earlier extra damage field, which is no longer used (IN-3).
+ */
 function plainEntry(stored: StoredEntry): Entry {
-  const { slot: _slot, ...entry } = stored;
+  const { slot: _slot, extraDamage: _earlier, ...entry } = stored as StoredEntry & { extraDamage?: unknown };
   return entry as Entry;
 }
 

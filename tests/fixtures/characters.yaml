@@ -46,8 +46,9 @@ aldric:
       range: melee
       weaponGroup: Sword
       rarity: legendary
-      extraDamage: 2
-      grants: [{ id: g-sword-cm, kind: cm, amount: 15 }]
+      grants:
+        - { id: g-sword-cm, kind: cm, amount: 15 }
+        - { id: g-sword-dmg, kind: extra-damage, amount: 2 }
     - id: aldric-wolf
       category: allies
       name: Grey Fang

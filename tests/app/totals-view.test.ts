@@ -1,0 +1,52 @@
+// How the character's page words its damage (GR-13): the heading, the base,
+// then a line for each extra damage that counts with where it comes from, as
+// slots name sources ("Skill: ", "Title: ", "Manual grant: "), and the
+// situational ones apart with their condition.
+
+import { expect } from "vitest";
+import { totalsView } from "../../src/app/grant-text";
+import { computeTotals } from "../../src/rules";
+import { fixtureSheet, testReferenceData } from "../support/fixtures";
+import { rule } from "../support/rule";
+
+rule(
+  { req: ["GR-13", "GR-4"], m: "M4" },
+  "the character's page names each damage line's source as GR-13's example does, situational ones apart",
+  () => {
+    const ref = testReferenceData();
+    ref.skillGrants
+      .find((g) => g.skill === "iron-guard")!
+      .grants.push({ id: "sg-x-guard-dmg", kind: "extra-damage", amount: 1, damageType: "cold" });
+    const sheet = fixtureSheet("aldric");
+    sheet.titles[0]!.grants = [{ id: "g-x-title-dmg", kind: "extra-damage", amount: 1, damageType: "fire" }];
+    sheet.manualGrants.push({
+      id: "m-x-dmg",
+      reason: "Shrine blessing",
+      grants: [
+        { id: "g-x-manual-dmg", kind: "extra-damage", amount: 3, damageType: "radiant", condition: "vs Undead" },
+      ],
+    });
+    const { damage } = totalsView(computeTotals(sheet, ref));
+    expect(damage.heading, "Aldric's damage heading").toBe("Damage 5 hearts");
+    expect(damage.lines, "Aldric's damage lines").toEqual([
+      "base 1",
+      "+2 hearts (Duskfang)",
+      "+1 heart cold (Skill: Iron Guard)",
+      "+1 heart fire (Title: Friend of the Forest)",
+    ]);
+    expect(damage.situational, "Aldric's situational damage lines").toEqual([
+      "+3 hearts radiant (Manual grant: Shrine blessing, vs Undead)",
+    ]);
+  },
+);
+
+rule({ req: ["GR-13"], m: "M4" }, "with no extra damage, the character's page shows 1 heart and the base alone", () => {
+  const sheet = fixtureSheet("aldric");
+  sheet.equipped = sheet.equipped.filter((q) => q.entryId !== "aldric-sword");
+  const { damage } = totalsView(computeTotals(sheet, testReferenceData()));
+  expect(damage, "Aldric's damage, Duskfang unequipped").toEqual({
+    heading: "Damage 1 heart",
+    lines: ["base 1"],
+    situational: [],
+  });
+});

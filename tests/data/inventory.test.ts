@@ -1,5 +1,6 @@
 // Inventory entries (section 5: IN-1 to IN-16), through the data layer. Skills
 // are in tests/data/skills.test.ts; what entries grant, in grants.test.ts.
+// A weapon's earlier extra damage field is no longer used (IN-3).
 
 import { expect } from "vitest";
 import { NotFoundError, ValidationError } from "../../src/errors";
@@ -108,24 +109,78 @@ rule({ req: ["IN-2", "PV-1"], m: "M2" }, "suggestions never include another user
   expect(await bram.suggestions("itemFamily"), "Bram's item family suggestions").not.toContain("Cass Only");
 });
 
-rule({ req: ["IN-3"], m: "M2" }, "a weapon keeps its hands, range, weapon group and extra damage", async () => {
-  const { bram, characterId } = await bramWithAldric();
-  const bow = await bram.addEntry(characterId, {
-    category: "weapons",
-    name: "Hunting Bow",
-    hands: 2,
-    range: "ranged",
-    weaponGroup: "Bow",
-    extraDamage: 1,
-  });
-  expect(await bram.entry(bow.id), "Hunting Bow as stored").toMatchObject({
-    hands: 2,
-    range: "ranged",
-    weaponGroup: "Bow",
-    extraDamage: 1,
-  });
-  expect((await bram.suggestions("weaponGroup")).sort(), "weapon group suggestions").toEqual(["Bow", "Sword"]);
-});
+rule(
+  { req: ["IN-3"], m: "M2" },
+  "a weapon keeps its hands, range and weapon group; extra damage given as a field is refused",
+  async () => {
+    const { bram, characterId } = await bramWithAldric();
+    const bow = await bram.addEntry(characterId, {
+      category: "weapons",
+      name: "Hunting Bow",
+      hands: 2,
+      range: "ranged",
+      weaponGroup: "Bow",
+    });
+    expect(await bram.entry(bow.id), "Hunting Bow as stored").toMatchObject({
+      hands: 2,
+      range: "ranged",
+      weaponGroup: "Bow",
+    });
+    expect((await bram.suggestions("weaponGroup")).sort(), "weapon group suggestions").toEqual(["Bow", "Sword"]);
+    const withField = bram.addEntry(characterId, {
+      category: "weapons",
+      name: "Throwing Axe",
+      hands: 1,
+      range: "ranged",
+      extraDamage: 1,
+    } as never);
+    await expect(withField, "a weapon added with an extra damage field").rejects.toThrow(ValidationError);
+    await expect(withField, "the refusal of the extra damage field").rejects.toMatchObject({ field: "extraDamage" });
+    await expect(withField, "the refusal points to Grants").rejects.toThrow(/Grants/);
+  },
+);
+
+rule(
+  { req: ["IN-3", "GR-13"], m: "M4" },
+  "a weapon whose stored record still has the earlier extra damage field counts no damage from it; null for it is refused too",
+  async () => {
+    const { w, bram, characterId } = await bramWithAldric();
+    const axe = await bram.addEntry(characterId, { category: "weapons", name: "Hand Axe", hands: 1, range: "melee" });
+    expect((await bram.equip(axe.id, "off-hand")).outcome, "equipping the Hand Axe").toBe("allowed");
+    // As an earlier version of the app stored it.
+    Object.assign(w.db.entries.get(axe.id)!, { extraDamage: 2 });
+    const totals = await bram.totals(characterId);
+    expect(totals.damage.value, "Aldric's damage with the old field on the axe").toBe(1);
+    expect(totals.damage.grants, "where Aldric's damage comes from").toEqual([]);
+    const cleared = bram.updateEntry(axe.id, { extraDamage: null } as never);
+    await expect(cleared, "clearing the old field with null").rejects.toMatchObject({ field: "extraDamage" });
+    await expect(cleared, "the refusal points to Grants").rejects.toThrow(/Grants/);
+    // The field is no longer used, so it never stops an edit.
+    await bram.updateEntry(axe.id, { notes: "Old, but sharp." });
+    const read = await bram.entry(axe.id);
+    expect(read, "the Hand Axe as read").not.toHaveProperty("extraDamage");
+    expect(read.notes, "the Hand Axe's notes after an edit").toBe("Old, but sharp.");
+  },
+);
+
+rule(
+  { req: ["IN-3", "EX-4"], m: "M4" },
+  "a weapon's earlier extra damage field isn't in its category's list or in the JSON export",
+  async () => {
+    const { w, bram, characterId } = await bramWithAldric();
+    const axe = await bram.addEntry(characterId, { category: "weapons", name: "Hand Axe", hands: 1, range: "melee" });
+    // As an earlier version of the app stored it.
+    Object.assign(w.db.entries.get(axe.id)!, { extraDamage: 2 });
+    const listed = (await bram.listEntries(characterId, "weapons")).find((i) => i.entry.id === axe.id);
+    expect(listed?.entry, "the Hand Axe in the weapons list").toMatchObject({ name: "Hand Axe", hands: 1 });
+    expect(listed?.entry, "the Hand Axe in the weapons list").not.toHaveProperty("extraDamage");
+    const file = await bram.exportJson();
+    const exported = file.characters.find((c) => c.character.id === characterId)?.entries.find((e) => e.id === axe.id);
+    expect(exported, "the Hand Axe in the export").toMatchObject({ name: "Hand Axe", hands: 1 });
+    expect(exported, "the Hand Axe in the export").not.toHaveProperty("extraDamage");
+    expect(JSON.stringify(file), "the export, anywhere").not.toContain("extraDamage");
+  },
+);
 
 rule({ req: ["IN-4"], m: "M2" }, "armor's slot kind must be one from the reference data", async () => {
   const { bram, characterId } = await bramWithAldric();
@@ -589,30 +644,16 @@ rule({ req: ["IN-15"], m: "M2" }, "after about 10 seconds, Undo no longer works"
   await expect(bram.entry(id("aldric-draught")), "reading the deleted draught").rejects.toThrow(NotFoundError);
 });
 
-rule(
-  { req: ["IN-8", "IN-3", "IN-6"], m: "M3" },
-  "a weapon's extra damage and an ally's hearts can be cleared when editing, with null",
-  async () => {
-    const { bram, characterId } = await bramWithAldric();
-    const axe = await bram.addEntry(characterId, {
-      category: "weapons",
-      name: "Hand Axe",
-      hands: 1,
-      range: "melee",
-      extraDamage: 2,
-    });
-    const pip = await bram.addEntry(characterId, { category: "allies", name: "Pip", hearts: 3, active: false });
-    await bram.updateEntry(axe.id, { extraDamage: null });
-    await bram.updateEntry(pip.id, { hearts: null });
-    expect(await bram.entry(axe.id), "Hand Axe after clearing its extra damage").not.toHaveProperty("extraDamage");
-    expect(await bram.entry(pip.id), "Pip after clearing his hearts").not.toHaveProperty("hearts");
-    expect(await bram.entry(axe.id), "Hand Axe's other fields, unchanged").toMatchObject({
-      name: "Hand Axe",
-      hands: 1,
-      range: "melee",
-    });
-  },
-);
+rule({ req: ["IN-8", "IN-6"], m: "M3" }, "an ally's hearts can be cleared when editing, with null", async () => {
+  const { bram, characterId } = await bramWithAldric();
+  const pip = await bram.addEntry(characterId, { category: "allies", name: "Pip", hearts: 3, active: false });
+  await bram.updateEntry(pip.id, { hearts: null });
+  expect(await bram.entry(pip.id), "Pip after clearing his hearts").not.toHaveProperty("hearts");
+  expect(await bram.entry(pip.id), "Pip's other fields, unchanged").toMatchObject({
+    name: "Pip",
+    active: false,
+  });
+});
 
 rule(
   { req: ["IN-8", "RD-3"], m: "M3" },
