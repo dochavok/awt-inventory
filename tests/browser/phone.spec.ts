@@ -112,6 +112,30 @@ const SERVICE_WORKER = new URL("../../dist/sw.js", import.meta.url);
 const LOCK = new URL("../../dist/new-version-test.lock", import.meta.url);
 // Each one different, since a page may have loaded while another test's new version was published.
 const NEW_VERSION = "\n// A new version, published by an NF-14 browser test: ";
+// Below the 30 s a test may take, so a test kept waiting says why. One usually holds it for seconds.
+const NEW_VERSION_WAIT_MS = 20_000;
+
+/** The app opened before on this phone: stored, and running this page. */
+async function openStored(page: Page) {
+  const signIn = page.getByRole("heading", { name: /sign in/i });
+  await page.goto("/");
+  await expect(signIn, "the sign-in heading").toBeVisible();
+  expect(
+    await page.evaluate(async () => (await navigator.serviceWorker.ready).active !== null),
+    "the app stored on the phone",
+  ).toBe(true);
+  await page.reload();
+  await expect(signIn, "the sign-in heading, opened again").toBeVisible();
+  expect(await page.evaluate(() => navigator.serviceWorker.controller !== null), "the page run by the stored app").toBe(
+    true,
+  );
+}
+
+/** Marks the page, so a test can tell whether it has reloaded since. */
+async function markLoaded(page: Page) {
+  await page.evaluate(() => Object.assign(window, { loadedBefore: true }));
+  return () => page.evaluate(() => (window as { loadedBefore?: boolean }).loadedBefore === true);
+}
 
 /**
  * Publishes a new version of the app for as long as `body` runs, then puts the
@@ -123,7 +147,9 @@ async function withNewVersion(body: () => Promise<void>): Promise<void> {
       closeSync(openSync(LOCK, "wx"));
       break;
     } catch (error) {
-      if (waited > 60_000) throw new Error(`Another test held ${LOCK.pathname} for a minute`, { cause: error });
+      if (waited > NEW_VERSION_WAIT_MS) {
+        throw new Error(`Another test held ${LOCK.pathname} too long`, { cause: error });
+      }
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
@@ -144,24 +170,17 @@ async function withNewVersion(body: () => Promise<void>): Promise<void> {
  */
 async function newVersionOffered(page: Page, openedBefore: boolean) {
   const signIn = page.getByRole("heading", { name: /sign in/i });
-  await page.goto("/");
-  await expect(signIn, "the sign-in heading").toBeVisible();
-  expect(
-    await page.evaluate(async () => (await navigator.serviceWorker.ready).active !== null),
-    "the app stored on the phone",
-  ).toBe(true);
-  if (openedBefore) {
-    await page.reload();
-    await expect(signIn, "the sign-in heading, opened again").toBeVisible();
+  if (openedBefore) await openStored(page);
+  else {
+    await page.goto("/");
+    await expect(signIn, "the sign-in heading").toBeVisible();
     expect(
-      await page.evaluate(() => navigator.serviceWorker.controller !== null),
-      "the page run by the stored app",
+      await page.evaluate(async () => (await navigator.serviceWorker.ready).active !== null),
+      "the app stored on the phone",
     ).toBe(true);
   }
   await page.getByLabel("Email").fill("half-typed@example.test");
-  // Gone once the page has reloaded.
-  await page.evaluate(() => Object.assign(window, { loadedBefore: true }));
-  const loadedBefore = () => page.evaluate(() => (window as { loadedBefore?: boolean }).loadedBefore === true);
+  const loadedBefore = await markLoaded(page);
   const waitingVersion = () =>
     page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.waiting != null);
   const bar = page.getByRole("status", { name: "New version" });
@@ -200,4 +219,52 @@ browserRule(
   { req: ["NF-14"], m: "M4" },
   "on the very first visit too, a new version is offered, and Reload switches to it",
   async ({ page }) => newVersionOffered(page, false),
+);
+
+browserRule(
+  { req: ["NF-14"], m: "M4" },
+  "a new version published while the app was closed is offered when the app is opened again",
+  async ({ page }) => {
+    await openStored(page);
+    const bar = page.getByRole("status", { name: "New version" });
+    await withNewVersion(async () => {
+      await page.reload();
+      await expect(page.getByRole("heading", { name: /sign in/i }), "the sign-in heading, opened").toBeVisible();
+      await expect(bar, "the new-version bar").toContainText("A new version is ready", { timeout: 15_000 });
+    });
+  },
+);
+
+browserRule(
+  { req: ["NF-14"], m: "M4" },
+  "with the app open twice, Reload in one leaves the other alone, and its own Reload then works",
+  async ({ page, context }) => {
+    await openStored(page);
+    const other = await context.newPage();
+    await other.goto("/");
+    await expect(other.getByRole("heading", { name: /sign in/i }), "the sign-in heading, open twice").toBeVisible();
+    const otherLoadedBefore = await markLoaded(other);
+    const bar = (p: Page) => p.getByRole("status", { name: "New version" });
+
+    await withNewVersion(async () => {
+      for (const p of [page, other]) {
+        await p.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+        await expect(bar(p), "the new-version bar").toContainText("A new version is ready", { timeout: 15_000 });
+      }
+      const reloaded = page.waitForEvent("load", { timeout: 15_000 });
+      await bar(page).getByRole("button", { name: "Reload" }).click();
+      await reloaded;
+
+      // NF-14: the other one never reloads by itself.
+      await other.waitForTimeout(2_000);
+      expect(await otherLoadedBefore(), "the other page, still the one loaded before").toBe(true);
+      await expect(bar(other), "the other page's new-version bar").toBeVisible();
+
+      const otherReloaded = other.waitForEvent("load", { timeout: 15_000 });
+      await bar(other).getByRole("button", { name: "Reload" }).click();
+      await otherReloaded;
+      expect(await otherLoadedBefore(), "the other page, after its own Reload").toBe(false);
+      await expect(bar(other), "the other page's new-version bar after its Reload").toBeHidden();
+    });
+  },
 );
