@@ -110,7 +110,8 @@ browserRule(
 /** The service worker of the build the tests run against: changing it publishes a new version (NF-14). */
 const SERVICE_WORKER = new URL("../../dist/sw.js", import.meta.url);
 const LOCK = new URL("../../dist/new-version-test.lock", import.meta.url);
-const NEW_VERSION = "\n// A new version, published by an NF-14 browser test.\n";
+// Each one different, since a page may have loaded while another test's new version was published.
+const NEW_VERSION = "\n// A new version, published by an NF-14 browser test: ";
 
 /**
  * Publishes a new version of the app for as long as `body` runs, then puts the
@@ -128,7 +129,7 @@ async function withNewVersion(body: () => Promise<void>): Promise<void> {
   }
   const published = readFileSync(SERVICE_WORKER, "utf8").split(NEW_VERSION)[0]!;
   try {
-    writeFileSync(SERVICE_WORKER, published + NEW_VERSION);
+    writeFileSync(SERVICE_WORKER, `${published}${NEW_VERSION}${Date.now()}-${Math.random()}\n`);
     await body();
   } finally {
     writeFileSync(SERVICE_WORKER, published);
