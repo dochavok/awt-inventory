@@ -276,6 +276,91 @@ rule(
   },
 );
 
+/** One of Bram's stored documents as the server holds it, read past the rules (the emulator's owner access). */
+function storedDoc(path: string): string {
+  return `http://${process.env.FIRESTORE_EMULATOR_HOST}/v1/projects/${PROJECT_ID}/databases/(default)/documents/${path}`;
+}
+
+/** The fields one of Bram's documents holds on the server, read past the rules. */
+async function storedFields(path: string): Promise<string[]> {
+  const response = await fetch(storedDoc(path), { headers: { Authorization: "Bearer owner" } });
+  const body = (await response.json()) as { fields?: Record<string, unknown> };
+  return Object.keys(body.fields ?? {}).sort();
+}
+
+/** Gives a stored entry the extra damage field, as an earlier version of the app stored it (IN-3). */
+async function withEarlierField(path: string): Promise<void> {
+  const response = await fetch(`${storedDoc(path)}?updateMask.fieldPaths=extraDamage`, {
+    method: "PATCH",
+    headers: { Authorization: "Bearer owner", "Content-Type": "application/json" },
+    body: JSON.stringify({ fields: { extraDamage: { integerValue: "2" } } }),
+  });
+  expect(response.ok, "setting up the earlier extra damage field").toBe(true);
+  expect(await storedFields(path), "the stored fields once set up").toContain("extraDamage");
+}
+
+rule(
+  { req: ["IN-3", "GR-13", "NF-6"], m: "M4" },
+  "through Firestore, a weapon still holding the earlier extra damage field can be edited, equipped, unequipped, given a grant and traded; each change is kept and removes the field",
+  async () => {
+    const bram = await signedUp("bram");
+    const aldric = await seedCharacter(bram.store, "aldric");
+    const characterId = aldric.character.id;
+    const entries = `users/${uid("bram")}/characters/${characterId}/entries`;
+    const equipped = async (id: string) =>
+      expect((await bram.store.equip(id, "off-hand")).outcome, "equipping a Hand Axe in the off-hand").toBe("allowed");
+    // Unequipping comes first, so its axe has left the off-hand before another is equipped there.
+    const changes: [string, (id: string) => Promise<unknown>, (id: string) => Promise<unknown>][] = [
+      ["unequipping", (id) => bram.store.unequip(id), equipped],
+      ["an edit", (id) => bram.store.updateEntry(id, { notes: "Old, but sharp." }), async () => undefined],
+      ["equipping", equipped, async () => undefined],
+      ["a grant", (id) => bram.store.addGrant({ entryId: id }, { kind: "cm", amount: 1 }), async () => undefined],
+      ["trading one", (id) => bram.store.markTraded(id, { kind: "traded", quantity: 1 }), async () => undefined],
+    ];
+    const axes = new Map<string, string>();
+    for (const [what, change, before] of changes) {
+      const axe = await bram.store.addEntry(characterId, {
+        category: "weapons",
+        name: `Hand Axe (${what})`,
+        quantity: 2,
+        hands: 1,
+        range: "melee",
+      });
+      await before(axe.id);
+      await synced(bram);
+      await withEarlierField(`${entries}/${axe.id}`);
+      await change(axe.id);
+      await synced(bram);
+      expect(await storedFields(`${entries}/${axe.id}`), `the stored Hand Axe after ${what}`).not.toContain(
+        "extraDamage",
+      );
+      axes.set(what, axe.id);
+    }
+    // Each change is kept, as a new phone reads it from the server.
+    const other = phone("bram");
+    const read = async (what: string) => other.store.entry(axes.get(what)!);
+    const edited = await read("an edit");
+    expect(edited.category !== "skills" && edited.notes, "the edited Hand Axe's notes").toBe("Old, but sharp.");
+    expect((await read("trading one")).quantity, "the traded Hand Axe's quantity").toBe(1);
+    const granted = await read("a grant");
+    expect(
+      granted.category !== "skills" && granted.grants?.map((g) => [g.kind, g.kind === "cm" && g.amount]),
+      "the granted Hand Axe's grants",
+    ).toEqual([["cm", 1]]);
+    const sheet = await other.store.sheet(characterId);
+    expect(
+      sheet.equipped.map((q) => [q.entryId, q.slot]),
+      "where Aldric's Hand Axes are equipped",
+    ).toEqual([[axes.get("equipping"), "off-hand"]]);
+    for (const id of axes.values()) {
+      expect(await other.store.entry(id), "a Hand Axe as read").not.toHaveProperty("extraDamage");
+    }
+    const totals = await other.store.totals(characterId);
+    expect(totals.damage.value, "Aldric's damage with the equipped Hand Axe").toBe(1);
+    expect(totals.damage.grants, "where Aldric's damage comes from").toEqual([]);
+  },
+);
+
 /** The IDs of the documents in one of Bram's collections, read from the server by a new phone of his. */
 async function storedIds(path: string): Promise<string[]> {
   return (await device("bram").collection(path).get()).docs.map((d) => d.id).sort();
