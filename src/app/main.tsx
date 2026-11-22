@@ -13,7 +13,8 @@ function renderError(error: unknown, info: ErrorInfo) {
   reportError(error);
 }
 
-const newVersion = watchForNewVersions();
+// Some browsers can't store the app (a private window, a page not served over https): it still runs.
+const newVersion = "serviceWorker" in navigator ? watchForNewVersions() : undefined;
 
 createRoot(document.getElementById("root")!, {
   onUncaughtError: renderError,

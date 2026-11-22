@@ -49,10 +49,12 @@ export function watchForNewVersions(): NewVersion {
     if (registration?.waiting && registration.active) offer();
   };
   // Another window switched to a new version while this one wasn't looking: this page still runs
-  // the old one, so offer the reload too.
-  const hadController = navigator.serviceWorker.controller !== null;
+  // the old one, so offer the reload too. A page that opened with none in charge (the first visit)
+  // ignores only the first, which is this version taking over.
+  let controlled = navigator.serviceWorker.controller !== null;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (hadController && !switching) offer();
+    if (controlled && !switching) offer();
+    controlled = true;
   });
   const follow = (worker: ServiceWorker | null) => {
     worker?.addEventListener("statechange", () => {
@@ -93,8 +95,8 @@ export function watchForNewVersions(): NewVersion {
       // taken over in a few seconds (it was replaced, or the message was lost), reload anyway.
       switching = true;
       navigator.serviceWorker.addEventListener("controllerchange", () => window.location.reload(), { once: true });
-      await updateSW(true);
       setTimeout(() => window.location.reload(), SWITCH_WAIT_MS);
+      await updateSW(true);
     },
   };
 }
