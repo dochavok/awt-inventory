@@ -308,6 +308,29 @@ rule(
 );
 
 rule(
+  { req: ["RD-1", "GR-13", "RD-4"], m: "M4" },
+  "a skill's extra damage type is trimmed, and a blank one is a problem naming the grant",
+  () => {
+    const of = (list: any[], skill: string) => list.find((g: any) => g.skill === skill).grants;
+    const withType = (damageType: string) =>
+      edited("skill-grants.yaml", (list) =>
+        of(list, "iron-guard").push({ id: "sg-x-guard-dmg", kind: "extra-damage", amount: 1, damageType }),
+      );
+    const padded = withType(" cold ");
+    expect(problemsFor(padded), "problems with a padded type").toEqual([]);
+    expect(
+      loadReferenceData(padded)
+        .skillGrants.find((g) => g.skill === "iron-guard")
+        ?.grants.at(-1),
+      "Iron Guard's extra damage, its type trimmed",
+    ).toEqual({ id: "sg-x-guard-dmg", kind: "extra-damage", amount: 1, damageType: "cold" });
+    expect(problemsFor(withType("  ")).join("\n"), "problems with a blank type").toMatch(
+      /^skill-grants\.yaml sg-x-guard-dmg: /m,
+    );
+  },
+);
+
+rule(
   { req: ["RD-1", "GR-1", "RD-4"], m: "M4" },
   "each problem with class bonus dice, groups or die-always names its file and the exact entry",
   () => {

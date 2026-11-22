@@ -1,8 +1,8 @@
 // Grants and totals (section 8: GR-1 to GR-13), in the rules core.
 // The scenarios in tests/scenarios/totals.yaml, plus checks a scenario can't
 // express: each grant line's category and source details (GR-12), that the
-// level chart is read rather than built in (TF-3), and extra damage listed,
-// never totalled (GR-13).
+// level chart is read rather than built in (TF-3), and damage: the base plus
+// each extra damage that counts, situational ones listed apart (GR-13).
 
 import { expect } from "vitest";
 import { computeTotals, slotState, type Grant, type SkillEntry, type SourceRef } from "../../src/rules";
@@ -595,3 +595,65 @@ rule(
     expect(totals.damage.value, "Isolde's damage: 1 + the larger fire").toBe(3);
   },
 );
+
+rule(
+  { req: ["GR-13", "GR-3"], m: "M4" },
+  "an unequipped weapon's and an inactive ally's extra damage don't count, and aren't listed as situational",
+  () => {
+    const sheet = fixtureSheet("aldric");
+    sheet.equipped = sheet.equipped.filter((q) => q.entryId !== "aldric-sword");
+    // Old Mule, Aldric's ally, isn't active.
+    grantOn(sheet, "aldric-mule", { id: "g-x-mule-dmg", kind: "extra-damage", amount: 4, damageType: "kick" });
+    const totals = computeTotals(sheet, testReferenceData());
+    expect(damageOf(totals.damage.grants), "where Aldric's damage comes from, Duskfang unequipped").toEqual([]);
+    expect(totals.damage.value, "Aldric's damage, Duskfang unequipped and the mule inactive").toBe(1);
+    expect(totals.damage.situational, "Aldric's situational damage").toEqual([]);
+
+    const active = fixtureSheet("aldric");
+    grantOn(active, "aldric-wolf", { id: "g-x-wolf-dmg", kind: "extra-damage", amount: 4, damageType: "bite" });
+    expect(
+      damageOf(computeTotals(active, testReferenceData()).damage.grants),
+      "where Aldric's damage comes from, the active wolf too",
+    ).toEqual([
+      ["Duskfang", "entry", 2, undefined, undefined],
+      ["Grey Fang", "entry", 4, "bite", undefined],
+    ]);
+  },
+);
+
+rule({ req: ["GR-13", "GR-1"], m: "M4" }, "a manual grant's extra damage with no condition counts", () => {
+  const sheet = fixtureSheet("aldric");
+  sheet.manualGrants.push({
+    id: "m-x-dmg",
+    reason: "DM ruling, made-up faire",
+    grants: [{ id: "g-x-manual-dmg", kind: "extra-damage", amount: 3, damageType: "radiant" }],
+  });
+  const totals = computeTotals(sheet, testReferenceData());
+  expect(damageOf(totals.damage.grants), "where Aldric's damage comes from, with the ruling").toEqual([
+    ["Duskfang", "entry", 2, undefined, undefined],
+    ["DM ruling, made-up faire", "manual", 3, "radiant", undefined],
+  ]);
+  expect(totals.damage.value, "Aldric's damage: 1 + 2 + 3 radiant").toBe(6);
+  expect(totals.damage.situational, "Aldric's situational damage").toEqual([]);
+});
+
+rule({ req: ["GR-13", "GR-3"], m: "M4" }, "a two-handed weapon's extra damage counts once, in both hands", () => {
+  const sheet = fixtureSheet("aldric");
+  sheet.equipped = sheet.equipped.filter((q) => q.entryId !== "aldric-sword");
+  sheet.entries.push({
+    id: "x-maul",
+    characterId: "aldric",
+    category: "weapons",
+    name: "Stone Maul",
+    quantity: 1,
+    hands: 2,
+    range: "melee",
+    grants: [{ id: "g-x-maul-dmg", kind: "extra-damage", amount: 3 }],
+  });
+  sheet.equipped.push({ entryId: "x-maul", slot: "both-hands" });
+  const totals = computeTotals(sheet, testReferenceData());
+  expect(damageOf(totals.damage.grants), "where Aldric's damage comes from, the maul in both hands").toEqual([
+    ["Stone Maul", "entry", 3, undefined, undefined],
+  ]);
+  expect(totals.damage.value, "Aldric's damage with the maul").toBe(4);
+});

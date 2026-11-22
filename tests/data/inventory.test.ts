@@ -163,6 +163,25 @@ rule(
   },
 );
 
+rule(
+  { req: ["IN-3", "EX-4"], m: "M4" },
+  "a weapon's earlier extra damage field isn't in its category's list or in the JSON export",
+  async () => {
+    const { w, bram, characterId } = await bramWithAldric();
+    const axe = await bram.addEntry(characterId, { category: "weapons", name: "Hand Axe", hands: 1, range: "melee" });
+    // As an earlier version of the app stored it.
+    Object.assign(w.db.entries.get(axe.id)!, { extraDamage: 2 });
+    const listed = (await bram.listEntries(characterId, "weapons")).find((i) => i.entry.id === axe.id);
+    expect(listed?.entry, "the Hand Axe in the weapons list").toMatchObject({ name: "Hand Axe", hands: 1 });
+    expect(listed?.entry, "the Hand Axe in the weapons list").not.toHaveProperty("extraDamage");
+    const file = await bram.exportJson();
+    const exported = file.characters.find((c) => c.character.id === characterId)?.entries.find((e) => e.id === axe.id);
+    expect(exported, "the Hand Axe in the export").toMatchObject({ name: "Hand Axe", hands: 1 });
+    expect(exported, "the Hand Axe in the export").not.toHaveProperty("extraDamage");
+    expect(JSON.stringify(file), "the export, anywhere").not.toContain("extraDamage");
+  },
+);
+
 rule({ req: ["IN-4"], m: "M2" }, "armor's slot kind must be one from the reference data", async () => {
   const { bram, characterId } = await bramWithAldric();
   const shield = await bram.addEntry(characterId, { category: "armor", name: "Oak Shield", slotKind: "off-hand" });

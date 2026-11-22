@@ -327,6 +327,32 @@ rule(
   },
 );
 
+rule(
+  { req: ["EX-1", "GR-13", "GR-4"], m: "M4" },
+  "a situational extra damage isn't added to the sheet's damage or listed in its lines",
+  async () => {
+    const w = world();
+    const bram = w.as("bram");
+    await seedProfile(bram, "bram");
+    const aldric = await seedCharacter(bram, "aldric", { full: true });
+    await bram.addManualGrant(aldric.character.id, "Shrine blessing", [
+      { kind: "extra-damage", amount: 3, damageType: "radiant", condition: "vs Undead" },
+    ]);
+    const page = (
+      await bram.printableSheet({ characterIds: [aldric.character.id], includeSkillText: false, paper: "letter" })
+    ).characters[0]!;
+    const damage = page.totals?.find((t) => t.label === "Damage");
+    expect(damage?.value, "Aldric's damage on the sheet, the blessing not added").toBe("3 hearts");
+    expect(
+      damage?.lines.map((l) => [l.label, l.value]),
+      "where Aldric's damage comes from on the sheet, the blessing not listed",
+    ).toEqual([
+      ["base", 1],
+      ["+2 hearts", "from Duskfang"],
+    ]);
+  },
+);
+
 rule({ req: ["EX-1"], m: "M3" }, "the PDF prints on Letter or A4 paper", async () => {
   const { bram, aldric } = await bramWithTwo();
   for (const [paper, size] of [
