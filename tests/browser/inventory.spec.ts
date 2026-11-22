@@ -642,8 +642,9 @@ browserRule(
 
     await openFromCharacter(page, wren, /^Weapons/, "Weapons");
     await rowFor(page, "Hand Axe").getByRole("button", { name: "Unequip Hand Axe" }).click();
+    // Exact: "Equip Hand Axe" is also part of "Unequip Hand Axe".
     await expect(
-      rowFor(page, "Hand Axe").getByRole("button", { name: "Equip Hand Axe" }),
+      rowFor(page, "Hand Axe").getByRole("button", { name: "Equip Hand Axe", exact: true }),
       "Equip on the Hand Axe's row once unequipped",
     ).toBeVisible();
 
