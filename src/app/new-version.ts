@@ -3,7 +3,17 @@
 // Only main.tsx imports this, since it needs the build's service worker module.
 
 import { registerSW } from "virtual:pwa-register";
-import { browserPage, checkForNewVersions } from "./version-checks";
+import { checkForNewVersions, type PageState } from "./version-checks";
+
+/** The browser's own page state, for the checks. */
+const browserPage: PageState = {
+  online: () => navigator.onLine,
+  visible: () => document.visibilityState === "visible",
+  onVisibilityChange(listener) {
+    document.addEventListener("visibilitychange", listener);
+    return () => document.removeEventListener("visibilitychange", listener);
+  },
+};
 
 /** What the new-version bar needs: whether one is ready, and a way to switch to it. */
 export interface NewVersion {

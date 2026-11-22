@@ -143,15 +143,16 @@ async function withNewVersion(body: () => Promise<void>): Promise<void> {
  * already stored on the phone when this page loaded, as for most players.
  */
 async function newVersionOffered(page: Page, openedBefore: boolean) {
+  const signIn = page.getByRole("heading", { name: /sign in/i });
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /sign in/i }), "the sign-in heading").toBeVisible();
+  await expect(signIn, "the sign-in heading").toBeVisible();
   expect(
     await page.evaluate(async () => (await navigator.serviceWorker.ready).active !== null),
     "the app stored on the phone",
   ).toBe(true);
   if (openedBefore) {
     await page.reload();
-    await expect(page.getByRole("heading", { name: /sign in/i }), "the sign-in heading, opened again").toBeVisible();
+    await expect(signIn, "the sign-in heading, opened again").toBeVisible();
     expect(
       await page.evaluate(() => navigator.serviceWorker.controller !== null),
       "the page run by the stored app",
@@ -182,7 +183,7 @@ async function newVersionOffered(page: Page, openedBefore: boolean) {
     await bar.getByRole("button", { name: "Reload" }).click();
     await reloaded;
     expect(await loadedBefore(), "the page loaded before the new version, after Reload").toBe(false);
-    await expect(page.getByRole("heading", { name: /sign in/i }), "the sign-in heading after Reload").toBeVisible();
+    await expect(signIn, "the sign-in heading after Reload").toBeVisible();
     // The version that was waiting is the one running now.
     expect(await waitingVersion(), "a version still waiting after Reload").toBe(false);
     await expect(bar, "the new-version bar after Reload").toBeHidden();

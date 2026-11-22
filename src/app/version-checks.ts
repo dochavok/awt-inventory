@@ -27,13 +27,3 @@ export function checkForNewVersions(check: () => void, page: PageState): () => v
     clearInterval(timer);
   };
 }
-
-/** The browser's own page state. */
-export const browserPage: PageState = {
-  online: () => navigator.onLine,
-  visible: () => document.visibilityState === "visible",
-  onVisibilityChange(listener) {
-    document.addEventListener("visibilitychange", listener);
-    return () => document.removeEventListener("visibilitychange", listener);
-  },
-};
