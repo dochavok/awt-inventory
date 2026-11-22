@@ -26,23 +26,39 @@ export interface NewVersion {
 
 export function watchForNewVersions(): NewVersion {
   let ready = false;
+  let registration: ServiceWorkerRegistration | undefined;
   const listeners = new Set<() => void>();
+
+  // A new version is stored on the phone and waiting behind the one running this page: offer it,
+  // never switch by itself (NF-14). Followed here rather than through the plugin's events, which
+  // miss a version already installing when the page registers, and stop after one that fails.
+  const offerIfWaiting = () => {
+    if (ready || !registration?.waiting || !navigator.serviceWorker.controller) return;
+    ready = true;
+    listeners.forEach((l) => l());
+  };
+  const follow = (worker: ServiceWorker | null) => {
+    worker?.addEventListener("statechange", () => {
+      if (worker.state === "installed") offerIfWaiting();
+    });
+  };
+
   const updateSW = registerSW({
     // Reload (below) reloads the page itself: the plugin's own reload skips a page that had no
     // service worker when it opened, such as the very first visit.
     onNeedReload() {},
-    // A new version is stored on the phone and waiting: offer it, never switch by itself (NF-14).
-    onNeedRefresh() {
-      ready = true;
-      listeners.forEach((l) => l());
-    },
-    onRegisteredSW(_url, registration) {
-      if (!registration) return;
+    onRegisteredSW(_url, found) {
+      if (!found) return;
+      registration = found;
+      found.addEventListener("updatefound", () => follow(found.installing));
+      follow(found.installing);
+      offerIfWaiting();
       checkForNewVersions(() => {
-        registration.update().catch((error: unknown) => console.warn("Couldn't look for a new version", error));
+        found.update().catch((error: unknown) => console.warn("Couldn't look for a new version", error));
       }, browserPage);
     },
   });
+
   return {
     ready: () => ready,
     subscribe(listener) {
@@ -50,6 +66,12 @@ export function watchForNewVersions(): NewVersion {
       return () => listeners.delete(listener);
     },
     async reload() {
+      // Nothing waiting: the new version already took over (from another window), so this page
+      // only has to load again.
+      if (!registration?.waiting) {
+        window.location.reload();
+        return;
+      }
       // Once the waiting version takes over the page, load the page again from it.
       navigator.serviceWorker.addEventListener("controllerchange", () => window.location.reload(), { once: true });
       await updateSW(true);
