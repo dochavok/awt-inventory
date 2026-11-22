@@ -4,7 +4,7 @@
 // version published while the app is open (NF-14).
 // Runs as iPhone (Safari) and Android (Chrome, 360 pixels wide).
 
-import { closeSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { closeSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { expect, type Page } from "@playwright/test";
 import { browserRule } from "../support/browser-rule";
 
@@ -165,12 +165,19 @@ async function withNewVersion(body: (publish: () => void) => Promise<void>): Pro
   }
   const published = readFileSync(SERVICE_WORKER, "utf8").split(NEW_VERSION)[0]!;
   try {
-    writeFileSync(SERVICE_WORKER, published);
-    await body(() => writeFileSync(SERVICE_WORKER, `${published}${NEW_VERSION}${Date.now()}-${Math.random()}\n`));
+    replaceServiceWorker(published);
+    await body(() => replaceServiceWorker(`${published}${NEW_VERSION}${Date.now()}-${Math.random()}\n`));
   } finally {
-    writeFileSync(SERVICE_WORKER, published);
+    replaceServiceWorker(published);
     rmSync(LOCK, { force: true });
   }
+}
+
+/** Replaces the build's service worker in one step, so tests in other files never load half of one. */
+function replaceServiceWorker(text: string) {
+  const next = new URL("../../dist/sw.js.next", import.meta.url);
+  writeFileSync(next, text);
+  renameSync(next, SERVICE_WORKER);
 }
 
 /**
@@ -245,6 +252,23 @@ browserRule(
       await expect(page.getByRole("heading", { name: /sign in/i }), "the sign-in heading, opened").toBeVisible();
       await expect(bar, "the new-version bar").toContainText("A new version is ready", { timeout: 15_000 });
     });
+  },
+);
+
+browserRule(
+  { req: ["NF-14"], m: "M4" },
+  "where the browser can't store the app (no service workers), the app still opens, with no new-version bar",
+  async ({ page }) => {
+    // As in a private window, or a page not served over https.
+    await page.addInitScript(() => {
+      delete (Navigator.prototype as { serviceWorker?: unknown }).serviceWorker;
+    });
+    await page.goto("/");
+    expect(await page.evaluate(() => "serviceWorker" in navigator), "service workers in this browser").toBe(false);
+    await expect(page.getByRole("heading", { name: /sign in/i }), "the sign-in heading").toBeVisible();
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await page.waitForTimeout(1_000);
+    await expect(page.getByRole("status", { name: "New version" }), "the new-version bar").toBeHidden();
   },
 );
 
