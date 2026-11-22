@@ -65,21 +65,25 @@ rule({ req: ["NF-14"], m: "M4" }, "while the app stays open, it looks again ever
   expect(check, "checks after three intervals").toHaveBeenCalledTimes(4);
 });
 
-rule({ req: ["NF-14"], m: "M4" }, "without signal the app doesn't look, and looks again once it's back in view with signal", () => {
-  vi.useFakeTimers();
-  const page = fakePage();
-  page.signal = false;
-  const check = vi.fn();
-  checkForNewVersions(check, page);
-  vi.advanceTimersByTime(CHECK_EVERY_MS);
-  page.show(false);
-  page.show(true);
-  expect(check, "checks without signal").not.toHaveBeenCalled();
-  page.signal = true;
-  page.show(false);
-  page.show(true);
-  expect(check, "checks once signal is back and the app comes back").toHaveBeenCalledTimes(1);
-});
+rule(
+  { req: ["NF-14"], m: "M4" },
+  "without signal the app doesn't look, and looks again once it's back in view with signal",
+  () => {
+    vi.useFakeTimers();
+    const page = fakePage();
+    page.signal = false;
+    const check = vi.fn();
+    checkForNewVersions(check, page);
+    vi.advanceTimersByTime(CHECK_EVERY_MS);
+    page.show(false);
+    page.show(true);
+    expect(check, "checks without signal").not.toHaveBeenCalled();
+    page.signal = true;
+    page.show(false);
+    page.show(true);
+    expect(check, "checks once signal is back and the app comes back").toHaveBeenCalledTimes(1);
+  },
+);
 
 rule({ req: ["NF-14"], m: "M4" }, "once stopped, the app no longer looks", () => {
   vi.useFakeTimers();

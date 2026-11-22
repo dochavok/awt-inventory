@@ -5,7 +5,7 @@
 // Runs as iPhone (Safari) and Android (Chrome, 360 pixels wide).
 
 import { closeSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { expect } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { browserRule } from "../support/browser-rule";
 
 browserRule(
@@ -136,43 +136,66 @@ async function withNewVersion(body: () => Promise<void>): Promise<void> {
   }
 }
 
+/**
+ * NF-14 on the sign-in screen: a new version is published while the app is open,
+ * and the app is brought back from the background. `openedBefore`: the app was
+ * already stored on the phone when this page loaded, as for most players.
+ */
+async function newVersionOffered(page: Page, openedBefore: boolean) {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: /sign in/i }), "the sign-in heading").toBeVisible();
+  expect(
+    await page.evaluate(async () => (await navigator.serviceWorker.ready).active !== null),
+    "the app stored on the phone",
+  ).toBe(true);
+  if (openedBefore) {
+    await page.reload();
+    await expect(page.getByRole("heading", { name: /sign in/i }), "the sign-in heading, opened again").toBeVisible();
+    expect(
+      await page.evaluate(() => navigator.serviceWorker.controller !== null),
+      "the page run by the stored app",
+    ).toBe(true);
+  }
+  await page.getByLabel("Email").fill("half-typed@example.test");
+  // Gone once the page has reloaded.
+  await page.evaluate(() => Object.assign(window, { loadedBefore: true }));
+  const loadedBefore = () => page.evaluate(() => (window as { loadedBefore?: boolean }).loadedBefore === true);
+  const waitingVersion = () =>
+    page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.waiting != null);
+  const bar = page.getByRole("status", { name: "New version" });
+  await expect(bar, "the new-version bar before there is a new version").toBeHidden();
+
+  await withNewVersion(async () => {
+    // The app is brought back from the background.
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await expect(bar, "the new-version bar").toContainText("A new version is ready", { timeout: 15_000 });
+    expect(await waitingVersion(), "the new version stored on the phone, waiting").toBe(true);
+
+    // NF-14: it never reloads by itself, so nothing being typed is lost.
+    await page.waitForTimeout(2_000);
+    expect(await loadedBefore(), "the page still the one loaded before the new version").toBe(true);
+    await expect(page.getByLabel("Email"), "what was typed").toHaveValue("half-typed@example.test");
+    expect(await waitingVersion(), "the new version still waiting").toBe(true);
+
+    const reloaded = page.waitForEvent("load", { timeout: 15_000 });
+    await bar.getByRole("button", { name: "Reload" }).click();
+    await reloaded;
+    expect(await loadedBefore(), "the page loaded before the new version, after Reload").toBe(false);
+    await expect(page.getByRole("heading", { name: /sign in/i }), "the sign-in heading after Reload").toBeVisible();
+    // The version that was waiting is the one running now.
+    expect(await waitingVersion(), "a version still waiting after Reload").toBe(false);
+    await expect(bar, "the new-version bar after Reload").toBeHidden();
+  });
+}
+
 browserRule(
   { req: ["NF-14"], m: "M4" },
   "a new version published while the app is open is offered when the app is brought back; the app never reloads by itself, and Reload switches to it",
-  async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByRole("heading", { name: /sign in/i }), "the sign-in heading").toBeVisible();
-    expect(
-      await page.evaluate(async () => (await navigator.serviceWorker.ready).active !== null),
-      "the app stored on the phone",
-    ).toBe(true);
-    await page.getByLabel("Email").fill("half-typed@example.test");
-    // Gone once the page has reloaded.
-    await page.evaluate(() => Object.assign(window, { loadedBefore: true }));
-    const loadedBefore = () => page.evaluate(() => (window as { loadedBefore?: boolean }).loadedBefore === true);
-    const waitingVersion = () =>
-      page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.waiting != null);
-    const bar = page.getByRole("status", { name: "New version" });
-    await expect(bar, "the new-version bar before there is a new version").toBeHidden();
+  async ({ page }) => newVersionOffered(page, true),
+);
 
-    await withNewVersion(async () => {
-      // The app is brought back from the background.
-      await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
-      await expect(bar, "the new-version bar").toContainText("A new version is ready", { timeout: 15_000 });
-      expect(await waitingVersion(), "the new version stored on the phone, waiting").toBe(true);
-
-      // NF-14: it never reloads by itself, so nothing being typed is lost.
-      await page.waitForTimeout(2_000);
-      expect(await loadedBefore(), "the page still the one loaded before the new version").toBe(true);
-      await expect(page.getByLabel("Email"), "what was typed").toHaveValue("half-typed@example.test");
-      expect(await waitingVersion(), "the new version still waiting").toBe(true);
-
-      await bar.getByRole("button", { name: "Reload" }).click();
-      await expect.poll(loadedBefore, { message: "the page reloaded", timeout: 15_000 }).toBe(false);
-      await expect(page.getByRole("heading", { name: /sign in/i }), "the sign-in heading after Reload").toBeVisible();
-      // The version that was waiting is the one running now.
-      expect(await waitingVersion(), "a version still waiting after Reload").toBe(false);
-      await expect(bar, "the new-version bar after Reload").toBeHidden();
-    });
-  },
+browserRule(
+  { req: ["NF-14"], m: "M4" },
+  "on the very first visit too, a new version is offered, and Reload switches to it",
+  async ({ page }) => newVersionOffered(page, false),
 );

@@ -125,6 +125,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | NF-11 | Must | M3 | ops/operations.test.ts (7) |
 | NF-12 | Must | M3 | app/messages.test.ts (2), platform/platform.test.ts (11) |
 | NF-13 | Must | M2 | access/accounts.test.ts (4), access/privacy.test.ts (4), data/accounts.test.ts (3) |
+| NF-14 | Must | M4 | app/version-checks.test.ts (5), browser/phone.spec.ts (2) |
 | TF-1 | Must | M1 | meta/requirements.test.ts (1) |
 | TF-2 | Must | M1 | meta/requirements.test.ts (1) |
 | TF-3 | Must | M1 | meta/scenarios.test.ts (1), meta/test-change-check.test.ts (1), rules/equipping.test.ts (2), rules/totals.test.ts (2) |
@@ -154,4 +155,4 @@ Tests shows each file with the number of its tests that name the requirement.
 | DOC-5 | Must | M3 | docs/docs.test.ts (1), docs/help-pages.test.ts (1) |
 | DOC-6 | Should | M3 | browser/screens.spec.ts (1), docs/docs.test.ts (1), ops/operations.test.ts (1) |
 
-Musts with a test: 109 of 117 (5 deferred by TF-1, 3 checked in review).
+Musts with a test: 110 of 118 (5 deferred by TF-1, 3 checked in review).
