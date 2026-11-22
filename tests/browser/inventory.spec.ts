@@ -526,7 +526,7 @@ browserRule(
 
 browserRule(
   { req: ["IN-3", "GR-13", "GR-3"], m: "M4" },
-  "a weapon's extra damage is a grant that counts while it's equipped; once it's removed, the weapon is no longer named as a source of damage",
+  "a weapon's extra damage is a grant that counts; once it's removed, the weapon is no longer named as a source of damage",
   async ({ page }) => {
     await signUp(page);
     const wren = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
@@ -563,7 +563,7 @@ browserRule(
     );
 
     const totals = page.getByRole("region", { name: "Totals" });
-    const damage = totals.getByRole("list", { name: "Damage" }).getByRole("listitem");
+    const damage = totals.getByRole("list", { name: "Damage", exact: true }).getByRole("listitem");
     await page.goto(`/#/characters/${wren}`);
     await expect(totals.getByText("Damage 4 hearts", { exact: true }), "Wren's damage, axe and title").toBeVisible({
       timeout: 15_000,
