@@ -37,6 +37,10 @@ Signing in on a new phone and creating an account need signal.
 
 If the server refuses a change once it's sent, the app says which one and undoes it on your phone. That happens, for example, when two phones each add a character with the same name while offline: the first to get signal keeps it. See [Troubleshooting](troubleshooting.md).
 
+## New versions
+
+When a new version of the app comes out, the app finds it while it's open with signal: as you open it, when you come back to it, and every hour. A bar at the top then says **A new version is ready**. Tap **Reload** when it suits you, to switch to it. The app never reloads by itself, so nothing you're typing is lost. The one exception: if the app has stopped with an error, it switches to a new version by itself as soon as it finds one.
+
 ## Help
 
 **Help**, at the top of every screen, opens the page about that screen. Once the app has been opened with signal, the help works without signal too. Each page says when it was last updated and when it was last checked against the app.

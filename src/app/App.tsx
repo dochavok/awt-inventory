@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import { characterOf, type RefusedChange } from "../data/firestore-store";
 import { useRoute, type Route } from "./router";
 import type { Services } from "./services";
-import { ConnectionBar, Header, RefusedNotices } from "./Shell";
+import type { NewVersion } from "./new-version";
+import { ConnectionBar, Header, NewVersionBar, RefusedNotices } from "./Shell";
 import { Account } from "./screens/Account";
 import { CharacterPage, Characters, NewCharacter } from "./screens/Characters";
 import { Category, EntryPage } from "./screens/Entries";
@@ -64,7 +65,8 @@ function shows(route: Route | null, { kind, id }: RefusedChange): boolean {
 /** How long after the app opens the whole account is read (NF-3, NF-4). */
 const LOAD_DELAY_MS = 2_000;
 
-export function App({ services }: { services: Services }) {
+/** `newVersion` is the service worker's (NF-14); left out where there isn't one. */
+export function App({ services, newVersion }: { services: Services; newVersion?: NewVersion }) {
   const route = useRoute();
   const [signedIn, setSignedIn] = useState(() => services.auth.currentUser() !== null);
   // Firebase signs in before sign-up has made the profile, or before sign-in has
@@ -141,6 +143,7 @@ export function App({ services }: { services: Services }) {
     <>
       {/* DOC-1: no help link while a kept sign-in is being restored, since it would point to the signed-out help. */}
       <Header signedIn={inApp} help={ready ? helpFor(route, inApp) : undefined} />
+      {newVersion && <NewVersionBar newVersion={newVersion} />}
       {inApp && <ConnectionBar store={services.store} />}
       {inApp && <RefusedNotices subscribe={services.onWriteRefused} />}
       {/* Each address, and each refusal that touches what's shown, starts the screen afresh. */}

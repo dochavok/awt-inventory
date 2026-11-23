@@ -52,6 +52,12 @@ When equipping is refused, nothing changes, and the app says why. See [Equipping
 - **"The server refused a change …":** the change didn't reach your account. Make it again with signal.
 - **Changes waiting:** the bar at the top counts changes not yet sent. They go when there's signal; keep the app open for a moment once you're back online.
 
+## New versions
+
+- **"A new version is ready":** tap **Reload** to switch to it, once you've saved anything you're typing.
+- **Something new isn't there yet:** the app looks for a new version only with signal. Open it with signal, or bring it back from the background, and wait for the bar.
+- **The app stopped with an error:** once a fixed version comes out, the app switches to it by itself, while it's open with signal.
+
 ## Skill warnings
 
 Warnings never stop you adding a skill: DMs sometimes allow these. Check with your DM if you're not sure.

@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="vite-plugin-pwa/vanillajs" />
 
 /** The app's version from package.json, set by vite.config.ts (SP-2 records it on reports). */
 declare const __APP_VERSION__: string;

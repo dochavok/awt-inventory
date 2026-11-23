@@ -1,11 +1,12 @@
 // The parts around every screen: the header with its links and the screen's
-// help link (DOC-1), the connection bar (NF-3), what the server refused
-// (NF-3), and the reminder to verify an email (AC-1).
+// help link (DOC-1), the connection bar (NF-3), the new-version bar (NF-14),
+// what the server refused (NF-3), and the reminder to verify an email (AC-1).
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import type { RefusedChange } from "../data/firestore-store";
 import type { InventoryStore } from "../data/store";
 import type { AuthProvider, AuthUser } from "../platform/auth";
+import type { NewVersion } from "./new-version";
 import { href } from "./router";
 import { Feedback, useAction } from "./useAction";
 
@@ -92,6 +93,32 @@ export function ConnectionBar({ store }: { store: InventoryStore }) {
       {status.online
         ? `Sending ${changes}…`
         : `Offline. ${status.waiting === 0 ? "Changes you make are saved on this phone." : `${changes} waiting to be sent.`}`}
+    </div>
+  );
+}
+
+/** NF-14: offers a new version once it's stored on the phone. It never reloads by itself. */
+export function NewVersionBar({ newVersion }: { newVersion: NewVersion }) {
+  const ready = useSyncExternalStore(newVersion.subscribe, newVersion.ready);
+  const [reloading, setReloading] = useState(false);
+  if (!ready) return null;
+  return (
+    <div role="status" aria-label="New version" className="connection new-version">
+      A new version is ready.{" "}
+      <button
+        type="button"
+        className="secondary"
+        disabled={reloading}
+        onClick={() => {
+          setReloading(true);
+          newVersion.reload().catch((error: unknown) => {
+            console.warn("Couldn't switch to the new version", error);
+            setReloading(false);
+          });
+        }}
+      >
+        Reload
+      </button>
     </div>
   );
 }

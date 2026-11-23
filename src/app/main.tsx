@@ -3,6 +3,7 @@ import { StrictMode, type ErrorInfo } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { reportError } from "./error-service";
+import { watchForNewVersions } from "./new-version";
 import { createServices } from "./services";
 import "./styles.css";
 
@@ -12,11 +13,18 @@ function renderError(error: unknown, info: ErrorInfo) {
   reportError(error);
 }
 
+// Some browsers can't store the app (a private window, a page not served over https): it still runs.
+const newVersion = "serviceWorker" in navigator ? watchForNewVersions() : undefined;
+
 createRoot(document.getElementById("root")!, {
-  onUncaughtError: renderError,
+  // The app has stopped: a new version (perhaps the fix) takes over by itself (NF-14).
+  onUncaughtError(error, info) {
+    renderError(error, info);
+    newVersion?.stopped();
+  },
   onCaughtError: renderError,
 }).render(
   <StrictMode>
-    <App services={createServices()} />
+    <App services={createServices()} newVersion={newVersion} />
   </StrictMode>,
 );

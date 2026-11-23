@@ -90,6 +90,12 @@ body {
   color: #15101f;
 }
 
+/* NF-14: in the page's flow, not over it, so it never covers what's being tapped. */
+.connection.new-version button {
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.75rem;
+}
+
 /* Names and notes are the player's own: long words wrap rather than widen the page (NF-1). */
 .name,
 .notes,
