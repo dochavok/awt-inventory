@@ -255,6 +255,62 @@ browserRule(
   },
 );
 
+/**
+ * Stops the app with an error while drawing the screen, as a broken release
+ * would: one of its state updates throws.
+ */
+async function crashApp(page: Page) {
+  await page.evaluate(() => {
+    type Fiber = { child: Fiber | null; sibling: Fiber | null; memoizedState: unknown };
+    type Hook = { queue?: { dispatch?: (update: () => never) => void } | null; next: Hook | null };
+    const root = document.getElementById("root") as unknown as Record<string, { current?: Fiber } & Fiber>;
+    const key = Object.keys(root).find((k) => k.startsWith("__reactContainer$"));
+    if (!key) throw new Error("No React root on the page");
+    const stack: (Fiber | null)[] = [root[key]!];
+    while (stack.length > 0) {
+      const fiber = stack.pop();
+      if (!fiber) continue;
+      for (let hook = fiber.memoizedState as Hook | null; hook && typeof hook === "object"; hook = hook.next) {
+        const dispatch = hook.queue?.dispatch;
+        if (typeof dispatch === "function") {
+          dispatch(() => {
+            throw new Error("A broken release (NF-14 browser test)");
+          });
+          return;
+        }
+      }
+      stack.push(fiber.sibling, fiber.child);
+    }
+    throw new Error("No state to break in the app");
+  });
+}
+
+browserRule(
+  { req: ["NF-14"], m: "M4" },
+  "when the app has stopped with an error, a new version takes over by itself as soon as it's found",
+  async ({ page }) => {
+    const signIn = page.getByRole("heading", { name: /sign in/i });
+    await withNewVersion(async (publish) => {
+      await openStored(page);
+      const loadedBefore = await markLoaded(page);
+      await crashApp(page);
+      await expect(signIn, "the sign-in heading, once the app has stopped").toBeHidden();
+
+      publish();
+      const reloaded = page.waitForEvent("load", { timeout: 15_000 });
+      // The app is brought back from the background, so it looks for a new version.
+      await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+      await reloaded;
+      expect(await loadedBefore(), "the stopped page, after the new version took over").toBe(false);
+      await expect(signIn, "the sign-in heading, in the new version").toBeVisible();
+      expect(
+        await page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.waiting != null),
+        "a version still waiting",
+      ).toBe(false);
+    });
+  },
+);
+
 browserRule(
   { req: ["NF-14"], m: "M4" },
   "where the browser can't store the app (no service workers), the app still opens, with no new-version bar",

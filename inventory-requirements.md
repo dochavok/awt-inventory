@@ -500,7 +500,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 
 **NF-13 · Must · M2: Invite-only before 1.0.** Until release 1.0, only accounts on an allow list kept by the maintainer can sign up. Anyone else sees "not open yet". The list is removed at 1.0.
 
-**NF-14 · Must · M4: New versions.** When a new version of the app is published, a phone running an older one finds out while the app is open with signal: when it's opened or brought back from the background, and at least once an hour. It then shows "A new version is ready" with a **Reload** button, which switches to the new version. It never reloads by itself, so nothing being typed is lost.
+**NF-14 · Must · M4: New versions.** When a new version of the app is published, a phone running an older one finds out while the app is open with signal: when it's opened or brought back from the background, and at least once an hour. It then shows "A new version is ready" with a **Reload** button, which switches to the new version. It never reloads by itself, so nothing being typed is lost. If the app has stopped with an error, a new version takes over by itself as soon as it's found, since nothing can be typed then.
 
 ## 15. Testing
 

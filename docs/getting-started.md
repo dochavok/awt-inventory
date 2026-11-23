@@ -39,7 +39,7 @@ If the server refuses a change once it's sent, the app says which one and undoes
 
 ## New versions
 
-When a new version of the app comes out, the app finds it while it's open with signal: as you open it, when you come back to it, and every hour. A bar at the top then says **A new version is ready**. Tap **Reload** when it suits you, to switch to it. The app never reloads by itself, so nothing you're typing is lost.
+When a new version of the app comes out, the app finds it while it's open with signal: as you open it, when you come back to it, and every hour. A bar at the top then says **A new version is ready**. Tap **Reload** when it suits you, to switch to it. The app never reloads by itself, so nothing you're typing is lost. The one exception: if the app has stopped with an error, it switches to a new version by itself as soon as it finds one.
 
 ## Help
 

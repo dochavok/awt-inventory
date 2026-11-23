@@ -56,6 +56,7 @@ When equipping is refused, nothing changes, and the app says why. See [Equipping
 
 - **"A new version is ready":** tap **Reload** to switch to it, once you've saved anything you're typing.
 - **Something new isn't there yet:** the app looks for a new version only with signal. Open it with signal, or bring it back from the background, and wait for the bar.
+- **The app stopped with an error:** once a fixed version comes out, the app switches to it by itself, while it's open with signal.
 
 ## Skill warnings
 
