@@ -29,14 +29,21 @@ export interface NewVersion {
   subscribe(listener: () => void): () => void;
   /** Switches to the new version, reloading the page. */
   reload(): Promise<void>;
+  /** The app has stopped with an error: nothing can be typed, so a new version takes over by itself. */
+  stopped(): void;
 }
 
 export function watchForNewVersions(): NewVersion {
   let ready = false;
+  let stopped = false;
   let registration: ServiceWorkerRegistration | undefined;
   let switching = false;
   const listeners = new Set<() => void>();
+  const switchNow = () => {
+    reload().catch((error: unknown) => console.warn("Couldn't switch to the new version", error));
+  };
   const offer = () => {
+    if (stopped) switchNow();
     if (ready) return;
     ready = true;
     listeners.forEach((l) => l());
@@ -78,25 +85,31 @@ export function watchForNewVersions(): NewVersion {
     },
   });
 
+  async function reload() {
+    // Nothing waiting: the new version already took over (from another window), so this page
+    // only has to load again.
+    if (!registration?.waiting) {
+      window.location.reload();
+      return;
+    }
+    // Once the waiting version takes over the page, load the page again from it; if it hasn't
+    // taken over in a few seconds (it was replaced, or the message was lost), reload anyway.
+    switching = true;
+    navigator.serviceWorker.addEventListener("controllerchange", () => window.location.reload(), { once: true });
+    setTimeout(() => window.location.reload(), SWITCH_WAIT_MS);
+    await updateSW(true);
+  }
+
   return {
     ready: () => ready,
     subscribe(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    async reload() {
-      // Nothing waiting: the new version already took over (from another window), so this page
-      // only has to load again.
-      if (!registration?.waiting) {
-        window.location.reload();
-        return;
-      }
-      // Once the waiting version takes over the page, load the page again from it; if it hasn't
-      // taken over in a few seconds (it was replaced, or the message was lost), reload anyway.
-      switching = true;
-      navigator.serviceWorker.addEventListener("controllerchange", () => window.location.reload(), { once: true });
-      setTimeout(() => window.location.reload(), SWITCH_WAIT_MS);
-      await updateSW(true);
+    reload,
+    stopped() {
+      stopped = true;
+      if (ready) switchNow();
     },
   };
 }

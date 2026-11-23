@@ -17,7 +17,11 @@ function renderError(error: unknown, info: ErrorInfo) {
 const newVersion = "serviceWorker" in navigator ? watchForNewVersions() : undefined;
 
 createRoot(document.getElementById("root")!, {
-  onUncaughtError: renderError,
+  // The app has stopped: a new version (perhaps the fix) takes over by itself (NF-14).
+  onUncaughtError(error, info) {
+    renderError(error, info);
+    newVersion?.stopped();
+  },
   onCaughtError: renderError,
 }).render(
   <StrictMode>
