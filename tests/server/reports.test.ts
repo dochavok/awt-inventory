@@ -259,12 +259,21 @@ rule(
     expect(
       bram.map((ref) => store.delivery(ref)),
       "Bram's 17 reports, in order",
-    ).toEqual(numbers.map((n) => (n > 15 ? "not-sent" : n === 5 ? "emailed" : "issue-created")));
+    ).toEqual([
+      ...Array(4).fill("issue-created"),
+      "emailed",
+      ...Array(10).fill("issue-created"),
+      "not-sent",
+      "not-sent",
+    ]);
     expect(store.delivery(cass), "Cass's report, the same day").toBe("issue-created");
     expect(
       issues.created.map((i) => i.body.split("\n")[0]),
       "issues created",
-    ).toEqual([...numbers.filter((n) => n <= 15 && n !== 5).map((n) => `Made-up bug ${n}`), "Cass's made-up bug"]);
+    ).toEqual([
+      ...[1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((n) => `Made-up bug ${n}`),
+      "Cass's made-up bug",
+    ]);
     expect(mailer.sent.length, "emails sent").toBe(1);
     expect(await store.queued(), "reports still waiting").toEqual([]);
 
