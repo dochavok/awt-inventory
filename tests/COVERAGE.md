@@ -114,10 +114,10 @@ Tests shows each file with the number of its tests that name the requirement.
 | RD-8 | Must | M2 | refdata/refdata.test.ts (2) |
 | NF-1 | Must | M2+ | browser/equipping.spec.ts (2), browser/inventory.spec.ts (2), browser/phone.spec.ts (1), browser/screens.spec.ts (3), browser/search-export.spec.ts (1) |
 | NF-2 | Must | M2 | browser/phone.spec.ts (2) |
-| NF-3 | Must | M3 | access/firestore-store.test.ts (2), access/offline.test.ts (20), access/privacy.test.ts (4), browser/screens.spec.ts (5), browser/search-export.spec.ts (3), data/grants.test.ts (2), rules/equipping.test.ts (1) |
+| NF-3 | Must | M3 | access/firestore-store.test.ts (2), access/offline.test.ts (20), access/privacy.test.ts (5), browser/screens.spec.ts (5), browser/search-export.spec.ts (3), data/grants.test.ts (2), rules/equipping.test.ts (1) |
 | NF-4 | Must | M2+ | browser/screens.spec.ts (1), rules/speed.test.ts (1) |
 | NF-5 | Must | M2+ | data/grants.test.ts (9), ops/operations.test.ts (1) |
-| NF-6 | Must | M2+ | access/firestore-store.test.ts (2), access/privacy.test.ts (5), data/grants.test.ts (1), data/inventory.test.ts (1), data/limits.test.ts (7) |
+| NF-6 | Must | M2+ | access/firestore-store.test.ts (2), access/privacy.test.ts (6), data/grants.test.ts (1), data/inventory.test.ts (1), data/limits.test.ts (7) |
 | NF-7 | Must | M2+ | access/privacy.test.ts (1), ops/operations.test.ts (1) |
 | NF-8 | Must | M2+ | data/history.test.ts (2), platform/platform.test.ts (2) |
 | NF-9 | Should | M2+ | none |
@@ -136,7 +136,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | TF-8 | Must | M1 | meta/harness.test.ts (2) |
 | TF-9 | Must | M1 | meta/scenarios.test.ts (3), meta/test-change-check.test.ts (1) |
 | TF-10 | Must | M1 | properties/damage.test.ts (4), properties/equipping.test.ts (3), properties/totals.test.ts (5) |
-| TF-11 | Must | M1 | access/privacy.test.ts (34) |
+| TF-11 | Must | M1 | access/privacy.test.ts (35) |
 | TF-12 | Must | M2+ | checked in review (TF-4) |
 | TF-13 | Should | M3 | browser/characters.spec.ts (7), browser/inventory.spec.ts (7), browser/search-export.spec.ts (6) |
 | TF-14 | Must | M3 | checked in review (TF-4) |
