@@ -155,7 +155,7 @@ through Workload Identity Federation.
 
 ## Answering reports
 
-Players send reports from the app (SP-1), at most 5 a day; the server checks the
+Players send reports from the app (SP-1), at most 15 a day; the server checks the
 limit too, and marks reports over it `not-sent` without passing them on.
 
 - **Missing or wrong skills, bugs and ideas (SP-2)** become issues in the
