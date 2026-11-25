@@ -72,17 +72,17 @@ rule({ req: ["SP-1"], m: "M3" }, "report numbers are different for every report"
 
 rule(
   { req: ["SP-1"], m: "M3" },
-  "at most 5 reports a day: the sixth is refused, and the next day works again",
+  "at most 15 reports a day: the sixteenth is refused, and the next day works again",
   async () => {
     const { w, bram } = await setUp();
-    for (let i = 1; i <= 5; i++) await bram.sendReport({ kind: "idea", subject: `Idea ${i}`, message: "Made up." });
-    const sixth = bram.sendReport({ kind: "idea", subject: "Idea 6", message: "Made up." });
-    await expect(sixth, "a sixth report on the same day").rejects.toThrow(RateLimitError);
-    await expect(sixth, "a sixth report on the same day").rejects.toMatchObject({ limit: 5 });
-    expect((await bram.reports()).length, "Bram's reports").toBe(5);
+    for (let i = 1; i <= 15; i++) await bram.sendReport({ kind: "idea", subject: `Idea ${i}`, message: "Made up." });
+    const sixteenth = bram.sendReport({ kind: "idea", subject: "Idea 16", message: "Made up." });
+    await expect(sixteenth, "a sixteenth report on the same day").rejects.toThrow(RateLimitError);
+    await expect(sixteenth, "a sixteenth report on the same day").rejects.toMatchObject({ limit: 15 });
+    expect((await bram.reports()).length, "Bram's reports").toBe(15);
     w.clock.advanceDays(1);
-    const next = await bram.sendReport({ kind: "idea", subject: "Idea 7", message: "Made up." });
-    expect(next.subject, "a report the next day").toBe("Idea 7");
+    const next = await bram.sendReport({ kind: "idea", subject: "Idea 17", message: "Made up." });
+    expect(next.subject, "a report the next day").toBe("Idea 17");
   },
 );
 

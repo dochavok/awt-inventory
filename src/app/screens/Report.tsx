@@ -1,9 +1,9 @@
 // Reports to the maintainer (SP-1): a kind, a subject and a message, optionally
-// naming a character, at most 5 a day. Written offline, a report is sent when
+// naming a character, at most REPORTS_PER_DAY a day. Written offline, a report is sent when
 // signal returns (NF-3). The skill picker opens it as a missing skill (SK-5).
 
 import { useEffect, useState, type FormEvent } from "react";
-import { REPORT_KIND_NAMES, REPORT_KINDS, type ReportKind } from "../../data/types";
+import { REPORT_KIND_NAMES, REPORT_KINDS, REPORTS_PER_DAY, type ReportKind } from "../../data/types";
 import { LIMITS } from "../../data/validate";
 import type { Character } from "../../rules/types";
 import type { Services } from "../services";
@@ -42,7 +42,7 @@ export function ReportForm({ services, kind: chosen }: { services: Services; kin
       <h1>Send a report</h1>
       <p className="hint">
         Tell the maintainer about a skill missing from the list or wrong in it, a bug, an idea, or a problem with your
-        account. You can send up to 5 a day. Without signal, it&apos;s sent when signal returns.
+        account. You can send up to {REPORTS_PER_DAY} a day. Without signal, it&apos;s sent when signal returns.
       </p>
       <form className="card" aria-label="Report" onSubmit={submit}>
         <label>
