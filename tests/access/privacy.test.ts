@@ -305,6 +305,90 @@ rule(
 );
 
 rule(
+  { req: ["NF-3", "NF-6", "TF-11"], m: "M3" },
+  "an entry holding every field at its largest can still be created, and each of its fields changed as the app sends it",
+  async () => {
+    // Firestore stops evaluating a rule after 1,000 expressions and refuses the write. The
+    // entry rules' cost grows with how many fields an entry holds, so this entry has them all.
+    await seedAldric();
+    const entries = `${character()}/entries`;
+    const earlier = Date.now() - 60_000;
+    const timed = {
+      name: "N".repeat(LIMITS.name),
+      description: "D".repeat(LIMITS.description),
+      notes: "W".repeat(LIMITS.notes),
+      itemFamily: "F".repeat(LIMITS.shortText),
+      rarity: "R".repeat(LIMITS.shortText),
+      hands: 2,
+      range: "ranged",
+      weaponGroup: "G".repeat(LIMITS.shortText),
+      slotKind: "K".repeat(LIMITS.shortText),
+      arcane: true,
+      allyType: "A".repeat(LIMITS.shortText),
+      hearts: LIMITS.hearts,
+      active: true,
+      tier: "T".repeat(LIMITS.shortText),
+      howGained: "found",
+      levelGained: 25,
+      grants: Array.from({ length: LIMITS.grantsPerSource }, (_, i) => ({ id: `g${i}`, kind: "cm", amount: 1 })),
+      slot: "S".repeat(LIMITS.shortText),
+    };
+    const fullest = {
+      ...timed,
+      category: "weapons",
+      quantity: LIMITS.quantity,
+      skillId: "s".repeat(LIMITS.shortText),
+      edited: Object.fromEntries(Object.keys(timed).map((field) => [field, earlier])),
+    };
+    expect(Object.keys(fullest), "the fields on the fullest entry").toHaveLength(22);
+    await seed({ [`${entries}/fullest`]: fullest });
+    const mine = signedIn("bram").firestore();
+    await expectAllowed(mine.doc(`${entries}/fullest-new`).set(fullest), "Bram adding the fullest entry");
+    const changed: Record<keyof typeof timed, unknown> = {
+      name: "M".repeat(LIMITS.name),
+      description: "E".repeat(LIMITS.description),
+      notes: "V".repeat(LIMITS.notes),
+      itemFamily: "f",
+      rarity: "r",
+      hands: 1,
+      range: "melee",
+      weaponGroup: "g",
+      slotKind: "k",
+      arcane: false,
+      allyType: "a",
+      hearts: 1,
+      active: false,
+      tier: "t",
+      howGained: "quest",
+      levelGained: 24,
+      grants: timed.grants.slice(1),
+      slot: "s",
+    };
+    // As src/data/firestore-store.ts sends a change: one field and its edit time per write,
+    // with the earlier extra damage field removed (IN-3).
+    for (const [field, value] of Object.entries(changed)) {
+      await expectAllowed(
+        mine.doc(`${entries}/fullest`).update({
+          [field]: value,
+          [`edited.${field}`]: Date.now(),
+          extraDamage: firebase.firestore.FieldValue.delete(),
+        }),
+        `Bram changing the fullest entry's ${field}`,
+      );
+    }
+    await expectAllowed(
+      mine.doc(`${entries}/fullest`).update({ quantity: firebase.firestore.FieldValue.increment(-1) }),
+      "Bram using one of the fullest entry",
+    );
+    const stored = (await mine.doc(`${entries}/fullest`).get()).data();
+    expect(stored, "the fullest entry after Bram's changes").toMatchObject({
+      ...changed,
+      quantity: LIMITS.quantity - 1,
+    });
+  },
+);
+
+rule(
   { req: ["IN-3", "NF-6", "TF-11"], m: "M4" },
   "no write may leave the earlier extra damage field on an entry; Bram may remove it from an old record, and Cass can't touch it",
   async () => {
