@@ -1,8 +1,9 @@
-// Operations (NF-5, NF-10, NF-11): what delivers them is configuration and
+// Operations (NF-5, NF-10, NF-11, NF-15): what delivers them is configuration and
 // documents, so these tests check those. Files that don't exist yet fail as
 // expected (an assertion), never with a crash.
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { createRequire } from "node:module";
 import { expect } from "vitest";
 import { parse } from "yaml";
 import { backupPlan } from "../../src/server/backup";
@@ -239,6 +240,41 @@ rule(
           "steps.latest.outputs.newest == 'true'",
         );
       }
+    }
+  },
+);
+
+rule(
+  { req: ["NF-15"], m: "M4" },
+  "every page the app serves tells the browser it can't be shown inside another site's page",
+  () => {
+    type Header = { key: string; value: string };
+    const firebase = JSON.parse(read("firebase.json")) as {
+      hosting?: { headers?: { source?: string; regex?: string; headers: Header[] }[] };
+    };
+    // Firebase Hosting's own matcher, with forward-slash paths: the hosting emulator
+    // can't be used for this on Windows (it sends no custom headers there).
+    const { configMatcher } = createRequire(import.meta.url)("superstatic/lib/utils/patterns.js") as {
+      configMatcher: (path: string, config: { source?: string; regex?: string }) => boolean;
+    };
+    const rules = firebase.hosting?.headers ?? [];
+    for (const path of [
+      "/",
+      "/index.html",
+      "/characters/aldric",
+      "/help/",
+      "/help/equipping.html",
+      "/assets/index-3f9a1c.js",
+      "/sw.js",
+      "/manifest.webmanifest",
+    ]) {
+      // Each rule that matches sets its headers, a later one replacing an earlier one's value.
+      const sent = new Map<string, string>();
+      for (const r of rules.filter((r) => configMatcher(path, r))) {
+        for (const h of r.headers) sent.set(h.key.toLowerCase(), h.value);
+      }
+      expect(sent.get("content-security-policy"), `${path}'s Content-Security-Policy`).toBe("frame-ancestors 'none'");
+      expect(sent.get("x-frame-options"), `${path}'s X-Frame-Options`).toBe("DENY");
     }
   },
 );
