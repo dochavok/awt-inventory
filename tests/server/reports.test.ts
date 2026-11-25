@@ -244,10 +244,11 @@ function server() {
 
 rule(
   { req: ["SP-1"], m: "M3" },
-  "the server passes on at most 5 of a sender's reports a day; the rest are kept but not sent",
+  "the server passes on at most 15 of a sender's reports a day; the rest are kept but not sent",
   async () => {
     const { issues, mailer, store, clock, deps } = server();
-    const bram = [1, 2, 3, 4, 5, 6, 7].map((n) =>
+    const numbers = Array.from({ length: 17 }, (_, i) => i + 1);
+    const bram = numbers.map((n) =>
       store.add(
         report({ id: `r${n}`, number: n, kind: n === 5 ? "account-problem" : "bug", message: `Made-up bug ${n}` }),
       ),
@@ -257,21 +258,21 @@ rule(
 
     expect(
       bram.map((ref) => store.delivery(ref)),
-      "Bram's 7 reports, in order",
-    ).toEqual(["issue-created", "issue-created", "issue-created", "issue-created", "emailed", "not-sent", "not-sent"]);
+      "Bram's 17 reports, in order",
+    ).toEqual(numbers.map((n) => (n > 15 ? "not-sent" : n === 5 ? "emailed" : "issue-created")));
     expect(store.delivery(cass), "Cass's report, the same day").toBe("issue-created");
     expect(
       issues.created.map((i) => i.body.split("\n")[0]),
       "issues created",
-    ).toEqual(["Made-up bug 1", "Made-up bug 2", "Made-up bug 3", "Made-up bug 4", "Cass's made-up bug"]);
+    ).toEqual([...numbers.filter((n) => n <= 15 && n !== 5).map((n) => `Made-up bug ${n}`), "Cass's made-up bug"]);
     expect(mailer.sent.length, "emails sent").toBe(1);
     expect(await store.queued(), "reports still waiting").toEqual([]);
 
     clock.advanceDays(1);
-    const next = store.add(report({ id: "r8", number: 8, message: "The next day's made-up bug" }));
+    const next = store.add(report({ id: "r18", number: 18, message: "The next day's made-up bug" }));
     await receiveReport(next, deps);
     expect(store.delivery(next), "Bram's first report the next day").toBe("issue-created");
-    expect(issues.created.length, "issues created by the next day").toBe(6);
+    expect(issues.created.length, "issues created by the next day").toBe(16);
   },
 );
 
@@ -280,16 +281,16 @@ rule(
   "a report the server is told about twice is counted once and delivered once",
   async () => {
     const { issues, store, deps } = server();
-    const refs = [1, 2, 3, 4, 5, 6].map((n) => store.add(report({ id: `r${n}`, number: n })));
+    const refs = Array.from({ length: 16 }, (_, i) => store.add(report({ id: `r${i + 1}`, number: i + 1 })));
     await Promise.all([receiveReport(refs[0]!, deps), receiveReport(refs[0]!, deps)]);
     await receiveReport(refs[0]!, deps);
     expect(issues.created.length, "issues for the report told about three times").toBe(1);
     for (const ref of refs.slice(1)) await receiveReport(ref, deps);
     expect(
       refs.map((ref) => store.delivery(ref)),
-      "Bram's 6 reports, in order",
-    ).toEqual(["issue-created", "issue-created", "issue-created", "issue-created", "issue-created", "not-sent"]);
-    expect(issues.created.length, "issues created").toBe(5);
+      "Bram's 16 reports, in order",
+    ).toEqual([...Array(15).fill("issue-created"), "not-sent"]);
+    expect(issues.created.length, "issues created").toBe(15);
   },
 );
 
@@ -592,22 +593,22 @@ rule(
     const { issues, store, clock, deps } = server();
     clock.set("2026-06-13T23:00:00.000Z");
     issues.down = true;
-    const late = [1, 2, 3, 4, 5].map((n) => store.add(report({ id: `r${n}`, number: n })));
+    const late = Array.from({ length: 15 }, (_, i) => store.add(report({ id: `r${i + 1}`, number: i + 1 })));
     for (const ref of late) await receiveReport(ref, deps);
     expect(
       late.map((ref) => store.delivery(ref)),
-      "the 5 reports while GitHub is down",
-    ).toEqual(["pending", "pending", "pending", "pending", "pending"]);
+      "the 15 reports while GitHub is down",
+    ).toEqual(Array(15).fill("pending"));
 
     clock.set("2026-06-14T09:00:00.000Z");
     issues.down = false;
-    const next = [6, 7].map((n) => store.add(report({ id: `r${n}`, number: n })));
+    const next = [16, 17].map((n) => store.add(report({ id: `r${n}`, number: n })));
     for (const ref of next) await receiveReport(ref, deps);
     await retryQueued(deps);
     expect(
       [...late, ...next].map((ref) => store.delivery(ref)),
-      "all 7 reports, 5 from June 13 and 2 from June 14",
-    ).toEqual(Array(7).fill("issue-created"));
+      "all 17 reports, 15 from June 13 and 2 from June 14",
+    ).toEqual(Array(17).fill("issue-created"));
   },
 );
 
@@ -651,12 +652,12 @@ rule(
     await expect(receiveReport(first, { ...deps, store }), "the run that fails after counting").rejects.toThrow();
     clock.advance(60 * 60_000);
     await retryQueued({ ...deps, store });
-    const more = [2, 3, 4, 5].map((n) => store.add(report({ id: `r${n}`, number: n })));
+    const more = Array.from({ length: 14 }, (_, i) => store.add(report({ id: `r${i + 2}`, number: i + 2 })));
     for (const ref of more) await receiveReport(ref, { ...deps, store });
     expect(
       [first, ...more].map((ref) => store.delivery(ref)),
-      "Bram's 5 reports that day",
-    ).toEqual(Array(5).fill("issue-created"));
-    expect(issues.created.length, "issues created").toBe(5);
+      "Bram's 15 reports that day",
+    ).toEqual(Array(15).fill("issue-created"));
+    expect(issues.created.length, "issues created").toBe(15);
   },
 );
