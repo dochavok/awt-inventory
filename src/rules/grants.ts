@@ -13,34 +13,38 @@ import type {
   SkillGrant,
   SlotTarget,
   SourceRef,
+  TextDamageGrant,
   TitleScope,
 } from "./types";
 
 /** A grant that counts, with where it comes from. */
 export interface SourcedGrant {
-  grant: Grant;
+  grant: Grant | TextDamageGrant;
   source: SourceRef;
   group: BreakdownGroup;
 }
 
 /** A grant's condition, trimmed; undefined when it has none or it's blank. */
-function conditionOf(grant: Grant): string | undefined {
+function conditionOf(grant: Grant | TextDamageGrant): string | undefined {
   return grant.condition?.trim() || undefined;
 }
 
-/** GR-4: a grant with a condition is situational, never added to a total. */
-export function isSituational(grant: Grant): boolean {
-  return conditionOf(grant) !== undefined;
+/**
+ * GR-4: a grant with a condition is situational, never added to a total; so is extra damage
+ * given as text, which has no number to add (GR-1).
+ */
+export function isSituational(grant: Grant | TextDamageGrant): boolean {
+  return "amountText" in grant || conditionOf(grant) !== undefined;
 }
 
-/** `{ condition }` when the grant is situational, so lines and dice carry a condition only then. */
-export function withCondition(grant: Grant): { condition?: string } {
+/** `{ condition }` when the grant has one, so lines and dice carry a condition only then. */
+export function withCondition(grant: Grant | TextDamageGrant): { condition?: string } {
   const condition = conditionOf(grant);
   return condition !== undefined ? { condition } : {};
 }
 
 /** GR-1's amounts are numbers; bad data with one that isn't (NaN, Infinity) is left out. */
-function usable(grant: Grant): boolean {
+function usable(grant: Grant | TextDamageGrant): boolean {
   return !("amount" in grant) || Number.isFinite(grant.amount);
 }
 
@@ -108,7 +112,7 @@ interface Collected extends Omit<SourcedGrant, "grant"> {
 }
 
 /** A collected grant's GR-1 group: only a skill list grant's counts; on a player's own (bad data) it's ignored. */
-const groupOf = (c: Collected): Id | undefined => (c.skillList ? c.grant.group : undefined);
+const groupOf = (c: Collected): Id | undefined => (c.skillList && "group" in c.grant ? c.grant.group : undefined);
 
 /**
  * GR-1's groups: within a group (of one kind, and for slots, an allowance or extra

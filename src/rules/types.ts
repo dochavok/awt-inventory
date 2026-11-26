@@ -285,7 +285,19 @@ export interface Skill extends Retirable {
  * A grant in the skill list (SK-7). It may belong to a group, in which only the
  * largest grant is used; `die-always` makes a group's die always count (GR-1).
  */
-export type SkillGrant = (Grant & { group?: Id }) | { id: Id; kind: "die-always"; group: Id };
+export type SkillGrant = (Grant & { group?: Id }) | TextDamageGrant | { id: Id; kind: "die-always"; group: Id };
+
+/**
+ * GR-1: extra damage with its amount as text, such as "1d4 hearts of an element you know". The
+ * skill list's only; always situational, so it's listed and never added in (GR-13).
+ */
+export interface TextDamageGrant {
+  id: Id;
+  kind: "extra-damage";
+  amountText: string;
+  damageType?: string;
+  condition?: string;
+}
 
 export interface SkillGrants {
   skill: Id;
@@ -373,6 +385,9 @@ export interface DamageLine {
   condition?: string;
 }
 
+/** A skill's extra damage given as text (GR-1), listed with the situational damage (GR-13). */
+export type TextDamageLine = Omit<DamageLine, "amount"> & { amountText: string };
+
 export type ClassBonusName = "Combat Bonus" | "Arcane Bonus" | "Stealth Bonus";
 
 export interface Totals {
@@ -383,8 +398,17 @@ export interface Totals {
   hearts: Total;
   dice: { base: string; extra: ExtraDie[]; situational: ExtraDie[] };
   permissions: { permission: Permission; sources: SourceRef[] }[];
-  /** GR-13: the base of 1 heart plus every extra damage grant that counts; situational ones apart. */
-  damage: { base: number; value: number; grants: DamageLine[]; situational: DamageLine[] };
+  /**
+   * GR-13: the base of 1 heart plus every extra damage grant that counts; situational ones apart,
+   * and those given as text (GR-1) apart again, as they have no number.
+   */
+  damage: {
+    base: number;
+    value: number;
+    grants: DamageLine[];
+    situational: DamageLine[];
+    situationalText: TextDamageLine[];
+  };
   /** GR-6: resistances, immunities and CR bonuses that apply now. */
   effects: { effect: Effect; text: string; source: SourceRef; condition?: string }[];
 }

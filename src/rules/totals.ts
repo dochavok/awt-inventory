@@ -17,6 +17,7 @@ import {
   type Permission,
   type ReferenceData,
   type SourceRef,
+  type TextDamageLine,
   type Total,
   type Totals,
 } from "./types";
@@ -95,6 +96,7 @@ export function computeTotals(sheet: CharacterSheet, ref: ReferenceData): Totals
   const permissions = new Map<Permission, Totals["permissions"][number]["sources"]>();
   const damage: DamageLine[] = [];
   const situationalDamage: DamageLine[] = [];
+  const textDamage: TextDamageLine[] = [];
   const effects: Totals["effects"] = [];
   for (const { grant, source } of counted) {
     if (grant.kind === "die") {
@@ -106,12 +108,10 @@ export function computeTotals(sheet: CharacterSheet, ref: ReferenceData): Totals
     } else if (grant.kind === "extra-damage") {
       // The type comes trimmed: the store's checks and the skill list's schema both trim it.
       const { damageType } = grant;
-      (isSituational(grant) ? situationalDamage : damage).push({
-        amount: grant.amount,
-        ...(damageType ? { damageType } : {}),
-        source,
-        ...withCondition(grant),
-      });
+      const line = { ...(damageType ? { damageType } : {}), source, ...withCondition(grant) };
+      // GR-1: extra damage given as text has no number, so it's only ever listed.
+      if ("amountText" in grant) textDamage.push({ amountText: grant.amountText, ...line });
+      else (isSituational(grant) ? situationalDamage : damage).push({ amount: grant.amount, ...line });
     } else if (grant.kind === "effect") {
       effects.push({ effect: grant.effect, text: grant.text, source, ...withCondition(grant) });
     }
@@ -137,6 +137,7 @@ export function computeTotals(sheet: CharacterSheet, ref: ReferenceData): Totals
       value: damage.reduce((sum, d) => sum + d.amount, BASE_DAMAGE),
       grants: damage,
       situational: situationalDamage,
+      situationalText: textDamage,
     },
     effects,
   };

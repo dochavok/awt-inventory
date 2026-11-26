@@ -133,13 +133,25 @@ const grant = z.discriminatedUnion("kind", [
     kind: z.literal("permission"),
     permission: z.enum(["weapon-use", "ranged-weapon-use", "armor-use", "dual-wielding"]),
   }),
-  // GR-13: a growing extra damage, such as Berserk's, is a group like any bonus.
-  z.strictObject({
-    ...grouped,
-    kind: z.literal("extra-damage"),
-    amount: z.number().int().min(1),
-    damageType: name.optional(),
-  }),
+  // GR-13: a growing extra damage, such as Berserk's, is a group like any bonus. GR-1: or its
+  // amount is text (dice, or an amount per something), always situational and never grouped.
+  z
+    .strictObject({
+      ...grouped,
+      kind: z.literal("extra-damage"),
+      amount: z.number().int().min(1).optional(),
+      amountText: name.optional(),
+      damageType: name.optional(),
+    })
+    .check((ctx) => {
+      const g = ctx.value;
+      const issue = (path: string, message: string) =>
+        ctx.issues.push({ code: "custom", input: g, path: [path], message });
+      if (g.amountText === undefined && g.amount === undefined) issue("amount", "an amount or amountText is needed");
+      if (g.amountText !== undefined && g.amount !== undefined) issue("amountText", "not with an amount");
+      if (g.amountText !== undefined && g.group !== undefined)
+        issue("group", "extra damage given as text isn't grouped");
+    }),
   z.strictObject({
     ...grantBase,
     kind: z.literal("effect"),

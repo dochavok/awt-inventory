@@ -1,6 +1,6 @@
 # Equipping and totals
 
-reviewed: 2026-11-21
+reviewed: 2026-11-25
 
 A character's totals are never typed in. The app works them out from the level chart and from **grants**: what the character's equipped entries, skills, titles and manual grants add.
 
@@ -56,7 +56,7 @@ The character's page shows its totals, worked out again after every change:
 - **CM**: the class bonus's number plus every CM grant that counts, with a line for each kind of source: class bonus, Armor, Weapons, Skills, Ally, Items, Titles, Other (manual grants);
 - **Mitigation**, the hearts taken off each hit, and **Max hearts**, from the level chart plus grants;
 - the **combat dice**: the level chart's, then each extra die with where it comes from. A Rogue's Stealth Bonus dice are rolled with them;
-- **Damage**: a base of 1 heart plus every extra damage grant that counts, whatever its type, with a line for each. Situational extra damage, such as a skill used once a combat, is listed apart and not added in.
+- **Damage**: a base of 1 heart plus every extra damage grant that counts, whatever its type, with a line for each. Situational extra damage, such as a skill used once a combat, is listed apart and not added in. A few skills add damage that isn't a set number of hearts, such as a die's worth once a combat or a heart for each stack of poison; they're listed there too, worded as the skill gives them.
 
 Tap **Where CM comes from** (or mitigation, or max hearts) to see every grant in it: its source, the kind of source and the amount, with situational grants listed apart. For the guide's made-up sample character:
 

@@ -188,7 +188,10 @@ export function totalsView(totals: Totals): {
         `base ${totals.damage.base}`,
         ...totals.damage.grants.map((d) => `${damageText(d)} (${damageSource(d)})`),
       ],
-      situational: totals.damage.situational.map((d) => `${damageText(d)} (${damageSource(d)})`),
+      // GR-13: those given as text (GR-1) after the whole hearts.
+      situational: [...totals.damage.situational, ...totals.damage.situationalText].map(
+        (d) => `${damageText(d)} (${damageSource(d)})`,
+      ),
     },
   };
 }
