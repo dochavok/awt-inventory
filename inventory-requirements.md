@@ -354,7 +354,7 @@ A two-handed weapon gives no Dual Wielding warning until Q1 is answered.
 **EX-1 · Must · M3: Printable character sheet.** The user can create a PDF for one character, or for all characters that aren't retired. For each character it shows:
 
 - name, class and level;
-- the totals with their breakdowns (once M4 exists), including damage with where it comes from (GR-13);
+- the totals with their breakdowns (once M4 exists), including damage with where it comes from (GR-13), and under each total its situational grants and dice (GR-4), marked as not added in;
 - what's equipped (the paper doll and arcane slots);
 - every category with quantities, and skills with their usage and tier;
 - titles with their descriptions;
