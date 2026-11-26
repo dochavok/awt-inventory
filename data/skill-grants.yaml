@@ -342,7 +342,7 @@
   - {id: sg-enhanced-strength-1, kind: extra-damage, amount: 1}
 - skill: divine-strength
   grants:
-  - {id: sg-divine-strength-1, kind: extra-damage, amount: 1, damageType: holy}
+  - {id: sg-divine-strength-1, kind: extra-damage, amount: 1}
 - skill: divine-smite
   grants:
   - {id: sg-divine-smite-1, kind: extra-damage, amountText: your Holy Die in hearts, condition: '1/combat, this round'}
@@ -439,10 +439,10 @@
   - {id: sg-phylactery-1, kind: effect, effect: resistance, text: 'Resistance: necrotic and evil damage'}
 - skill: death-knell
   grants:
-  - {id: sg-death-knell-1, kind: extra-damage, amount: 1, damageType: necrotic, condition: 1/combat}
+  - {id: sg-death-knell-1, kind: extra-damage, amount: 1, condition: 1/combat}
 - skill: deaths-mantle
   grants:
-  - {id: sg-deaths-mantle-1, kind: extra-damage, amount: 1, damageType: necrotic, condition: '1/combat, for all allies'}
+  - {id: sg-deaths-mantle-1, kind: extra-damage, amount: 1, condition: '1/combat, for all allies'}
 - skill: undead-resistance
   grants:
   - {id: sg-undead-resistance-1, kind: mitigation, amount: 2, condition: vs Necrotic and Evil sources}
@@ -496,4 +496,4 @@
   - {id: sg-devotion-5-1, kind: die, die: 1d20, condition: when a skill adds the Holy Die (e.g. Smite), group: holy-die}
 - skill: sanctify-all
   grants:
-  - {id: sg-sanctify-all-1, kind: extra-damage, amount: 1, damageType: holy, condition: '1/combat, for all allies, until the end of combat'}
+  - {id: sg-sanctify-all-1, kind: extra-damage, amount: 1, condition: '1/combat, for all allies, until the end of combat'}
