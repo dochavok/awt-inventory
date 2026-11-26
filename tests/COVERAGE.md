@@ -63,7 +63,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | GR-1 | Must | M4 | app/totals-view.test.ts (2), browser/equipping.spec.ts (1), data/grants.test.ts (8), properties/totals.test.ts (1), refdata/refdata.test.ts (4), rules/equipping.test.ts (4), rules/totals.test.ts (22) |
 | GR-2 | Must | M4 | access/firestore-store.test.ts (1), access/privacy.test.ts (3), browser/equipping.spec.ts (6), data/grants.test.ts (15), data/search-export.test.ts (1), rules/totals.test.ts (4) |
 | GR-3 | Must | M4 | browser/equipping.spec.ts (3), browser/inventory.spec.ts (2), data/grants.test.ts (3), rules/totals.test.ts (19) |
-| GR-4 | Must | M4 | app/totals-view.test.ts (2), browser/equipping.spec.ts (4), data/search-export.test.ts (1), properties/damage.test.ts (2), properties/totals.test.ts (2), rules/totals.test.ts (12) |
+| GR-4 | Must | M4 | app/totals-view.test.ts (2), browser/equipping.spec.ts (4), data/search-export.test.ts (3), properties/damage.test.ts (2), properties/totals.test.ts (2), rules/totals.test.ts (12) |
 | GR-5 | Must | M4 | access/firestore-store.test.ts (1), browser/equipping.spec.ts (5), data/grants.test.ts (13), data/privacy.test.ts (1), properties/damage.test.ts (1), properties/totals.test.ts (1), rules/equipping.test.ts (1), rules/totals.test.ts (4) |
 | GR-6 | Should | M4 | browser/equipping.spec.ts (1), data/grants.test.ts (1), rules/totals.test.ts (2) |
 | GR-7 | Must | M4 | browser/equipping.spec.ts (1), data/search-export.test.ts (1), rules/totals.test.ts (8) |
@@ -87,7 +87,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | SE-1 | Must | M3 | access/firestore-store.test.ts (1), browser/search-export.spec.ts (1), data/privacy.test.ts (1), data/search-export.test.ts (9) |
 | SE-2 | Must | M3 | browser/search-export.spec.ts (2), data/privacy.test.ts (1), data/search-export.test.ts (3) |
 | SE-3 | Should | M3 | browser/search-export.spec.ts (5), data/privacy.test.ts (1), data/search-export.test.ts (2) |
-| EX-1 | Must | M3 | browser/search-export.spec.ts (5), data/privacy.test.ts (1), data/search-export.test.ts (10) |
+| EX-1 | Must | M3 | browser/search-export.spec.ts (5), data/privacy.test.ts (1), data/search-export.test.ts (12) |
 | EX-2 | Must | M3 | browser/search-export.spec.ts (2), data/search-export.test.ts (2) |
 | EX-3 | Must | M3 | browser/search-export.spec.ts (1), data/search-export.test.ts (2) |
 | EX-4 | Must | M3 | access/firestore-store.test.ts (1), browser/search-export.spec.ts (2), data/inventory.test.ts (1), data/search-export.test.ts (5) |
@@ -104,10 +104,10 @@ Tests shows each file with the number of its tests that name the requirement.
 | QS-1 | Could | M6 | none |
 | DA-1 | Could | M6 | none |
 | AL-1 | Could | M6 | none |
-| RD-1 | Must | M2 | refdata/refdata.test.ts (9) |
+| RD-1 | Must | M2 | refdata/build.test.ts (1), refdata/refdata.test.ts (9) |
 | RD-2 | Must | M2 | data/skills.test.ts (1), refdata/refdata.test.ts (2) |
 | RD-3 | Must | M2 | data/inventory.test.ts (2), data/skills.test.ts (4), refdata/refdata.test.ts (1), rules/equipping.test.ts (3), rules/skills.test.ts (2) |
-| RD-4 | Must | M2 | refdata/refdata.test.ts (16) |
+| RD-4 | Must | M2 | refdata/build.test.ts (3), refdata/refdata.test.ts (16) |
 | RD-5 | Must | M2 | data/characters.test.ts (1), refdata/refdata.test.ts (2) |
 | RD-6 | Must | M2 | refdata/refdata.test.ts (1) |
 | RD-7 | Must | M2 | data/skills.test.ts (1), refdata/refdata.test.ts (1) |
@@ -115,7 +115,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | NF-1 | Must | M2+ | browser/equipping.spec.ts (2), browser/inventory.spec.ts (2), browser/phone.spec.ts (1), browser/screens.spec.ts (3), browser/search-export.spec.ts (1) |
 | NF-2 | Must | M2 | browser/phone.spec.ts (2) |
 | NF-3 | Must | M3 | access/firestore-store.test.ts (2), access/offline.test.ts (20), access/privacy.test.ts (5), browser/screens.spec.ts (5), browser/search-export.spec.ts (3), data/grants.test.ts (2), rules/equipping.test.ts (1) |
-| NF-4 | Must | M2+ | browser/screens.spec.ts (1), rules/speed.test.ts (1) |
+| NF-4 | Must | M2+ | browser/screens.spec.ts (1), refdata/build.test.ts (2), rules/speed.test.ts (1) |
 | NF-5 | Must | M2+ | data/grants.test.ts (9), ops/operations.test.ts (1) |
 | NF-6 | Must | M2+ | access/firestore-store.test.ts (2), access/privacy.test.ts (6), data/grants.test.ts (1), data/inventory.test.ts (1), data/limits.test.ts (8) |
 | NF-7 | Must | M2+ | access/privacy.test.ts (1), ops/operations.test.ts (1) |

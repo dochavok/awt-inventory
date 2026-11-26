@@ -10,6 +10,12 @@ declare module "virtual:help-pages" {
   export default pages;
 }
 
+/** The reference data from data/, read and checked at build time (build/reference-data.ts, RD-4). */
+declare module "virtual:reference-data" {
+  const ref: import("../rules/types").ReferenceData;
+  export default ref;
+}
+
 interface ImportMetaEnv {
   readonly VITE_FIREBASE_API_KEY?: string;
   readonly VITE_FIREBASE_AUTH_DOMAIN?: string;

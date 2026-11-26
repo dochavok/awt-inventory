@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import { helpPages } from "./build/help-pages";
+import { referenceData } from "./build/reference-data";
 
 const { version } = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")) as { version: string };
 
@@ -12,6 +13,8 @@ export default defineConfig({
     react(),
     // DOC-1: the user guide in docs/, built into the app.
     helpPages(fileURLToPath(new URL(".", import.meta.url))),
+    // Section 13: the reference data in data/, checked (RD-4) and built in as JSON (NF-4).
+    referenceData(fileURLToPath(new URL("./data/", import.meta.url))),
     // NF-3, DOC-1: the app and its help pages are stored on the phone, so they open without signal.
     // The manifest is our own (public/manifest.webmanifest, NF-2). NF-14: a new version waits
     // until the player taps Reload (src/app/new-version.ts registers the service worker).

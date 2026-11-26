@@ -3,14 +3,13 @@
 // (GR-7 to GR-13). Plain functions, so the user guide's examples come from the
 // same code as the screens (DOC-4).
 
-import { damageSource, damageText, GROUP_NAMES, sourceLabel, totalRows, type TotalRow } from "../data/totals-text";
-import { classBonusShown, dieSourceName, sourceName } from "../rules/totals";
+import { damageLineText, damageText, grantLineText, sourceLabel, totalRows, type TotalRow } from "../data/totals-text";
+import { classBonusShown } from "../rules/totals";
 import type {
   ArcaneState,
   SlotView,
   Effect,
   Grant,
-  GrantLine,
   NewGrant,
   Permission,
   ReferenceData,
@@ -113,20 +112,6 @@ export function slotLine(slot: SlotView): string {
 }
 
 /**
- * One grant in a total (GR-12): its source, its category and its amount, and its
- * condition if it's situational, e.g. "Wanderer's Mail · Armor · +3 · vs Undead".
- */
-function grantLineText(line: GrantLine, classBonus: Totals["classBonus"]): string {
-  const isClassBonus = line.group === "class-bonus";
-  const source = isClassBonus ? classBonus.name : sourceName(line.source);
-  const group = GROUP_NAMES[line.group];
-  const amount = isClassBonus && classBonus.dice ? classBonusShown(classBonus) : `+${line.amount}`;
-  const parts = source === group ? [source, amount] : [source, group, amount];
-  if (line.condition) parts.push(line.condition);
-  return parts.join(" · ");
-}
-
-/**
  * The effects that apply now (GR-6), each with where it comes from as slots say it (EQ-5),
  * e.g. "Immunity: fall damage · Moth Cape" or "CR bonus: +1 · Manual grant: DM ruling".
  */
@@ -165,7 +150,8 @@ export function totalsView(totals: Totals): {
       label: row.label,
       heading: `${row.label} ${row.value}`,
       grants: total.grants.map((g) => grantLineText(g, classBonus)),
-      situational: total.situational.map((g) => grantLineText(g, classBonus)),
+      // GR-4: worded once, for this page and the sheet (EX-1).
+      situational: row.situational,
     };
     // A breakdown that's only the class bonus says no more than the class bonus's own line.
     const onlyClassBonus = total.lines.length === 1 && total.lines[0]!.group === "class-bonus";
@@ -179,19 +165,11 @@ export function totalsView(totals: Totals): {
     classBonus: `${classBonus.name} ${classBonusShown(classBonus)}`,
     totals: [view(rows.cm, totals.cm), view(rows.mitigation, totals.mitigation), view(rows.hearts, totals.hearts)],
     dice: `${rows.dice.label} ${rows.dice.value}`,
-    situationalDice: totals.dice.situational.map(
-      (d) => `${d.die} (${dieSourceName(d, classBonus)}${d.condition ? `, ${d.condition}` : ""})`,
-    ),
+    situationalDice: rows.dice.situational,
     damage: {
       heading: `${rows.damage.label} ${rows.damage.value}`,
-      lines: [
-        `base ${totals.damage.base}`,
-        ...totals.damage.grants.map((d) => `${damageText(d)} (${damageSource(d)})`),
-      ],
-      // GR-13: those given as text (GR-1) after the whole hearts.
-      situational: [...totals.damage.situational, ...totals.damage.situationalText].map(
-        (d) => `${damageText(d)} (${damageSource(d)})`,
-      ),
+      lines: [`base ${totals.damage.base}`, ...totals.damage.grants.map(damageLineText)],
+      situational: rows.damage.situational,
     },
   };
 }

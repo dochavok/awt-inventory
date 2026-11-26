@@ -1,6 +1,7 @@
 // Reference data (section 13): reading and checking the YAML files in data/.
-// validateReferenceData is what CI runs on every change (RD-4); the app loads
-// the files with loadReferenceData, which refuses data with any problem.
+// validateReferenceData is what CI runs on every change (RD-4); the app's build
+// loads the files with loadReferenceData (build/reference-data.ts), which
+// refuses data with any problem. The app itself never imports this (NF-4).
 
 import { parse } from "yaml";
 import type { z } from "zod";

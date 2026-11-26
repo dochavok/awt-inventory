@@ -3,10 +3,19 @@
 // No PDF code here, so the screens can use it without pulling in the sheet's.
 
 import { classBonusShown, dieSourceName, sourceName } from "../rules/totals";
-import type { BreakdownGroup, DamageLine, SourceRef, TextDamageLine, Total, Totals } from "../rules/types";
+import type {
+  BreakdownGroup,
+  DamageLine,
+  ExtraDie,
+  GrantLine,
+  SourceRef,
+  TextDamageLine,
+  Total,
+  Totals,
+} from "../rules/types";
 
 /** GR-8's source categories, as a total's breakdown and its grants (GR-12) name them. */
-export const GROUP_NAMES: Record<BreakdownGroup, string> = {
+const GROUP_NAMES: Record<BreakdownGroup, string> = {
   "class-bonus": "Class bonus",
   "level-chart": "Level chart",
   armor: "Armor",
@@ -46,20 +55,44 @@ export const damageText = (
 ) => `+${"amount" in d ? hearts(d.amount) : d.amountText}${d.damageType ? ` ${d.damageType}` : ""}`;
 
 /** Where extra damage comes from, and its condition if it has one, e.g. "Title: Wanderer, vs Undead". */
-export const damageSource = (d: Pick<DamageLine, "source" | "condition">) =>
+const damageSource = (d: Pick<DamageLine, "source" | "condition">) =>
   [sourceLabel(d.source), ...(d.condition ? [d.condition] : [])].join(", ");
+
+/**
+ * One grant in a total (GR-12): its source, its category and its amount, and its
+ * condition if it's situational, e.g. "Wanderer's Mail · Armor · +3 · vs Undead".
+ */
+export function grantLineText(line: GrantLine, classBonus: Totals["classBonus"]): string {
+  const isClassBonus = line.group === "class-bonus";
+  const source = isClassBonus ? classBonus.name : sourceName(line.source);
+  const group = GROUP_NAMES[line.group];
+  const amount = isClassBonus && classBonus.dice ? classBonusShown(classBonus) : `+${line.amount}`;
+  const parts = source === group ? [source, amount] : [source, group, amount];
+  if (line.condition) parts.push(line.condition);
+  return parts.join(" · ");
+}
+
+/** A situational die (GR-4, GR-11), e.g. "1d6 (Shrine blessing, vs Undead)". */
+const dieLineText = (d: ExtraDie, classBonus: Totals["classBonus"]) =>
+  `${d.die} (${dieSourceName(d, classBonus)}${d.condition ? `, ${d.condition}` : ""})`;
+
+/** An extra damage with where it comes from (GR-13), e.g. "+3 hearts radiant (Manual grant: Shrine blessing, vs Undead)". */
+export const damageLineText = (d: DamageLine | TextDamageLine) => `${damageText(d)} (${damageSource(d)})`;
 
 export interface TotalRow {
   label: string;
   value: number | string;
   lines: { label: string; value: number | string }[];
+  /** GR-4: the situational grants (or dice) that would affect it, never added in; worded as the character's page lists them. */
+  situational: string[];
 }
 
 /**
  * CM, mitigation, max hearts, combat dice and damage, each with its breakdown; the class
  * bonus's line under its own name. Damage's lines are the base, then each extra damage that
  * counts, e.g. "+1 heart fire" "from Title: Ember Mark" (GR-13), so the sheet's brackets
- * around a total's lines hold no brackets of their own.
+ * around a total's lines hold no brackets of their own. Each also has its situational lines
+ * (GR-4), apart from its lines.
  */
 export function totalRows(totals: Totals): {
   cm: TotalRow;
@@ -69,18 +102,27 @@ export function totalRows(totals: Totals): {
   damage: TotalRow;
 } {
   const { classBonus, damage } = totals;
-  const lines = (total: Total) =>
-    total.lines.map((l) =>
+  const row = (label: string, total: Total): TotalRow => ({
+    label,
+    value: total.value,
+    lines: total.lines.map((l) =>
       l.group === "class-bonus"
         ? { label: classBonus.name, value: classBonusShown(classBonus) }
         : { label: GROUP_NAMES[l.group], value: l.value },
-    );
+    ),
+    situational: total.situational.map((g) => grantLineText(g, classBonus)),
+  });
   const extra = totals.dice.extra.map((d) => ` + ${d.die} (${dieSourceName(d, classBonus)})`).join("");
   return {
-    cm: { label: "CM", value: totals.cm.value, lines: lines(totals.cm) },
-    mitigation: { label: "Mitigation", value: totals.mitigation.value, lines: lines(totals.mitigation) },
-    hearts: { label: "Max hearts", value: totals.hearts.value, lines: lines(totals.hearts) },
-    dice: { label: "Combat dice", value: `${totals.dice.base}${extra}`, lines: [] },
+    cm: row("CM", totals.cm),
+    mitigation: row("Mitigation", totals.mitigation),
+    hearts: row("Max hearts", totals.hearts),
+    dice: {
+      label: "Combat dice",
+      value: `${totals.dice.base}${extra}`,
+      lines: [],
+      situational: totals.dice.situational.map((d) => dieLineText(d, classBonus)),
+    },
     damage: {
       label: "Damage",
       value: hearts(damage.value),
@@ -88,6 +130,8 @@ export function totalRows(totals: Totals): {
         { label: "base", value: damage.base },
         ...damage.grants.map((d) => ({ label: damageText(d), value: `from ${damageSource(d)}` })),
       ],
+      // GR-13: those given as text (GR-1) after the whole hearts.
+      situational: [...damage.situational, ...damage.situationalText].map(damageLineText),
     },
   };
 }

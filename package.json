@@ -1,6 +1,6 @@
 {
   "name": "awt-inventory",
-  "version": "0.8.3",
+  "version": "0.9.0",
   "private": true,
   "description": "Inventory, skills and totals for Adventures from the Wizards Tower characters, as a phone-first web app.",
   "type": "module",
@@ -35,9 +35,7 @@
     "firebase": "13.4.0",
     "pdf-lib": "1.17.1",
     "react": "19.3.1",
-    "react-dom": "19.3.1",
-    "yaml": "2.9.1",
-    "zod": "4.6.7"
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
@@ -58,7 +56,9 @@
     "typescript-eslint": "8.73.0",
     "vite": "8.3.8",
     "vite-plugin-pwa": "2.0.0",
-    "vitest": "5.1.1"
+    "vitest": "5.1.1",
+    "yaml": "2.9.1",
+    "zod": "4.6.7"
   },
   "allowScripts": {
     "@firebase/util": false,

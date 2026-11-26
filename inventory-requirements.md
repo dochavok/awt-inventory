@@ -354,7 +354,7 @@ A two-handed weapon gives no Dual Wielding warning until Q1 is answered.
 **EX-1 · Must · M3: Printable character sheet.** The user can create a PDF for one character, or for all characters that aren't retired. For each character it shows:
 
 - name, class and level;
-- the totals with their breakdowns (once M4 exists), including damage with where it comes from (GR-13);
+- the totals with their breakdowns (once M4 exists), including damage with where it comes from (GR-13), and under each total its situational grants and dice (GR-4), marked as not added in;
 - what's equipped (the paper doll and arcane slots);
 - every category with quantities, and skills with their usage and tier;
 - titles with their descriptions;
@@ -470,6 +470,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 
 - On a phone with ordinary mobile signal (tested as 1.6 Mbps with a 150 ms delay), a character's page opens within 2 seconds, once the app has been opened on that phone before.
 - After a change, totals and slot counts update in under 0.2 seconds.
+- The app carries no YAML parser or schema checker: the reference data is read and checked when the app is built (RD-4), and a check of the built app fails if either is in it.
 
 **NF-5 · Must · M2+: Scale and cost.** The app is built for up to about 500 users, each with a few characters of a few hundred entries. At that size it runs on a free or low-cost hosting plan, and its costs are recorded in the brain's `services.md`.
 

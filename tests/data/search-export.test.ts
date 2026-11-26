@@ -353,6 +353,95 @@ rule(
   },
 );
 
+/** A manual grant with one situational grant for each total (GR-4), none of which counts. */
+const SHRINE_BLESSING = [
+  { kind: "cm", amount: 5, condition: "vs Evil" },
+  { kind: "mitigation", amount: 2, condition: "vs fire" },
+  { kind: "hearts", amount: 1, condition: "while raging" },
+  { kind: "die", die: "1d6", condition: "vs Undead" },
+  { kind: "extra-damage", amount: 3, damageType: "radiant", condition: "vs Undead" },
+] as const;
+
+rule(
+  { req: ["EX-1", "GR-4"], m: "M4" },
+  "the sheet lists each total's situational grants and dice under it, as the character's page words them, none added in",
+  async () => {
+    const w = world();
+    const bram = w.as("bram");
+    await seedProfile(bram, "bram");
+    const aldric = await seedCharacter(bram, "aldric", { full: true });
+    const sheetTotals = async () =>
+      (await bram.printableSheet({ characterIds: [aldric.character.id], includeSkillText: false, paper: "letter" }))
+        .characters[0]!.totals!;
+    const before = await sheetTotals();
+    await bram.addManualGrant(aldric.character.id, "Shrine blessing", [...SHRINE_BLESSING]);
+    const after = await sheetTotals();
+    expect(
+      after.map((t) => [t.label, t.value]),
+      "Aldric's totals on the sheet, the blessing not added in",
+    ).toEqual(before.map((t) => [t.label, t.value]));
+    // Each total's situational lines: what Aldric already had (his skills'), then the blessing's.
+    const added = (label: string) => {
+      const was = before.find((t) => t.label === label)!.situational;
+      const now = after.find((t) => t.label === label)!.situational;
+      expect(now.slice(0, was.length), `Aldric's situational ${label} from before, still listed`).toEqual(was);
+      return now.slice(was.length);
+    };
+    expect(added("CM"), "the blessing's situational CM on the sheet").toEqual([
+      "Shrine blessing · Other · +5 · vs Evil",
+    ]);
+    expect(added("Mitigation"), "the blessing's situational mitigation on the sheet").toEqual([
+      "Shrine blessing · Other · +2 · vs fire",
+    ]);
+    expect(added("Max hearts"), "the blessing's situational max hearts on the sheet").toEqual([
+      "Shrine blessing · Other · +1 · while raging",
+    ]);
+    expect(added("Combat dice"), "the blessing's situational dice on the sheet").toEqual([
+      "1d6 (Shrine blessing, vs Undead)",
+    ]);
+    expect(added("Damage"), "the blessing's situational damage on the sheet").toEqual([
+      "+3 hearts radiant (Manual grant: Shrine blessing, vs Undead)",
+    ]);
+  },
+);
+
+rule(
+  { req: ["EX-1", "GR-4"], m: "M4" },
+  "the PDF prints a total's situational grants under it, marked as not added in, one to a line",
+  async () => {
+    const w = world();
+    const bram = w.as("bram");
+    await seedProfile(bram, "bram");
+    const aldric = await seedCharacter(bram, "aldric", { full: true });
+    await bram.addManualGrant(aldric.character.id, "Shrine blessing", [...SHRINE_BLESSING]);
+    const page = (
+      await bram.printableSheet({ characterIds: [aldric.character.id], includeSkillText: false, paper: "letter" })
+    ).characters[0]!;
+    const pdf = await bram.printablePdf({
+      characterIds: [aldric.character.id],
+      includeSkillText: false,
+      paper: "letter",
+    });
+    const lines = (await pdfPageTexts(pdf.bytes))[0]!.split("\n");
+    // The `count` lines printed straight after a total's own.
+    const under = (label: string, count: number) => {
+      const at = lines.findIndex((l) => l.startsWith(`${label}: `));
+      expect(at, `Aldric's ${label} line in the PDF`).toBeGreaterThanOrEqual(0);
+      return lines.slice(at + 1, at + 1 + count);
+    };
+    for (const label of ["CM", "Mitigation", "Max hearts", "Combat dice", "Damage"]) {
+      const situational = page.totals!.find((t) => t.label === label)!.situational;
+      expect(situational, `Aldric's situational ${label}, the blessing's included`).toContainEqual(
+        expect.stringContaining("Shrine blessing"),
+      );
+      expect(under(label, situational.length + 1), `what the PDF prints under Aldric's ${label}`).toEqual([
+        "Situational, not added in:",
+        ...situational,
+      ]);
+    }
+  },
+);
+
 rule({ req: ["EX-1"], m: "M3" }, "the PDF prints on Letter or A4 paper", async () => {
   const { bram, aldric } = await bramWithTwo();
   for (const [paper, size] of [

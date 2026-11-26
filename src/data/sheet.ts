@@ -26,7 +26,10 @@ export interface SheetInput {
 
 type SheetPage = SheetDocument["characters"][number];
 
-/** EX-1: CM, mitigation, max hearts, combat dice and damage, each with its breakdown, as the character's page shows them. */
+/**
+ * EX-1: CM, mitigation, max hearts, combat dice and damage, each with its breakdown and its
+ * situational grants (GR-4), as the character's page shows them.
+ */
 function sheetTotals(totals: Totals): NonNullable<SheetPage["totals"]> {
   const { cm, mitigation, hearts, dice, damage } = totalRows(totals);
   return [cm, mitigation, hearts, dice, damage];
@@ -249,6 +252,11 @@ export async function renderPdf(sheet: SheetDocument, options: PrintOptions): Pr
     for (const total of c.totals ?? []) {
       const lines = total.lines.map((l) => `${l.label} ${l.value}`).join(", ");
       w.text(`${total.label}: ${total.value}${lines ? ` (${lines})` : ""}`);
+      // EX-1, GR-4: under the total, marked as never added to it; each grant starts its own line.
+      if (total.situational.length > 0) {
+        w.text("Situational, not added in:", { indent: 12, size: 10 });
+        for (const line of total.situational) w.text(line, { indent: 24, size: 10 });
+      }
     }
     if (c.equipped.length > 0) {
       w.text("Equipped", { bold: true, size: 13, gap: 8 });
