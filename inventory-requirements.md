@@ -473,7 +473,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 
 **NF-5 · Must · M2+: Scale and cost.** The app is built for up to about 500 users, each with a few characters of a few hundred entries. At that size it runs on a free or low-cost hosting plan, and its costs are recorded in the brain's `services.md`.
 
-**NF-6 · Must · M2+: Limits.** Text fields and counts have sensible maximums (e.g. a description of a few thousand characters, at most 1,000 entries per character), so a mistake or misuse can't run up hosting costs.
+**NF-6 · Must · M2+: Limits.** Text fields and counts have sensible maximums (e.g. a description of a few thousand characters, at most 1,000 entries per character), so a mistake or misuse can't run up hosting costs. Text with a broken character (a lone UTF-16 surrogate, such as half of an emoji) is refused, naming the field.
 
 **NF-7 · Must · M2+: Security.**
 
@@ -549,6 +549,8 @@ When a DM answers a question, start at step 2.
 - A count is checked as that number.
 - A refusal or block is checked to name what was refused.
 - An access test checks that another user's read or write is **refused**, not just that the owner's works.
+- A test helper that reads stored data checks the read succeeded, so a failed read never counts as nothing stored.
+- A test that reads on one phone what another phone wrote first waits for those writes to reach the server.
 
 ### 15.2 Kinds of test
 

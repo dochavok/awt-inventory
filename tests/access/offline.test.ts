@@ -46,6 +46,8 @@ async function setUp(user = "bram") {
   await seedProfile(a.store, user);
   const aldric = await seedCharacter(a.store, "aldric");
   const draught = aldric.entries.get("aldric-draught")!.id;
+  // Phone A's writes reach the server before phone B reads, so B caches all of Aldric (TF-8).
+  await a.db.waitForPendingWrites();
   const b = phone(user, clock);
   // Phone B opens Aldric with signal first, so his records are on it.
   await b.store.sheet(aldric.character.id);
