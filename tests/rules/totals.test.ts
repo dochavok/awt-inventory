@@ -597,6 +597,53 @@ rule(
 );
 
 rule(
+  { req: ["GR-13", "GR-1", "GR-4"], m: "M4" },
+  "a skill's extra damage given as text is listed apart with its text and condition, never added in, even with no condition",
+  () => {
+    const ref = testReferenceData();
+    const grantsOf = (skill: string) => ref.skillGrants.find((g) => g.skill === skill)!.grants;
+    grantsOf("cinder-mark-i").push({
+      id: "sg-x-text-1",
+      kind: "extra-damage",
+      amountText: "1d4 hearts of a chosen element",
+      condition: "1/combat",
+    });
+    grantsOf("cinder-mark-ii").push({
+      id: "sg-x-text-2",
+      kind: "extra-damage",
+      amountText: "1 heart per frost mark",
+      damageType: "cold",
+    });
+    grantsOf("cinder-mark-ii").push({ id: "sg-x-plain", kind: "extra-damage", amount: 2 });
+    const totals = computeTotals(isoldeWith("cinder-mark-i", "cinder-mark-ii"), ref);
+    expect(damageOf(totals.damage.grants), "where Isolde's damage comes from: the whole amount alone").toEqual([
+      ["Cinder Mark II", "skill", 2, undefined, undefined],
+    ]);
+    expect(totals.damage.value, "Isolde's damage: 1 + 2, the text ones not added in").toBe(3);
+    expect(totals.damage.situational, "Isolde's situational damage in whole hearts").toEqual([]);
+    expect(
+      totals.damage.situationalText.map((d) => [
+        sourceName(d.source),
+        d.source.type,
+        d.amountText,
+        d.damageType,
+        d.condition,
+      ]),
+      "Isolde's extra damage given as text, in sheet order",
+    ).toEqual([
+      ["Cinder Mark I", "skill", "1d4 hearts of a chosen element", undefined, "1/combat"],
+      ["Cinder Mark II", "skill", "1 heart per frost mark", "cold", undefined],
+    ]);
+
+    const without = computeTotals(isoldeWith("cinder-mark-ii"), ref);
+    expect(
+      without.damage.situationalText.map((d) => sourceName(d.source)),
+      "Isolde's extra damage given as text, without Cinder Mark I",
+    ).toEqual(["Cinder Mark II"]);
+  },
+);
+
+rule(
   { req: ["GR-13", "GR-3"], m: "M4" },
   "an unequipped weapon's and an inactive ally's extra damage don't count, and aren't listed as situational",
   () => {
