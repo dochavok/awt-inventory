@@ -5,8 +5,8 @@
 import type {
   BreakdownGroup,
   CharacterSheet,
+  CountedGrant,
   Entry,
-  Grant,
   GrantLine,
   Id,
   ReferenceData,
@@ -18,29 +18,33 @@ import type {
 
 /** A grant that counts, with where it comes from. */
 export interface SourcedGrant {
-  grant: Grant;
+  grant: CountedGrant;
   source: SourceRef;
   group: BreakdownGroup;
 }
 
 /** A grant's condition, trimmed; undefined when it has none or it's blank. */
-function conditionOf(grant: Grant): string | undefined {
+function conditionOf(grant: { condition?: string }): string | undefined {
   return grant.condition?.trim() || undefined;
 }
 
 /** GR-4: a grant with a condition is situational, never added to a total. */
-export function isSituational(grant: Grant): boolean {
+export function isSituational(grant: { condition?: string }): boolean {
   return conditionOf(grant) !== undefined;
 }
 
 /** `{ condition }` when the grant is situational, so lines and dice carry a condition only then. */
-export function withCondition(grant: Grant): { condition?: string } {
+export function withCondition(grant: { condition?: string }): { condition?: string } {
   const condition = conditionOf(grant);
   return condition !== undefined ? { condition } : {};
 }
 
-/** GR-1's amounts are numbers; bad data with one that isn't (NaN, Infinity) is left out. */
-function usable(grant: Grant): boolean {
+/**
+ * GR-1's amounts are numbers; bad data with one that isn't (NaN, Infinity) is left out, as is
+ * extra damage with no amount, unless it's the skill list's text (whose schema refuses it blank).
+ */
+function usable(grant: CountedGrant, skillList: boolean): boolean {
+  if (grant.kind === "extra-damage" && !("amount" in grant)) return skillList && typeof grant.amountText === "string";
   return !("amount" in grant) || Number.isFinite(grant.amount);
 }
 
@@ -174,7 +178,7 @@ export function countedGrants(sheet: CharacterSheet, ref: ReferenceData): Source
     skillList = false,
   ) => {
     for (const grant of grants ?? []) {
-      if (grant.kind === "die-always" || usable(grant)) counted.push({ grant, source, group, skillList });
+      if (grant.kind === "die-always" || usable(grant, skillList)) counted.push({ grant, source, group, skillList });
     }
   };
 

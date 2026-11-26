@@ -60,10 +60,10 @@ Tests shows each file with the number of its tests that name the requirement.
 | HI-3 | Must | M2 | app/dates.test.ts (1), browser/inventory.spec.ts (1), data/characters.test.ts (1), data/history.test.ts (3), data/inventory.test.ts (1) |
 | HI-4 | Must | M2 | access/accounts.test.ts (2), access/privacy.test.ts (4), data/characters.test.ts (1), data/history.test.ts (2), data/inventory.test.ts (1) |
 | HI-5 | Should | M3 | browser/inventory.spec.ts (1), data/history.test.ts (1), data/privacy.test.ts (1) |
-| GR-1 | Must | M4 | browser/equipping.spec.ts (1), data/grants.test.ts (7), properties/totals.test.ts (1), refdata/refdata.test.ts (3), rules/equipping.test.ts (4), rules/totals.test.ts (21) |
-| GR-2 | Must | M4 | access/firestore-store.test.ts (1), access/privacy.test.ts (3), browser/equipping.spec.ts (6), data/grants.test.ts (14), data/search-export.test.ts (1), rules/totals.test.ts (4) |
+| GR-1 | Must | M4 | app/totals-view.test.ts (2), browser/equipping.spec.ts (1), data/grants.test.ts (8), properties/totals.test.ts (1), refdata/refdata.test.ts (4), rules/equipping.test.ts (4), rules/totals.test.ts (22) |
+| GR-2 | Must | M4 | access/firestore-store.test.ts (1), access/privacy.test.ts (3), browser/equipping.spec.ts (6), data/grants.test.ts (15), data/search-export.test.ts (1), rules/totals.test.ts (4) |
 | GR-3 | Must | M4 | browser/equipping.spec.ts (3), browser/inventory.spec.ts (2), data/grants.test.ts (3), rules/totals.test.ts (19) |
-| GR-4 | Must | M4 | app/totals-view.test.ts (1), browser/equipping.spec.ts (4), data/search-export.test.ts (1), properties/damage.test.ts (2), properties/totals.test.ts (2), rules/totals.test.ts (11) |
+| GR-4 | Must | M4 | app/totals-view.test.ts (2), browser/equipping.spec.ts (4), data/search-export.test.ts (1), properties/damage.test.ts (2), properties/totals.test.ts (2), rules/totals.test.ts (12) |
 | GR-5 | Must | M4 | access/firestore-store.test.ts (1), browser/equipping.spec.ts (5), data/grants.test.ts (13), data/privacy.test.ts (1), properties/damage.test.ts (1), properties/totals.test.ts (1), rules/equipping.test.ts (1), rules/totals.test.ts (4) |
 | GR-6 | Should | M4 | browser/equipping.spec.ts (1), data/grants.test.ts (1), rules/totals.test.ts (2) |
 | GR-7 | Must | M4 | browser/equipping.spec.ts (1), data/search-export.test.ts (1), rules/totals.test.ts (8) |
@@ -72,7 +72,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | GR-10 | Should | M4 | browser/equipping.spec.ts (2), properties/totals.test.ts (1), rules/totals.test.ts (3) |
 | GR-11 | Must | M4 | browser/equipping.spec.ts (3), data/search-export.test.ts (1), properties/totals.test.ts (1), rules/totals.test.ts (12) |
 | GR-12 | Must | M4 | browser/equipping.spec.ts (3), properties/totals.test.ts (1), rules/totals.test.ts (11) |
-| GR-13 | Should | M4 | access/firestore-store.test.ts (1), app/totals-view.test.ts (2), browser/equipping.spec.ts (1), browser/inventory.spec.ts (2), data/grants.test.ts (3), data/inventory.test.ts (1), data/search-export.test.ts (2), properties/damage.test.ts (4), refdata/refdata.test.ts (2), rules/totals.test.ts (9) |
+| GR-13 | Should | M4 | access/firestore-store.test.ts (1), app/totals-view.test.ts (4), browser/equipping.spec.ts (1), browser/inventory.spec.ts (2), data/grants.test.ts (4), data/inventory.test.ts (1), data/search-export.test.ts (2), properties/damage.test.ts (4), refdata/refdata.test.ts (3), rules/totals.test.ts (10) |
 | EQ-1 | Must | M4 | browser/equipping.spec.ts (1), data/inventory.test.ts (1), rules/equipping.test.ts (10), rules/totals.test.ts (2) |
 | EQ-2 | Must | M4 | access/firestore-store.test.ts (1), browser/equipping.spec.ts (4), data/grants.test.ts (5), properties/equipping.test.ts (1), rules/equipping.test.ts (5) |
 | EQ-3 | Must | M4 | browser/equipping.spec.ts (4), data/grants.test.ts (2), properties/equipping.test.ts (1), rules/equipping.test.ts (11) |
@@ -104,10 +104,10 @@ Tests shows each file with the number of its tests that name the requirement.
 | QS-1 | Could | M6 | none |
 | DA-1 | Could | M6 | none |
 | AL-1 | Could | M6 | none |
-| RD-1 | Must | M2 | refdata/refdata.test.ts (8) |
+| RD-1 | Must | M2 | refdata/refdata.test.ts (9) |
 | RD-2 | Must | M2 | data/skills.test.ts (1), refdata/refdata.test.ts (2) |
 | RD-3 | Must | M2 | data/inventory.test.ts (2), data/skills.test.ts (4), refdata/refdata.test.ts (1), rules/equipping.test.ts (3), rules/skills.test.ts (2) |
-| RD-4 | Must | M2 | refdata/refdata.test.ts (15) |
+| RD-4 | Must | M2 | refdata/refdata.test.ts (16) |
 | RD-5 | Must | M2 | data/characters.test.ts (1), refdata/refdata.test.ts (2) |
 | RD-6 | Must | M2 | refdata/refdata.test.ts (1) |
 | RD-7 | Must | M2 | data/skills.test.ts (1), refdata/refdata.test.ts (1) |

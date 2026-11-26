@@ -29,6 +29,9 @@
 - skill: strength-mastery
   grants:
   - {id: sg-strength-mastery-1, kind: cm, amount: 2}
+- skill: true-warrior
+  grants:
+  - {id: sg-true-warrior-1, kind: extra-damage, amount: 1}
 - skill: armor-use
   grants:
   - {id: sg-armor-use-1, kind: permission, permission: armor-use}
@@ -83,6 +86,12 @@
 - skill: power-overload
   grants:
   - {id: sg-power-overload-1, kind: cm, amount: 6, condition: 1/combat}
+- skill: spell-focus
+  grants:
+  - {id: sg-spell-focus-1, kind: extra-damage, amount: 1, condition: 'one chosen spell, instead of +2 to its combat bonus'}
+- skill: pickpocket
+  grants:
+  - {id: sg-pickpocket-1, kind: extra-damage, amount: 2, condition: 'first attack after a pickpocket, instead of 1d4 zenni'}
 - skill: nimble
   grants:
   - {id: sg-nimble-1, kind: cm, amount: 3}
@@ -98,16 +107,38 @@
 - skill: balance
   grants:
   - {id: sg-balance-1, kind: effect, effect: cr-bonus, text: +2 to Agility-based Challenge Rolls}
+- skill: severe-wound
+  grants:
+  - {id: sg-severe-wound-1, kind: extra-damage, amount: 2, condition: '1/combat, when one of your dice rolls max', group: wound}
+- skill: critical-wound
+  grants:
+  - {id: sg-critical-wound-1, kind: extra-damage, amount: 3, condition: '1/combat, when one of your dice rolls max', group: wound}
+- skill: deadly-wound
+  grants:
+  - {id: sg-deadly-wound-1, kind: extra-damage, amount: 5, condition: '1/combat, when one of your dice rolls max', group: wound}
+- skill: arcane-weapon
+  grants:
+  - {id: sg-arcane-weapon-1, kind: extra-damage, amount: 1, condition: while you have usable spells; one weapon when dual wielding}
 - skill: war-magus
   grants:
   - {id: sg-war-magus-1, kind: cm, amount: 2}
   - {id: sg-war-magus-2, kind: effect, effect: resistance, text: Epic Resistance vs. damage spells}
+  - {id: sg-war-magus-3, kind: extra-damage, amount: 1}
 - skill: arcane-shield
   grants:
   - {id: sg-arcane-shield-1, kind: mitigation, amount: 1, condition: '1/combat, vs damage from a spell, with a shield equipped'}
 - skill: magister-belli-et-magia
   grants:
   - {id: sg-magister-belli-et-magia-1, kind: hearts, amount: 1}
+- skill: berserk
+  grants:
+  - {id: sg-berserk-1, kind: extra-damage, amount: 1, damageType: rage, condition: '1/combat, declared before rolling', group: berserk}
+- skill: bloodlust
+  grants:
+  - {id: sg-bloodlust-1, kind: extra-damage, amount: 2, damageType: rage, condition: '1/combat, declared before rolling', group: berserk}
+- skill: rage
+  grants:
+  - {id: sg-rage-1, kind: extra-damage, amount: 3, damageType: rage, condition: '1/combat, declared before rolling', group: berserk}
 - skill: battlecraze
   grants:
   - {id: sg-battlecraze-1, kind: cm, amount: 10, condition: '1/combat, and take 1♥ of damage'}
@@ -139,6 +170,7 @@
 - skill: sanctify-weapon
   grants:
   - {id: sg-sanctify-weapon-1, kind: cm, amount: 4, condition: '1/combat, vs. Evil foes, with the sanctified weapon'}
+  - {id: sg-sanctify-weapon-2, kind: extra-damage, amount: 1, condition: '1/combat, one weapon, for the rest of combat'}
 - skill: holy-aura
   grants:
   - {id: sg-holy-aura-1, kind: effect, effect: cr-bonus, text: '+2 vs. fear effects, for allies in your aura'}
@@ -148,12 +180,22 @@
 - skill: champion-of-light
   grants:
   - {id: sg-champion-of-light-1, kind: effect, effect: resistance, text: Resistance vs. damage from Evil sources}
+  - {id: sg-champion-of-light-2, kind: extra-damage, amount: 2, condition: vs. Evil and Undead}
+- skill: careful-aim
+  grants:
+  - {id: sg-careful-aim-1, kind: extra-damage, amount: 3, condition: '1/combat, this round''s attack with a ranged weapon'}
 - skill: ranged-master
   grants:
   - {id: sg-ranged-master-1, kind: cm, amount: 8, condition: with ranged weapons}
 - skill: good-grouping
   grants:
   - {id: sg-good-grouping-1, kind: cm, amount: 3, condition: '1/combat, vs a foe you damaged the previous round'}
+- skill: expert-precision
+  grants:
+  - {id: sg-expert-precision-1, kind: extra-damage, amount: 2, condition: with ranged weapons}
+- skill: tight-grouping
+  grants:
+  - {id: sg-tight-grouping-1, kind: extra-damage, amount: 1, condition: '1/combat, with Good Grouping'}
 - skill: footwork
   grants:
   - {id: sg-footwork-1, kind: die, die: 1d8, condition: '1/combat, added as CM (Defence)'}
@@ -178,6 +220,18 @@
 - skill: recon
   grants:
   - {id: sg-recon-1, kind: cm, amount: 4, condition: vs your mark}
+- skill: poison
+  grants:
+  - {id: sg-poison-1, kind: extra-damage, amount: 1, damageType: poison, condition: '1/combat, this round''s attack'}
+- skill: assassinate
+  grants:
+  - {id: sg-assassinate-1, kind: extra-damage, amount: 3, condition: when damaging a mark}
+- skill: deadly-stealth
+  grants:
+  - {id: sg-deadly-stealth-1, kind: extra-damage, amount: 1, condition: 'successful stealth rounds: base damage 2♥'}
+- skill: necromancy-archmage
+  grants:
+  - {id: sg-necromancy-archmage-1, kind: extra-damage, amount: 1, damageType: necrotic, condition: 'for your undead summons'' attacks'}
 - skill: drain-life
   grants:
   - {id: sg-drain-life-1, kind: cm, amount: 5, condition: 1/combat}
@@ -187,6 +241,24 @@
 - skill: drain-life-iii
   grants:
   - {id: sg-drain-life-iii-1, kind: cm, amount: 5, condition: 1/combat}
+- skill: sorcery
+  grants:
+  - {id: sg-sorcery-1, kind: extra-damage, amountText: 1d4 hearts of an element you know, condition: 1/combat}
+- skill: sorcery-power-ii
+  grants:
+  - {id: sg-sorcery-power-ii-1, kind: extra-damage, amountText: 1d6 hearts of an element you know, condition: 1/combat}
+- skill: sorcery-power-iii
+  grants:
+  - {id: sg-sorcery-power-iii-1, kind: extra-damage, amountText: 1d8 hearts of an element you know, condition: 1/combat}
+- skill: sorcery-power-iv
+  grants:
+  - {id: sg-sorcery-power-iv-1, kind: extra-damage, amountText: 1d10 hearts of an element you know, condition: 1/combat}
+- skill: sorcery-power-v
+  grants:
+  - {id: sg-sorcery-power-v-1, kind: extra-damage, amountText: 1d12 hearts of an element you know, condition: 1/combat}
+- skill: sorcerer-archmage
+  grants:
+  - {id: sg-sorcerer-archmage-1, kind: extra-damage, amount: 1, condition: with elemental spells}
 - skill: deflect
   grants:
   - {id: sg-deflect-1, kind: die, die: 1d4, condition: '1/combat, added to CM (Defence)'}
@@ -199,6 +271,9 @@
 - skill: fast-talk
   grants:
   - {id: sg-fast-talk-1, kind: effect, effect: cr-bonus, text: +2 to Charisma-based Challenge Rolls}
+- skill: backstab
+  grants:
+  - {id: sg-backstab-1, kind: extra-damage, amount: 2, condition: '1st round of combat, after a pickpocket before combat, instead of stealing'}
 - skill: holy-vow
   grants:
   - {id: sg-holy-vow-1, kind: cm, amount: 2, condition: vs. Evil, group: cm-vs-evil}
@@ -239,18 +314,41 @@
 - skill: poison-adept
   grants:
   - {id: sg-poison-adept-1, kind: effect, effect: resistance, text: 'Resistance: poison'}
+  - {id: sg-poison-adept-2, kind: extra-damage, amountText: 1 heart per stack of poison on the foe}
 - skill: poison-master
   grants:
   - {id: sg-poison-master-1, kind: effect, effect: resistance, text: 'Epic Resistance: poison'}
 - skill: man-vs-beast
   grants:
   - {id: sg-man-vs-beast-1, kind: mitigation, amount: 2, condition: vs Creatures}
+- skill: man-vs-beast-2
+  grants:
+  - {id: sg-man-vs-beast-2-1, kind: extra-damage, amount: 2, condition: vs. creatures}
+- skill: in-fighting
+  grants:
+  - {id: sg-in-fighting-1, kind: extra-damage, amount: 2, condition: in melee}
 - skill: immovable-object
   grants:
   - {id: sg-immovable-object-1, kind: effect, effect: cr-bonus, text: +10 to Strength Rolls}
+- skill: brutal
+  grants:
+  - {id: sg-brutal-1, kind: extra-damage, amount: 5, condition: '1/combat, if you won the previous round by 50 or more'}
 - skill: unstoppable-force
   grants:
   - {id: sg-unstoppable-force-1, kind: effect, effect: cr-bonus, text: +10 to Strength Rolls}
+  - {id: sg-unstoppable-force-2, kind: extra-damage, amountText: your Warrior Class Bonus in hearts, condition: '1/combat, this round'}
+- skill: enhanced-strength
+  grants:
+  - {id: sg-enhanced-strength-1, kind: extra-damage, amount: 1}
+- skill: divine-strength
+  grants:
+  - {id: sg-divine-strength-1, kind: extra-damage, amount: 1}
+- skill: divine-smite
+  grants:
+  - {id: sg-divine-smite-1, kind: extra-damage, amountText: your Holy Die in hearts, condition: '1/combat, this round'}
+- skill: demons-bane
+  grants:
+  - {id: sg-demons-bane-1, kind: extra-damage, amount: 3, condition: vs. Evil creatures}
 - skill: constitution
   grants:
   - {id: sg-constitution-1, kind: effect, effect: cr-bonus, text: +10 to CRs if it will hurt}
@@ -285,6 +383,12 @@
 - skill: inspiring-presence
   grants:
   - {id: sg-inspiring-presence-1, kind: effect, effect: cr-bonus, text: '+5 to all CRs, for allies (does not stack)'}
+- skill: coordinated-assault
+  grants:
+  - {id: sg-coordinated-assault-1, kind: extra-damage, amount: 1, condition: '1/combat, for all allies this round'}
+- skill: lead-the-charge
+  grants:
+  - {id: sg-lead-the-charge-1, kind: extra-damage, amountText: 1 heart per charging ally, condition: '1/combat, charging into melee, this round'}
 - skill: situational-awareness
   grants:
   - {id: sg-situational-awareness-1, kind: effect, effect: cr-bonus, text: +3 to CRs vs enemies in stealth or hiding}
@@ -294,6 +398,27 @@
 - skill: rank-commander-and-chief
   grants:
   - {id: sg-rank-commander-and-chief-1, kind: die, die: 1d20, condition: when added to your combat roll (or an ally's), group: tactical-die}
+- skill: shadow-striker
+  grants:
+  - {id: sg-shadow-striker-1, kind: extra-damage, amount: 3, damageType: unavoidable, condition: while in stealth}
+- skill: studied-mark
+  grants:
+  - {id: sg-studied-mark-1, kind: extra-damage, amount: 2, condition: '1/day, vs. your declared mark'}
+- skill: murderous-intent
+  grants:
+  - {id: sg-murderous-intent-1, kind: extra-damage, amount: 3, condition: vs. marks}
+- skill: rapid-takedown
+  grants:
+  - {id: sg-rapid-takedown-1, kind: extra-damage, amount: 5, condition: '1/combat, leaving stealth, this round'}
+- skill: blood-lust
+  grants:
+  - {id: sg-blood-lust-1, kind: extra-damage, amount: 1, condition: 'after dealing damage, until the end of combat'}
+- skill: ruthless
+  grants:
+  - {id: sg-ruthless-1, kind: extra-damage, amountText: 1 heart per type of creature defeated today}
+- skill: maximize-poison
+  grants:
+  - {id: sg-maximize-poison-1, kind: extra-damage, amount: 1, damageType: poison, condition: to damage dealt by poisons}
 - skill: poison-identification
   grants:
   - {id: sg-poison-identification-1, kind: effect, effect: cr-bonus, text: +10 to CRs to identify poisons}
@@ -306,18 +431,69 @@
 - skill: connoisseur-of-coin
   grants:
   - {id: sg-connoisseur-of-coin-1, kind: cm, amount: 30, condition: '1/combat, by trading 10z'}
+- skill: art-of-the-deal
+  grants:
+  - {id: sg-art-of-the-deal-1, kind: extra-damage, amountText: 1 heart per 5z spent, condition: '1/combat, this round'}
 - skill: phylactery
   grants:
   - {id: sg-phylactery-1, kind: effect, effect: resistance, text: 'Resistance: necrotic and evil damage'}
+- skill: death-knell
+  grants:
+  - {id: sg-death-knell-1, kind: extra-damage, amount: 1, condition: 1/combat}
+- skill: deaths-mantle
+  grants:
+  - {id: sg-deaths-mantle-1, kind: extra-damage, amount: 1, condition: '1/combat, for all allies'}
 - skill: undead-resistance
   grants:
   - {id: sg-undead-resistance-1, kind: mitigation, amount: 2, condition: vs Necrotic and Evil sources}
+- skill: cursed-golem
+  grants:
+  - {id: sg-cursed-golem-1, kind: extra-damage, amount: 2, condition: 'for your Death Golem''s attacks'}
 - skill: elemental-protection
   grants:
   - {id: sg-elemental-protection-1, kind: mitigation, amount: 2, condition: vs elements you know}
+- skill: ice-mastery-1
+  grants:
+  - {id: sg-ice-mastery-1-1, kind: extra-damage, amount: 1, damageType: ice, condition: with Ice spells, group: ice-mastery}
+- skill: fire-mastery-1
+  grants:
+  - {id: sg-fire-mastery-1-1, kind: extra-damage, amount: 1, damageType: fire, condition: with Fire spells, group: fire-mastery}
+- skill: lightning-mastery-1
+  grants:
+  - {id: sg-lightning-mastery-1-1, kind: extra-damage, amount: 1, damageType: lightning, condition: with Lightning spells, group: lightning-mastery}
+- skill: earth-mastery-1
+  grants:
+  - {id: sg-earth-mastery-1-1, kind: extra-damage, amount: 1, damageType: earth, condition: with Earth spells, group: earth-mastery}
+- skill: ice-mastery-2
+  grants:
+  - {id: sg-ice-mastery-2-1, kind: extra-damage, amount: 2, damageType: ice, condition: with Ice spells, group: ice-mastery}
+- skill: fire-mastery-2
+  grants:
+  - {id: sg-fire-mastery-2-1, kind: extra-damage, amount: 2, damageType: fire, condition: with Fire spells, group: fire-mastery}
+- skill: lightning-mastery-2
+  grants:
+  - {id: sg-lightning-mastery-2-1, kind: extra-damage, amount: 2, damageType: lightning, condition: with Lightning spells, group: lightning-mastery}
+- skill: earth-mastery-2
+  grants:
+  - {id: sg-earth-mastery-2-1, kind: extra-damage, amount: 2, damageType: earth, condition: with Earth spells, group: earth-mastery}
+- skill: ice-mastery-3
+  grants:
+  - {id: sg-ice-mastery-3-1, kind: extra-damage, amount: 3, damageType: ice, condition: with Ice spells, group: ice-mastery}
+- skill: fire-mastery-3
+  grants:
+  - {id: sg-fire-mastery-3-1, kind: extra-damage, amount: 3, damageType: fire, condition: with Fire spells, group: fire-mastery}
+- skill: lightning-mastery-3
+  grants:
+  - {id: sg-lightning-mastery-3-1, kind: extra-damage, amount: 3, damageType: lightning, condition: with Lightning spells, group: lightning-mastery}
+- skill: earth-mastery-3
+  grants:
+  - {id: sg-earth-mastery-3-1, kind: extra-damage, amount: 3, damageType: earth, condition: with Earth spells, group: earth-mastery}
 - skill: devotion-4
   grants:
   - {id: sg-devotion-4-1, kind: die, die: 1d12, condition: when a skill adds the Holy Die (e.g. Smite), group: holy-die}
 - skill: devotion-5
   grants:
   - {id: sg-devotion-5-1, kind: die, die: 1d20, condition: when a skill adds the Holy Die (e.g. Smite), group: holy-die}
+- skill: sanctify-all
+  grants:
+  - {id: sg-sanctify-all-1, kind: extra-damage, amount: 1, condition: '1/combat, for all allies, until the end of combat'}

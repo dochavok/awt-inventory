@@ -597,6 +597,89 @@ rule(
 );
 
 rule(
+  { req: ["GR-13", "GR-1", "GR-4"], m: "M4" },
+  "a skill's extra damage given as text is listed apart with its text and condition, never added in, even with no condition",
+  () => {
+    const ref = testReferenceData();
+    const grantsOf = (skill: string) => ref.skillGrants.find((g) => g.skill === skill)!.grants;
+    grantsOf("cinder-mark-i").push({
+      id: "sg-x-text-1",
+      kind: "extra-damage",
+      amountText: "1d4 hearts of a chosen element",
+      condition: "1/combat",
+    });
+    grantsOf("cinder-mark-ii").push({
+      id: "sg-x-text-2",
+      kind: "extra-damage",
+      amountText: "1 heart per frost mark",
+      damageType: "cold",
+    });
+    grantsOf("cinder-mark-ii").push({ id: "sg-x-plain", kind: "extra-damage", amount: 2 });
+    const totals = computeTotals(isoldeWith("cinder-mark-i", "cinder-mark-ii"), ref);
+    expect(damageOf(totals.damage.grants), "where Isolde's damage comes from: the whole amount alone").toEqual([
+      ["Cinder Mark II", "skill", 2, undefined, undefined],
+    ]);
+    expect(totals.damage.value, "Isolde's damage: 1 + 2, the text ones not added in").toBe(3);
+    expect(totals.damage.situational, "Isolde's situational damage in whole hearts").toEqual([]);
+    expect(
+      totals.damage.situationalText.map((d) => [
+        sourceName(d.source),
+        d.source.type,
+        d.amountText,
+        d.damageType,
+        d.condition,
+      ]),
+      "Isolde's extra damage given as text, in sheet order",
+    ).toEqual([
+      ["Cinder Mark I", "skill", "1d4 hearts of a chosen element", undefined, "1/combat"],
+      ["Cinder Mark II", "skill", "1 heart per frost mark", "cold", undefined],
+    ]);
+
+    // GR-1: text is the skill list's only. A player's grant stored with an amount and text
+    // (bad data: the rules don't look inside grants) counts its amount as usual.
+    const sheet = fixtureSheet("aldric");
+    sheet.manualGrants.push({
+      id: "m-x-both",
+      reason: "DM ruling, made-up faire",
+      grants: [{ id: "g-x-both", kind: "extra-damage", amount: 2, amountText: "1d4 hearts" } as Grant],
+    });
+    const bad = computeTotals(sheet, testReferenceData());
+    expect(damageOf(bad.damage.grants), "where Aldric's damage comes from, with the bad record").toEqual([
+      ["Duskfang", "entry", 2, undefined, undefined],
+      ["DM ruling, made-up faire", "manual", 2, undefined, undefined],
+    ]);
+    expect(bad.damage.situationalText, "Aldric's extra damage given as text, with the bad record").toEqual([]);
+    // And one with neither (bad data too) is left out, like an amount that isn't a number.
+    sheet.manualGrants.push({
+      id: "m-x-neither",
+      reason: "Shrine blessing",
+      grants: [{ id: "g-x-neither", kind: "extra-damage" } as Grant],
+    });
+    const neither = computeTotals(sheet, testReferenceData());
+    expect(neither.damage.value, "Aldric's damage, with the record that has no amount").toBe(5);
+    expect(neither.damage.situationalText, "Aldric's text damage, with the record that has no amount").toEqual([]);
+    // A player's grant with text and no amount (bad data), blank or not, is left out too: text is the skill list's.
+    sheet.manualGrants.push({
+      id: "m-x-text",
+      reason: "Shrine blessing",
+      grants: [
+        { id: "g-x-text", kind: "extra-damage", amountText: "1d4 hearts" } as unknown as Grant,
+        { id: "g-x-blank", kind: "extra-damage", amountText: "  " } as unknown as Grant,
+      ],
+    });
+    const text = computeTotals(sheet, testReferenceData());
+    expect(text.damage.value, "Aldric's damage, with a player's text records").toBe(5);
+    expect(text.damage.situationalText, "Aldric's text damage, with a player's text records").toEqual([]);
+
+    const without = computeTotals(isoldeWith("cinder-mark-ii"), ref);
+    expect(
+      without.damage.situationalText.map((d) => sourceName(d.source)),
+      "Isolde's extra damage given as text, without Cinder Mark I",
+    ).toEqual(["Cinder Mark II"]);
+  },
+);
+
+rule(
   { req: ["GR-13", "GR-3"], m: "M4" },
   "an unequipped weapon's and an inactive ally's extra damage don't count, and aren't listed as situational",
   () => {

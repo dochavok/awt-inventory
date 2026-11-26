@@ -331,6 +331,48 @@ rule(
 );
 
 rule(
+  { req: ["RD-1", "GR-1", "GR-13", "RD-4"], m: "M4" },
+  "a skill's extra damage can give its amount as text instead, trimmed; text with an amount or a group, or blank, is a problem naming the grant",
+  () => {
+    const of = (list: any[], skill: string) => list.find((g: any) => g.skill === skill).grants;
+    const withDamage = (damage: Record<string, unknown>) =>
+      edited("skill-grants.yaml", (list) =>
+        of(list, "iron-guard").push({ id: "sg-x-guard-dmg", kind: "extra-damage", ...damage }),
+      );
+    for (const [damage, kept] of [
+      [
+        { amountText: "1d4 hearts of a chosen element", condition: "1/combat" },
+        { amountText: "1d4 hearts of a chosen element", condition: "1/combat" },
+      ],
+      [{ amountText: " 1 heart per frost mark " }, { amountText: "1 heart per frost mark" }],
+      [
+        { amountText: "1 heart per frost mark", damageType: "cold" },
+        { amountText: "1 heart per frost mark", damageType: "cold" },
+      ],
+    ] as const) {
+      const files = withDamage(damage);
+      expect(problemsFor(files), `problems with extra damage ${JSON.stringify(damage)}`).toEqual([]);
+      expect(
+        loadReferenceData(files)
+          .skillGrants.find((g) => g.skill === "iron-guard")
+          ?.grants.at(-1),
+        `Iron Guard's extra damage ${JSON.stringify(damage)}`,
+      ).toEqual({ id: "sg-x-guard-dmg", kind: "extra-damage", ...kept });
+    }
+    for (const [what, damage] of [
+      ["text and an amount", { amountText: "1d4 hearts", amount: 1 }],
+      ["text in a group", { amountText: "1d4 hearts", group: "rage" }],
+      ["blank text", { amountText: "  " }],
+      ["text that isn't text", { amountText: 4 }],
+    ] as const) {
+      expect(problemsFor(withDamage(damage)).join("\n"), `problems with extra damage with ${what}`).toMatch(
+        /^skill-grants\.yaml sg-x-guard-dmg: /m,
+      );
+    }
+  },
+);
+
+rule(
   { req: ["RD-1", "GR-1", "RD-4"], m: "M4" },
   "each problem with class bonus dice, groups or die-always names its file and the exact entry",
   () => {

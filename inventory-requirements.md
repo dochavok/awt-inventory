@@ -250,7 +250,7 @@ A character's totals are never typed in. They're worked out from the level chart
 - +n arcane slots
 - +n allowance for a rarity (e.g. +1 Legendary)
 - a permission (Weapon Use, Ranged Weapon Use, Armor Use, Dual Wielding)
-- extra damage +n hearts, optionally of a type (e.g. fire)
+- extra damage +n hearts, optionally of a type (e.g. fire). In the skill list only, the amount can instead be text, for dice or an amount per something, shown after a "+" as written (e.g. *1d4 hearts of an element you know*, *1 heart per stack of poison on the foe*); such a grant is always situational.
 
 A grant in the skill list (SK-7) can belong to a **group**, such as the Holy Die or the bonus vs Evil. Within a group only the largest grant is used (for dice, the one with the highest roll): a larger die or bonus replaces a smaller one, as the level chart's dice do, and the smaller ones aren't listed. A group is one growing die or bonus, such as the Holy Die from Devotion I, II and III. A grant outside the group, such as another skill's own extra 1d6, is added as usual, alongside the group's largest. Only the skill list's grants are grouped. An item's, title's or manual grant always adds up, so two equipped Back items both add their CM. A group is set on each of a skill's grants, since one skill can grow two things (Devotion I's bonus vs Evil and its Holy Die). For slots, allowances and extra damage, a group's grants replace each other only for the same slot kind, rarity or damage type (ignoring case). A grouped die is situational (GR-4) unless one of the character's skills makes that group's die always count (e.g. Divine Instrument for the Holy Die). It's then listed among the combat dice (GR-11), with its source.
 
@@ -284,7 +284,7 @@ A grant in the skill list (SK-7) can belong to a **group**, such as the Holy Die
 
 **GR-12 · Must · M4: Where it comes from.** For each total, the user can open a list of every grant in it: the source, its category and the amount. Situational grants are listed separately under each total they would affect.
 
-**GR-13 · Should · M4: Damage.** A character's damage is a base of 1 heart plus every extra damage grant that counts and isn't situational, whatever its type. It's shown as a total with one line per grant, each with its amount, type and source, e.g. *Damage 3 hearts: base 1, +1 heart fire (Title: Ember Mark), +1 heart (Skill: True Warrior)*. Each equipped weapon adds its own: two weapons with +2 each make 5 hearts. Situational extra damage, such as Berserk's (1/combat), is listed apart and never added in (GR-4).
+**GR-13 · Should · M4: Damage.** A character's damage is a base of 1 heart plus every extra damage grant that counts and isn't situational, whatever its type. It's shown as a total with one line per grant, each with its amount, type and source, e.g. *Damage 3 hearts: base 1, +1 heart fire (Title: Ember Mark), +1 heart (Skill: True Warrior)*. Each equipped weapon adds its own: two weapons with +2 each make 5 hearts. Situational extra damage, such as Berserk's (1/combat), is listed apart and never added in (GR-4). Extra damage given as text (GR-1) is listed with the situational extra damage in the same way, e.g. *+1d4 hearts of an element you know (Skill: Sorcery, 1/combat)*.
 
 ## 9. Equipping
 

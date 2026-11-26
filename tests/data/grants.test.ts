@@ -298,6 +298,32 @@ rule(
 );
 
 rule(
+  { req: ["GR-1", "GR-13", "GR-2"], m: "M4" },
+  "extra damage given as text is the skill list's only: on an entry, a title or a manual grant it's refused",
+  async () => {
+    const { bram, aldric, id } = await bramWithAldric();
+    const title = (await bram.listTitles()).find((t) => t.name === "Friend of the Forest")!;
+    for (const [what, grant] of [
+      ["text alone", { kind: "extra-damage", amountText: "1d4 hearts" }],
+      ["text and an amount", { kind: "extra-damage", amount: 1, amountText: "1d4 hearts" }],
+    ] as const) {
+      for (const [where, attempt] of [
+        ["on Duskfang", () => bram.addGrant({ entryId: id("aldric-sword") }, grant as never)],
+        ["on a title", () => bram.addGrant({ titleId: title.id }, grant as never)],
+        ["as a manual grant", () => bram.addManualGrant(aldric.character.id, "DM ruling", [grant as never])],
+      ] as const) {
+        const tried = attempt();
+        await expect(tried, `a grant with ${what} ${where}`).rejects.toThrow(ValidationError);
+        await expect(tried, `the refusal of ${what} ${where}`).rejects.toMatchObject({ field: "grants" });
+      }
+    }
+    const totals = await bram.totals(aldric.character.id);
+    expect(totals.damage.situationalText, "Aldric's extra damage given as text, after the refusals").toEqual([]);
+    expect(totals.damage.value, "Aldric's damage, after the refusals").toBe(3);
+  },
+);
+
+rule(
   { req: ["GR-1", "GR-2"], m: "M4" },
   "a player's grant can't be in a group or make a group's die always count: only the skill list's can",
   async () => {
