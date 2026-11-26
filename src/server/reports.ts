@@ -33,11 +33,7 @@ function scrubbed(text: string, displayName: string | undefined): string {
   let out = text.replace(EMAIL_PATTERN, "[email removed]");
   const name = displayName?.trim();
   if (name) {
-    // Whole word: only an end of the name that's a letter or digit can run on into a longer word.
-    const wordChar = /[\p{L}\p{N}_]/u;
-    const before = wordChar.test(name[0]!) ? "(?<![\\p{L}\\p{N}_])" : "";
-    const after = wordChar.test(name.at(-1)!) ? "(?![\\p{L}\\p{N}_])" : "";
-    const whole = `${before}${escapeRegExp(name)}${after}`;
+    const whole = `(?<![\\p{L}\\p{N}_])${escapeRegExp(name)}(?![\\p{L}\\p{N}_])`;
     out = out.replace(new RegExp(whole, "giu"), "[name removed]");
   }
   return out;
