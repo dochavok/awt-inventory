@@ -86,15 +86,45 @@ rule({ req: ["RD-4"], m: "M2" }, "the app's build fails on reference data with a
 
 rule(
   { req: ["NF-4"], m: "M2" },
-  "the lint check refuses a YAML parser, a schema checker, the data loader or the build's code in the browser's code",
+  "the built app carries no YAML parser, schema checker, data loader or build code",
+  async () => {
+    const { build } = await import("vite");
+    const outDir = mkdtempSync(join(tmpdir(), "awt-build-"));
+    try {
+      const output = await build({
+        configFile: fileURLToPath(new URL("../../vite.config.ts", import.meta.url)),
+        logLevel: "silent",
+        build: { outDir, emptyOutDir: true },
+      });
+      const outputs = (Array.isArray(output) ? output : [output]) as {
+        output: { type: string; moduleIds?: string[] }[];
+      }[];
+      const modules = outputs
+        .flatMap((o) => o.output)
+        .flatMap((chunk) => (chunk.type === "chunk" ? (chunk.moduleIds ?? []) : []))
+        .map((id) => id.replace(/\\/g, "/"));
+      // Can fail: the app's own code and the built-in data are there.
+      expect(modules, "the built app's modules").toContainEqual(expect.stringMatching(/\/src\/app\/services\.ts$/));
+      expect(modules, "the built app's modules").toContain("\0virtual:reference-data");
+      const shipped = modules.filter((id) =>
+        /\/node_modules\/(yaml|zod)\/|\/src\/refdata\/|\/build\/[^/]+\.ts$/.test(id),
+      );
+      expect(shipped, "YAML, zod, the data loader or build code in the built app").toEqual([]);
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  },
+  { timeout: 120_000 },
+);
+
+rule(
+  { req: ["NF-4"], m: "M2" },
+  "the lint check warns early on importing a YAML parser, a schema checker, the data loader or build code in the browser's code",
   async () => {
     const { ESLint } = await import("eslint");
     const eslint = new ESLint();
-    const lint = async (path: string, code: string) =>
-      (await eslint.lintText(code, { filePath: path }))[0]!.messages.map((m) => m.ruleId);
     for (const path of [
       "src/app/probe.tsx",
-      "src/data/probe.ts",
       "src/data/probe.tsx",
       "src/platform/probe.ts",
       "src/rules/probe.ts",
@@ -102,14 +132,13 @@ rule(
     ]) {
       const up = path.split("/").length === 2 ? "./" : "../";
       for (const from of ["yaml", "zod", `${up}refdata`, `${up}../build/reference-data`]) {
+        const [result] = await eslint.lintText(`import * as probe from "${from}";\nexport { probe };\n`, {
+          filePath: path,
+        });
         expect(
-          await lint(path, `import * as probe from "${from}";\nexport { probe };\n`),
+          result!.messages.filter((m) => m.ruleId === "no-restricted-imports").map((m) => m.message),
           `the lint check on importing ${from} in ${path}`,
-        ).toContain("no-restricted-imports");
-        expect(
-          await lint(path, `export const probe = import("${from}");\n`),
-          `the lint check on a dynamic import of ${from} in ${path}`,
-        ).toContain("no-restricted-syntax");
+        ).toContainEqual(expect.stringContaining("read at build time (NF-4)"));
       }
     }
   },

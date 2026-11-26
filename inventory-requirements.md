@@ -470,7 +470,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 
 - On a phone with ordinary mobile signal (tested as 1.6 Mbps with a 150 ms delay), a character's page opens within 2 seconds, once the app has been opened on that phone before.
 - After a change, totals and slot counts update in under 0.2 seconds.
-- The app carries no YAML parser or schema checker: the reference data is read and checked when the app is built (RD-4), and the lint check refuses those imports in the code that runs in the browser.
+- The app carries no YAML parser or schema checker: the reference data is read and checked when the app is built (RD-4), and a check of the built app fails if either is in it.
 
 **NF-5 · Must · M2+: Scale and cost.** The app is built for up to about 500 users, each with a few characters of a few hundred entries. At that size it runs on a free or low-cost hosting plan, and its costs are recorded in the brain's `services.md`.
 

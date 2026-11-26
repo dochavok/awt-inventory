@@ -20,15 +20,11 @@ const untaggedTests = {
 
 // NF-4: the reference data comes built in, so the code that runs in the browser never imports a
 // YAML parser, a schema checker, the data loader or the build's own code (which imports them).
+// An early warning only: the check of the built app (tests/refdata/build.test.ts) is what holds it.
 const buildTimeOnly = (message) => ({
   group: ["yaml", "yaml/*", "zod", "zod/*", "**/refdata", "**/refdata/**", "**/build/**"],
   message,
 });
-const noBuildTimeImports = {
-  // A dynamic import() would still be bundled, as a chunk of its own.
-  selector: "ImportExpression[source.value=/^(yaml|zod)($|\\u002F)|refdata|build\\u002F/]",
-  message: "The reference data is read at build time (NF-4): import it from virtual:reference-data.",
-};
 
 export default tseslint.config(
   {
@@ -64,7 +60,6 @@ export default tseslint.config(
           ],
         },
       ],
-      "no-restricted-syntax": ["error", noBuildTimeImports],
     },
   },
   {
@@ -80,7 +75,6 @@ export default tseslint.config(
           ],
         },
       ],
-      "no-restricted-syntax": ["error", noBuildTimeImports],
     },
   },
 );
