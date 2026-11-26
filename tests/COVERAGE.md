@@ -14,7 +14,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | AC-4 | Must | M2 | browser/phone.spec.ts (1), data/accounts.test.ts (1), docs/help-pages.test.ts (1) |
 | AC-5 | Must | M2 | access/accounts.test.ts (3), access/firestore-store.test.ts (2), data/accounts.test.ts (3), data/reports.test.ts (1), server/reports.test.ts (1) |
 | PV-1 | Must | M2 | access/accounts.test.ts (1), access/firestore-store.test.ts (1), access/privacy.test.ts (19), data/inventory.test.ts (1), data/privacy.test.ts (6), data/reports.test.ts (1), data/search-export.test.ts (1), data/titles.test.ts (1) |
-| PV-2 | Must | M2 | access/accounts.test.ts (1), access/privacy.test.ts (2), data/accounts.test.ts (2), server/reports.test.ts (10) |
+| PV-2 | Must | M2 | access/accounts.test.ts (1), access/privacy.test.ts (2), data/accounts.test.ts (2), server/reports.test.ts (11) |
 | PV-3 | Must | M2 | access/privacy.test.ts (1), data/privacy.test.ts (3) |
 | PV-4 | Must | M2 | browser/phone.spec.ts (1), browser/screens.spec.ts (1), docs/help-pages.test.ts (1) |
 | CH-1 | Must | M2 | access/firestore-store.test.ts (3), access/offline.test.ts (5), access/privacy.test.ts (3), browser/characters.spec.ts (1), browser/screens.spec.ts (3), browser/search-export.spec.ts (3), data/characters.test.ts (6), data/grants.test.ts (2) |
@@ -93,7 +93,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | EX-4 | Must | M3 | access/firestore-store.test.ts (1), browser/search-export.spec.ts (2), data/inventory.test.ts (1), data/search-export.test.ts (5) |
 | EX-5 | Should | M3 | docs/docs.test.ts (2) |
 | SP-1 | Must | M3 | access/firestore-store.test.ts (1), access/offline.test.ts (1), access/privacy.test.ts (3), browser/inventory.spec.ts (2), data/limits.test.ts (1), data/reports.test.ts (7), server/reports.test.ts (5) |
-| SP-2 | Must | M3 | access/privacy.test.ts (1), server/reports.test.ts (22) |
+| SP-2 | Must | M3 | access/privacy.test.ts (1), server/reports.test.ts (23) |
 | SP-3 | Must | M3 | server/reports.test.ts (3) |
 | TD-1 | Must | M7 | tests wait for the section 11 review (TF-1) |
 | TD-2 | Must | M7 | tests wait for the section 11 review (TF-1) |

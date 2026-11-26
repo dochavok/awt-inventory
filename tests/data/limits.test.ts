@@ -164,20 +164,23 @@ rule(
         () => bram.addGrant({ entryId: charm.id }, { kind: "cm", amount: 1, condition: `vs ${low}` }),
       ],
     ];
+    // The name each refusal gives its field, where it isn't the field itself.
+    const labels: Record<string, string> = { displayName: "display name", grants: "condition" };
+    await bram.updateCharacter(id, { notes: "Before" });
     const nameBefore = (await bram.profile()).displayName;
     for (const [what, field, attempt] of cases) {
       const refused = attempt();
       await expect(refused, `${what} with half an emoji`).rejects.toThrow(ValidationError);
       await expect(refused, `the refusal of ${what}`).rejects.toMatchObject({
         field,
-        message: expect.stringMatching(/broken character/),
+        message: expect.stringMatching(new RegExp(`^The ${labels[field] ?? field} has a broken character`)),
       });
     }
     expect(
       (await bram.listCharacters("main")).map((c) => c.name),
       "Bram's characters after the refused one",
     ).toEqual(["Rook"]);
-    expect((await bram.character(id)).notes, "Rook's notes after the refused edit").toBeUndefined();
+    expect((await bram.character(id)).notes, "Rook's notes after the refused edit").toBe("Before");
     expect((await bram.profile()).displayName, "Bram's display name after the refused one").toBe(nameBefore);
     expect(
       (await bram.listEntries(id, "consumables")).map((e) => e.entry.id),

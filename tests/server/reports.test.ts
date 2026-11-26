@@ -144,6 +144,21 @@ rule(
 
 rule(
   { req: ["SP-2", "PV-2"], m: "M3" },
+  "a display name that starts or ends with punctuation is removed even with a letter right next to it",
+  async () => {
+    for (const [name, message, expected] of [
+      ["Wren (G)", "Thanks, Wren (G)s", "Thanks, [name removed]s"],
+      ["*Star*", "From x*Star*here", "From x[name removed]here"],
+    ]) {
+      const { issues, deps } = delivery();
+      await deliverReport(report({ subject: "CM", message }), { ...deps, displayNameOf: async () => name });
+      expect(issues.created[0]!.body.split("\n")[0], `the message from ${name}`).toBe(expected);
+    }
+  },
+);
+
+rule(
+  { req: ["SP-2", "PV-2"], m: "M3" },
   "a display name is removed only as a whole word, so a longer word that starts with it is kept",
   async () => {
     const { issues, deps } = delivery();
