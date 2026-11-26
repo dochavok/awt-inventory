@@ -41,10 +41,10 @@ export function withCondition(grant: { condition?: string }): { condition?: stri
 
 /**
  * GR-1's amounts are numbers; bad data with one that isn't (NaN, Infinity) is left out, as is
- * extra damage with neither an amount nor text.
+ * extra damage with no amount, unless it's the skill list's text (whose schema refuses it blank).
  */
-function usable(grant: CountedGrant): boolean {
-  if (grant.kind === "extra-damage" && !("amount" in grant)) return typeof grant.amountText === "string";
+function usable(grant: CountedGrant, skillList: boolean): boolean {
+  if (grant.kind === "extra-damage" && !("amount" in grant)) return skillList && typeof grant.amountText === "string";
   return !("amount" in grant) || Number.isFinite(grant.amount);
 }
 
@@ -178,7 +178,7 @@ export function countedGrants(sheet: CharacterSheet, ref: ReferenceData): Source
     skillList = false,
   ) => {
     for (const grant of grants ?? []) {
-      if (grant.kind === "die-always" || usable(grant)) counted.push({ grant, source, group, skillList });
+      if (grant.kind === "die-always" || usable(grant, skillList)) counted.push({ grant, source, group, skillList });
     }
   };
 

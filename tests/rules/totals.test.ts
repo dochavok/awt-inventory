@@ -658,6 +658,18 @@ rule(
     const neither = computeTotals(sheet, testReferenceData());
     expect(neither.damage.value, "Aldric's damage, with the record that has no amount").toBe(5);
     expect(neither.damage.situationalText, "Aldric's text damage, with the record that has no amount").toEqual([]);
+    // A player's grant with text and no amount (bad data), blank or not, is left out too: text is the skill list's.
+    sheet.manualGrants.push({
+      id: "m-x-text",
+      reason: "Shrine blessing",
+      grants: [
+        { id: "g-x-text", kind: "extra-damage", amountText: "1d4 hearts" } as unknown as Grant,
+        { id: "g-x-blank", kind: "extra-damage", amountText: "  " } as unknown as Grant,
+      ],
+    });
+    const text = computeTotals(sheet, testReferenceData());
+    expect(text.damage.value, "Aldric's damage, with a player's text records").toBe(5);
+    expect(text.damage.situationalText, "Aldric's text damage, with a player's text records").toEqual([]);
 
     const without = computeTotals(isoldeWith("cinder-mark-ii"), ref);
     expect(
