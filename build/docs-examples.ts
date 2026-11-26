@@ -10,7 +10,7 @@
 // scripts/generate-docs.ts (protected, TF-7) puts them between the markers
 // (--write) or checks the committed ones still match (--check).
 
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { z } from "zod";
@@ -21,7 +21,7 @@ import { SHOW_SKILL_TEXT } from "../src/app/settings";
 import { MemoryDatabase, createMemoryStore } from "../src/data/memory-store";
 import type { InventoryStore } from "../src/data/store";
 import type { GainOptions, NewEntry, NewSkill, NewTitle } from "../src/data/types";
-import { loadReferenceData } from "../src/refdata";
+import { readReferenceData } from "./reference-data";
 import type { CharacterSheet, NewGrant, ReferenceData } from "../src/rules/types";
 
 /** docs/sample/sample.yaml: unknown fields are refused, so a typo can't vanish from the examples. */
@@ -72,14 +72,8 @@ function equipmentExample(sheet: CharacterSheet, ref: ReferenceData): string {
 /** The sample account, built through the app's store with the reference data in data/. */
 async function sampleAccount(root: string): Promise<SampleAccount> {
   const sample = Sample.parse(parse(readFileSync(join(root, "docs", "sample", "sample.yaml"), "utf8")));
-  const dataDir = join(root, "data");
-  const ref = loadReferenceData(
-    Object.fromEntries(
-      readdirSync(dataDir)
-        .filter((f) => f.endsWith(".yaml"))
-        .map((f) => [f, readFileSync(join(dataDir, f), "utf8")]),
-    ),
-  );
+  // As the app's build reads it.
+  const ref = readReferenceData(join(root, "data"));
   const store = createMemoryStore(new MemoryDatabase(), {
     currentUid: () => "sample-user",
     clock: { now: () => new Date(sample.at) },

@@ -15,7 +15,8 @@ import {
 } from "firebase/firestore";
 import { createAccounts, type Accounts } from "../data/accounts";
 import { createFirestoreStore, loadWholeAccount, type RefusedChange } from "../data/firestore-store";
-import builtInReferenceData from "virtual:reference-data";
+// Section 13: data/'s files, read and checked when the app was built (RD-4), so nothing is parsed here (NF-4).
+import ref from "virtual:reference-data";
 import { SHOW_SKILL_TEXT } from "./settings";
 import type { AppSettings, InventoryStore } from "../data/store";
 import { systemClock } from "../platform/clock";
@@ -66,8 +67,6 @@ function firebaseConfig() {
 const RELOAD_MS = 15 * 60_000;
 
 export function createServices(): Services {
-  // Section 13: data/'s files, read and checked when the app was built (RD-4), so nothing is parsed here (NF-4).
-  const ref: ReferenceData = builtInReferenceData;
   const settings: AppSettings = { showSkillText: SHOW_SKILL_TEXT, appVersion: APP_VERSION };
   const refusedListeners = new Set<(change: RefusedChange) => void>();
   let lastLoad: { uid: string; at: number } | undefined;

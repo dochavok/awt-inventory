@@ -53,4 +53,21 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // The browser's code: the reference data comes built in, so no YAML parser or schema checker ships (NF-4).
+    files: ["src/app/**/*.{ts,tsx}", "src/data/**/*.ts", "src/platform/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["yaml", "zod", "**/refdata", "**/refdata/**"],
+              message: "The reference data is read at build time (NF-4): import it from virtual:reference-data.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

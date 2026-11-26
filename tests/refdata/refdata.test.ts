@@ -90,7 +90,7 @@ rule(
   { req: ["RD-1", "RD-4"], m: "M2" },
   "the app's build reads and checks the reference data files: what it builds in is what loading them gives",
   () => {
-    const built = inFolder(testFiles(), readReferenceData);
+    const built = readReferenceData(fileURLToPath(FIXTURES));
     // Built into the app as JSON, so it must come back the same from JSON.
     expect(JSON.parse(JSON.stringify(built)), "the reference data the build gives the app").toEqual(
       loadReferenceData(testFiles()),
