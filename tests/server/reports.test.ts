@@ -123,6 +123,59 @@ rule(
 
 rule(
   { req: ["SP-2", "PV-2"], m: "M3" },
+  "a display name with regular-expression characters is removed like any other, without a crash",
+  async () => {
+    for (const name of ["Wren (G)", "A+B", "C.J."]) {
+      const { issues, deps } = delivery();
+      const done = await deliverReport(
+        report({ subject: `From ${name}`, message: `Aldric's CM showed 169. Thanks, ${name}` }),
+        { ...deps, displayNameOf: async () => name },
+      );
+      expect(done.delivery, `the report from ${name}`).toBe("issue-created");
+      const issue = issues.created[0]!;
+      expect(issue.title, `the issue's title for ${name}`).toBe("From [name removed]");
+      expect(issue.body.split("\n")[0], `the message from ${name}`).toBe(
+        "Aldric's CM showed 169. Thanks, [name removed]",
+      );
+    }
+  },
+);
+
+rule(
+  { req: ["SP-2", "PV-2"], m: "M3" },
+  "a display name is removed only as a whole word, so a longer word that starts with it is kept",
+  async () => {
+    const { issues, deps } = delivery();
+    await deliverReport(report({ subject: "Bramble Cloak", message: "Bram here: my Bramble Cloak gives no CM." }), {
+      ...deps,
+      displayNameOf: async () => "Bram",
+    });
+    const issue = issues.created[0]!;
+    expect(issue.title, "the issue's title").toBe("Bramble Cloak");
+    expect(issue.body.split("\n")[0], "the message").toBe("[name removed] here: my Bramble Cloak gives no CM.");
+  },
+);
+
+rule(
+  { req: ["SP-2", "PV-2"], m: "M3" },
+  "an email address in capitals is removed, and each removed name and address leaves a marker where it was",
+  async () => {
+    const { issues, deps } = delivery();
+    await deliverReport(
+      report({
+        subject: "Reach me at BRAM@EXAMPLE.TEST",
+        message: "Aldric's CM showed 169. Bramblewick, Bram@Example.Test",
+      }),
+      { ...deps, displayNameOf: async () => "Bramblewick" },
+    );
+    const issue = issues.created[0]!;
+    expect(issue.title, "the issue's title").toBe("Reach me at [email removed]");
+    expect(issue.body.split("\n")[0], "the message").toBe("Aldric's CM showed 169. [name removed], [email removed]");
+  },
+);
+
+rule(
+  { req: ["SP-2", "PV-2"], m: "M3" },
   "if the sender's display name can't be looked up, no issue is made and the report stays pending",
   async () => {
     const { issues, deps } = delivery();
