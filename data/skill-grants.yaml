@@ -343,6 +343,9 @@
 - skill: divine-strength
   grants:
   - {id: sg-divine-strength-1, kind: extra-damage, amount: 1}
+- skill: divine-smite
+  grants:
+  - {id: sg-divine-smite-1, kind: extra-damage, amountText: your Holy Die in hearts, condition: '1/combat, this round'}
 - skill: demons-bane
   grants:
   - {id: sg-demons-bane-1, kind: extra-damage, amount: 3, condition: vs. Evil creatures}
@@ -380,6 +383,12 @@
 - skill: inspiring-presence
   grants:
   - {id: sg-inspiring-presence-1, kind: effect, effect: cr-bonus, text: '+5 to all CRs, for allies (does not stack)'}
+- skill: coordinated-assault
+  grants:
+  - {id: sg-coordinated-assault-1, kind: extra-damage, amount: 1, condition: '1/combat, for all allies this round'}
+- skill: lead-the-charge
+  grants:
+  - {id: sg-lead-the-charge-1, kind: extra-damage, amountText: 1 heart per charging ally, condition: '1/combat, charging into melee, this round'}
 - skill: situational-awareness
   grants:
   - {id: sg-situational-awareness-1, kind: effect, effect: cr-bonus, text: +3 to CRs vs enemies in stealth or hiding}
@@ -389,12 +398,24 @@
 - skill: rank-commander-and-chief
   grants:
   - {id: sg-rank-commander-and-chief-1, kind: die, die: 1d20, condition: when added to your combat roll (or an ally's), group: tactical-die}
+- skill: shadow-striker
+  grants:
+  - {id: sg-shadow-striker-1, kind: extra-damage, amount: 3, damageType: unavoidable, condition: while in stealth}
+- skill: studied-mark
+  grants:
+  - {id: sg-studied-mark-1, kind: extra-damage, amount: 2, condition: '1/day, vs. your declared mark'}
 - skill: murderous-intent
   grants:
   - {id: sg-murderous-intent-1, kind: extra-damage, amount: 3, condition: vs. marks}
+- skill: rapid-takedown
+  grants:
+  - {id: sg-rapid-takedown-1, kind: extra-damage, amount: 5, condition: '1/combat, leaving stealth, this round'}
 - skill: blood-lust
   grants:
   - {id: sg-blood-lust-1, kind: extra-damage, amount: 1, condition: 'after dealing damage, until the end of combat'}
+- skill: ruthless
+  grants:
+  - {id: sg-ruthless-1, kind: extra-damage, amountText: 1 heart per type of creature defeated today}
 - skill: maximize-poison
   grants:
   - {id: sg-maximize-poison-1, kind: extra-damage, amount: 1, damageType: poison, condition: to damage dealt by poisons}
@@ -416,9 +437,18 @@
 - skill: phylactery
   grants:
   - {id: sg-phylactery-1, kind: effect, effect: resistance, text: 'Resistance: necrotic and evil damage'}
+- skill: death-knell
+  grants:
+  - {id: sg-death-knell-1, kind: extra-damage, amount: 1, damageType: necrotic, condition: 1/combat}
+- skill: deaths-mantle
+  grants:
+  - {id: sg-deaths-mantle-1, kind: extra-damage, amount: 1, damageType: necrotic, condition: '1/combat, for all allies'}
 - skill: undead-resistance
   grants:
   - {id: sg-undead-resistance-1, kind: mitigation, amount: 2, condition: vs Necrotic and Evil sources}
+- skill: cursed-golem
+  grants:
+  - {id: sg-cursed-golem-1, kind: extra-damage, amount: 2, condition: 'for your Death Golem''s attacks'}
 - skill: elemental-protection
   grants:
   - {id: sg-elemental-protection-1, kind: mitigation, amount: 2, condition: vs elements you know}
