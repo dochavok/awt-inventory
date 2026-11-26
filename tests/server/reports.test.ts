@@ -125,7 +125,8 @@ rule(
   { req: ["SP-2", "PV-2"], m: "M3" },
   "a display name with regular-expression characters is removed like any other, without a crash",
   async () => {
-    for (const name of ["Wren (G)", "A+B", "C.J."]) {
+    // The last three aren't valid regular expressions unless escaped.
+    for (const name of ["Wren (G)", "A+B", "C.J.", "Wren (G", "[Bram", "*Star*"]) {
       const { issues, deps } = delivery();
       const done = await deliverReport(
         report({ subject: `From ${name}`, message: `Aldric's CM showed 169. Thanks, ${name}` }),

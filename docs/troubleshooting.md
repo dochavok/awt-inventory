@@ -1,8 +1,12 @@
 # Troubleshooting
 
-reviewed: 2026-11-19
+reviewed: 2026-11-25
 
 Every refusal and warning the app shows, and what to do about it.
+
+## Any text
+
+- **"The … has a broken character, such as half of an emoji":** text pasted from elsewhere can be cut off in the middle of an emoji. Delete the odd character at the cut, or type the text again.
 
 ## Signing up and signing in
 

@@ -164,9 +164,21 @@ rule(
         () => bram.addGrant({ entryId: charm.id }, { kind: "cm", amount: 1, condition: `vs ${low}` }),
       ],
     ];
+    const nameBefore = (await bram.profile()).displayName;
     for (const [what, field, attempt] of cases) {
-      await expect(attempt(), `${what} with half an emoji`).rejects.toMatchObject({ field });
+      const refused = attempt();
+      await expect(refused, `${what} with half an emoji`).rejects.toThrow(ValidationError);
+      await expect(refused, `the refusal of ${what}`).rejects.toMatchObject({
+        field,
+        message: expect.stringMatching(/broken character/),
+      });
     }
+    expect(
+      (await bram.listCharacters("main")).map((c) => c.name),
+      "Bram's characters after the refused one",
+    ).toEqual(["Rook"]);
+    expect((await bram.character(id)).notes, "Rook's notes after the refused edit").toBeUndefined();
+    expect((await bram.profile()).displayName, "Bram's display name after the refused one").toBe(nameBefore);
     expect(
       (await bram.listEntries(id, "consumables")).map((e) => e.entry.id),
       "Rook's consumables after the refused ones: only the Dragon Tonic",
