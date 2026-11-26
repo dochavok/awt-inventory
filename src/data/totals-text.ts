@@ -43,7 +43,7 @@ export const hearts = (n: number) => `${n} ${n === 1 ? "heart" : "hearts"}`;
  */
 export const damageText = (
   d: Pick<DamageLine, "amount" | "damageType"> | Pick<TextDamageLine, "amountText" | "damageType">,
-) => `+${"amountText" in d ? d.amountText : hearts(d.amount)}${d.damageType ? ` ${d.damageType}` : ""}`;
+) => `+${"amount" in d ? hearts(d.amount) : d.amountText}${d.damageType ? ` ${d.damageType}` : ""}`;
 
 /** Where extra damage comes from, and its condition if it has one, e.g. "Title: Wanderer, vs Undead". */
 export const damageSource = (d: Pick<DamageLine, "source" | "condition">) =>

@@ -4,8 +4,8 @@
 // situational ones apart with their condition.
 
 import { expect } from "vitest";
-import { totalsView } from "../../src/app/grant-text";
-import { computeTotals } from "../../src/rules";
+import { grantText, totalsView } from "../../src/app/grant-text";
+import { computeTotals, type Grant } from "../../src/rules";
 import { fixtureSheet, testReferenceData } from "../support/fixtures";
 import { rule } from "../support/rule";
 
@@ -68,6 +68,22 @@ rule(
       "+3 hearts radiant (Manual grant: Shrine blessing, vs Undead)",
       "+1 heart per frost mark (Skill: Blade Basics)",
       "+1d4 hearts of a chosen element (Skill: Iron Guard, 1/combat)",
+    ]);
+  },
+);
+
+rule(
+  { req: ["GR-13", "GR-1"], m: "M4" },
+  "a player's extra damage stored with an amount and text (bad data) is worded by its amount, as the totals count it",
+  () => {
+    const sheet = fixtureSheet("aldric");
+    const both = { id: "g-x-both", kind: "extra-damage", amount: 2, amountText: "1d4 hearts" } as Grant;
+    sheet.manualGrants.push({ id: "m-x-both", reason: "Shrine blessing", grants: [both] });
+    expect(grantText(both, testReferenceData()), "the grant as its source lists it").toBe("Extra damage +2 hearts");
+    expect(totalsView(computeTotals(sheet, testReferenceData())).damage.lines, "Aldric's damage lines").toEqual([
+      "base 1",
+      "+2 hearts (Duskfang)",
+      "+2 hearts (Manual grant: Shrine blessing)",
     ]);
   },
 );

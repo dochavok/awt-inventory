@@ -649,6 +649,15 @@ rule(
       ["DM ruling, made-up faire", "manual", 2, undefined, undefined],
     ]);
     expect(bad.damage.situationalText, "Aldric's extra damage given as text, with the bad record").toEqual([]);
+    // And one with neither (bad data too) is left out, like an amount that isn't a number.
+    sheet.manualGrants.push({
+      id: "m-x-neither",
+      reason: "Shrine blessing",
+      grants: [{ id: "g-x-neither", kind: "extra-damage" } as Grant],
+    });
+    const neither = computeTotals(sheet, testReferenceData());
+    expect(neither.damage.value, "Aldric's damage, with the record that has no amount").toBe(5);
+    expect(neither.damage.situationalText, "Aldric's text damage, with the record that has no amount").toEqual([]);
 
     const without = computeTotals(isoldeWith("cinder-mark-ii"), ref);
     expect(

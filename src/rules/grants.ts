@@ -39,8 +39,12 @@ export function withCondition(grant: { condition?: string }): { condition?: stri
   return condition !== undefined ? { condition } : {};
 }
 
-/** GR-1's amounts are numbers; bad data with one that isn't (NaN, Infinity) is left out. */
+/**
+ * GR-1's amounts are numbers; bad data with one that isn't (NaN, Infinity) is left out, as is
+ * extra damage with neither an amount nor text.
+ */
 function usable(grant: CountedGrant): boolean {
+  if (grant.kind === "extra-damage" && !("amount" in grant)) return typeof grant.amountText === "string";
   return !("amount" in grant) || Number.isFinite(grant.amount);
 }
 
