@@ -48,6 +48,10 @@ export default tseslint.config(
             },
             { group: ["react", "react-dom", "react/*"], message: "The rules core has no UI code (TF-2)." },
             { group: ["**/data/**", "**/platform/**", "**/app/**"], message: "The rules core is pure (TF-2)." },
+            {
+              group: ["yaml", "zod", "**/refdata", "**/refdata/**"],
+              message: "The reference data is read at build time (NF-4): the rules get it passed in.",
+            },
           ],
         },
       ],
@@ -55,7 +59,8 @@ export default tseslint.config(
   },
   {
     // The browser's code: the reference data comes built in, so no YAML parser or schema checker ships (NF-4).
-    files: ["src/app/**/*.{ts,tsx}", "src/data/**/*.ts", "src/platform/**/*.ts"],
+    // src/rules has the same rule in its TF-2 block above, since a second block for it would replace that one.
+    files: ["src/app/**/*.{ts,tsx}", "src/data/**/*.ts", "src/platform/**/*.ts", "src/errors.ts"],
     rules: {
       "no-restricted-imports": [
         "error",

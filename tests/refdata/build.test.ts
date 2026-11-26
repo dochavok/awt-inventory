@@ -80,6 +80,32 @@ rule({ req: ["RD-4"], m: "M2" }, "the app's build fails on reference data with a
   ).toThrow(/RD-4[\s\S]*rarities\.yaml legendary: .*limitt/);
 });
 
+rule(
+  { req: ["NF-4"], m: "M2" },
+  "the lint check refuses a YAML parser, a schema checker or the data loader in the browser's code",
+  async () => {
+    const { ESLint } = await import("eslint");
+    const eslint = new ESLint();
+    for (const path of [
+      "src/app/probe.tsx",
+      "src/data/probe.ts",
+      "src/platform/probe.ts",
+      "src/rules/probe.ts",
+      "src/errors.ts",
+    ]) {
+      for (const from of ["yaml", "zod", path.startsWith("src/errors") ? "./refdata" : "../refdata"]) {
+        const [result] = await eslint.lintText(`import * as probe from "${from}";\nexport { probe };\n`, {
+          filePath: path,
+        });
+        expect(
+          result!.messages.map((m) => m.ruleId),
+          `the lint check on importing ${from} in ${path}`,
+        ).toContain("no-restricted-imports");
+      }
+    }
+  },
+);
+
 rule({ req: ["RD-4"], m: "M2" }, "the app's own build reads its reference data from data/", async () => {
   const config = (await import("../../vite.config")).default as { plugins: unknown[] };
   const plugin = (config.plugins.flat(Infinity) as Plugin[]).find((p) => p?.name === "awt-reference-data");
