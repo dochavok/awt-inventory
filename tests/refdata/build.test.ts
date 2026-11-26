@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Plugin } from "vite";
-import { expect } from "vitest";
+import { expect, vi } from "vitest";
 import { parse, stringify } from "yaml";
 import { readReferenceData, referenceData } from "../../build/reference-data";
 import { loadReferenceData, type ReferenceFiles } from "../../src/refdata";
@@ -18,6 +18,7 @@ import { rule } from "../support/rule";
 
 const FIXTURES = fileURLToPath(new URL("../fixtures/refdata/", import.meta.url));
 const DATA = fileURLToPath(new URL("../../data/", import.meta.url));
+const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
 /** The YAML files in `dir`, by file name. */
 function filesIn(dir: string): ReferenceFiles {
@@ -89,10 +90,14 @@ rule(
   "the built app carries no YAML parser, schema checker, data loader or build code",
   async () => {
     const { build } = await import("vite");
+    // As `npm run build` makes it for the deploy, not as Vitest's "test" environment would.
+    vi.stubEnv("NODE_ENV", "production");
     const outDir = mkdtempSync(join(tmpdir(), "awt-build-"));
     try {
       const output = await build({
-        configFile: fileURLToPath(new URL("../../vite.config.ts", import.meta.url)),
+        root: ROOT,
+        configFile: join(ROOT, "vite.config.ts"),
+        mode: "production",
         logLevel: "silent",
         build: { outDir, emptyOutDir: true },
       });
@@ -106,8 +111,10 @@ rule(
       // Can fail: the app's own code and the built-in data are there.
       expect(modules, "the built app's modules").toContainEqual(expect.stringMatching(/\/src\/app\/services\.ts$/));
       expect(modules, "the built app's modules").toContain("\0virtual:reference-data");
-      const shipped = modules.filter((id) =>
-        /\/node_modules\/(yaml|zod)\/|\/src\/refdata\/|\/build\/[^/]+\.ts$/.test(id),
+      // The drive letter's case on Windows varies with how the path was reached.
+      const buildDir = `${ROOT.replace(/\\/g, "/")}build/`.toLowerCase();
+      const shipped = modules.filter(
+        (id) => /\/node_modules\/(yaml|zod)\/|\/src\/refdata\//.test(id) || id.toLowerCase().startsWith(buildDir),
       );
       expect(shipped, "YAML, zod, the data loader or build code in the built app").toEqual([]);
     } finally {
@@ -125,6 +132,7 @@ rule(
     const eslint = new ESLint();
     for (const path of [
       "src/app/probe.tsx",
+      "src/data/probe.ts",
       "src/data/probe.tsx",
       "src/platform/probe.ts",
       "src/rules/probe.ts",
