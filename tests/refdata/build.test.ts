@@ -63,6 +63,10 @@ rule(
     expect(moduleData(referenceData(FIXTURES)), "the reference data the build's module gives the app").toEqual(
       loadReferenceData(filesIn(FIXTURES)),
     );
+    expect(
+      built.slotKinds.map((k) => k.id),
+      "slot kinds the build read",
+    ).toContain("tail");
   },
 );
 
@@ -82,25 +86,30 @@ rule({ req: ["RD-4"], m: "M2" }, "the app's build fails on reference data with a
 
 rule(
   { req: ["NF-4"], m: "M2" },
-  "the lint check refuses a YAML parser, a schema checker or the data loader in the browser's code",
+  "the lint check refuses a YAML parser, a schema checker, the data loader or the build's code in the browser's code",
   async () => {
     const { ESLint } = await import("eslint");
     const eslint = new ESLint();
+    const lint = async (path: string, code: string) =>
+      (await eslint.lintText(code, { filePath: path }))[0]!.messages.map((m) => m.ruleId);
     for (const path of [
       "src/app/probe.tsx",
       "src/data/probe.ts",
+      "src/data/probe.tsx",
       "src/platform/probe.ts",
       "src/rules/probe.ts",
-      "src/errors.ts",
+      "src/probe.ts",
     ]) {
-      for (const from of ["yaml", "zod", path.startsWith("src/errors") ? "./refdata" : "../refdata"]) {
-        const [result] = await eslint.lintText(`import * as probe from "${from}";\nexport { probe };\n`, {
-          filePath: path,
-        });
+      const up = path.split("/").length === 2 ? "./" : "../";
+      for (const from of ["yaml", "zod", `${up}refdata`, `${up}../build/reference-data`]) {
         expect(
-          result!.messages.map((m) => m.ruleId),
+          await lint(path, `import * as probe from "${from}";\nexport { probe };\n`),
           `the lint check on importing ${from} in ${path}`,
         ).toContain("no-restricted-imports");
+        expect(
+          await lint(path, `export const probe = import("${from}");\n`),
+          `the lint check on a dynamic import of ${from} in ${path}`,
+        ).toContain("no-restricted-syntax");
       }
     }
   },

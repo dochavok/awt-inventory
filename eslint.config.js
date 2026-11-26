@@ -18,6 +18,18 @@ const untaggedTests = {
   ],
 };
 
+// NF-4: the reference data comes built in, so the code that runs in the browser never imports a
+// YAML parser, a schema checker, the data loader or the build's own code (which imports them).
+const buildTimeOnly = (message) => ({
+  group: ["yaml", "yaml/*", "zod", "zod/*", "**/refdata", "**/refdata/**", "**/build/**"],
+  message,
+});
+const noBuildTimeImports = {
+  // A dynamic import() would still be bundled, as a chunk of its own.
+  selector: "ImportExpression[source.value=/^(yaml|zod)($|\\u002F)|refdata|build\\u002F/]",
+  message: "The reference data is read at build time (NF-4): import it from virtual:reference-data.",
+};
+
 export default tseslint.config(
   {
     ignores: ["node_modules/", "dist/", "coverage/", "var/", "playwright-report/", "test-results/", "functions/lib/"],
@@ -48,31 +60,27 @@ export default tseslint.config(
             },
             { group: ["react", "react-dom", "react/*"], message: "The rules core has no UI code (TF-2)." },
             { group: ["**/data/**", "**/platform/**", "**/app/**"], message: "The rules core is pure (TF-2)." },
-            {
-              group: ["yaml", "zod", "**/refdata", "**/refdata/**"],
-              message: "The reference data is read at build time (NF-4): the rules get it passed in.",
-            },
+            buildTimeOnly("The reference data is read at build time (NF-4): the rules get it passed in."),
           ],
         },
       ],
+      "no-restricted-syntax": ["error", noBuildTimeImports],
     },
   },
   {
-    // The browser's code: the reference data comes built in, so no YAML parser or schema checker ships (NF-4).
-    // src/rules has the same rule in its TF-2 block above, since a second block for it would replace that one.
-    files: ["src/app/**/*.{ts,tsx}", "src/data/**/*.ts", "src/platform/**/*.ts", "src/errors.ts"],
+    // The rest of the browser's code (NF-4). src/rules has the same rule in its TF-2 block above,
+    // since a second block for it would replace that one.
+    files: ["src/{app,data,platform}/**/*.{ts,tsx}", "src/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
           patterns: [
-            {
-              group: ["yaml", "zod", "**/refdata", "**/refdata/**"],
-              message: "The reference data is read at build time (NF-4): import it from virtual:reference-data.",
-            },
+            buildTimeOnly("The reference data is read at build time (NF-4): import it from virtual:reference-data."),
           ],
         },
       ],
+      "no-restricted-syntax": ["error", noBuildTimeImports],
     },
   },
 );
