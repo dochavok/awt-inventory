@@ -161,4 +161,16 @@ jobs:
           path: ~/.cache/apt-archives
           key: ${{ steps.apt-key.outputs.key }}
       - name: Phone-sized browser tests
-        run: npm run test:browser
+        # TF-13: a failing test keeps its trace (steps, console, network); passing tests keep nothing.
+        run: npm run test:browser -- --trace retain-on-failure
+      # TF-13: what a failed test recorded, for 14 days. Made-up players and the emulators only.
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: browser-failures
+          path: |
+            test-results/
+            firestore-debug.log
+            firebase-debug.log
+          retention-days: 14
+          if-no-files-found: ignore
