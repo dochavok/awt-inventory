@@ -47,6 +47,7 @@ async function storedCount(path: string): Promise<number> {
   const response = await fetch(`http://${host}/v1/projects/${PROJECT_ID}/databases/(default)/documents/${path}`, {
     headers: { Authorization: "Bearer owner" },
   });
+  expect(response.ok, `reading ${path} past the rules`).toBe(true);
   const body = (await response.json()) as { documents?: unknown[] };
   return body.documents?.length ?? 0;
 }

@@ -549,6 +549,8 @@ When a DM answers a question, start at step 2.
 - A count is checked as that number.
 - A refusal or block is checked to name what was refused.
 - An access test checks that another user's read or write is **refused**, not just that the owner's works.
+- A test helper that reads stored data checks the read succeeded, so a failed read never counts as nothing stored.
+- A test that reads on one phone what another phone wrote first waits for those writes to reach the server.
 
 ### 15.2 Kinds of test
 
