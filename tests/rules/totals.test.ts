@@ -635,6 +635,21 @@ rule(
       ["Cinder Mark II", "skill", "1 heart per frost mark", "cold", undefined],
     ]);
 
+    // GR-1: text is the skill list's only. A player's grant stored with an amount and text
+    // (bad data: the rules don't look inside grants) counts its amount as usual.
+    const sheet = fixtureSheet("aldric");
+    sheet.manualGrants.push({
+      id: "m-x-both",
+      reason: "DM ruling, made-up faire",
+      grants: [{ id: "g-x-both", kind: "extra-damage", amount: 2, amountText: "1d4 hearts" } as Grant],
+    });
+    const bad = computeTotals(sheet, testReferenceData());
+    expect(damageOf(bad.damage.grants), "where Aldric's damage comes from, with the bad record").toEqual([
+      ["Duskfang", "entry", 2, undefined, undefined],
+      ["DM ruling, made-up faire", "manual", 2, undefined, undefined],
+    ]);
+    expect(bad.damage.situationalText, "Aldric's extra damage given as text, with the bad record").toEqual([]);
+
     const without = computeTotals(isoldeWith("cinder-mark-ii"), ref);
     expect(
       without.damage.situationalText.map((d) => sourceName(d.source)),

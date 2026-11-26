@@ -109,9 +109,11 @@ export function computeTotals(sheet: CharacterSheet, ref: ReferenceData): Totals
       // The type comes trimmed: the store's checks and the skill list's schema both trim it.
       const { damageType } = grant;
       const line = { ...(damageType ? { damageType } : {}), source, ...withCondition(grant) };
-      // GR-1: extra damage given as text has no number, so it's only ever listed.
-      if ("amountText" in grant) textDamage.push({ amountText: grant.amountText, ...line });
-      else (isSituational(grant) ? situationalDamage : damage).push({ amount: grant.amount, ...line });
+      // GR-1: extra damage given as text (the skill list's) has no number, so it's only ever listed.
+      // A grant with a number counts it, even with text beside it (bad data on a player's grant).
+      if ("amount" in grant)
+        (isSituational(grant) ? situationalDamage : damage).push({ amount: grant.amount, ...line });
+      else textDamage.push({ amountText: grant.amountText, ...line });
     } else if (grant.kind === "effect") {
       effects.push({ effect: grant.effect, text: grant.text, source, ...withCondition(grant) });
     }
