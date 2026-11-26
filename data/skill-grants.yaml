@@ -342,7 +342,7 @@
   - {id: sg-enhanced-strength-1, kind: extra-damage, amount: 1}
 - skill: divine-strength
   grants:
-  - {id: sg-divine-strength-1, kind: extra-damage, amount: 1}
+  - {id: sg-divine-strength-1, kind: extra-damage, amount: 1, damageType: holy}
 - skill: divine-smite
   grants:
   - {id: sg-divine-smite-1, kind: extra-damage, amountText: your Holy Die in hearts, condition: '1/combat, this round'}
@@ -494,3 +494,6 @@
 - skill: devotion-5
   grants:
   - {id: sg-devotion-5-1, kind: die, die: 1d20, condition: when a skill adds the Holy Die (e.g. Smite), group: holy-die}
+- skill: sanctify-all
+  grants:
+  - {id: sg-sanctify-all-1, kind: extra-damage, amount: 1, damageType: holy, condition: '1/combat, for all allies, until the end of combat'}
