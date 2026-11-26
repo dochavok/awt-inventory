@@ -252,7 +252,7 @@ export async function renderPdf(sheet: SheetDocument, options: PrintOptions): Pr
     for (const total of c.totals ?? []) {
       const lines = total.lines.map((l) => `${l.label} ${l.value}`).join(", ");
       w.text(`${total.label}: ${total.value}${lines ? ` (${lines})` : ""}`);
-      // EX-1, GR-4: under the total, marked as never added to it; one grant to a line, so none is split.
+      // EX-1, GR-4: under the total, marked as never added to it; each grant starts its own line.
       if (total.situational.length > 0) {
         w.text("Situational, not added in:", { indent: 12, size: 10 });
         for (const line of total.situational) w.text(line, { indent: 24, size: 10 });
