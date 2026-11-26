@@ -11,6 +11,10 @@ import { expect } from "vitest";
 import { parse, stringify } from "yaml";
 import { levelCap, loadReferenceData, validateReferenceData, type ReferenceFiles } from "../../src/refdata";
 import { rule } from "../support/rule";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { readReferenceData } from "../../build/reference-data";
 
 const FIXTURES = new URL("../fixtures/refdata/", import.meta.url);
 const DATA = new URL("../../data/", import.meta.url);
@@ -70,6 +74,40 @@ rule(
     );
   },
 );
+
+/** A folder holding `files`, removed once `use` is done with it. */
+function inFolder<T>(files: ReferenceFiles, use: (dir: string) => T): T {
+  const dir = mkdtempSync(join(tmpdir(), "awt-refdata-"));
+  try {
+    for (const [name, text] of Object.entries(files)) writeFileSync(join(dir, name), text);
+    return use(dir);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+rule(
+  { req: ["RD-1", "RD-4"], m: "M2" },
+  "the app's build reads and checks the reference data files: what it builds in is what loading them gives",
+  () => {
+    const built = inFolder(testFiles(), readReferenceData);
+    // Built into the app as JSON, so it must come back the same from JSON.
+    expect(JSON.parse(JSON.stringify(built)), "the reference data the build gives the app").toEqual(
+      loadReferenceData(testFiles()),
+    );
+    expect(
+      built.slotKinds.map((k) => k.id),
+      "slot kinds the build read",
+    ).toContain("tail");
+  },
+);
+
+rule({ req: ["RD-4"], m: "M2" }, "the app's build fails on reference data with a problem, naming it", () => {
+  const broken = edited("rarities.yaml", (list) => (list[1].limitt = 1));
+  expect(() => inFolder(broken, readReferenceData), "building with a misspelled rarity field").toThrow(
+    /RD-4[\s\S]*rarities\.yaml legendary: .*limitt/,
+  );
+});
 
 rule({ req: ["RD-4", "RD-2"], m: "M2" }, "an entry without an ID is a problem", () => {
   const files = edited("slot-kinds.yaml", (list) => delete list[0].id);

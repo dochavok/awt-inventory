@@ -104,10 +104,10 @@ Tests shows each file with the number of its tests that name the requirement.
 | QS-1 | Could | M6 | none |
 | DA-1 | Could | M6 | none |
 | AL-1 | Could | M6 | none |
-| RD-1 | Must | M2 | refdata/refdata.test.ts (9) |
+| RD-1 | Must | M2 | refdata/refdata.test.ts (10) |
 | RD-2 | Must | M2 | data/skills.test.ts (1), refdata/refdata.test.ts (2) |
 | RD-3 | Must | M2 | data/inventory.test.ts (2), data/skills.test.ts (4), refdata/refdata.test.ts (1), rules/equipping.test.ts (3), rules/skills.test.ts (2) |
-| RD-4 | Must | M2 | refdata/refdata.test.ts (16) |
+| RD-4 | Must | M2 | refdata/refdata.test.ts (18) |
 | RD-5 | Must | M2 | data/characters.test.ts (1), refdata/refdata.test.ts (2) |
 | RD-6 | Must | M2 | refdata/refdata.test.ts (1) |
 | RD-7 | Must | M2 | data/skills.test.ts (1), refdata/refdata.test.ts (1) |

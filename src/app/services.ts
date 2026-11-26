@@ -15,7 +15,7 @@ import {
 } from "firebase/firestore";
 import { createAccounts, type Accounts } from "../data/accounts";
 import { createFirestoreStore, loadWholeAccount, type RefusedChange } from "../data/firestore-store";
-import { loadReferenceData } from "../refdata";
+import builtInReferenceData from "virtual:reference-data";
 import { SHOW_SKILL_TEXT } from "./settings";
 import type { AppSettings, InventoryStore } from "../data/store";
 import { systemClock } from "../platform/clock";
@@ -62,19 +62,12 @@ function firebaseConfig() {
   return { config: { apiKey: "demo-api-key", projectId: "demo-awt-inventory" }, emulators: true };
 }
 
-/** The reference data files in data/, built into the app (section 13); checked as they load. */
-function referenceData(): ReferenceData {
-  const files = import.meta.glob<string>("../../data/*.yaml", { query: "?raw", import: "default", eager: true });
-  return loadReferenceData(
-    Object.fromEntries(Object.entries(files).map(([path, text]) => [path.slice(path.lastIndexOf("/") + 1), text])),
-  );
-}
-
 /** How long after reading the whole account it's read again when signal returns. */
 const RELOAD_MS = 15 * 60_000;
 
 export function createServices(): Services {
-  const ref = referenceData();
+  // Section 13: data/'s files, read and checked when the app was built (RD-4), so nothing is parsed here (NF-4).
+  const ref: ReferenceData = builtInReferenceData;
   const settings: AppSettings = { showSkillText: SHOW_SKILL_TEXT, appVersion: APP_VERSION };
   const refusedListeners = new Set<(change: RefusedChange) => void>();
   let lastLoad: { uid: string; at: number } | undefined;
