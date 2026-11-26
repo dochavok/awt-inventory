@@ -29,15 +29,12 @@ function conditionOf(grant: Grant | TextDamageGrant): string | undefined {
   return grant.condition?.trim() || undefined;
 }
 
-/**
- * GR-4: a grant with a condition is situational, never added to a total; so is extra damage
- * given as text, which has no number to add (GR-1).
- */
+/** GR-4: a grant with a condition is situational, never added to a total. */
 export function isSituational(grant: Grant | TextDamageGrant): boolean {
-  return "amountText" in grant || conditionOf(grant) !== undefined;
+  return conditionOf(grant) !== undefined;
 }
 
-/** `{ condition }` when the grant has one, so lines and dice carry a condition only then. */
+/** `{ condition }` when the grant is situational, so lines and dice carry a condition only then. */
 export function withCondition(grant: Grant | TextDamageGrant): { condition?: string } {
   const condition = conditionOf(grant);
   return condition !== undefined ? { condition } : {};
