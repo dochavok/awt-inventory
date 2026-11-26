@@ -15,6 +15,7 @@ import type {
   Title,
   TitleScope,
 } from "../rules/types";
+import type { TotalRow } from "./totals-text";
 
 export interface Profile {
   uid: string;
@@ -200,13 +201,7 @@ export interface SheetDocument {
     className: ClassName;
     level: number;
     /** A line's value is a number, or for a class bonus with dice "1d4 + 3" (GR-7). */
-    totals?: {
-      label: string;
-      value: number | string;
-      lines: { label: string; value: number | string }[];
-      /** GR-4: the situational grants (or dice) that would affect it, never added in. */
-      situational: string[];
-    }[];
+    totals?: TotalRow[];
     equipped: { slot: string; entry: string }[];
     categories: { category: Category; entries: { name: string; quantity: number }[] }[];
     skills: { name: string; usage: string; tier: SkillTier; text?: string }[];

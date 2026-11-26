@@ -15,7 +15,7 @@ import type {
 } from "../rules/types";
 
 /** GR-8's source categories, as a total's breakdown and its grants (GR-12) name them. */
-export const GROUP_NAMES: Record<BreakdownGroup, string> = {
+const GROUP_NAMES: Record<BreakdownGroup, string> = {
   "class-bonus": "Class bonus",
   "level-chart": "Level chart",
   armor: "Armor",
@@ -55,7 +55,7 @@ export const damageText = (
 ) => `+${"amount" in d ? hearts(d.amount) : d.amountText}${d.damageType ? ` ${d.damageType}` : ""}`;
 
 /** Where extra damage comes from, and its condition if it has one, e.g. "Title: Wanderer, vs Undead". */
-export const damageSource = (d: Pick<DamageLine, "source" | "condition">) =>
+const damageSource = (d: Pick<DamageLine, "source" | "condition">) =>
   [sourceLabel(d.source), ...(d.condition ? [d.condition] : [])].join(", ");
 
 /**
@@ -102,28 +102,21 @@ export function totalRows(totals: Totals): {
   damage: TotalRow;
 } {
   const { classBonus, damage } = totals;
-  const lines = (total: Total) =>
-    total.lines.map((l) =>
+  const row = (label: string, total: Total): TotalRow => ({
+    label,
+    value: total.value,
+    lines: total.lines.map((l) =>
       l.group === "class-bonus"
         ? { label: classBonus.name, value: classBonusShown(classBonus) }
         : { label: GROUP_NAMES[l.group], value: l.value },
-    );
-  const situational = (total: Total) => total.situational.map((g) => grantLineText(g, classBonus));
+    ),
+    situational: total.situational.map((g) => grantLineText(g, classBonus)),
+  });
   const extra = totals.dice.extra.map((d) => ` + ${d.die} (${dieSourceName(d, classBonus)})`).join("");
   return {
-    cm: { label: "CM", value: totals.cm.value, lines: lines(totals.cm), situational: situational(totals.cm) },
-    mitigation: {
-      label: "Mitigation",
-      value: totals.mitigation.value,
-      lines: lines(totals.mitigation),
-      situational: situational(totals.mitigation),
-    },
-    hearts: {
-      label: "Max hearts",
-      value: totals.hearts.value,
-      lines: lines(totals.hearts),
-      situational: situational(totals.hearts),
-    },
+    cm: row("CM", totals.cm),
+    mitigation: row("Mitigation", totals.mitigation),
+    hearts: row("Max hearts", totals.hearts),
     dice: {
       label: "Combat dice",
       value: `${totals.dice.base}${extra}`,
