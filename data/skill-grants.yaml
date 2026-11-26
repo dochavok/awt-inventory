@@ -454,40 +454,40 @@
   - {id: sg-elemental-protection-1, kind: mitigation, amount: 2, condition: vs elements you know}
 - skill: ice-mastery-1
   grants:
-  - {id: sg-ice-mastery-1-1, kind: extra-damage, amount: 1, damageType: ice, condition: with Ice spells}
+  - {id: sg-ice-mastery-1-1, kind: extra-damage, amount: 1, damageType: ice, condition: with Ice spells, group: ice-mastery}
 - skill: fire-mastery-1
   grants:
-  - {id: sg-fire-mastery-1-1, kind: extra-damage, amount: 1, damageType: fire, condition: with Fire spells}
+  - {id: sg-fire-mastery-1-1, kind: extra-damage, amount: 1, damageType: fire, condition: with Fire spells, group: fire-mastery}
 - skill: lightning-mastery-1
   grants:
-  - {id: sg-lightning-mastery-1-1, kind: extra-damage, amount: 1, damageType: lightning, condition: with Lightning spells}
+  - {id: sg-lightning-mastery-1-1, kind: extra-damage, amount: 1, damageType: lightning, condition: with Lightning spells, group: lightning-mastery}
 - skill: earth-mastery-1
   grants:
-  - {id: sg-earth-mastery-1-1, kind: extra-damage, amount: 1, damageType: earth, condition: with Earth spells}
+  - {id: sg-earth-mastery-1-1, kind: extra-damage, amount: 1, damageType: earth, condition: with Earth spells, group: earth-mastery}
 - skill: ice-mastery-2
   grants:
-  - {id: sg-ice-mastery-2-1, kind: extra-damage, amount: 2, damageType: ice, condition: with Ice spells}
+  - {id: sg-ice-mastery-2-1, kind: extra-damage, amount: 2, damageType: ice, condition: with Ice spells, group: ice-mastery}
 - skill: fire-mastery-2
   grants:
-  - {id: sg-fire-mastery-2-1, kind: extra-damage, amount: 2, damageType: fire, condition: with Fire spells}
+  - {id: sg-fire-mastery-2-1, kind: extra-damage, amount: 2, damageType: fire, condition: with Fire spells, group: fire-mastery}
 - skill: lightning-mastery-2
   grants:
-  - {id: sg-lightning-mastery-2-1, kind: extra-damage, amount: 2, damageType: lightning, condition: with Lightning spells}
+  - {id: sg-lightning-mastery-2-1, kind: extra-damage, amount: 2, damageType: lightning, condition: with Lightning spells, group: lightning-mastery}
 - skill: earth-mastery-2
   grants:
-  - {id: sg-earth-mastery-2-1, kind: extra-damage, amount: 2, damageType: earth, condition: with Earth spells}
+  - {id: sg-earth-mastery-2-1, kind: extra-damage, amount: 2, damageType: earth, condition: with Earth spells, group: earth-mastery}
 - skill: ice-mastery-3
   grants:
-  - {id: sg-ice-mastery-3-1, kind: extra-damage, amount: 3, damageType: ice, condition: with Ice spells}
+  - {id: sg-ice-mastery-3-1, kind: extra-damage, amount: 3, damageType: ice, condition: with Ice spells, group: ice-mastery}
 - skill: fire-mastery-3
   grants:
-  - {id: sg-fire-mastery-3-1, kind: extra-damage, amount: 3, damageType: fire, condition: with Fire spells}
+  - {id: sg-fire-mastery-3-1, kind: extra-damage, amount: 3, damageType: fire, condition: with Fire spells, group: fire-mastery}
 - skill: lightning-mastery-3
   grants:
-  - {id: sg-lightning-mastery-3-1, kind: extra-damage, amount: 3, damageType: lightning, condition: with Lightning spells}
+  - {id: sg-lightning-mastery-3-1, kind: extra-damage, amount: 3, damageType: lightning, condition: with Lightning spells, group: lightning-mastery}
 - skill: earth-mastery-3
   grants:
-  - {id: sg-earth-mastery-3-1, kind: extra-damage, amount: 3, damageType: earth, condition: with Earth spells}
+  - {id: sg-earth-mastery-3-1, kind: extra-damage, amount: 3, damageType: earth, condition: with Earth spells, group: earth-mastery}
 - skill: devotion-4
   grants:
   - {id: sg-devotion-4-1, kind: die, die: 1d12, condition: when a skill adds the Holy Die (e.g. Smite), group: holy-die}
