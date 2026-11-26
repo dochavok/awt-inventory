@@ -109,13 +109,13 @@
   - {id: sg-balance-1, kind: effect, effect: cr-bonus, text: +2 to Agility-based Challenge Rolls}
 - skill: severe-wound
   grants:
-  - {id: sg-severe-wound-1, kind: extra-damage, amount: 2, condition: '1/combat, when one of your dice rolls max'}
+  - {id: sg-severe-wound-1, kind: extra-damage, amount: 2, condition: '1/combat, when one of your dice rolls max', group: wound}
 - skill: critical-wound
   grants:
-  - {id: sg-critical-wound-1, kind: extra-damage, amount: 3, condition: '1/combat, when one of your dice rolls max'}
+  - {id: sg-critical-wound-1, kind: extra-damage, amount: 3, condition: '1/combat, when one of your dice rolls max', group: wound}
 - skill: deadly-wound
   grants:
-  - {id: sg-deadly-wound-1, kind: extra-damage, amount: 5, condition: '1/combat, when one of your dice rolls max'}
+  - {id: sg-deadly-wound-1, kind: extra-damage, amount: 5, condition: '1/combat, when one of your dice rolls max', group: wound}
 - skill: arcane-weapon
   grants:
   - {id: sg-arcane-weapon-1, kind: extra-damage, amount: 1, condition: while you have usable spells; one weapon when dual wielding}
