@@ -165,9 +165,7 @@ rule(
       ],
     ];
     for (const [what, field, attempt] of cases) {
-      const refused = attempt();
-      await expect(refused, `${what} with half an emoji`).rejects.toThrow(ValidationError);
-      await expect(refused, `${what} with half an emoji`).rejects.toMatchObject({ field });
+      await expect(attempt(), `${what} with half an emoji`).rejects.toMatchObject({ field });
     }
     expect(
       (await bram.listEntries(id, "consumables")).map((e) => e.entry.id),

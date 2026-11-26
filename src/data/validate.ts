@@ -47,20 +47,21 @@ export const LIMITS = {
 /** A required single-line text: trimmed, not blank, at most `max` characters. */
 export function requiredText(field: string, value: unknown, max: number, label = field): string {
   if (typeof value !== "string" || value.trim() === "") throw new ValidationError(field, `The ${label} is needed.`);
-  return maxLength(field, value.trim(), max, label);
+  return storableText(field, value.trim(), max, label);
 }
 
 /** An optional text: absent or empty means none. */
 export function optionalText(field: string, value: unknown, max: number, label = field): string | undefined {
   if (value === undefined || value === null) return undefined;
   if (typeof value !== "string") throw new ValidationError(field, `The ${label} must be text.`);
-  return value.trim() === "" ? undefined : maxLength(field, value, max, label);
+  return value.trim() === "" ? undefined : storableText(field, value, max, label);
 }
 
 /** Half of a two-part character such as an emoji: a UTF-16 surrogate without its partner. */
 const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
 
-function maxLength(field: string, value: string, max: number, label: string): string {
+/** Text Firestore can store: at most `max` characters, with no broken character (NF-6). */
+function storableText(field: string, value: string, max: number, label: string): string {
   if (value.length > max) {
     throw new ValidationError(field, `The ${label} can be at most ${max.toLocaleString("en-US")} characters.`);
   }
