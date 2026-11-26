@@ -57,9 +57,16 @@ export function optionalText(field: string, value: unknown, max: number, label =
   return value.trim() === "" ? undefined : maxLength(field, value, max, label);
 }
 
+/** Half of a two-part character such as an emoji: a UTF-16 surrogate without its partner. */
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+
 function maxLength(field: string, value: string, max: number, label: string): string {
   if (value.length > max) {
     throw new ValidationError(field, `The ${label} can be at most ${max.toLocaleString("en-US")} characters.`);
+  }
+  // NF-6: Firestore can't store it, so it's refused here, naming the field.
+  if (LONE_SURROGATE.test(value)) {
+    throw new ValidationError(field, `The ${label} has a broken character, such as half of an emoji. Retype it.`);
   }
   return value;
 }

@@ -1,10 +1,12 @@
 // Limits (NF-6): text fields and counts have sensible maximums, so a mistake
 // or misuse can't run up hosting costs. The exact maximums are the code's
 // choice; these tests check that ordinary sizes are fine and absurd ones are
-// refused, naming the field.
+// refused, naming the field. Text with a broken character, such as half of an
+// emoji, is refused too, naming the field.
 
 import { expect } from "vitest";
 import { ValidationError } from "../../src/errors";
+import type { ItemEntry } from "../../src/rules/types";
 import { rule } from "../support/rule";
 import { seedProfile, world } from "../support/world";
 
@@ -125,6 +127,55 @@ rule(
       await expect(attempt(), `an absurdly long ${what}`).rejects.toMatchObject({ field });
     }
     expect((await bram.listEntries(id, "items")).length, "Rook's items after the refused gains").toBe(0);
+    expect((await bram.reports()).length, "Bram's reports after the refused one").toBe(0);
+  },
+);
+
+rule(
+  { req: ["NF-6"], m: "M2" },
+  "text with half an emoji is refused, naming the field; a whole emoji is fine",
+  async () => {
+    const { bram, id } = await bramWithRook();
+    // Half of a two-part emoji: a lone high or low UTF-16 surrogate.
+    const high = String.fromCharCode(0xd83d);
+    const low = String.fromCharCode(0xdc09);
+    const charm = await bram.addEntry(id, { category: "items", name: "Charm", arcane: false });
+    const whole = await bram.addEntry(id, { category: "consumables", name: "Dragon Tonic 🐉", notes: "🐉🐉" });
+    expect([whole.name, whole.notes], "Rook's Dragon Tonic with whole emoji").toEqual(["Dragon Tonic 🐉", "🐉🐉"]);
+    const cases: [string, string, () => Promise<unknown>][] = [
+      ["an entry name", "name", () => bram.addEntry(id, { category: "consumables", name: `Tonic ${high}` })],
+      [
+        "entry notes",
+        "notes",
+        () => bram.addEntry(id, { category: "consumables", name: "Tonic", notes: `${low} cut off` }),
+      ],
+      ["a character name", "name", () => bram.createCharacter({ name: `Wren${high}`, className: "Mage", level: 1 })],
+      ["character notes", "notes", () => bram.updateCharacter(id, { notes: `Fang ${high}x` })],
+      ["a title", "name", () => bram.addTitle({ name: `${low}Title` })],
+      ["a display name", "displayName", () => bram.setDisplayName(`Bram ${high}`)],
+      [
+        "a report message",
+        "message",
+        () => bram.sendReport({ kind: "bug", subject: "Cut off", message: `Pasted ${high}` }),
+      ],
+      [
+        "a grant's condition",
+        "grants",
+        () => bram.addGrant({ entryId: charm.id }, { kind: "cm", amount: 1, condition: `vs ${low}` }),
+      ],
+    ];
+    for (const [what, field, attempt] of cases) {
+      const refused = attempt();
+      await expect(refused, `${what} with half an emoji`).rejects.toThrow(ValidationError);
+      await expect(refused, `${what} with half an emoji`).rejects.toMatchObject({ field });
+    }
+    expect(
+      (await bram.listEntries(id, "consumables")).map((e) => e.entry.id),
+      "Rook's consumables after the refused ones: only the Dragon Tonic",
+    ).toEqual([whole.id]);
+    const charmAfter = (await bram.entry(charm.id)) as ItemEntry;
+    expect(charmAfter.grants ?? [], "Rook's Charm's grants after the refused one").toEqual([]);
+    expect((await bram.listTitles()).length, "Bram's titles after the refused one").toBe(0);
     expect((await bram.reports()).length, "Bram's reports after the refused one").toBe(0);
   },
 );

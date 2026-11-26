@@ -473,7 +473,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 
 **NF-5 · Must · M2+: Scale and cost.** The app is built for up to about 500 users, each with a few characters of a few hundred entries. At that size it runs on a free or low-cost hosting plan, and its costs are recorded in the brain's `services.md`.
 
-**NF-6 · Must · M2+: Limits.** Text fields and counts have sensible maximums (e.g. a description of a few thousand characters, at most 1,000 entries per character), so a mistake or misuse can't run up hosting costs.
+**NF-6 · Must · M2+: Limits.** Text fields and counts have sensible maximums (e.g. a description of a few thousand characters, at most 1,000 entries per character), so a mistake or misuse can't run up hosting costs. Text with a broken character (a lone UTF-16 surrogate, such as half of an emoji) is refused, naming the field.
 
 **NF-7 · Must · M2+: Security.**
 
