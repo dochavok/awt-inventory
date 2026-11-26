@@ -143,10 +143,8 @@ const grant = z.discriminatedUnion("kind", [
       amountText: name.optional(),
       damageType: name.optional(),
     })
-    .check((ctx) => {
-      const g = ctx.value;
-      const issue = (path: string, message: string) =>
-        ctx.issues.push({ code: "custom", input: g, path: [path], message });
+    .superRefine((g, ctx) => {
+      const issue = (path: string, message: string) => ctx.addIssue({ code: "custom", path: [path], message });
       if (g.amountText === undefined && g.amount === undefined) issue("amount", "an amount or amountText is needed");
       if (g.amountText !== undefined && g.amount !== undefined) issue("amountText", "not with an amount");
       if (g.amountText !== undefined && g.group !== undefined)

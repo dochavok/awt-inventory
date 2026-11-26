@@ -3,7 +3,7 @@
 // No PDF code here, so the screens can use it without pulling in the sheet's.
 
 import { classBonusShown, dieSourceName, sourceName } from "../rules/totals";
-import type { BreakdownGroup, DamageLine, SourceRef, Total, Totals } from "../rules/types";
+import type { BreakdownGroup, DamageLine, SourceRef, TextDamageLine, Total, Totals } from "../rules/types";
 
 /** GR-8's source categories, as a total's breakdown and its grants (GR-12) name them. */
 export const GROUP_NAMES: Record<BreakdownGroup, string> = {
@@ -41,8 +41,9 @@ export const hearts = (n: number) => `${n} ${n === 1 ? "heart" : "hearts"}`;
  * Extra damage's amount and type (GR-13), e.g. "+1 heart fire" or "+2 hearts"; one given as
  * text shows it as written (GR-1), e.g. "+1d4 hearts of an element you know".
  */
-export const damageText = (d: { amount: number; damageType?: string } | { amountText: string; damageType?: string }) =>
-  `+${"amountText" in d ? d.amountText : hearts(d.amount)}${d.damageType ? ` ${d.damageType}` : ""}`;
+export const damageText = (
+  d: Pick<DamageLine, "amount" | "damageType"> | Pick<TextDamageLine, "amountText" | "damageType">,
+) => `+${"amountText" in d ? d.amountText : hearts(d.amount)}${d.damageType ? ` ${d.damageType}` : ""}`;
 
 /** Where extra damage comes from, and its condition if it has one, e.g. "Title: Wanderer, vs Undead". */
 export const damageSource = (d: Pick<DamageLine, "source" | "condition">) =>

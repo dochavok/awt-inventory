@@ -291,13 +291,13 @@ export type SkillGrant = (Grant & { group?: Id }) | TextDamageGrant | { id: Id; 
  * GR-1: extra damage with its amount as text, such as "1d4 hearts of an element you know". The
  * skill list's only; always situational, so it's listed and never added in (GR-13).
  */
-export interface TextDamageGrant {
-  id: Id;
-  kind: "extra-damage";
+export type TextDamageGrant = Omit<Extract<Grant, { kind: "extra-damage" }>, "amount"> & {
   amountText: string;
-  damageType?: string;
-  condition?: string;
-}
+  group?: never;
+};
+
+/** A grant that counts for a character: a player's or the skill list's (GR-1). */
+export type CountedGrant = Grant | TextDamageGrant;
 
 export interface SkillGrants {
   skill: Id;
