@@ -11,6 +11,8 @@
       "Write(vitest.config.*)",
       "Edit(playwright.config.*)",
       "Write(playwright.config.*)",
+      "Edit(tsconfig.json)",
+      "Write(tsconfig.json)",
       "Edit(scripts/**)",
       "Write(scripts/**)",
       "Edit(.github/**)",

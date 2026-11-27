@@ -1,14 +1,16 @@
 // The test-change check (TF-7). See scripts/test-change-lib.ts for what it refuses.
 //
-//   npm run check:test-changes -- --base origin/main
+//   npm run check:test-changes -- --base origin/main [--repo <folder>]
 //
-// Compares the merge base of <base> and HEAD with HEAD, in the repository it's
-// run from (the current directory), so CI can run main's copy of this script
-// against the pull request. On GitHub Actions it also writes a job summary.
+// Compares the merge base of <base> and HEAD with HEAD, in the repository in
+// <folder> (by default the current directory). CI runs main's copy of this
+// script from main's checkout, with --repo naming the pull request's, so
+// nothing in the pull request is loaded or run: its files are only read (TF-7).
+// On GitHub Actions it also writes a job summary.
 
 import { execFileSync } from "node:child_process";
 import { appendFileSync, lstatSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { parse } from "yaml";
 import {
@@ -21,7 +23,11 @@ import {
   type Reader,
 } from "./test-change-lib";
 
-const ROOT = process.cwd();
+const ARGS = parseArgs({
+  args: process.argv.slice(2),
+  options: { base: { type: "string" }, repo: { type: "string" } },
+}).values;
+const ROOT = resolve(ARGS.repo ?? ".");
 
 function git(...args: string[]): string {
   return execFileSync("git", args, { cwd: ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
@@ -50,13 +56,33 @@ function readerAt(ref: string): Reader {
 /**
  * Repository paths of the files part 2 reads (`isAppFile`), from the files git
  * tracks (TF-7), so what git ignores, such as packages and build output, never
- * counts. Only regular files are read, as before: a tracked file deleted but
- * not yet committed is skipped, and so is a link.
+ * counts. Only regular files are read: a tracked file deleted but not yet
+ * committed is skipped, and so is a link (`linkProblems` names those).
  */
-function appFiles(): string[] {
-  return git("ls-files", "-z", "--", "src", "data", "functions")
+function appFiles(tracked: TrackedPath[]): string[] {
+  return tracked
+    .filter(({ path, link }) => !link && isAppFile(path) && isRegularFile(join(ROOT, path)))
+    .map(({ path }) => path);
+}
+
+interface TrackedPath {
+  path: string;
+  /** Whether git stores it as a link (mode 120000), whatever the disk holds. */
+  link: boolean;
+}
+
+/** What git tracks under src/, data/ and functions/. */
+function trackedAppPaths(): TrackedPath[] {
+  // Each entry of `git ls-files -s` is "<mode> <object> <stage>\t<path>".
+  return git("ls-files", "-s", "-z", "--", "src", "data", "functions")
     .split("\0")
-    .filter((path) => path !== "" && isAppFile(path) && isRegularFile(join(ROOT, path)));
+    .filter(Boolean)
+    .map((entry) => ({ path: entry.slice(entry.indexOf("\t") + 1), link: entry.startsWith("120000 ") }));
+}
+
+/** Part 2 doesn't follow links, so a link git tracks in the app fails the check (TF-7). */
+function linkProblems(tracked: TrackedPath[]): string[] {
+  return tracked.filter(({ link }) => link).map(({ path }) => `${path}: a link, which the check doesn't follow`);
 }
 
 function isRegularFile(path: string): boolean {
@@ -78,17 +104,18 @@ function fixtureNames(): string[] {
   return [...new Set([...characters, ...users])].filter((n): n is string => typeof n === "string" && n !== "");
 }
 
-function main(argv: string[]): number {
-  const baseRef = parseArgs({ args: argv, options: { base: { type: "string" } } }).values.base;
+function main(): number {
+  const baseRef = ARGS.base;
   if (!baseRef) {
-    console.error("Usage: tsx scripts/check-test-changes.ts --base <git ref>");
+    console.error("Usage: tsx scripts/check-test-changes.ts --base <git ref> [--repo <folder>]");
     return 2;
   }
   const base = git("merge-base", baseRef, "HEAD").trim();
   const changes = changedFiles(base);
   const part1 = testChangeProblems(changes, readerAt(base), readerAt("HEAD"));
-  const files = new Map(appFiles().map((p) => [p, readFileSync(join(ROOT, p), "utf8")] as const));
-  const part2 = appCodeProblems(files, fixtureNames());
+  const tracked = trackedAppPaths();
+  const files = new Map(appFiles(tracked).map((p) => [p, readFileSync(join(ROOT, p), "utf8")] as const));
+  const part2 = [...linkProblems(tracked), ...appCodeProblems(files, fixtureNames())];
   const problems = [...part1, ...part2];
 
   const lines = [`Compared ${baseRef} (${base.slice(0, 7)}) with HEAD: ${changes.length} files changed.`];
@@ -108,4 +135,4 @@ function main(argv: string[]): number {
   return problems.length ? 1 : 0;
 }
 
-process.exitCode = main(process.argv.slice(2));
+process.exitCode = main();

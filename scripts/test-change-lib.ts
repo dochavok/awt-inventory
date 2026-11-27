@@ -18,8 +18,8 @@
 //     tests/support/ and tests/meta/probes/. tests/COVERAGE.md is exempt: it's
 //     generated;
 //   - changes or deletes anything in scripts/, the test settings
-//     (vitest.config.ts, playwright.config.ts, firebase.json, eslint.config.js)
-//     or .claude/settings.json;
+//     (vitest.config.ts, playwright.config.ts, firebase.json, eslint.config.js),
+//     the TypeScript settings (tsconfig.json) or .claude/settings.json;
 //   - changes the test scripts in package.json, or adds or changes a script npm
 //     runs by itself (its lifecycle scripts such as postinstall and prepare, or
 //     pre<name>/post<name> for an existing script), or removes a finished
@@ -30,7 +30,8 @@
 //
 // Part 2, always: fails if app code (src/) or the server code (functions/)
 // imports the tests, test tools or test data, or if src/, data/ or functions/
-// names a made-up test character or user.
+// names a made-up test character or user. scripts/check-test-changes.ts also
+// fails a link git tracks there, since part 2 doesn't follow links.
 
 import { isDeepStrictEqual } from "node:util";
 import ts from "typescript";
@@ -51,6 +52,7 @@ const PROTECTED_FILES = new Set([
   "playwright.config.ts",
   "firebase.json",
   "eslint.config.js",
+  "tsconfig.json",
   ".claude/settings.json",
 ]);
 
