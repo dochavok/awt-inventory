@@ -661,17 +661,14 @@ function EntryForm({
         onChange={set("itemFamily")}
         suggestions={suggestions.itemFamily ?? []}
       />
-      <Hinted hint="The card's text.">
+      <Hinted label="Description" hint="The card's text.">
         {(hint) => (
-          <label>
-            Description
-            <textarea
-              maxLength={LIMITS.description}
-              value={f.description}
-              aria-describedby={hint}
-              onChange={(e) => set("description")(e.target.value)}
-            />
-          </label>
+          <textarea
+            maxLength={LIMITS.description}
+            value={f.description}
+            aria-describedby={hint}
+            onChange={(e) => set("description")(e.target.value)}
+          />
         )}
       </Hinted>
       <label>
@@ -686,19 +683,16 @@ function EntryForm({
           onChange={set("source")}
           suggestions={suggestions.acquisitionSource ?? []}
         />
-        <Hinted hint="Such as the post in Discord's rewards channel.">
+        <Hinted label="Link" hint="Such as the post in Discord's rewards channel.">
           {(hint) => (
-            <label>
-              Link
-              <input
-                type="url"
-                inputMode="url"
-                maxLength={LIMITS.link}
-                value={f.link}
-                aria-describedby={hint}
-                onChange={(e) => set("link")(e.target.value)}
-              />
-            </label>
+            <input
+              type="url"
+              inputMode="url"
+              maxLength={LIMITS.link}
+              value={f.link}
+              aria-describedby={hint}
+              onChange={(e) => set("link")(e.target.value)}
+            />
           )}
         </Hinted>
         <DayField label="Date gained" value={f.gained} onChange={set("gained")} />

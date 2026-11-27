@@ -7,12 +7,18 @@ export function formatLocal(iso: string, timeZone: string, locale = "en-US"): st
   return new Intl.DateTimeFormat(locale, { timeZone, dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
 }
 
-/** A moment as a day on the user's own calendar, as file names use it: 2026-06-13. */
-export function localDay(iso: string): string {
+/**
+ * A moment as a day on the user's own calendar (or `timeZone`'s), as file
+ * names use it: 2026-06-13.
+ */
+export function localDay(iso: string, timeZone?: string): string {
   // Built from its parts, so no browser's idea of a locale's date layout can change it.
-  const parts = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(
-    new Date(iso),
-  );
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(iso));
   const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? "";
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
@@ -30,9 +36,8 @@ export function localZone(): string {
 export function sendMoreFrom(nowIso: string, timeZone: string, locale = "en-US"): string {
   const now = new Date(nowIso);
   const reset = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
-  const day = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone, dateStyle: "short" }).format(d);
   const time = new Intl.DateTimeFormat(locale, { timeZone, timeStyle: "short" }).format(reset);
-  return day(reset) === day(now) ? time : `${time} tomorrow`;
+  return localDay(reset.toISOString(), timeZone) === localDay(nowIso, timeZone) ? time : `${time} tomorrow`;
 }
 
 /** A moment as stored: ISO 8601 in UTC. */

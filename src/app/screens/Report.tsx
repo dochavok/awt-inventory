@@ -74,19 +74,16 @@ export function ReportForm({ services, kind: chosen }: { services: Services; kin
             onChange={(e) => setMessage(e.target.value)}
           />
         </label>
-        <Hinted hint="Optional: the character the report is about.">
+        <Hinted label="Character" hint="Optional: the character the report is about.">
           {(hint) => (
-            <label>
-              Character
-              <select value={characterId} aria-describedby={hint} onChange={(e) => setCharacterId(e.target.value)}>
-                <option value="">None</option>
-                {characters.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <select value={characterId} aria-describedby={hint} onChange={(e) => setCharacterId(e.target.value)}>
+              <option value="">None</option>
+              {characters.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           )}
         </Hinted>
         {kind === "account-problem" && (

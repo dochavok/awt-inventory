@@ -194,10 +194,12 @@ export function skillPicker(
   const picker: SkillPicker = { available: [], others: [] };
   const offered = ref.skills
     .flatMap((skill) => {
-      const match = typed.length === 0 ? "start" : matchWords(typed, skill.name);
-      return match && !retiredSkill(skill, (id) => c.trees.get(id)) ? [{ skill, start: match === "start" }] : [];
+      // With nothing typed, every name matches as a start.
+      const match = matchWords(typed, skill.name);
+      return match && !retiredSkill(skill, (id) => c.trees.get(id))
+        ? [{ skill, start: match === "start", trees: ranked(c, skill) }]
+        : [];
     })
-    .map(({ skill, start }) => ({ skill, start, trees: ranked(c, skill) }))
     .filter(({ trees }) => trees.some((p) => options.allTrees || p.own))
     .sort((a, b) => Number(b.start) - Number(a.start) || a.skill.name.localeCompare(b.skill.name));
   for (const { skill, trees } of offered) {

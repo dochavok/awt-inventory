@@ -90,19 +90,19 @@ function SearchBox({ services, character }: { services: Services; character: Cha
       {character && <BackTo character={character} />}
       <h1>Search</h1>
       <form role="search" className="card" onSubmit={(e) => e.preventDefault()}>
-        <Hinted hint={`Names, descriptions and notes${everyone ? " of all your characters, retired ones too" : ""}.`}>
+        <Hinted
+          label="Search"
+          hint={`Names, descriptions and notes${everyone ? " of all your characters, retired ones too" : ""}.`}
+        >
           {(hint) => (
-            <label>
-              Search
-              <input
-                type="search"
-                // The screen is opened to search, so the box is ready to type in.
-                autoFocus
-                value={query}
-                aria-describedby={hint}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </label>
+            <input
+              type="search"
+              // The screen is opened to search, so the box is ready to type in.
+              autoFocus
+              value={query}
+              aria-describedby={hint}
+              onChange={(e) => setQuery(e.target.value)}
+            />
           )}
         </Hinted>
         {character && (

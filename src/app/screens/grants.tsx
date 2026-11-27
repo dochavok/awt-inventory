@@ -157,18 +157,15 @@ export function GrantForm({
   return (
     <form className="grant-form" aria-label={label} onSubmit={submit}>
       {withReason && (
-        <Hinted hint='Such as "DM ruling, Faire 2026".'>
+        <Hinted label="Reason" hint='Such as "DM ruling, Faire 2026".'>
           {(hint) => (
-            <label>
-              Reason
-              <input
-                required
-                maxLength={LIMITS.shortText}
-                value={f.reason}
-                aria-describedby={hint}
-                onChange={(e) => set("reason")(e.target.value)}
-              />
-            </label>
+            <input
+              required
+              maxLength={LIMITS.shortText}
+              value={f.reason}
+              aria-describedby={hint}
+              onChange={(e) => set("reason")(e.target.value)}
+            />
           )}
         </Hinted>
       )}
@@ -227,17 +224,14 @@ export function GrantForm({
         </label>
       )}
       {f.kind === "extra-damage" && (
-        <Hinted hint='Optional, such as "fire".'>
+        <Hinted label="Type" hint='Optional, such as "fire".'>
           {(hint) => (
-            <label>
-              Type
-              <input
-                maxLength={LIMITS.shortText}
-                value={f.damageType}
-                aria-describedby={hint}
-                onChange={(e) => set("damageType")(e.target.value)}
-              />
-            </label>
+            <input
+              maxLength={LIMITS.shortText}
+              value={f.damageType}
+              aria-describedby={hint}
+              onChange={(e) => set("damageType")(e.target.value)}
+            />
           )}
         </Hinted>
       )}
@@ -253,23 +247,21 @@ export function GrantForm({
               ))}
             </select>
           </div>
-          <Hinted hint={'What it\'s against or adds, such as "fall damage" or "+1".'}>
+          <Hinted label="Text" hint={'What it\'s against or adds, such as "fall damage" or "+1".'}>
             {(hint) => (
-              <label>
-                Text
-                <input
-                  required
-                  maxLength={LIMITS.shortText}
-                  value={f.text}
-                  aria-describedby={hint}
-                  onChange={(e) => set("text")(e.target.value)}
-                />
-              </label>
+              <input
+                required
+                maxLength={LIMITS.shortText}
+                value={f.text}
+                aria-describedby={hint}
+                onChange={(e) => set("text")(e.target.value)}
+              />
             )}
           </Hinted>
         </>
       )}
       <Hinted
+        label="Condition"
         hint={
           f.kind === "effect"
             ? 'Such as "1/day". Effects are listed, never added in, with or without one.'
@@ -277,15 +269,12 @@ export function GrantForm({
         }
       >
         {(hint) => (
-          <label>
-            Condition
-            <input
-              maxLength={LIMITS.shortText}
-              value={f.condition}
-              aria-describedby={hint}
-              onChange={(e) => set("condition")(e.target.value)}
-            />
-          </label>
+          <input
+            maxLength={LIMITS.shortText}
+            value={f.condition}
+            aria-describedby={hint}
+            onChange={(e) => set("condition")(e.target.value)}
+          />
         )}
       </Hinted>
       <Feedback error={add.error} notice={add.notice} />

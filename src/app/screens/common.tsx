@@ -99,33 +99,42 @@ export function DayField({
   onChange: (day: string) => void;
 }) {
   return (
-    <Hinted hint="Leave empty for today.">
+    <Hinted label={label} hint="Leave empty for today.">
       {(hint) => (
-        <label>
-          {label}
-          <input
-            type="date"
-            max={today()}
-            value={value}
-            aria-describedby={hint}
-            onChange={(e) => onChange(e.target.value)}
-          />
-        </label>
+        <input
+          type="date"
+          max={today()}
+          value={value}
+          aria-describedby={hint}
+          onChange={(e) => onChange(e.target.value)}
+        />
       )}
     </Hinted>
   );
 }
 
 /**
- * A field with a hint (NF-9). The hint sits below the label, not in it, and
- * describes the field (`aria-describedby` set to the id `children` is given),
- * so a screen reader reads the label alone as the field's name, then the hint.
+ * A labelled field with a hint (NF-9). The hint sits below the label, not in
+ * it, and describes the field: `children` makes the field, given the hint's id
+ * for its `aria-describedby`. A screen reader then reads the label alone as
+ * the field's name, and the hint after it.
  */
-export function Hinted({ hint, children }: { hint: ReactNode; children: (hintId: string) => ReactNode }) {
+export function Hinted({
+  label,
+  hint,
+  children,
+}: {
+  label: ReactNode;
+  hint: ReactNode;
+  children: (hintId: string) => ReactNode;
+}) {
   const hintId = useId();
   return (
     <div className="field">
-      {children(hintId)}
+      <label>
+        {label}
+        {children(hintId)}
+      </label>
       <span className="hint" id={hintId}>
         {hint}
       </span>
@@ -146,22 +155,19 @@ export function LevelInput({
   max: number;
 }) {
   return (
-    <Hinted hint={`From 1 to ${max}.`}>
+    <Hinted label={label} hint={`From 1 to ${max}.`}>
       {(hint) => (
-        <label>
-          {label}
-          <input
-            type="number"
-            inputMode="numeric"
-            required
-            min={1}
-            max={max}
-            step={1}
-            value={value}
-            aria-describedby={hint}
-            onChange={(e) => onChange(e.target.value)}
-          />
-        </label>
+        <input
+          type="number"
+          inputMode="numeric"
+          required
+          min={1}
+          max={max}
+          step={1}
+          value={value}
+          aria-describedby={hint}
+          onChange={(e) => onChange(e.target.value)}
+        />
       )}
     </Hinted>
   );

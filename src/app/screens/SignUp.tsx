@@ -36,19 +36,19 @@ export function SignUp({ accounts, onBusy }: { accounts: Accounts; onBusy: (busy
     <>
       <h1>Create an account</h1>
       <form className="card" onSubmit={create}>
-        <Hinted hint="Other players see only this, if you list something for trade. No real name needed.">
+        <Hinted
+          label="Display name"
+          hint="Other players see only this, if you list something for trade. No real name needed."
+        >
           {(hint) => (
-            <label>
-              Display name
-              <input
-                autoComplete="nickname"
-                required
-                maxLength={LIMITS.displayName}
-                value={displayName}
-                aria-describedby={hint}
-                onChange={(e) => setDisplayName(e.target.value)}
-              />
-            </label>
+            <input
+              autoComplete="nickname"
+              required
+              maxLength={LIMITS.displayName}
+              value={displayName}
+              aria-describedby={hint}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
           )}
         </Hinted>
         <label>

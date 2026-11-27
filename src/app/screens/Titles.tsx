@@ -50,17 +50,14 @@ function TitleFields({
         Name
         <input required maxLength={LIMITS.name} value={value.name} onChange={set("name")} />
       </label>
-      <Hinted hint="Optional, but worth adding: it's shown with the title.">
+      <Hinted label="Description" hint="Optional, but worth adding: it's shown with the title.">
         {(hint) => (
-          <label>
-            Description
-            <textarea
-              maxLength={LIMITS.description}
-              value={value.description}
-              aria-describedby={hint}
-              onChange={set("description")}
-            />
-          </label>
+          <textarea
+            maxLength={LIMITS.description}
+            value={value.description}
+            aria-describedby={hint}
+            onChange={set("description")}
+          />
         )}
       </Hinted>
       <label>
