@@ -12,7 +12,7 @@ export function searchWords(text: string): string[] {
   return text
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .split(/[^\p{L}\p{N}]+/u)
     .filter(Boolean);
 }
