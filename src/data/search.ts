@@ -3,6 +3,7 @@
 // the start of words come first. Pure functions.
 
 import type { Character, Entry, ReferenceData } from "../rules/types";
+import { matchWords, searchWords } from "../rules/words";
 import type { ListFilter, SearchResult } from "./types";
 
 /**
@@ -16,32 +17,8 @@ export function matchesFilter(entry: Entry, { rarity, itemFamily }: Omit<ListFil
   );
 }
 
-/**
- * The words in a text, lower-cased and without accents (SE-1): letters and
- * digits, split at everything else. Accent marks are split off their letters
- * (NFD) and dropped, however the text was typed. Only the Latin accent marks
- * go: marks that make a different letter in other scripts stay.
- */
-function words(text: string): string[] {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter(Boolean);
-}
-
 /** The fields a search looks in. */
 const FIELDS = ["name", "description", "notes"] as const;
-
-/** How `text` matches the query: every query word starts one of its words, every one is inside one, or not at all. */
-function match(tokens: string[], text: string | undefined): "start" | "inside" | undefined {
-  if (text === undefined) return undefined;
-  const inText = words(text);
-  if (tokens.every((token) => inText.some((w) => w.startsWith(token)))) return "start";
-  if (tokens.every((token) => inText.some((w) => w.includes(token)))) return "inside";
-  return undefined;
-}
 
 export interface Searchable {
   character: Character;
@@ -55,7 +32,7 @@ export function searchEntries(
   ref: ReferenceData,
   showSkillText: boolean,
 ): SearchResult[] {
-  const tokens = words(query);
+  const tokens = searchWords(query);
   if (tokens.length === 0) return [];
   const results: { result: SearchResult; start: boolean }[] = [];
   for (const { character, entries } of characters) {
@@ -67,7 +44,7 @@ export function searchEntries(
         description: entry.category === "skills" ? (showSkillText ? skill?.text : undefined) : entry.description,
         notes: entry.notes,
       };
-      const kinds = FIELDS.map((f) => match(tokens, fields[f]));
+      const kinds = FIELDS.map((f) => matchWords(tokens, fields[f]));
       const matched = FIELDS.filter((_, i) => kinds[i] !== undefined);
       if (matched.length === 0) continue;
       results.push({
