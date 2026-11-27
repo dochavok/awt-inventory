@@ -17,6 +17,7 @@ import {
   RULE,
   appCodeProblems,
   isAppFile,
+  linkProblems,
   requirementsChanged,
   testChangeProblems,
   type Change,
@@ -80,11 +81,6 @@ function trackedAppPaths(): TrackedPath[] {
     .map((entry) => ({ path: entry.slice(entry.indexOf("\t") + 1), link: entry.startsWith("120000 ") }));
 }
 
-/** Part 2 doesn't follow links, so a link git tracks in the app fails the check (TF-7). */
-function linkProblems(tracked: TrackedPath[]): string[] {
-  return tracked.filter(({ link }) => link).map(({ path }) => `${path}: a link, which the check doesn't follow`);
-}
-
 function isRegularFile(path: string): boolean {
   try {
     return lstatSync(path).isFile();
@@ -105,7 +101,7 @@ function fixtureNames(): string[] {
 }
 
 function main(): number {
-  const baseRef = ARGS.base;
+  const { base: baseRef } = ARGS;
   if (!baseRef) {
     console.error("Usage: tsx scripts/check-test-changes.ts --base <git ref> [--repo <folder>]");
     return 2;
@@ -115,7 +111,8 @@ function main(): number {
   const part1 = testChangeProblems(changes, readerAt(base), readerAt("HEAD"));
   const tracked = trackedAppPaths();
   const files = new Map(appFiles(tracked).map((p) => [p, readFileSync(join(ROOT, p), "utf8")] as const));
-  const part2 = [...linkProblems(tracked), ...appCodeProblems(files, fixtureNames())];
+  const links = tracked.filter(({ link }) => link).map(({ path }) => path);
+  const part2 = [...linkProblems(links), ...appCodeProblems(files, fixtureNames())];
   const problems = [...part1, ...part2];
 
   const lines = [`Compared ${baseRef} (${base.slice(0, 7)}) with HEAD: ${changes.length} files changed.`];

@@ -256,7 +256,8 @@ function checkStep(root: string): { cwd: string; run: string } {
     .flatMap((job) => job.steps)
     .filter((step) => step.run?.includes("check-test-changes.ts"));
   expect(steps, "the workflow's steps that run the check").toHaveLength(1);
-  return { cwd: steps[0]!["working-directory"] ?? ".", run: steps[0]!.run! };
+  const [step] = steps;
+  return { cwd: step!["working-directory"] ?? ".", run: step!.run! };
 }
 
 rule(

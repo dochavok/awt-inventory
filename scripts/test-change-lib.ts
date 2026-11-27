@@ -30,8 +30,8 @@
 //
 // Part 2, always: fails if app code (src/) or the server code (functions/)
 // imports the tests, test tools or test data, or if src/, data/ or functions/
-// names a made-up test character or user. scripts/check-test-changes.ts also
-// fails a link git tracks there, since part 2 doesn't follow links.
+// names a made-up test character or user, or if git tracks a link there
+// (part 2 doesn't follow links).
 
 import { isDeepStrictEqual } from "node:util";
 import ts from "typescript";
@@ -517,6 +517,11 @@ export function isAppFile(path: string): boolean {
 
 /** The entries directly in functions/ that part 2 never reads. */
 const SKIPPED_IN_FUNCTIONS = ["node_modules", "lib", "package-lock.json"];
+
+/** Part 2 doesn't follow links, so each link git tracks under src/, data/ or functions/ fails the check. */
+export function linkProblems(links: string[]): string[] {
+  return links.map((path) => `${path}: a link, which the check doesn't follow`);
+}
 
 /**
  * Part 2: `files` maps the paths `isAppFile` accepts to their contents;
