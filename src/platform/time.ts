@@ -17,6 +17,24 @@ export function localDay(iso: string): string {
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
+/** The user's own time zone, for times shown to them (NF-8). */
+export function localZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
+/**
+ * When a user can send reports again after the day's limit (SP-1): the next
+ * midnight UTC, as a time in `timeZone`, with "tomorrow" when that's the next
+ * day there: "7:00 PM", "9:00 AM tomorrow".
+ */
+export function sendMoreFrom(nowIso: string, timeZone: string, locale = "en-US"): string {
+  const now = new Date(nowIso);
+  const reset = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+  const day = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone, dateStyle: "short" }).format(d);
+  const time = new Intl.DateTimeFormat(locale, { timeZone, timeStyle: "short" }).format(reset);
+  return day(reset) === day(now) ? time : `${time} tomorrow`;
+}
+
 /** A moment as stored: ISO 8601 in UTC. */
 export function toStoredTime(date: Date): string {
   if (Number.isNaN(date.getTime())) throw new ValidationError("date", "That isn't a valid date and time.");

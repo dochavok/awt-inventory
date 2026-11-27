@@ -2,7 +2,7 @@
 // (SheetDocument), then laid out as a PDF with pdf-lib, on the phone itself.
 
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
-import { formatLocal, localDay } from "../platform/time";
+import { formatLocal, localDay, localZone } from "../platform/time";
 import type { Character, Entry, ItemEntry, ReferenceData, SkillEntry, SlotState, Title, Totals } from "../rules/types";
 import { totalRows } from "./totals-text";
 import type { PdfFile, PrintOptions, SheetDocument } from "./types";
@@ -43,11 +43,6 @@ function sheetEquipped(slots: SlotState): SheetPage["equipped"] {
     ),
     ...slots.arcane.occupants.map((o) => ({ slot: "Arcane", entry: o.name })),
   ];
-}
-
-/** The user's own time zone, for dates shown to them (NF-8). */
-function localZone(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
 export function buildSheet(

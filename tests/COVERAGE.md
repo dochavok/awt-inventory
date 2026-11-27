@@ -92,7 +92,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | EX-3 | Must | M3 | browser/search-export.spec.ts (1), data/search-export.test.ts (2) |
 | EX-4 | Must | M3 | access/firestore-store.test.ts (1), browser/search-export.spec.ts (2), data/inventory.test.ts (1), data/search-export.test.ts (5) |
 | EX-5 | Should | M3 | docs/docs.test.ts (2) |
-| SP-1 | Must | M3 | access/firestore-store.test.ts (1), access/offline.test.ts (1), access/privacy.test.ts (3), browser/inventory.spec.ts (2), data/limits.test.ts (1), data/reports.test.ts (7), server/reports.test.ts (5) |
+| SP-1 | Must | M3 | access/firestore-store.test.ts (1), access/offline.test.ts (1), access/privacy.test.ts (3), browser/inventory.spec.ts (2), data/limits.test.ts (1), data/reports.test.ts (8), platform/platform.test.ts (1), server/reports.test.ts (5) |
 | SP-2 | Must | M3 | access/privacy.test.ts (1), server/reports.test.ts (22) |
 | SP-3 | Must | M3 | server/reports.test.ts (3) |
 | TD-1 | Must | M7 | tests wait for the section 11 review (TF-1) |
@@ -119,7 +119,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | NF-5 | Must | M2+ | data/grants.test.ts (9), ops/operations.test.ts (1) |
 | NF-6 | Must | M2+ | access/firestore-store.test.ts (2), access/privacy.test.ts (6), data/grants.test.ts (1), data/inventory.test.ts (1), data/limits.test.ts (8) |
 | NF-7 | Must | M2+ | access/privacy.test.ts (1), ops/operations.test.ts (1) |
-| NF-8 | Must | M2+ | data/history.test.ts (2), platform/platform.test.ts (2) |
+| NF-8 | Must | M2+ | data/history.test.ts (2), platform/platform.test.ts (3) |
 | NF-9 | Should | M2+ | none |
 | NF-10 | Must | M3 | ops/operations.test.ts (4) |
 | NF-11 | Must | M3 | ops/operations.test.ts (7) |

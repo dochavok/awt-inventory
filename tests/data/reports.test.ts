@@ -4,6 +4,7 @@
 import { expect } from "vitest";
 import { createAccounts } from "../../src/data/accounts";
 import { AccessDeniedError, RateLimitError } from "../../src/errors";
+import { localZone, sendMoreFrom } from "../../src/platform/time";
 import { FakeAuth } from "../support/fake-auth";
 import { rule } from "../support/rule";
 import { seedCharacter, seedProfile, world } from "../support/world";
@@ -123,3 +124,18 @@ rule({ req: ["SP-1", "AC-5"], m: "M3" }, "reports are deleted with the account",
   const old = w.forAuth({ currentUser: () => ({ uid: oldUid }) });
   expect(await old.reports(), "the deleted account's reports").toEqual([]);
 });
+
+rule(
+  { req: ["SP-1"], m: "M3" },
+  "a refused sixteenth report says when more can be sent, in the user's local time",
+  async () => {
+    const { w, bram } = await setUp();
+    for (let i = 1; i <= 15; i++) await bram.sendReport({ kind: "idea", subject: `Idea ${i}`, message: "Made up." });
+    const from = sendMoreFrom(w.clock.iso(), localZone());
+    expect(from, "the time more can be sent").toMatch(/^\d{1,2}:00\s[AP]M( tomorrow)?$/);
+    const refused = bram.sendReport({ kind: "idea", subject: "Idea 16", message: "Made up." });
+    await expect(refused, "the refusal").rejects.toThrow(
+      `You can send 15 reports a day. You can send more from ${from}.`,
+    );
+  },
+);
