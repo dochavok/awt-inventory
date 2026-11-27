@@ -45,7 +45,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | IN-14 | Must | M2 | access/firestore-store.test.ts (1), browser/equipping.spec.ts (1), browser/inventory.spec.ts (2), data/grants.test.ts (4), data/inventory.test.ts (6) |
 | IN-15 | Must | M2 | access/firestore-store.test.ts (2), access/privacy.test.ts (1), browser/inventory.spec.ts (2), data/grants.test.ts (3), data/inventory.test.ts (3), data/limits.test.ts (1), data/skills.test.ts (1) |
 | IN-16 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (2), data/inventory.test.ts (3) |
-| SK-1 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (1), data/skills.test.ts (1), rules/skills.test.ts (9) |
+| SK-1 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (1), data/skills.test.ts (1), rules/skills.test.ts (10) |
 | SK-1a | Must | M2 | browser/inventory.spec.ts (2), data/skills.test.ts (1), refdata/refdata.test.ts (1), rules/skills.test.ts (8) |
 | SK-2 | Must | M2 | access/firestore-store.test.ts (1), browser/inventory.spec.ts (3), browser/search-export.spec.ts (1), data/search-export.test.ts (2), data/skills.test.ts (4), refdata/refdata.test.ts (1) |
 | SK-3 | Must | M2 | browser/inventory.spec.ts (1), data/skills.test.ts (1), docs/docs.test.ts (1), rules/skills.test.ts (14) |
@@ -84,7 +84,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | EQ-9 | Should | M5 | rules/equipping.test.ts (10) |
 | EQ-10 | Should | M5 | properties/equipping.test.ts (1), rules/equipping.test.ts (7) |
 | EQ-11 | Should | M5 | rules/equipping.test.ts (3) |
-| SE-1 | Must | M3 | access/firestore-store.test.ts (1), browser/search-export.spec.ts (1), data/privacy.test.ts (1), data/search-export.test.ts (9), rules/skills.test.ts (2) |
+| SE-1 | Must | M3 | access/firestore-store.test.ts (1), browser/search-export.spec.ts (1), data/privacy.test.ts (1), data/search-export.test.ts (9), rules/skills.test.ts (3) |
 | SE-2 | Must | M3 | browser/search-export.spec.ts (2), data/privacy.test.ts (1), data/search-export.test.ts (3) |
 | SE-3 | Should | M3 | browser/search-export.spec.ts (5), data/privacy.test.ts (1), data/search-export.test.ts (2) |
 | EX-1 | Must | M3 | browser/search-export.spec.ts (5), data/privacy.test.ts (1), data/search-export.test.ts (12) |

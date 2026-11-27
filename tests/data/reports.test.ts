@@ -1,10 +1,10 @@
 // Reports to the maintainer from the app (SP-1), through the data layer.
 // Delivery to GitHub and email (SP-2, SP-3) is in tests/server/reports.test.ts.
 
-import { expect } from "vitest";
+import { expect, vi } from "vitest";
 import { createAccounts } from "../../src/data/accounts";
 import { AccessDeniedError, RateLimitError } from "../../src/errors";
-import { localZone, sendMoreFrom } from "../../src/platform/time";
+import { localZone } from "../../src/platform/time";
 import { FakeAuth } from "../support/fake-auth";
 import { rule } from "../support/rule";
 import { seedCharacter, seedProfile, world } from "../support/world";
@@ -129,13 +129,15 @@ rule(
   { req: ["SP-1"], m: "M3" },
   "a refused sixteenth report says when more can be sent, in the user's local time",
   async () => {
+    // A player in Chicago, at 10 am there (15:00 UTC): the count starts again at 7 pm, midnight UTC.
+    vi.stubEnv("TZ", "America/Chicago");
+    expect(localZone(), "the player's time zone").toBe("America/Chicago");
     const { w, bram } = await setUp();
+    expect(w.clock.iso(), "the time the report is sent").toBe("2026-06-13T15:00:00.000Z");
     for (let i = 1; i <= 15; i++) await bram.sendReport({ kind: "idea", subject: `Idea ${i}`, message: "Made up." });
-    const from = sendMoreFrom(w.clock.iso(), localZone());
-    expect(from, "the time more can be sent").toMatch(/^\d{1,2}:00\s[AP]M( tomorrow)?$/);
     const refused = bram.sendReport({ kind: "idea", subject: "Idea 16", message: "Made up." });
     await expect(refused, "the refusal").rejects.toThrow(
-      `You can send 15 reports a day. You can send more from ${from}.`,
+      /^You can send 15 reports a day\. You can send more from 7:00\sPM\.$/,
     );
   },
 );

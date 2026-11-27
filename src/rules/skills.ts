@@ -190,8 +190,11 @@ export function skillPicker(
   options: { allTrees: boolean; query?: string },
 ): SkillPicker {
   const c = context(sheet, ref);
-  const typed = searchWords(options.query ?? "");
+  const query = options.query?.trim() ?? "";
+  const typed = searchWords(query);
   const picker: SkillPicker = { available: [], others: [] };
+  // Typed text with no words in it (only punctuation) matches nothing, as in search.
+  if (query !== "" && typed.length === 0) return picker;
   const offered = ref.skills
     .flatMap((skill) => {
       // With nothing typed, every name matches as a start.

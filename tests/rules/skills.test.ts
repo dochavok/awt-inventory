@@ -4,7 +4,7 @@
 // Iron Guard, Veteran's Edge three times (its limit) and Battle Focus.
 
 import { expect } from "vitest";
-import { recordCheck, skillPicker, skillWarnings, type CharacterSheet } from "../../src/rules";
+import { recordCheck, skillPicker, skillRetired, skillWarnings, type CharacterSheet } from "../../src/rules";
 import { fixtureSheet, testReferenceData } from "../support/fixtures";
 import { rule } from "../support/rule";
 
@@ -432,5 +432,21 @@ rule(
       picker.others.map((o) => o.name),
       "Isolde's other skills matching 'sh'",
     ).toEqual(["Broad Shoulders", "Shadow Step", "Longshot"]);
+  },
+);
+
+rule(
+  { req: ["SK-1", "SE-1"], m: "M3" },
+  "a search of only punctuation finds no skills, as search finds nothing for it",
+  () => {
+    for (const query of ["'", " - ", "!?"]) {
+      const picker = skillPicker(fixtureSheet("aldric"), ref, { allTrees: true, query });
+      expect(picker.available.length + picker.others.length, `skills matching "${query}"`).toBe(0);
+    }
+    // Nothing typed at all still lists every skill.
+    const all = skillPicker(fixtureSheet("aldric"), ref, { allTrees: true, query: "  " });
+    expect(all.available.length + all.others.length, "skills with nothing typed").toBe(
+      ref.skills.filter((s) => !skillRetired(s, ref)).length,
+    );
   },
 );
