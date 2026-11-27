@@ -2,6 +2,11 @@
 // code in an existing test file that could change how its tests run. M1, so
 // these must pass.
 
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect } from "vitest";
 import { packageProblems, testChangeProblems, testFileProblems } from "../../scripts/test-change-lib";
 import { rule } from "../support/rule";
@@ -145,4 +150,80 @@ rule(
       ]);
     }
   },
+);
+
+rule(
+  { req: ["TF-7"], m: "M1" },
+  "the check reads only the app files git tracks",
+  () => {
+    const root = fileURLToPath(new URL("../..", import.meta.url));
+    const repo = mkdtempSync(join(tmpdir(), "awt-check-"));
+    const write = (path: string, text: string) => {
+      mkdirSync(dirname(join(repo, path)), { recursive: true });
+      writeFileSync(join(repo, path), text);
+    };
+    // Signing, hooks, the variables that point git at the outer repository (as set in a git hook)
+    // and the CI job's summary file stay out of these runs.
+    const outer = [
+      "GIT_DIR",
+      "GIT_WORK_TREE",
+      "GIT_INDEX_FILE",
+      "GIT_OBJECT_DIRECTORY",
+      "GIT_COMMON_DIR",
+      "GIT_PREFIX",
+    ];
+    const env = Object.fromEntries(
+      Object.entries(process.env).filter(([name]) => name !== "GITHUB_STEP_SUMMARY" && !outer.includes(name)),
+    );
+    const settings = ["user.name=Test", "user.email=test@example.test", "commit.gpgsign=false", "core.hooksPath="];
+    const git = (...args: string[]) =>
+      execFileSync("git", [...settings.flatMap((s) => ["-c", s]), ...args], {
+        cwd: repo,
+        env,
+        stdio: "pipe",
+        timeout: 5_000,
+      });
+    // Two checks and five git calls fit inside the test's 75 s; a timed-out check says so.
+    const check = () => {
+      const run = spawnSync(
+        process.execPath,
+        [join(root, "node_modules/tsx/dist/cli.mjs"), join(root, "scripts/check-test-changes.ts"), "--base", "main"],
+        { cwd: repo, env, encoding: "utf8", timeout: 20_000 },
+      );
+      const error = run.error ? `\n${run.error.message}` : "";
+      return { code: run.status, out: `${run.stdout ?? ""}${run.stderr ?? ""}${error}` };
+    };
+    try {
+      write("tests/fixtures/characters.yaml", "aldric:\n  character: { name: Aldric }\n");
+      write("tests/fixtures/users.yaml", "bram:\n  displayName: Bramblewick\n  email: bram@example.test\n");
+      write(".gitignore", "src/generated/\n");
+      write("src/app.ts", "export const app = 1;\n");
+      write("src/old.ts", "export const old = 1;\n");
+      git("init", "-q", "-b", "main");
+      git("add", ".");
+      git("commit", "-q", "-m", "start");
+
+      // A file git ignores (here, generated output) never counts, even naming a test character.
+      write("src/generated/names.ts", 'export const who = "Aldric";\n');
+      const ignored = check();
+      expect(ignored.out).toContain("The test-change check passed.");
+      expect(ignored.code).toBe(0);
+
+      // A tracked file naming one still fails, named. A tracked file deleted but not committed is
+      // skipped, and so is one that's now a folder: only regular files are read.
+      write("src/named.ts", 'export const who = "Aldric";\n');
+      git("add", "src/named.ts");
+      git("commit", "-q", "-m", "name");
+      rmSync(join(repo, "src/app.ts"));
+      rmSync(join(repo, "src/old.ts"));
+      mkdirSync(join(repo, "src/old.ts"));
+      const tracked = check();
+      expect(tracked.code).toBe(1);
+      expect(tracked.out).toContain('src/named.ts: names "Aldric", from the test fixtures');
+      expect(tracked.out).not.toContain("src/generated/names.ts");
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  },
+  { timeout: 75_000 },
 );

@@ -115,9 +115,12 @@ Each is a CI job, and all five are required checks on `main`:
 - **On WebKit, going to the address already open reloads the page** and loses
   in-memory state (such as an alert's cause, EQ-8); tap the app's own link
   instead.
-- **An unfinished milestone's failing browser test prints as ✓,** and the
-  browser job has no milestone table. Before finishing a milestone, check its
-  browser tests really pass on both phones.
+- **An unfinished milestone's failing browser test prints as ✓.** Read the
+  summary after Playwright's list instead (TF-5,
+  `tests/support/browser-summary.ts`): a milestone table for each phone, the
+  tests whose result differs between the phones, and the tests that passed
+  early. A local run of one phone has nothing to compare, so check both
+  phones' tables in CI before finishing a milestone.
 - **An existing test file can't import a support file added in the same PR**
   (TF-7). Give a new test its own file, or its own reader.
 - **Guard each tap with `expect` at the default 5 s.** A long wait on a missing

@@ -8,7 +8,8 @@ export default defineConfig({
   testMatch: "**/*.spec.ts",
   forbidOnly: true,
   fullyParallel: true,
-  reporter: [["list"]],
+  // TF-5: a milestone table for each phone, since the list prints an expected failure as ✓.
+  reporter: [["list"], ["./tests/support/browser-summary.ts"]],
   // TF-13: one made-up player signs up first, so the first tests don't time out while everything warms up.
   globalSetup: "./tests/support/browser-warm-up.ts",
   // A failed action must not hang: expect() guards each one, so this never decides a result.

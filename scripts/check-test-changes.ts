@@ -7,7 +7,7 @@
 // against the pull request. On GitHub Actions it also writes a job summary.
 
 import { execFileSync } from "node:child_process";
-import { appendFileSync, readdirSync, readFileSync } from "node:fs";
+import { appendFileSync, lstatSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { parse } from "yaml";
@@ -48,22 +48,23 @@ function readerAt(ref: string): Reader {
 }
 
 /**
- * Repository paths of the files under `dir` that part 2 reads (`isAppFile`);
- * none if it doesn't exist. Folders it never reads, such as node_modules,
- * aren't walked.
+ * Repository paths of the files part 2 reads (`isAppFile`), from the files git
+ * tracks (TF-7), so what git ignores, such as packages and build output, never
+ * counts. Only regular files are read, as before: a tracked file deleted but
+ * not yet committed is skipped, and so is a link.
  */
-function appFilesUnder(dir: string): string[] {
-  let entries;
+function appFiles(): string[] {
+  return git("ls-files", "-z", "--", "src", "data", "functions")
+    .split("\0")
+    .filter((path) => path !== "" && isAppFile(path) && isRegularFile(join(ROOT, path)));
+}
+
+function isRegularFile(path: string): boolean {
   try {
-    entries = readdirSync(join(ROOT, dir), { withFileTypes: true });
+    return lstatSync(path).isFile();
   } catch {
-    return [];
+    return false;
   }
-  return entries.flatMap((e) => {
-    const path = `${dir}/${e.name}`;
-    if (e.isDirectory()) return isAppFile(`${path}/`) ? appFilesUnder(path) : [];
-    return e.isFile() && isAppFile(path) ? [path] : [];
-  });
 }
 
 function fixtureNames(): string[] {
@@ -86,10 +87,8 @@ function main(argv: string[]): number {
   const base = git("merge-base", baseRef, "HEAD").trim();
   const changes = changedFiles(base);
   const part1 = testChangeProblems(changes, readerAt(base), readerAt("HEAD"));
-  const appFiles = new Map(
-    ["src", "data", "functions"].flatMap(appFilesUnder).map((p) => [p, readFileSync(join(ROOT, p), "utf8")] as const),
-  );
-  const part2 = appCodeProblems(appFiles, fixtureNames());
+  const files = new Map(appFiles().map((p) => [p, readFileSync(join(ROOT, p), "utf8")] as const));
+  const part2 = appCodeProblems(files, fixtureNames());
   const problems = [...part1, ...part2];
 
   const lines = [`Compared ${baseRef} (${base.slice(0, 7)}) with HEAD: ${changes.length} files changed.`];
