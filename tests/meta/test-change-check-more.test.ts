@@ -2,6 +2,11 @@
 // code in an existing test file that could change how its tests run. M1, so
 // these must pass.
 
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect } from "vitest";
 import { packageProblems, testChangeProblems, testFileProblems } from "../../scripts/test-change-lib";
 import { rule } from "../support/rule";
@@ -145,4 +150,62 @@ rule(
       ]);
     }
   },
+);
+
+rule(
+  { req: ["TF-7"], m: "M1" },
+  "the check reads only the app files git tracks",
+  () => {
+    const root = fileURLToPath(new URL("../..", import.meta.url));
+    const repo = mkdtempSync(join(tmpdir(), "awt-check-"));
+    const write = (path: string, text: string) => {
+      mkdirSync(dirname(join(repo, path)), { recursive: true });
+      writeFileSync(join(repo, path), text);
+    };
+    const git = (...args: string[]) =>
+      execFileSync("git", ["-c", "user.name=Test", "-c", "user.email=test@example.test", ...args], {
+        cwd: repo,
+        stdio: "pipe",
+      });
+    const check = () => {
+      try {
+        const out = execFileSync(
+          process.execPath,
+          [join(root, "node_modules/tsx/dist/cli.mjs"), join(root, "scripts/check-test-changes.ts"), "--base", "main"],
+          { cwd: repo, encoding: "utf8", stdio: "pipe" },
+        );
+        return { code: 0, out };
+      } catch (error) {
+        const e = error as { status: number; stdout: string; stderr: string };
+        return { code: e.status, out: e.stdout + e.stderr };
+      }
+    };
+    try {
+      write("tests/fixtures/characters.yaml", "aldric:\n  character: { name: Aldric }\n");
+      write("tests/fixtures/users.yaml", "bram:\n  displayName: Bramblewick\n  email: bram@example.test\n");
+      write(".gitignore", "src/generated/\n");
+      write("src/app.ts", "export const app = 1;\n");
+      git("init", "-q", "-b", "main");
+      git("add", ".");
+      git("commit", "-q", "-m", "start");
+
+      // A file git ignores (here, generated output) never counts, even naming a test character.
+      write("src/generated/names.ts", 'export const who = "Aldric";\n');
+      const ignored = check();
+      expect(ignored.out).toContain("The test-change check passed.");
+      expect(ignored.code).toBe(0);
+
+      // A tracked file naming one still fails, named.
+      write("src/named.ts", 'export const who = "Aldric";\n');
+      git("add", "src/named.ts");
+      git("commit", "-q", "-m", "name");
+      const tracked = check();
+      expect(tracked.code).toBe(1);
+      expect(tracked.out).toContain('src/named.ts: names "Aldric", from the test fixtures');
+      expect(tracked.out).not.toContain("src/generated/names.ts");
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  },
+  { timeout: 30_000 },
 );
