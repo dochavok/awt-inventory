@@ -1,8 +1,9 @@
 // Prints the browser tests' milestone table for each phone (TF-5), after
 // Playwright's own list, then the tests whose result differs between the
-// phones and the tests that passed early, with their phones. Playwright prints a test that failed as expected as ✓, so without
-// this a test failing on one phone only looks like a pass until its milestone
-// finishes (it hid four WebKit failures through M3).
+// phones and the tests that passed early, with their phones. Playwright
+// prints a test that failed as expected as ✓, so without this a test failing
+// on one phone only looks like a pass until its milestone finishes (it hid
+// four WebKit failures through M3).
 
 import type { FullConfig, Reporter, TestCase, TestResult } from "@playwright/test/reporter";
 import { emptyCounts, milestoneTable, type Column, type Counts } from "./milestone-table";

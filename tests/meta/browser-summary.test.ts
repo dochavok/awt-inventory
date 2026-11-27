@@ -188,10 +188,15 @@ rule({ req: ["TF-5"], m: "M1" }, "tests that passed early are named with the pho
   );
 });
 
-rule({ req: ["TF-5"], m: "M1" }, "a phone that isn't configured comes after the configured ones", () => {
+rule({ req: ["TF-5"], m: "M1" }, "phones that aren't configured come after the configured ones, by name", () => {
   const summary = summarise(
-    [result("tablet", T3, "passed"), result("android", T3, "passed"), result("iphone", T3, "passed")],
+    [
+      result("tablet", T3, "passed"),
+      result("android", T3, "passed"),
+      result("desktop", T3, "passed"),
+      result("iphone", T3, "passed"),
+    ],
     ["iphone", "android"],
   );
-  expect([...summary.phones.keys()]).toEqual(["iphone", "android", "tablet"]);
+  expect([...summary.phones.keys()]).toEqual(["iphone", "android", "desktop", "tablet"]);
 });

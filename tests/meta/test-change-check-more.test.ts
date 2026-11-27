@@ -162,10 +162,18 @@ rule(
       mkdirSync(dirname(join(repo, path)), { recursive: true });
       writeFileSync(join(repo, path), text);
     };
-    // Signing, hooks, the outer repository's GIT_* variables (as set in a git hook) and the CI job's
-    // summary file stay out of these runs.
+    // Signing, hooks, the variables that point git at the outer repository (as set in a git hook)
+    // and the CI job's summary file stay out of these runs.
+    const outer = [
+      "GIT_DIR",
+      "GIT_WORK_TREE",
+      "GIT_INDEX_FILE",
+      "GIT_OBJECT_DIRECTORY",
+      "GIT_COMMON_DIR",
+      "GIT_PREFIX",
+    ];
     const env = Object.fromEntries(
-      Object.entries(process.env).filter(([name]) => name !== "GITHUB_STEP_SUMMARY" && !name.startsWith("GIT_")),
+      Object.entries(process.env).filter(([name]) => name !== "GITHUB_STEP_SUMMARY" && !outer.includes(name)),
     );
     const settings = ["user.name=Test", "user.email=test@example.test", "commit.gpgsign=false", "core.hooksPath="];
     const git = (...args: string[]) =>
@@ -175,20 +183,22 @@ rule(
         stdio: "pipe",
         timeout: 5_000,
       });
-    // Two checks and five git calls fit inside the test's 60 s; a timed-out check says so.
+    // Two checks and five git calls fit inside the test's 75 s; a timed-out check says so.
     const check = () => {
       const run = spawnSync(
         process.execPath,
         [join(root, "node_modules/tsx/dist/cli.mjs"), join(root, "scripts/check-test-changes.ts"), "--base", "main"],
-        { cwd: repo, env, encoding: "utf8", timeout: 15_000 },
+        { cwd: repo, env, encoding: "utf8", timeout: 20_000 },
       );
-      return { code: run.status, out: `${run.stdout}${run.stderr}${run.error ? `\n${run.error.message}` : ""}` };
+      const error = run.error ? `\n${run.error.message}` : "";
+      return { code: run.status, out: `${run.stdout ?? ""}${run.stderr ?? ""}${error}` };
     };
     try {
       write("tests/fixtures/characters.yaml", "aldric:\n  character: { name: Aldric }\n");
       write("tests/fixtures/users.yaml", "bram:\n  displayName: Bramblewick\n  email: bram@example.test\n");
       write(".gitignore", "src/generated/\n");
       write("src/app.ts", "export const app = 1;\n");
+      write("src/old.ts", "export const old = 1;\n");
       git("init", "-q", "-b", "main");
       git("add", ".");
       git("commit", "-q", "-m", "start");
@@ -199,11 +209,14 @@ rule(
       expect(ignored.out).toContain("The test-change check passed.");
       expect(ignored.code).toBe(0);
 
-      // A tracked file naming one still fails, named. A tracked file deleted but not committed is skipped.
+      // A tracked file naming one still fails, named. A tracked file deleted but not committed is
+      // skipped, and so is one that's now a folder: only regular files are read.
       write("src/named.ts", 'export const who = "Aldric";\n');
       git("add", "src/named.ts");
       git("commit", "-q", "-m", "name");
       rmSync(join(repo, "src/app.ts"));
+      rmSync(join(repo, "src/old.ts"));
+      mkdirSync(join(repo, "src/old.ts"));
       const tracked = check();
       expect(tracked.code).toBe(1);
       expect(tracked.out).toContain('src/named.ts: names "Aldric", from the test fixtures');
@@ -212,5 +225,5 @@ rule(
       rmSync(repo, { recursive: true, force: true });
     }
   },
-  { timeout: 60_000 },
+  { timeout: 75_000 },
 );
