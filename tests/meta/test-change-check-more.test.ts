@@ -1,13 +1,23 @@
-// More of the test-change check (TF-7): scripts npm runs by itself, and new
-// code in an existing test file that could change how its tests run. M1, so
-// these must pass.
+// More of the test-change check (TF-7): scripts npm runs by itself, new code
+// in an existing test file that could change how its tests run, the files it
+// reads, and how CI runs it against a pull request. M1, so these must pass.
 
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "vitest";
+import { parse } from "yaml";
 import { packageProblems, testChangeProblems, testFileProblems } from "../../scripts/test-change-lib";
 import { rule } from "../support/rule";
 
@@ -226,4 +236,115 @@ rule(
     }
   },
   { timeout: 75_000 },
+);
+
+rule({ req: ["TF-7"], m: "M1" }, "changing or deleting the TypeScript settings is refused", () => {
+  const read = () => "{}";
+  expect(testChangeProblems([{ status: "M", path: "tsconfig.json" }], read, read)).toEqual([
+    "tsconfig.json: changed (test settings and check scripts are protected)",
+  ]);
+  expect(testChangeProblems([{ status: "D", path: "tsconfig.json" }], read, read)).toEqual([
+    "tsconfig.json: deleted (test settings and check scripts are protected)",
+  ]);
+});
+
+/** The step of the test-change rule workflow that runs the check: its folder and command. */
+function checkStep(root: string): { cwd: string; run: string } {
+  type Workflow = { jobs: Record<string, { steps: { run?: string; "working-directory"?: string }[] }> };
+  const workflow = parse(readFileSync(join(root, ".github/workflows/test-change-rule.yml"), "utf8")) as Workflow;
+  const steps = Object.values(workflow.jobs)
+    .flatMap((job) => job.steps)
+    .filter((step) => step.run?.includes("check-test-changes.ts"));
+  expect(steps, "the workflow's steps that run the check").toHaveLength(1);
+  return { cwd: steps[0]!["working-directory"] ?? ".", run: steps[0]!.run! };
+}
+
+rule(
+  { req: ["TF-7"], m: "M1" },
+  "CI's check runs nothing from the pull request, and names a link git tracks in the app",
+  () => {
+    const root = fileURLToPath(new URL("../..", import.meta.url));
+    // CI's layout: main's checkout (with its packages) in base/, the pull request in pr/.
+    const work = mkdtempSync(join(tmpdir(), "awt-ci-"));
+    const base = join(work, "base");
+    const pr = join(work, "pr");
+    const ran = join(work, "ran.txt");
+    const write = (path: string, text: string) => {
+      mkdirSync(dirname(join(pr, path)), { recursive: true });
+      writeFileSync(join(pr, path), text);
+    };
+    // Signing, hooks, the variables that point git at the outer repository (as set in a git hook)
+    // and the CI job's summary file stay out of these runs.
+    const outer = [
+      "GIT_DIR",
+      "GIT_WORK_TREE",
+      "GIT_INDEX_FILE",
+      "GIT_OBJECT_DIRECTORY",
+      "GIT_COMMON_DIR",
+      "GIT_PREFIX",
+    ];
+    const env = Object.fromEntries(
+      Object.entries(process.env).filter(([name]) => name !== "GITHUB_STEP_SUMMARY" && !outer.includes(name)),
+    );
+    const settings = ["user.name=Test", "user.email=test@example.test", "commit.gpgsign=false", "core.hooksPath="];
+    const git = (args: string[], input?: string) =>
+      execFileSync("git", [...settings.flatMap((s) => ["-c", s]), ...args], {
+        cwd: pr,
+        env,
+        encoding: "utf8",
+        stdio: "pipe",
+        timeout: 5_000,
+        ...(input === undefined ? {} : { input }),
+      });
+    try {
+      symlinkSync(root, base, "junction");
+      write("tests/fixtures/characters.yaml", "aldric:\n  character: { name: Aldric }\n");
+      write("tests/fixtures/users.yaml", "bram:\n  displayName: Bramblewick\n  email: bram@example.test\n");
+      write("src/app.ts", "export const app = 1;\n");
+      git(["init", "-q", "-b", "main"]);
+      git(["add", "."]);
+      git(["commit", "-q", "-m", "start"]);
+
+      // The pull request: settings that point packages the check imports at a file of its own,
+      // and a link from the app into the test data (stored as a link whatever the system).
+      write(
+        "tsconfig.json",
+        JSON.stringify({
+          compilerOptions: { baseUrl: ".", paths: { yaml: ["./own.ts"], typescript: ["./own.ts"] } },
+        }),
+      );
+      write(
+        "own.ts",
+        `import { writeFileSync } from "node:fs";\n` +
+          `writeFileSync(${JSON.stringify(ran)}, "ran");\n` +
+          `console.log("THE PULL REQUEST'S CODE RAN");\n` +
+          `export const parse = () => ({});\nexport default {};\n`,
+      );
+      const target = git(["hash-object", "-w", "--stdin"], "../tests/fixtures/users.yaml").trim();
+      git(["update-index", "--add", "--cacheinfo", `120000,${target},src/people.ts`]);
+      git(["add", "tsconfig.json", "own.ts"]);
+      git(["commit", "-q", "-m", "pull request"]);
+
+      const step = checkStep(root);
+      const [command, ...args] = step.run.replace('"$BASE_SHA"', "main").split(/\s+/).filter(Boolean);
+      expect(command, step.run).toBe("node");
+      const run = spawnSync(process.execPath, args, {
+        cwd: join(work, step.cwd),
+        env,
+        encoding: "utf8",
+        timeout: 20_000,
+      });
+      const out = `${run.stdout ?? ""}${run.stderr ?? ""}${run.error ? `\n${run.error.message}` : ""}`;
+      expect(existsSync(ran), out).toBe(false);
+      expect(out).not.toContain("THE PULL REQUEST'S CODE RAN");
+      expect(out).toContain("src/people.ts: a link, which the check doesn't follow");
+      expect(run.status, out).toBe(1);
+    } finally {
+      // The link to the repository goes first, on its own, so the clean-up never reaches into it:
+      // if it can't be removed, the error stops the clean-up here.
+      if (existsSync(base)) unlinkSync(base);
+      rmSync(work, { recursive: true, force: true });
+    }
+  },
+  { timeout: 60_000 },
 );
