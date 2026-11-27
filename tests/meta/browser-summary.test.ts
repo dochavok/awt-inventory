@@ -1,6 +1,7 @@
-// The browser tests' summary (TF-5): a milestone table for each phone, and the
+// The browser tests' summary (TF-5): a milestone table for each phone, the
 // tests whose result differs between the phones, so a test that fails on only
-// one phone shows before its milestone finishes. M1, so these must pass.
+// one phone shows before its milestone finishes, and the tests that passed
+// early. M1, so these must pass.
 
 import type { FullConfig, TestCase, TestResult } from "@playwright/test/reporter";
 import { expect, vi } from "vitest";
@@ -185,4 +186,12 @@ rule({ req: ["TF-5"], m: "M1" }, "tests that passed early are named with the pho
   expect(formatSummary(summarise([result("iphone", T3, "passed"), result("android", T3, "passed")]))).not.toContain(
     "Passed early",
   );
+});
+
+rule({ req: ["TF-5"], m: "M1" }, "a phone that isn't configured comes after the configured ones", () => {
+  const summary = summarise(
+    [result("tablet", T3, "passed"), result("android", T3, "passed"), result("iphone", T3, "passed")],
+    ["iphone", "android"],
+  );
+  expect([...summary.phones.keys()]).toEqual(["iphone", "android", "tablet"]);
 });

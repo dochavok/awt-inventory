@@ -162,23 +162,27 @@ rule(
       mkdirSync(dirname(join(repo, path)), { recursive: true });
       writeFileSync(join(repo, path), text);
     };
-    // Nothing from the machine's git settings (signing, hooks) or the CI job's summary file reaches these runs.
-    const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => name !== "GITHUB_STEP_SUMMARY"));
+    // Signing, hooks, the outer repository's GIT_* variables (as set in a git hook) and the CI job's
+    // summary file stay out of these runs.
+    const env = Object.fromEntries(
+      Object.entries(process.env).filter(([name]) => name !== "GITHUB_STEP_SUMMARY" && !name.startsWith("GIT_")),
+    );
     const settings = ["user.name=Test", "user.email=test@example.test", "commit.gpgsign=false", "core.hooksPath="];
     const git = (...args: string[]) =>
       execFileSync("git", [...settings.flatMap((s) => ["-c", s]), ...args], {
         cwd: repo,
         env,
         stdio: "pipe",
-        timeout: 10_000,
+        timeout: 5_000,
       });
+    // Two checks and five git calls fit inside the test's 60 s; a timed-out check says so.
     const check = () => {
       const run = spawnSync(
         process.execPath,
         [join(root, "node_modules/tsx/dist/cli.mjs"), join(root, "scripts/check-test-changes.ts"), "--base", "main"],
-        { cwd: repo, env, encoding: "utf8", timeout: 20_000 },
+        { cwd: repo, env, encoding: "utf8", timeout: 15_000 },
       );
-      return { code: run.status, out: run.stdout + run.stderr };
+      return { code: run.status, out: `${run.stdout}${run.stderr}${run.error ? `\n${run.error.message}` : ""}` };
     };
     try {
       write("tests/fixtures/characters.yaml", "aldric:\n  character: { name: Aldric }\n");
@@ -208,5 +212,5 @@ rule(
       rmSync(repo, { recursive: true, force: true });
     }
   },
-  { timeout: 30_000 },
+  { timeout: 60_000 },
 );
