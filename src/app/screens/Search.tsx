@@ -10,7 +10,7 @@ import { href } from "../router";
 import type { Services } from "../services";
 import { messageFor } from "../messages";
 import { Feedback } from "../useAction";
-import { BackTo, CharacterNotFound, Loading, useScreenData } from "./common";
+import { BackTo, CharacterNotFound, Hinted, Loading, useScreenData } from "./common";
 
 /** Where a result opens: an entry's own page, or the Skills screen for a skill. */
 function resultAddress(r: SearchResult): string {
@@ -90,19 +90,21 @@ function SearchBox({ services, character }: { services: Services; character: Cha
       {character && <BackTo character={character} />}
       <h1>Search</h1>
       <form role="search" className="card" onSubmit={(e) => e.preventDefault()}>
-        <label>
-          Search
-          <input
-            type="search"
-            // The screen is opened to search, so the box is ready to type in.
-            autoFocus
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          <span className="hint">
-            Names, descriptions and notes{everyone ? " of all your characters, retired ones too" : ""}.
-          </span>
-        </label>
+        <Hinted hint={`Names, descriptions and notes${everyone ? " of all your characters, retired ones too" : ""}.`}>
+          {(hint) => (
+            <label>
+              Search
+              <input
+                type="search"
+                // The screen is opened to search, so the box is ready to type in.
+                autoFocus
+                value={query}
+                aria-describedby={hint}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </label>
+          )}
+        </Hinted>
         {character && (
           <label className="check">
             <input type="checkbox" checked={everyone} onChange={(e) => setEveryone(e.target.checked)} />

@@ -6,6 +6,7 @@ import type { Accounts } from "../../data/accounts";
 import { LIMITS } from "../../data/validate";
 import { go, href } from "../router";
 import { Feedback, useAction } from "../useAction";
+import { Hinted } from "./common";
 import { Terms } from "./Terms";
 
 export function SignUp({ accounts, onBusy }: { accounts: Accounts; onBusy: (busy: boolean) => void }) {
@@ -35,19 +36,21 @@ export function SignUp({ accounts, onBusy }: { accounts: Accounts; onBusy: (busy
     <>
       <h1>Create an account</h1>
       <form className="card" onSubmit={create}>
-        <label>
-          Display name
-          <input
-            autoComplete="nickname"
-            required
-            maxLength={LIMITS.displayName}
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-          />
-          <span className="hint">
-            Other players see only this, if you list something for trade. No real name needed.
-          </span>
-        </label>
+        <Hinted hint="Other players see only this, if you list something for trade. No real name needed.">
+          {(hint) => (
+            <label>
+              Display name
+              <input
+                autoComplete="nickname"
+                required
+                maxLength={LIMITS.displayName}
+                value={displayName}
+                aria-describedby={hint}
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
+            </label>
+          )}
+        </Hinted>
         <label>
           Email
           <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />

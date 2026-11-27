@@ -1,7 +1,7 @@
 // Parts shared by a character's screens: loading what a screen shows, the page
 // for a character that isn't there, the link back to the character, and dates.
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { NotFoundError } from "../../errors";
 import type { Character } from "../../rules/types";
 import { href } from "../router";
@@ -99,11 +99,37 @@ export function DayField({
   onChange: (day: string) => void;
 }) {
   return (
-    <label>
-      {label}
-      <input type="date" max={today()} value={value} onChange={(e) => onChange(e.target.value)} />
-      <span className="hint">Leave empty for today.</span>
-    </label>
+    <Hinted hint="Leave empty for today.">
+      {(hint) => (
+        <label>
+          {label}
+          <input
+            type="date"
+            max={today()}
+            value={value}
+            aria-describedby={hint}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        </label>
+      )}
+    </Hinted>
+  );
+}
+
+/**
+ * A field with a hint (NF-9). The hint sits below the label, not in it, and
+ * describes the field (`aria-describedby` set to the id `children` is given),
+ * so a screen reader reads the label alone as the field's name, then the hint.
+ */
+export function Hinted({ hint, children }: { hint: ReactNode; children: (hintId: string) => ReactNode }) {
+  const hintId = useId();
+  return (
+    <div className="field">
+      {children(hintId)}
+      <span className="hint" id={hintId}>
+        {hint}
+      </span>
+    </div>
   );
 }
 
@@ -120,19 +146,23 @@ export function LevelInput({
   max: number;
 }) {
   return (
-    <label>
-      {label}
-      <input
-        type="number"
-        inputMode="numeric"
-        required
-        min={1}
-        max={max}
-        step={1}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      <span className="hint">From 1 to {max}.</span>
-    </label>
+    <Hinted hint={`From 1 to ${max}.`}>
+      {(hint) => (
+        <label>
+          {label}
+          <input
+            type="number"
+            inputMode="numeric"
+            required
+            min={1}
+            max={max}
+            step={1}
+            value={value}
+            aria-describedby={hint}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        </label>
+      )}
+    </Hinted>
   );
 }

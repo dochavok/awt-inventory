@@ -22,6 +22,7 @@ import {
 import { EFFECT_NAMES, grantText, KIND_NAMES, PERMISSION_NAMES } from "../grant-text";
 import type { Services } from "../services";
 import { Feedback, useAction } from "../useAction";
+import { Hinted } from "./common";
 
 type Kind = keyof typeof KIND_NAMES;
 
@@ -156,18 +157,21 @@ export function GrantForm({
   return (
     <form className="grant-form" aria-label={label} onSubmit={submit}>
       {withReason && (
-        <label>
-          Reason
-          <input
-            required
-            maxLength={LIMITS.shortText}
-            value={f.reason}
-            onChange={(e) => set("reason")(e.target.value)}
-          />
-          <span className="hint">Such as &quot;DM ruling, Faire 2026&quot;.</span>
-        </label>
+        <Hinted hint='Such as "DM ruling, Faire 2026".'>
+          {(hint) => (
+            <label>
+              Reason
+              <input
+                required
+                maxLength={LIMITS.shortText}
+                value={f.reason}
+                aria-describedby={hint}
+                onChange={(e) => set("reason")(e.target.value)}
+              />
+            </label>
+          )}
+        </Hinted>
       )}
-      {/* Labelled apart, so the label's name is "Kind" alone, not its options' ("Extra die", "Permission"). */}
       <div className="field">
         <label htmlFor={kindId}>Kind</label>
         <select id={kindId} value={f.kind} onChange={(e) => set("kind")(e.target.value as Kind)}>
@@ -223,19 +227,22 @@ export function GrantForm({
         </label>
       )}
       {f.kind === "extra-damage" && (
-        <label>
-          Type
-          <input
-            maxLength={LIMITS.shortText}
-            value={f.damageType}
-            onChange={(e) => set("damageType")(e.target.value)}
-          />
-          <span className="hint">Optional, such as &quot;fire&quot;.</span>
-        </label>
+        <Hinted hint='Optional, such as "fire".'>
+          {(hint) => (
+            <label>
+              Type
+              <input
+                maxLength={LIMITS.shortText}
+                value={f.damageType}
+                aria-describedby={hint}
+                onChange={(e) => set("damageType")(e.target.value)}
+              />
+            </label>
+          )}
+        </Hinted>
       )}
       {f.kind === "effect" && (
         <>
-          {/* Labelled apart, like Kind: a label around a select takes its options' text into its name too. */}
           <div className="field">
             <label htmlFor={effectId}>Effect</label>
             <select id={effectId} value={f.effect} onChange={(e) => set("effect")(e.target.value as Effect)}>
@@ -246,24 +253,41 @@ export function GrantForm({
               ))}
             </select>
           </div>
-          <label>
-            Text
-            <input required maxLength={LIMITS.shortText} value={f.text} onChange={(e) => set("text")(e.target.value)} />
-            <span className="hint">
-              What it&apos;s against or adds, such as &quot;fall damage&quot; or &quot;+1&quot;.
-            </span>
-          </label>
+          <Hinted hint={'What it\'s against or adds, such as "fall damage" or "+1".'}>
+            {(hint) => (
+              <label>
+                Text
+                <input
+                  required
+                  maxLength={LIMITS.shortText}
+                  value={f.text}
+                  aria-describedby={hint}
+                  onChange={(e) => set("text")(e.target.value)}
+                />
+              </label>
+            )}
+          </Hinted>
         </>
       )}
-      <label>
-        Condition
-        <input maxLength={LIMITS.shortText} value={f.condition} onChange={(e) => set("condition")(e.target.value)} />
-        <span className="hint">
-          {f.kind === "effect"
+      <Hinted
+        hint={
+          f.kind === "effect"
             ? 'Such as "1/day". Effects are listed, never added in, with or without one.'
-            : 'Such as "vs Evil". A grant with a condition is listed, but not added in.'}
-        </span>
-      </label>
+            : 'Such as "vs Evil". A grant with a condition is listed, but not added in.'
+        }
+      >
+        {(hint) => (
+          <label>
+            Condition
+            <input
+              maxLength={LIMITS.shortText}
+              value={f.condition}
+              aria-describedby={hint}
+              onChange={(e) => set("condition")(e.target.value)}
+            />
+          </label>
+        )}
+      </Hinted>
       <Feedback error={add.error} notice={add.notice} />
       <button type="submit" disabled={add.busy}>
         {button}

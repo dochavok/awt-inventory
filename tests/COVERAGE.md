@@ -120,7 +120,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | NF-6 | Must | M2+ | access/firestore-store.test.ts (2), access/privacy.test.ts (6), data/grants.test.ts (1), data/inventory.test.ts (1), data/limits.test.ts (8) |
 | NF-7 | Must | M2+ | access/privacy.test.ts (1), ops/operations.test.ts (1) |
 | NF-8 | Must | M2+ | data/history.test.ts (2), platform/platform.test.ts (3) |
-| NF-9 | Should | M2+ | none |
+| NF-9 | Should | M2+ | browser/screens.spec.ts (2) |
 | NF-10 | Must | M3 | ops/operations.test.ts (4) |
 | NF-11 | Must | M3 | ops/operations.test.ts (7) |
 | NF-12 | Must | M3 | app/messages.test.ts (2), platform/platform.test.ts (11) |
