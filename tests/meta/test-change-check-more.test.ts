@@ -162,16 +162,21 @@ rule(
       mkdirSync(dirname(join(repo, path)), { recursive: true });
       writeFileSync(join(repo, path), text);
     };
+    // Nothing from the machine's git settings (signing, hooks) or the CI job's summary file reaches these runs.
+    const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => name !== "GITHUB_STEP_SUMMARY"));
+    const settings = ["user.name=Test", "user.email=test@example.test", "commit.gpgsign=false", "core.hooksPath="];
     const git = (...args: string[]) =>
-      execFileSync("git", ["-c", "user.name=Test", "-c", "user.email=test@example.test", ...args], {
+      execFileSync("git", [...settings.flatMap((s) => ["-c", s]), ...args], {
         cwd: repo,
+        env,
         stdio: "pipe",
+        timeout: 10_000,
       });
     const check = () => {
       const run = spawnSync(
         process.execPath,
         [join(root, "node_modules/tsx/dist/cli.mjs"), join(root, "scripts/check-test-changes.ts"), "--base", "main"],
-        { cwd: repo, encoding: "utf8" },
+        { cwd: repo, env, encoding: "utf8", timeout: 20_000 },
       );
       return { code: run.status, out: run.stdout + run.stderr };
     };
@@ -190,10 +195,11 @@ rule(
       expect(ignored.out).toContain("The test-change check passed.");
       expect(ignored.code).toBe(0);
 
-      // A tracked file naming one still fails, named.
+      // A tracked file naming one still fails, named. A tracked file deleted but not committed is skipped.
       write("src/named.ts", 'export const who = "Aldric";\n');
       git("add", "src/named.ts");
       git("commit", "-q", "-m", "name");
+      rmSync(join(repo, "src/app.ts"));
       const tracked = check();
       expect(tracked.code).toBe(1);
       expect(tracked.out).toContain('src/named.ts: names "Aldric", from the test fixtures');

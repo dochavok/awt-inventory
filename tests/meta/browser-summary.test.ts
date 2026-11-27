@@ -2,7 +2,7 @@
 // tests whose result differs between the phones, so a test that fails on only
 // one phone shows before its milestone finishes. M1, so these must pass.
 
-import type { TestCase, TestResult } from "@playwright/test/reporter";
+import type { FullConfig, TestCase, TestResult } from "@playwright/test/reporter";
 import { expect, vi } from "vitest";
 import BrowserSummary, { formatSummary, outcomeOf, summarise, type BrowserResult } from "../support/browser-summary";
 import { rule } from "../support/rule";
@@ -76,12 +76,15 @@ rule(
 
 rule({ req: ["TF-5"], m: "M1" }, "the summary prints a table per phone, then the differing tests", () => {
   const text = formatSummary(
-    summarise([
-      result("iphone", T1, "failed as expected"),
-      result("iphone", T3, "passed"),
-      result("android", T1, "passed early"),
-      result("android", T3, "passed"),
-    ]),
+    summarise(
+      [
+        result("iphone", T1, "failed as expected"),
+        result("iphone", T3, "passed"),
+        result("android", T1, "passed early"),
+        result("android", T3, "passed"),
+      ],
+      ["iphone", "android"],
+    ),
   );
   expect(text).toBe(
     [
@@ -98,6 +101,9 @@ rule({ req: ["TF-5"], m: "M1" }, "the summary prints a table per phone, then the
       "",
       " Results that differ between the phones (TF-5):",
       `   ${T1} (a.spec.ts): iphone failed as expected, android passed early`,
+      "",
+      " Passed early (TF-5):",
+      `   ${T1} (a.spec.ts): android`,
       "",
     ].join("\n"),
   );
@@ -125,9 +131,11 @@ rule({ req: ["TF-5"], m: "M1" }, "the reporter counts a retried test's last resu
     ({ status, annotations }) as unknown as TestResult;
 
   const reporter = new BrowserSummary();
+  reporter.onBegin({ projects: [{ name: "iphone" }, { name: "android" }] } as unknown as FullConfig);
+  // Android finishes first; the output still follows the configured order.
+  reporter.onTestEnd(fakeTest("android", T1), fakeResult("passed", [{ type: "passed early" }]));
   reporter.onTestEnd(fakeTest("iphone", T1), fakeResult("failed"));
   reporter.onTestEnd(fakeTest("iphone", T1), fakeResult("passed", [{ type: "expected failure" }]));
-  reporter.onTestEnd(fakeTest("android", T1), fakeResult("passed", [{ type: "passed early" }]));
   // Vitest restores the spy after each test (restoreMocks).
   const log = vi.spyOn(console, "log").mockImplementation(() => {});
   reporter.onEnd();
@@ -142,4 +150,39 @@ rule({ req: ["TF-5"], m: "M1" }, "the reporter prints nothing when no browser te
   const log = vi.spyOn(console, "log").mockImplementation(() => {});
   new BrowserSummary().onEnd();
   expect(log).not.toHaveBeenCalled();
+});
+
+rule(
+  { req: ["TF-5"], m: "M1" },
+  "phones and each test's results come in the configured order, whichever phone finished first",
+  () => {
+    const summary = summarise(
+      [result("android", T1, "passed early"), result("iphone", T1, "failed as expected")],
+      ["iphone", "android"],
+    );
+    expect([...summary.phones.keys()]).toEqual(["iphone", "android"]);
+    expect(formatSummary(summary)).toContain(`   ${T1} (a.spec.ts): iphone failed as expected, android passed early`);
+  },
+);
+
+rule({ req: ["TF-5"], m: "M1" }, "tests that passed early are named with the phones they passed early on", () => {
+  const summary = summarise(
+    [
+      result("iphone", T1, "passed early"),
+      result("android", T1, "passed early"),
+      result("iphone", T2, "failed as expected"),
+      result("android", T2, "passed early"),
+      result("iphone", T3, "passed"),
+      result("android", T3, "passed"),
+    ],
+    ["iphone", "android"],
+  );
+  expect(summary.passedEarly).toEqual([
+    { file: "a.spec.ts", title: T1, phones: ["iphone", "android"] },
+    { file: "a.spec.ts", title: T2, phones: ["android"] },
+  ]);
+  // None passed early: no list.
+  expect(formatSummary(summarise([result("iphone", T3, "passed"), result("android", T3, "passed")]))).not.toContain(
+    "Passed early",
+  );
 });

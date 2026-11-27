@@ -4,7 +4,7 @@
 // this a test failing on one phone only looks like a pass until its milestone
 // finishes (it hid four WebKit failures through M3).
 
-import type { Reporter, TestCase, TestResult } from "@playwright/test/reporter";
+import type { FullConfig, Reporter, TestCase, TestResult } from "@playwright/test/reporter";
 import { emptyCounts, milestoneTable, type Column, type Counts } from "./milestone-table";
 import { EXPECTED_FAILURE, PASSED_EARLY, parseTaggedName } from "./tags";
 
@@ -26,10 +26,12 @@ export interface TestResults {
 }
 
 export interface Summary {
-  /** Each phone's counts by milestone, phones in the order they first appear. */
+  /** Each phone's counts by milestone, phones in the configured order. */
   phones: Map<string, Map<string, Counts>>;
   /** Tests run on more than one phone whose results differ, skipped runs left out. */
   differing: TestResults[];
+  /** Tests that passed early on at least one phone, so a pull request can list them (TF-5). */
+  passedEarly: { file: string; title: string; phones: string[] }[];
 }
 
 /** What a test's result counts as, from the annotations browserRule() adds. */
@@ -41,10 +43,17 @@ export function outcomeOf(status: TestResult["status"], annotations: { type: str
   return "passed";
 }
 
-export function summarise(results: BrowserResult[]): Summary {
+/**
+ * `phoneOrder` is the configured projects' order, so the output doesn't depend
+ * on which phone finished a test first; phones not in it come after, by name.
+ */
+export function summarise(results: BrowserResult[], phoneOrder: string[] = []): Summary {
+  const rank = (phone: string) => (phoneOrder.includes(phone) ? phoneOrder.indexOf(phone) : phoneOrder.length);
+  const byPhone = (a: string, b: string) => rank(a) - rank(b) || a.localeCompare(b);
+  const ordered = [...results].sort((a, b) => byPhone(a.project, b.project));
   const phones = new Map<string, Map<string, Counts>>();
   const byTest = new Map<string, TestResults>();
-  for (const r of results) {
+  for (const r of ordered) {
     if (r.outcome === "skipped") continue;
     const milestone = parseTaggedName(r.title)?.m ?? "untagged";
     const rows = phones.get(r.project) ?? new Map<string, Counts>();
@@ -57,10 +66,16 @@ export function summarise(results: BrowserResult[]): Summary {
     entry.results[r.project] = r.outcome;
     byTest.set(key, entry);
   }
-  const differing = [...byTest.values()]
-    .filter((t) => new Set(Object.values(t.results)).size > 1)
-    .sort((a, b) => a.file.localeCompare(b.file) || a.title.localeCompare(b.title));
-  return { phones, differing };
+  const tests = [...byTest.values()].sort((a, b) => a.file.localeCompare(b.file) || a.title.localeCompare(b.title));
+  const differing = tests.filter((t) => new Set(Object.values(t.results)).size > 1);
+  const passedEarly = tests
+    .map(({ file, title, results }) => ({
+      file,
+      title,
+      phones: Object.keys(results).filter((phone) => results[phone] === "passed early"),
+    }))
+    .filter((t) => t.phones.length > 0);
+  return { phones, differing, passedEarly };
 }
 
 export function formatSummary(summary: Summary): string {
@@ -80,12 +95,21 @@ export function formatSummary(summary: Summary): string {
       lines.push(`   ${t.title} (${t.file}): ${results.join(", ")}`);
     }
   }
+  if (summary.passedEarly.length > 0) {
+    lines.push("", " Passed early (TF-5):");
+    for (const t of summary.passedEarly) lines.push(`   ${t.title} (${t.file}): ${t.phones.join(", ")}`);
+  }
   return lines.join("\n") + "\n";
 }
 
 export default class BrowserSummary implements Reporter {
   // By test and phone, so a retried test counts its last result.
   private readonly results = new Map<string, BrowserResult>();
+  private phoneOrder: string[] = [];
+
+  onBegin(config: FullConfig): void {
+    this.phoneOrder = config.projects.map((p) => p.name);
+  }
 
   onTestEnd(test: TestCase, result: TestResult): void {
     this.results.set(test.id, {
@@ -99,6 +123,6 @@ export default class BrowserSummary implements Reporter {
 
   onEnd(): void {
     if (this.results.size === 0) return;
-    console.log(formatSummary(summarise([...this.results.values()])));
+    console.log(formatSummary(summarise([...this.results.values()], this.phoneOrder)));
   }
 }

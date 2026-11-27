@@ -7,7 +7,7 @@
 // against the pull request. On GitHub Actions it also writes a job summary.
 
 import { execFileSync } from "node:child_process";
-import { appendFileSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { parse } from "yaml";
@@ -50,12 +50,12 @@ function readerAt(ref: string): Reader {
 /**
  * Repository paths of the files part 2 reads (`isAppFile`), from the files git
  * tracks (TF-7), so what git ignores, such as packages and build output, never
- * counts.
+ * counts. A tracked file deleted but not yet committed is gone, so it's skipped.
  */
 function appFiles(): string[] {
   return git("ls-files", "-z", "--", "src", "data", "functions")
     .split("\0")
-    .filter((path) => path !== "" && isAppFile(path));
+    .filter((path) => path !== "" && isAppFile(path) && existsSync(join(ROOT, path)));
 }
 
 function fixtureNames(): string[] {
