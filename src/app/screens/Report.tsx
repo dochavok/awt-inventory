@@ -8,6 +8,7 @@ import { LIMITS } from "../../data/validate";
 import type { Character } from "../../rules/types";
 import type { Services } from "../services";
 import { Feedback, useAction } from "../useAction";
+import { Hinted } from "./common";
 
 export function ReportForm({ services, kind: chosen }: { services: Services; kind?: ReportKind | undefined }) {
   const { store } = services;
@@ -73,18 +74,18 @@ export function ReportForm({ services, kind: chosen }: { services: Services; kin
             onChange={(e) => setMessage(e.target.value)}
           />
         </label>
-        <label>
-          Character
-          <select value={characterId} onChange={(e) => setCharacterId(e.target.value)}>
-            <option value="">None</option>
-            {characters.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          <span className="hint">Optional: the character the report is about.</span>
-        </label>
+        <Hinted label="Character" hint="Optional: the character the report is about.">
+          {(hint) => (
+            <select value={characterId} aria-describedby={hint} onChange={(e) => setCharacterId(e.target.value)}>
+              <option value="">None</option>
+              {characters.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </Hinted>
         {kind === "account-problem" && (
           <p className="hint">
             Account problems aren&apos;t posted anywhere: the maintainer is told only the report&apos;s number, and

@@ -1,11 +1,12 @@
 // Phone-sized browser tests (TF-13) for the signed-in screens: they fit a phone
 // (NF-1), each has a help link to its page (DOC-1) with its dates (DOC-6), the
 // privacy note opens from the account page (PV-4), working offline across a
-// reload and the offline bar (NF-3), and how fast a character's page opens on
-// slow signal (NF-4). Each test signs up its own made-up player.
+// reload and the offline bar (NF-3), how fast a character's page opens on
+// slow signal (NF-4), and that every select is named by its label alone for
+// the screen reader (NF-9). Each test signs up its own made-up player.
 
 import { existsSync, readFileSync } from "node:fs";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { browserRule } from "../support/browser-rule";
 import { addCharacter, expectSignedIn, secondPhone, signIn, signUp } from "../support/browser-account";
 
@@ -335,5 +336,136 @@ browserRule(
         "Character not found",
       );
     }
+  },
+);
+
+/**
+ * NF-9: the selects in `scope` are just these, each named by its label alone,
+ * as a screen reader reads it.
+ */
+async function expectSelectsNamed(scope: Locator, what: string, labels: string[]): Promise<void> {
+  await expect(scope, what).toBeVisible();
+  await expect(scope.locator("select"), `the selects on ${what}`).toHaveCount(labels.length);
+  for (const label of labels) {
+    await expect(
+      scope.getByRole("combobox", { name: label, exact: true }),
+      `the ${label} select on ${what}, named by its label alone`,
+    ).toHaveCount(1);
+  }
+}
+
+/**
+ * NF-9: a field with a hint is named by its label alone, and the hint describes
+ * it: a hint inside the label would be read out as part of the name every time.
+ */
+async function expectHinted(
+  scope: Locator,
+  role: "textbox" | "spinbutton" | "combobox" | "searchbox",
+  label: string,
+  hint: RegExp,
+): Promise<void> {
+  const field = scope.getByRole(role, { name: label, exact: true });
+  await expect(field, `the ${label} field, named by its label alone`).toHaveCount(1);
+  await expect(field, `the ${label} field's hint`).toHaveAccessibleDescription(hint);
+}
+
+browserRule(
+  { req: ["NF-9"], m: "M4" },
+  "every select and hinted field in a character's forms is named by its label alone",
+  async ({ page }) => {
+    await signUp(page);
+    await page.goto("/#/characters/new");
+    const main = page.getByRole("main");
+    await expectSelectsNamed(main, "the new character form", ["Class"]);
+    await expectHinted(main, "spinbutton", "Level", /^From 1 to \d+\.$/);
+    const id = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+
+    const manual = page.getByRole("form", { name: "Add a manual grant" });
+    await expectSelectsNamed(manual, "the manual grant form", ["Kind"]);
+    await expectHinted(manual, "textbox", "Reason", /^Such as "DM ruling, Faire 2026"\.$/);
+    await page.getByRole("button", { name: "Correct the class" }).click();
+    await expectSelectsNamed(page.getByRole("region", { name: "Correct the class" }), "the class correction", [
+      "Correct the class to",
+    ]);
+
+    await page.goto(`/#/characters/${id}/weapons`);
+    await page.getByRole("button", { name: "Add an entry" }).click();
+    const weapon = page.getByRole("form", { name: "New entry" });
+    await expectSelectsNamed(weapon, "the new weapon form", ["Hands", "Range", "Rarity"]);
+    await expectHinted(weapon, "textbox", "Description", /^The card's text\.$/);
+    await expectHinted(weapon, "textbox", "Link", /^Such as the post in Discord's rewards channel\.$/);
+    await expectHinted(weapon, "textbox", "Date gained", /^Leave empty for today\.$/);
+    await weapon.getByLabel("Name", { exact: true }).fill("Duskfang");
+    await weapon.getByRole("combobox", { name: "Rarity" }).selectOption({ index: 1 });
+    await weapon.getByRole("combobox", { name: "Item family" }).fill("Passion");
+    await weapon.getByRole("button", { name: "Add entry" }).click();
+    await expectSelectsNamed(page.getByRole("form", { name: "Filters" }), "the weapons' filters", [
+      "Rarity",
+      "Item family",
+    ]);
+
+    await page.getByRole("main").getByRole("link", { name: "Duskfang" }).click();
+    await expect(page.getByRole("heading", { level: 1 }), "Duskfang's page").toHaveText("Duskfang");
+    await expectSelectsNamed(page.getByRole("form", { name: "Trade or give away" }), "the trade form", [
+      "What happened",
+    ]);
+    const grant = page.getByRole("form", { name: "Add a grant" });
+    await expectSelectsNamed(grant, "the grant form", ["Kind"]);
+    await expectHinted(grant, "textbox", "Condition", /^Such as "vs Evil"\./);
+    const kinds: [string, string][] = [
+      ["Slots", "Slot kind"],
+      ["Rarity allowance", "Rarity"],
+      ["Permission", "Permission"],
+      ["Effect", "Effect"],
+    ];
+    for (const [kind, field] of kinds) {
+      await grant.getByRole("combobox", { name: "Kind", exact: true }).selectOption({ label: kind });
+      await expectSelectsNamed(grant, `the grant form for ${kind}`, ["Kind", field]);
+    }
+    await expectHinted(grant, "textbox", "Text", /^What it's against or adds/);
+    await expectHinted(grant, "textbox", "Condition", /^Such as "1\/day"\./);
+    await grant.getByRole("combobox", { name: "Kind", exact: true }).selectOption({ label: "Extra damage" });
+    await expectHinted(grant, "textbox", "Type", /^Optional, such as "fire"\.$/);
+
+    await page.goto(`/#/characters/${id}/armor`);
+    await page.getByRole("button", { name: "Add an entry" }).click();
+    await expectSelectsNamed(page.getByRole("form", { name: "New entry" }), "the new armor form", ["Slot", "Rarity"]);
+  },
+);
+
+browserRule(
+  { req: ["NF-9"], m: "M4" },
+  "every select and hinted field on the sign-up, titles, history, search, export, report and skill screens is named by its label alone",
+  async ({ page }) => {
+    await page.goto("/#/sign-up");
+    await expectHinted(page.getByRole("main"), "textbox", "Display name", /^Other players see only this/);
+    await signUp(page);
+    const id = await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+
+    await page.goto("/#/titles");
+    const title = page.getByRole("form", { name: "Add a title" });
+    await expectSelectsNamed(title, "the new title form", ["Applies to"]);
+    await expectHinted(title, "textbox", "Description", /^Optional, but worth adding/);
+    await page.goto(`/#/characters/${id}/history`);
+    await expectSelectsNamed(page.getByRole("main"), "the history screen", ["Event", "Category"]);
+    await page.goto(`/#/characters/${id}/search`);
+    await expectHinted(page.getByRole("search"), "searchbox", "Search", /^Names, descriptions and notes/);
+    await page.goto("/#/export");
+    await expectSelectsNamed(page.getByRole("form", { name: "Printable sheet" }), "the printable sheet form", [
+      "Characters",
+      "Paper",
+    ]);
+    await page.goto("/#/report");
+    const report = page.getByRole("form", { name: "Report" });
+    await expectSelectsNamed(report, "the report form", ["Kind", "Character"]);
+    await expectHinted(report, "combobox", "Character", /^Optional: the character the report is about\.$/);
+
+    await page.goto(`/#/characters/${id}/skills`);
+    const available = page.getByRole("list", { name: "Available now" }).getByRole("button");
+    await expect(available.first(), "a skill available to Wren").toBeVisible();
+    await available.first().click();
+    const add = page.getByRole("form").filter({ has: page.getByLabel("Level gained") });
+    await expectSelectsNamed(add, "the form to add a skill", ["How gained"]);
+    await expectHinted(add, "spinbutton", "Level gained", /^From 1 to \d+\.$/);
   },
 );

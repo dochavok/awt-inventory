@@ -13,7 +13,7 @@ import { go, href } from "../router";
 import type { Services } from "../services";
 import { offerUndo, UndoBar } from "../undo";
 import { Feedback, useAction } from "../useAction";
-import { BackTo, CharacterNotFound, DayField, Loading, pickedDate, useScreenData } from "./common";
+import { BackTo, CharacterNotFound, DayField, Hinted, Loading, pickedDate, useScreenData } from "./common";
 import { equipTargets, slotTargetName } from "../../rules/equipping";
 import { named } from "../grant-text";
 import { chooseable, equipIn, equipWherever, GrantsEditor } from "./grants";
@@ -661,15 +661,16 @@ function EntryForm({
         onChange={set("itemFamily")}
         suggestions={suggestions.itemFamily ?? []}
       />
-      <label>
-        Description
-        <textarea
-          maxLength={LIMITS.description}
-          value={f.description}
-          onChange={(e) => set("description")(e.target.value)}
-        />
-        <span className="hint">The card&apos;s text.</span>
-      </label>
+      <Hinted label="Description" hint="The card's text.">
+        {(hint) => (
+          <textarea
+            maxLength={LIMITS.description}
+            value={f.description}
+            aria-describedby={hint}
+            onChange={(e) => set("description")(e.target.value)}
+          />
+        )}
+      </Hinted>
       <label>
         Notes
         <textarea maxLength={LIMITS.notes} value={f.notes} onChange={(e) => set("notes")(e.target.value)} />
@@ -682,17 +683,18 @@ function EntryForm({
           onChange={set("source")}
           suggestions={suggestions.acquisitionSource ?? []}
         />
-        <label>
-          Link
-          <input
-            type="url"
-            inputMode="url"
-            maxLength={LIMITS.link}
-            value={f.link}
-            onChange={(e) => set("link")(e.target.value)}
-          />
-          <span className="hint">Such as the post in Discord&apos;s rewards channel.</span>
-        </label>
+        <Hinted label="Link" hint="Such as the post in Discord's rewards channel.">
+          {(hint) => (
+            <input
+              type="url"
+              inputMode="url"
+              maxLength={LIMITS.link}
+              value={f.link}
+              aria-describedby={hint}
+              onChange={(e) => set("link")(e.target.value)}
+            />
+          )}
+        </Hinted>
         <DayField label="Date gained" value={f.gained} onChange={set("gained")} />
       </fieldset>
       <Feedback error={save.error} notice={null} />

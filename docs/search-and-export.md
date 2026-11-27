@@ -1,6 +1,6 @@
 # Search and export
 
-reviewed: 2026-11-26
+reviewed: 2026-11-27
 
 ## Search
 
@@ -8,7 +8,7 @@ On a character's page, tap **Search** to look through that character's entries i
 
 Tick **Search all my characters** to look through all of them, retired ones included; each result then names its character. **Search all characters** on your characters list starts there.
 
-A search ignores capitals and accents, and matches anywhere in a word: "fang" finds both Twin Fangs and Duskfang. With several words, each must be in the same name, description or notes. Results where every word typed starts a word come first.
+A search ignores capitals and accents, and matches anywhere in a word: "fang" finds both Twin Fangs and Duskfang. With several words, each must be in the same name, description or notes. Results where every word typed starts a word come first. Typing only punctuation finds nothing.
 
 Search works without signal too, on everything the app has stored on your phone.
 

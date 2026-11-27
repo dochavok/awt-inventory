@@ -2,6 +2,7 @@
 // and the warnings when adding a skill (SK-3). Pure functions.
 
 import { NotFoundError } from "../errors";
+import { matchWords, searchWords } from "./words";
 import type {
   Character,
   CharacterSheet,
@@ -178,20 +179,32 @@ function judge(c: Context, skill: Skill, trees = ranked(c, skill)): Judged {
   return { tree: allows ?? fewest.tree, available: allows !== undefined, warnings: fewest.warnings };
 }
 
-/** The skill picker's two lists (SK-1, SK-1a). `query` searches by name, ignoring case. */
+/**
+ * The skill picker's two lists (SK-1, SK-1a). `query` searches by name as
+ * search does (SE-1); in each list, names where every word typed starts a word
+ * come first, then the rest, each by name.
+ */
 export function skillPicker(
   sheet: CharacterSheet,
   ref: ReferenceData,
   options: { allTrees: boolean; query?: string },
 ): SkillPicker {
   const c = context(sheet, ref);
-  const query = options.query?.trim().toLowerCase() ?? "";
+  const query = options.query?.trim() ?? "";
+  const typed = searchWords(query);
   const picker: SkillPicker = { available: [], others: [] };
+  // Typed text with no words in it (only punctuation) matches nothing, as in search.
+  if (query !== "" && typed.length === 0) return picker;
   const offered = ref.skills
-    .filter((s) => s.name.toLowerCase().includes(query) && !retiredSkill(s, (id) => c.trees.get(id)))
-    .map((skill) => ({ skill, trees: ranked(c, skill) }))
+    .flatMap((skill) => {
+      // With nothing typed, every name matches as a start.
+      const match = matchWords(typed, skill.name);
+      return match && !retiredSkill(skill, (id) => c.trees.get(id))
+        ? [{ skill, start: match === "start", trees: ranked(c, skill) }]
+        : [];
+    })
     .filter(({ trees }) => trees.some((p) => options.allTrees || p.own))
-    .sort((a, b) => a.skill.name.localeCompare(b.skill.name));
+    .sort((a, b) => Number(b.start) - Number(a.start) || a.skill.name.localeCompare(b.skill.name));
   for (const { skill, trees } of offered) {
     const judged = judge(c, skill, trees);
     const option: SkillOption = {

@@ -1,12 +1,12 @@
 # Skills
 
-reviewed: 2026-11-19
+reviewed: 2026-11-27
 
 Skills and spells aren't typed in: you pick them from the game's skill list. On this page, "skill" covers spells too.
 
 ## Adding a skill
 
-Open **Skills** from the character's page. Under **Add a skill**, search the list by name; **Show every tree** adds the trees of the other classes. The list first offers the skills the character can take now: their prerequisites are on the character, they're in a tree the character's class and level allow, and the character hasn't taken them as often as allowed. Every other skill is listed below, under its own heading.
+Open **Skills** from the character's page. Under **Add a skill**, search the list by name; **Show every tree** adds the trees of the other classes. The search works as [search](search-and-export.md) does: it ignores capitals and accents, finds each word typed anywhere in a word of the name, and lists first the skills where every word typed starts a word. With nothing typed, the list shows every skill in the trees shown; typing only punctuation finds none. The list first offers the skills the character can take now: their prerequisites are on the character, they're in a tree the character's class and level allow, and the character hasn't taken them as often as allowed. Every other skill is listed below, under its own heading.
 
 Some skills are printed in several trees, sometimes with different prerequisites in each. Such a skill is listed once, and it's offered first if any of its trees allows it.
 

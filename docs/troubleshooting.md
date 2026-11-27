@@ -1,6 +1,6 @@
 # Troubleshooting
 
-reviewed: 2026-11-25
+reviewed: 2026-11-27
 
 Every refusal and warning the app shows, and what to do about it.
 
@@ -76,6 +76,6 @@ Warnings never stop you adding a skill: DMs sometimes allow these. Check with yo
 
 If something here doesn't help, tell the maintainer: choose **Send a report** on your account page, or **Not listed? Tell the maintainer** in the skill picker for a missing or wrong skill. Pick the kind of report (missing or wrong skill, bug, idea, or account problem), write a subject and what happened, and name the character if it's about one. The app shows the report's number, which the maintainer can refer to.
 
-- You can send up to 15 reports a day.
+- You can send up to 15 reports a day. The day starts at midnight UTC (for example, 7 PM in Chicago in summer), so a refusal says when you can send more, in your own time.
 - A report written without signal is sent when signal returns.
 - An account problem isn't posted anywhere: the maintainer is told only its number.

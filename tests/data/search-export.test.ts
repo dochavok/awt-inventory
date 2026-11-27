@@ -762,3 +762,13 @@ rule(
     expect(all.fileName, "the file name for all characters").toBe("AWT-characters-2026-06-13.pdf");
   },
 );
+
+rule({ req: ["SE-1"], m: "M3" }, "typed text of only punctuation finds nothing", async () => {
+  const { bram, aldric } = await bramWithTwo();
+  const search = async (query: string) =>
+    (await bram.search(query, { characterId: aldric.character.id })).map((r) => r.name);
+  expect(await search("Duskfang"), "Aldric's results for a word").toContain("Duskfang");
+  for (const query of ["'", " - ", "!?"]) {
+    expect(await search(query), `Aldric's results for "${query}"`).toEqual([]);
+  }
+});

@@ -5,7 +5,7 @@
 // Methods for later milestones throw NotImplementedError naming the milestone.
 
 import { AccessDeniedError, ConfirmationError, NotFoundError, RateLimitError, ValidationError } from "../errors";
-import { toStoredTime } from "../platform/time";
+import { localZone, sendMoreFrom, toStoredTime } from "../platform/time";
 import { checkEquip, computeTotals, fitsSlot, overLimitAlerts, slotState } from "../rules";
 import { addsSlots, entryName as nameOf, titleApplies } from "../rules/grants";
 import { placements, skillPicker as pickSkills, skillRetired, skillWarnings } from "../rules/skills";
@@ -1223,7 +1223,10 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
       const sentAt = now();
       const today = (await backend.reports()).filter((r) => r.sentAt.slice(0, 10) === sentAt.slice(0, 10));
       if (today.length >= REPORTS_PER_DAY) {
-        throw new RateLimitError(REPORTS_PER_DAY, `You can send ${REPORTS_PER_DAY} reports a day. Try again tomorrow.`);
+        throw new RateLimitError(
+          REPORTS_PER_DAY,
+          `You can send ${REPORTS_PER_DAY} reports a day. You can send more from ${sendMoreFrom(sentAt, localZone())}.`,
+        );
       }
       const report: Report = tidy<Report>({
         id: backend.newId("report"),

@@ -4,7 +4,7 @@
 // Iron Guard, Veteran's Edge three times (its limit) and Battle Focus.
 
 import { expect } from "vitest";
-import { recordCheck, skillPicker, skillWarnings, type CharacterSheet } from "../../src/rules";
+import { recordCheck, skillPicker, skillRetired, skillWarnings, type CharacterSheet } from "../../src/rules";
 import { fixtureSheet, testReferenceData } from "../support/fixtures";
 import { rule } from "../support/rule";
 
@@ -403,5 +403,50 @@ rule(
       missing.map((m) => m.level),
       "Isolde's levels with no skill recorded",
     ).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+  },
+);
+
+rule(
+  { req: ["SK-1", "SE-1"], m: "M3" },
+  "the picker's search ignores accents and finds each word typed anywhere in a word of the name",
+  () => {
+    const search = (query: string) => {
+      const picker = skillPicker(fixtureSheet("aldric"), ref, { allTrees: false, query });
+      return [...names(picker.available), ...names(picker.others)];
+    };
+    expect(search("fángs twin"), "Aldric's skills matching 'fángs twin'").toEqual(["Twin Fangs"]);
+    expect(search("TWIN  an"), "Aldric's skills matching 'TWIN  an'").toEqual(["Twin Fangs"]);
+    expect(search("fang shield"), "Aldric's skills matching 'fang shield'").toEqual([]);
+  },
+);
+
+rule(
+  { req: ["SK-1", "SE-1"], m: "M3" },
+  "in the picker, skills where every word typed starts a word come first, then the rest, each by name",
+  () => {
+    // For Isolde, a Mage, these Warrior and Rogue skills are all in the other list.
+    const picker = skillPicker(fixtureSheet("isolde"), ref, { allTrees: true, query: "sh" });
+    // In the picker's own order: `names` sorts.
+    expect(picker.available, "Isolde's available skills matching 'sh'").toEqual([]);
+    expect(
+      picker.others.map((o) => o.name),
+      "Isolde's other skills matching 'sh'",
+    ).toEqual(["Broad Shoulders", "Shadow Step", "Longshot"]);
+  },
+);
+
+rule(
+  { req: ["SK-1", "SE-1"], m: "M3" },
+  "a search of only punctuation finds no skills, as search finds nothing for it",
+  () => {
+    for (const query of ["'", " - ", "!?"]) {
+      const picker = skillPicker(fixtureSheet("aldric"), ref, { allTrees: true, query });
+      expect(picker.available.length + picker.others.length, `skills matching "${query}"`).toBe(0);
+    }
+    // Nothing typed at all still lists every skill.
+    const all = skillPicker(fixtureSheet("aldric"), ref, { allTrees: true, query: "  " });
+    expect(all.available.length + all.others.length, "skills with nothing typed").toBe(
+      ref.skills.filter((s) => !skillRetired(s, ref)).length,
+    );
   },
 );

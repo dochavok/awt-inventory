@@ -3,7 +3,7 @@
 import { expect } from "vitest";
 import { AccessDeniedError, ConfirmationError, NotFoundError, RateLimitError, ValidationError } from "../../src/errors";
 import { scrubEvent, shouldReport, type ErrorEvent } from "../../src/platform/error-reports";
-import { formatLocal, toStoredTime } from "../../src/platform/time";
+import { formatLocal, sendMoreFrom, toStoredTime } from "../../src/platform/time";
 import { rule } from "../support/rule";
 import { errorReportFilter } from "../../src/platform/error-reports";
 
@@ -23,6 +23,24 @@ rule({ req: ["NF-8"], m: "M2" }, "a stored UTC time is shown in the user's local
   const tokyo = formatLocal(stored, "Asia/Tokyo");
   expect(tokyo, "the date in Tokyo, the next day").toMatch(/Jun(e)? 14/);
 });
+
+rule(
+  { req: ["SP-1", "NF-8"], m: "M3" },
+  "the reports-a-day count starts again at midnight UTC, named in the user's local time",
+  () => {
+    // 10:00 UTC on 13 June: the count starts again at 00:00 UTC on 14 June.
+    const morning = "2026-06-13T10:00:00.000Z";
+    expect(sendMoreFrom(morning, "America/Chicago"), "in Chicago, 7 pm the same day").toMatch(/^7:00\sPM$/);
+    expect(sendMoreFrom(morning, "Asia/Tokyo"), "in Tokyo, 9 am the next day").toMatch(/^9:00\sAM tomorrow$/);
+    expect(sendMoreFrom(morning, "UTC"), "in UTC, midnight").toMatch(/^12:00\sAM tomorrow$/);
+    // 8 pm in Chicago, after that day's reset: the next one is 7 pm tomorrow.
+    expect(sendMoreFrom("2026-06-14T01:00:00.000Z", "America/Chicago"), "in Chicago after 7 pm").toMatch(
+      /^7:00\sPM tomorrow$/,
+    );
+    // 00:30 in Tokyo on 14 June, before that morning's reset: 9 am the same (local) day.
+    expect(sendMoreFrom("2026-06-13T15:30:00.000Z", "Asia/Tokyo"), "in Tokyo after midnight").toMatch(/^9:00\sAM$/);
+  },
+);
 
 const known = { displayName: "Bramblewick", email: "bram@example.test" };
 

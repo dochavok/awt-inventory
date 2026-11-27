@@ -7,6 +7,7 @@ import { LIMITS } from "../../data/validate";
 import type { Character, Title, TitleScope } from "../../rules/types";
 import type { Services } from "../services";
 import { Feedback, useAction } from "../useAction";
+import { Hinted } from "./common";
 import { GrantsEditor } from "./grants";
 
 const PLAYER = "player";
@@ -49,11 +50,16 @@ function TitleFields({
         Name
         <input required maxLength={LIMITS.name} value={value.name} onChange={set("name")} />
       </label>
-      <label>
-        Description
-        <textarea maxLength={LIMITS.description} value={value.description} onChange={set("description")} />
-        <span className="hint">Optional, but worth adding: it&apos;s shown with the title.</span>
-      </label>
+      <Hinted label="Description" hint="Optional, but worth adding: it's shown with the title.">
+        {(hint) => (
+          <textarea
+            maxLength={LIMITS.description}
+            value={value.description}
+            aria-describedby={hint}
+            onChange={set("description")}
+          />
+        )}
+      </Hinted>
       <label>
         Date earned
         <input type="date" value={value.earned} onChange={set("earned")} />
