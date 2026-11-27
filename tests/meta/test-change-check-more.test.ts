@@ -2,7 +2,7 @@
 // code in an existing test file that could change how its tests run. M1, so
 // these must pass.
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -168,17 +168,12 @@ rule(
         stdio: "pipe",
       });
     const check = () => {
-      try {
-        const out = execFileSync(
-          process.execPath,
-          [join(root, "node_modules/tsx/dist/cli.mjs"), join(root, "scripts/check-test-changes.ts"), "--base", "main"],
-          { cwd: repo, encoding: "utf8", stdio: "pipe" },
-        );
-        return { code: 0, out };
-      } catch (error) {
-        const e = error as { status: number; stdout: string; stderr: string };
-        return { code: e.status, out: e.stdout + e.stderr };
-      }
+      const run = spawnSync(
+        process.execPath,
+        [join(root, "node_modules/tsx/dist/cli.mjs"), join(root, "scripts/check-test-changes.ts"), "--base", "main"],
+        { cwd: repo, encoding: "utf8" },
+      );
+      return { code: run.status, out: run.stdout + run.stderr };
     };
     try {
       write("tests/fixtures/characters.yaml", "aldric:\n  character: { name: Aldric }\n");

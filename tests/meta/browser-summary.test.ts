@@ -38,14 +38,14 @@ rule({ req: ["TF-5"], m: "M1" }, "each phone gets its own count of results by mi
   ]);
   expect(summary.phones.get("iphone")).toEqual(
     new Map([
-      ["M3", { passed: 1, early: 0, expected: 0, failed: 0 }],
-      ["M5", { passed: 0, early: 0, expected: 2, failed: 0 }],
+      ["M3", { passed: 1, "passed early": 0, "failed as expected": 0, failed: 0 }],
+      ["M5", { passed: 0, "passed early": 0, "failed as expected": 2, failed: 0 }],
     ]),
   );
   expect(summary.phones.get("android")).toEqual(
     new Map([
-      ["M3", { passed: 0, early: 0, expected: 0, failed: 1 }],
-      ["M5", { passed: 0, early: 1, expected: 1, failed: 0 }],
+      ["M3", { passed: 0, "passed early": 0, "failed as expected": 0, failed: 1 }],
+      ["M5", { passed: 0, "passed early": 1, "failed as expected": 1, failed: 0 }],
     ]),
   );
 });
@@ -128,25 +128,18 @@ rule({ req: ["TF-5"], m: "M1" }, "the reporter counts a retried test's last resu
   reporter.onTestEnd(fakeTest("iphone", T1), fakeResult("failed"));
   reporter.onTestEnd(fakeTest("iphone", T1), fakeResult("passed", [{ type: "expected failure" }]));
   reporter.onTestEnd(fakeTest("android", T1), fakeResult("passed", [{ type: "passed early" }]));
+  // Vitest restores the spy after each test (restoreMocks).
   const log = vi.spyOn(console, "log").mockImplementation(() => {});
-  try {
-    reporter.onEnd();
-    expect(log).toHaveBeenCalledTimes(1);
-    const printed = String(log.mock.calls[0]![0]);
-    expect(printed).toContain(" M5               0              0                    1        0");
-    expect(printed).not.toContain(" M5               0              0                    0        1");
-    expect(printed).toContain(`   ${T1} (a.spec.ts): iphone failed as expected, android passed early`);
-  } finally {
-    log.mockRestore();
-  }
+  reporter.onEnd();
+  expect(log).toHaveBeenCalledTimes(1);
+  const printed = String(log.mock.calls[0]![0]);
+  expect(printed).toContain(" M5               0              0                    1        0");
+  expect(printed).not.toContain(" M5               0              0                    0        1");
+  expect(printed).toContain(`   ${T1} (a.spec.ts): iphone failed as expected, android passed early`);
 });
 
 rule({ req: ["TF-5"], m: "M1" }, "the reporter prints nothing when no browser test ran", () => {
   const log = vi.spyOn(console, "log").mockImplementation(() => {});
-  try {
-    new BrowserSummary().onEnd();
-    expect(log).not.toHaveBeenCalled();
-  } finally {
-    log.mockRestore();
-  }
+  new BrowserSummary().onEnd();
+  expect(log).not.toHaveBeenCalled();
 });

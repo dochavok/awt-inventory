@@ -111,3 +111,7 @@ export async function runForMilestone(tags: Tags, body: () => unknown): Promise<
   if (reachedStub()) return `NotImplementedError: reached ${NotImplementedError.lastReached} during the test`;
   return undefined;
 }
+
+/** The annotations browserRule() adds to a browser test's result, read back by its summary (TF-5). */
+export const EXPECTED_FAILURE = "expected failure";
+export const PASSED_EARLY = "passed early";

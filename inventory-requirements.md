@@ -541,7 +541,8 @@ When a DM answers a question, start at step 2.
 - `CLAUDE.md` states the rule.
 - Claude Code must ask before editing tests, fixtures, test settings, CI workflows, the check scripts or its own settings.
 - CI fails any change that alters or removes an existing test, fixture or harness file unless the same change edits this document. Adding tests is always allowed.
-- CI also fails if app code, the server code included, refers to the tests or test data. It reads only the files git tracks, so files git ignores (installed packages, build output) never count.- The check is required before merging to `main`, and always runs as it is on `main`, so a pull request can't change how it's judged.
+- CI also fails if app code, the server code included, refers to the tests or test data. It reads only the files git tracks, so files git ignores (installed packages, build output) never count.
+- The check is required before merging to `main`, and always runs as it is on `main`, so a pull request can't change how it's judged.
 
 **TF-8 · Must · M1: Assertions that can fail.**
 

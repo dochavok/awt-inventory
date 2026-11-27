@@ -5,57 +5,51 @@
 // finishes (it hid four WebKit failures through M3).
 
 import type { Reporter, TestCase, TestResult } from "@playwright/test/reporter";
-import { parseTaggedName } from "./tags";
+import { emptyCounts, milestoneTable, type Column, type Counts } from "./milestone-table";
+import { EXPECTED_FAILURE, PASSED_EARLY, parseTaggedName } from "./tags";
 
-export type Outcome = "passed" | "passed early" | "failed as expected" | "failed" | "skipped";
+export type Outcome = Column | "skipped";
 
 export interface BrowserResult {
   project: string;
-  /** The test file, relative to tests/browser/. */
+  /** The spec file, relative to tests/browser/. */
   file: string;
   title: string;
   outcome: Outcome;
 }
 
-interface Counts {
-  passed: number;
-  early: number;
-  expected: number;
-  failed: number;
+/** One test's result on each phone it ran on. */
+export interface TestResults {
+  file: string;
+  title: string;
+  results: Record<string, Outcome>;
 }
 
 export interface Summary {
   /** Each phone's counts by milestone, phones in the order they first appear. */
   phones: Map<string, Map<string, Counts>>;
   /** Tests run on more than one phone whose results differ, skipped runs left out. */
-  differing: { file: string; title: string; results: Record<string, Outcome> }[];
+  differing: TestResults[];
 }
 
 /** What a test's result counts as, from the annotations browserRule() adds. */
 export function outcomeOf(status: TestResult["status"], annotations: { type: string }[]): Outcome {
   if (status === "skipped") return "skipped";
   if (status !== "passed") return "failed";
-  if (annotations.some((a) => a.type === "expected failure")) return "failed as expected";
-  if (annotations.some((a) => a.type === "passed early")) return "passed early";
+  if (annotations.some((a) => a.type === EXPECTED_FAILURE)) return "failed as expected";
+  if (annotations.some((a) => a.type === PASSED_EARLY)) return "passed early";
   return "passed";
 }
 
-const COLUMN: Record<Exclude<Outcome, "skipped">, keyof Counts> = {
-  passed: "passed",
-  "passed early": "early",
-  "failed as expected": "expected",
-  failed: "failed",
-};
-
 export function summarise(results: BrowserResult[]): Summary {
   const phones = new Map<string, Map<string, Counts>>();
-  const byTest = new Map<string, { file: string; title: string; results: Record<string, Outcome> }>();
+  const byTest = new Map<string, TestResults>();
   for (const r of results) {
     if (r.outcome === "skipped") continue;
     const milestone = parseTaggedName(r.title)?.m ?? "untagged";
     const rows = phones.get(r.project) ?? new Map<string, Counts>();
-    const row = rows.get(milestone) ?? { passed: 0, early: 0, expected: 0, failed: 0 };
-    row[COLUMN[r.outcome]]++;
+    const row = rows.get(milestone) ?? emptyCounts();
+    row[r.outcome]++;
     rows.set(milestone, row);
     phones.set(r.project, rows);
     const key = `${r.file}\n${r.title}`;
@@ -72,12 +66,7 @@ export function summarise(results: BrowserResult[]): Summary {
 export function formatSummary(summary: Summary): string {
   const lines: string[] = [];
   for (const [phone, rows] of summary.phones) {
-    lines.push("", ` ${phone}`, " Milestone   passed   passed early   failed as expected   failed");
-    for (const [milestone, row] of [...rows].sort(([a], [b]) => a.localeCompare(b))) {
-      lines.push(
-        ` ${milestone.padEnd(10)} ${String(row.passed).padStart(7)} ${String(row.early).padStart(14)} ${String(row.expected).padStart(20)} ${String(row.failed).padStart(8)}`,
-      );
-    }
+    lines.push("", ` ${phone}`, ...milestoneTable(rows));
   }
   lines.push("");
   if (summary.phones.size < 2) {
