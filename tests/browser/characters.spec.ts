@@ -4,7 +4,16 @@
 
 import { expect } from "@playwright/test";
 import { browserRule } from "../support/browser-rule";
-import { addCharacter, expectSignedIn, signIn, signUp } from "../support/browser-account";
+import {
+  addCharacter,
+  expectSignedIn,
+  invite,
+  madeUpPlayer,
+  secondPhone,
+  signIn,
+  signUp,
+  verifyEmail,
+} from "../support/browser-account";
 
 browserRule(
   { req: ["TF-13", "AC-1", "AC-3"], m: "M3" },
@@ -211,5 +220,51 @@ browserRule(
       "the titles screen after a reload",
     ).toBeVisible();
     await expect(page.getByText("Patron of the High Tower"), "the removed title after a reload").toHaveCount(0);
+  },
+);
+
+browserRule(
+  { req: ["TF-13", "AC-1", "AC-2", "AC-4"], m: "M3" },
+  "an account finished on a phone that didn't sign up asks for the display name and terms again; the first phone keeps it",
+  async ({ page, context }) => {
+    const player = madeUpPlayer();
+    await invite(player);
+    await page.goto("/#/sign-up");
+    await expect(page.getByRole("heading", { name: /create an account/i }), "the sign-up screen").toBeVisible({
+      timeout: 15_000,
+    });
+    await page.getByLabel("Display name").fill(player.displayName);
+    await page.getByLabel("Email").fill(player.email);
+    await page.getByLabel("Password").fill(player.password);
+    await page.getByRole("checkbox", { name: /accept the terms/i }).check();
+    await page.getByRole("button", { name: "Create account" }).click();
+    await expectSignedIn(page);
+    await verifyEmail(player);
+
+    const other = await secondPhone(context.browser()!, page);
+    try {
+      await signIn(other.page, player);
+      const finish = other.page.getByRole("region", { name: "Finish creating your account" });
+      await expect(finish, "the form to finish the account on the second phone").toBeVisible({ timeout: 10_000 });
+      const button = finish.getByRole("button", { name: "Finish" });
+      await finish.getByLabel("Display name").fill("Wren Elsewhere");
+      await expect(button, "Finish before the terms are accepted").toBeDisabled();
+      await finish.getByRole("checkbox", { name: /accept the terms/i }).check();
+      await button.click();
+      await expect(finish, "the form once the account is finished").toBeHidden({ timeout: 10_000 });
+      await addCharacter(other.page, { name: "Wren", className: "Rogue", level: 3 });
+
+      // The first phone kept the sign-up's display name, but the account was finished elsewhere.
+      const verified = page.getByRole("button", { name: /i've verified it/i });
+      await expect(verified, "the first phone's button to pick up the verified email").toBeVisible();
+      await verified.click();
+      await expect(verified, "the verification notice once verified").toBeHidden({ timeout: 10_000 });
+      await page.getByRole("link", { name: "Account" }).click();
+      await expect(page.getByLabel("Display name", { exact: true }), "the display name on the first phone").toHaveValue(
+        "Wren Elsewhere",
+      );
+    } finally {
+      await other.context.close();
+    }
   },
 );

@@ -36,7 +36,7 @@ export async function invite(player: Player): Promise<void> {
 }
 
 /** Follows the verification link the Auth emulator kept for the player's email (AC-1). */
-async function verifyEmail(player: Player): Promise<void> {
+export async function verifyEmail(player: Player): Promise<void> {
   const response = await fetch(`${AUTH}/emulator/v1/projects/${PROJECT_ID}/oobCodes`);
   const { oobCodes } = (await response.json()) as {
     oobCodes: { email: string; requestType: string; oobLink: string }[];

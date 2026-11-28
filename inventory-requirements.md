@@ -73,7 +73,7 @@ Every user is a player and has the same abilities. There's no DM or admin role i
 
 ### 3.1 Accounts
 
-**AC-1 · Must · M2: Signing in.** A user can create an account and sign in with a Google account or with an email address and password. Email accounts are verified, and a forgotten password can be reset by email.
+**AC-1 · Must · M2: Signing in.** A user can create an account and sign in with a Google account or with an email address and password. Email accounts are verified, and a forgotten password can be reset by email. The account's profile (AC-2) is made only once its email is verified, and the server refuses it before then; a Google account's email counts as verified. Until then nothing is stored for the account. The display name and accepted terms from sign-up are kept on that phone until the profile is made; if they aren't there (another phone, or after a password reset), the app asks for them again before making it.
 
 **AC-2 · Must · M2: Display name.** A user chooses a display name at sign-up and can change it at any time. No real name is asked for. It's the only account detail ever shown to other users (trading, section 18).
 
@@ -92,7 +92,7 @@ Every user is a player and has the same abilities. There's no DM or admin role i
 
 ### 3.2 Privacy
 
-**PV-1 · Must · M2: Owner only.** A user's characters, entries, titles, history and to-do list can be read and changed only by that user, **except** that an entry the user marks *available for trade* (section 18) can be **read** by any signed-in user. Only the owner can ever change their data. This is enforced by the server, not just by the screens, so it holds even against a request made outside the app.
+**PV-1 · Must · M2: Owner only.** A user's characters, entries, titles, history and to-do list can be read and changed only by that user, **except** that an entry the user marks *available for trade* (section 18) can be **read** by any other player: a signed-in user with a verified email and a profile (AC-1). A user who hasn't finished signing up can't read it. Only the owner can ever change their data. This is enforced by the server, not just by the screens, so it holds even against a request made outside the app.
 
 **PV-2 · Must · M2: Little personal data.** The app stores only the sign-in identity (email address or Google account), the display name, and the user's game records.
 
@@ -500,7 +500,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 
 **NF-12 · Must · M3: Error reports.** Errors in the app are reported to the maintainer automatically. Reports never include game records, display names or email addresses. Refusals the app shows the user, such as a name already in use or a full slot, aren't errors and aren't reported. A change the server refuses when it syncs is still reported, so the maintainer sees the app and the server disagreeing.
 
-**NF-13 · Must · M2: Invite-only before 1.0.** Until release 1.0, only accounts on an allow list kept by the maintainer can sign up. Anyone else sees "not open yet". The list is removed at 1.0.
+**NF-13 · Must · M2: Invite-only before 1.0.** Until release 1.0, only accounts on an allow list kept by the maintainer can sign up. Anyone else sees "not open yet", and the sign-in made for them is removed. The app checks as soon as the sign-in exists, by reading that email's own entry on the list; a user can read no other entry, and no one can change the list from the app. Only a verified email on the list can make a profile (AC-1). The list is removed at 1.0.
 
 **NF-14 · Must · M4: New versions.** When a new version of the app is published, a phone running an older one finds out while the app is open with signal: when it's opened or brought back from the background, and at least once an hour. It then shows "A new version is ready" with a **Reload** button, which switches to the new version. It never reloads by itself, so nothing being typed is lost. If the app has stopped with an error, a new version takes over by itself as soon as it's found, since nothing can be typed then.
 
@@ -566,7 +566,7 @@ When a DM answers a question, start at step 2.
 - the order in which entries were added doesn't change any result;
 - normal equipping never exceeds a slot or allowance (only a lost grant can, and that always raises an alert).
 
-**TF-11 · Must · M1: Access rule tests.** For every kind of record, the emulator tests check that the owner can read and write it, and another signed-in user can't. A listed trade entry is the one thing another user can read (PV-1), and nobody else can ever change it.
+**TF-11 · Must · M1: Access rule tests.** For every kind of record, the emulator tests check that the owner can read and write it, and another signed-in user can't. A listed trade entry is the one thing another player can read (PV-1), and nobody else can ever change it; a signed-in user with no profile, or with an unverified email, can't read it either.
 
 **TF-12 · Must · M2+: Proven by mutation.** New tests are proven by temporarily breaking the code they guard (a scripted mutation run that restores every file) and confirming they fail. The caught and survived counts are reported in the pull request, and tests that let a mutation survive are fixed.
 
@@ -644,7 +644,7 @@ Each milestone from M2 on is done when all of its tests from M1 pass, with no te
 
 These features are planned but not scheduled. Each will be written out in full, and approved, before it's built.
 
-**TR-1 · Could · later: Listing for trade.** A user can mark an entry *available for trade*, with the quantity offered. Listed entries are visible to every signed-in user (PV-1), showing only the fields in section 3.2.
+**TR-1 · Could · later: Listing for trade.** A user can mark an entry *available for trade*, with the quantity offered. Listed entries are visible to every player with a profile (PV-1), showing only the fields in section 3.2.
 
 **TR-2 · Could · later: Browsing listings.** Users can browse and search everyone's listed entries by name, category, rarity and item family. Arranging a trade happens outside the app (AC-4).
 
