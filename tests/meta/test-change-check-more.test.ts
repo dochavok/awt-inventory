@@ -14,7 +14,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "vitest";
 import { parse } from "yaml";
@@ -297,17 +297,26 @@ rule(
         timeout: 5_000,
         ...(input === undefined ? {} : { input }),
       });
+    // base/ is a real folder, as in CI, so "../pr" is found from it; its packages and scripts are
+    // main's, linked in, and its settings are a copy of main's.
+    const links = ["node_modules", "scripts"].map((name) => join(base, name));
     try {
-      symlinkSync(root, base, "junction");
+      mkdirSync(base);
+      for (const link of links) symlinkSync(join(root, basename(link)), link, "junction");
+      for (const file of ["package.json", "tsconfig.json"])
+        writeFileSync(join(base, file), readFileSync(join(root, file)));
       write("tests/fixtures/characters.yaml", "aldric:\n  character: { name: Aldric }\n");
       write("tests/fixtures/users.yaml", "bram:\n  displayName: Bramblewick\n  email: bram@example.test\n");
       write("src/app.ts", "export const app = 1;\n");
+      write("tsconfig.json", "{}\n");
       git(["init", "-q", "-b", "main"]);
       git(["add", "."]);
       git(["commit", "-q", "-m", "start"]);
 
-      // The pull request: settings that point packages the check imports at a file of its own,
-      // and a link from the app into the test data (stored as a link whatever the system).
+      // The pull request, on a branch of its own: settings and code of its own, and a link from
+      // the app into the test data (stored as a link whatever the system).
+      git(["switch", "-q", "-c", "pull-request"]);
+      write("src/app.ts", 'export const app = "Bramblewick";\n');
       write(
         "tsconfig.json",
         JSON.stringify({
@@ -323,8 +332,11 @@ rule(
       );
       const target = git(["hash-object", "-w", "--stdin"], "../tests/fixtures/users.yaml").trim();
       git(["update-index", "--add", "--cacheinfo", `120000,${target},src/people.ts`]);
-      git(["add", "tsconfig.json", "own.ts"]);
+      git(["add", "tsconfig.json", "own.ts", "src/app.ts"]);
       git(["commit", "-q", "-m", "pull request"]);
+      // The test data is read from git, not from the disk (where a file could be a link elsewhere):
+      // an uncommitted copy with other names changes nothing.
+      write("tests/fixtures/users.yaml", "bram:\n  displayName: Quillon\n");
 
       const step = checkStep(root);
       const [command, ...args] = step.run.replace('"$BASE_SHA"', "main").split(/\s+/).filter(Boolean);
@@ -339,11 +351,13 @@ rule(
       expect(existsSync(ran), out).toBe(false);
       expect(out).not.toContain("THE PULL REQUEST'S CODE RAN");
       expect(out).toContain("src/people.ts: a link, which the check doesn't follow");
+      expect(out).toContain("tsconfig.json: changed (test settings and check scripts are protected)");
+      expect(out).toContain('src/app.ts: names "Bramblewick", from the test fixtures');
       expect(run.status, out).toBe(1);
     } finally {
-      // The link to the repository goes first, on its own, so the clean-up never reaches into it:
-      // if it can't be removed, the error stops the clean-up here.
-      if (existsSync(base)) unlinkSync(base);
+      // The links to the repository go first, on their own, so the clean-up never reaches into it:
+      // if one can't be removed, the error stops the clean-up here.
+      for (const link of links) if (existsSync(link)) unlinkSync(link);
       rmSync(work, { recursive: true, force: true });
     }
   },

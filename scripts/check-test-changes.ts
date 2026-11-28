@@ -89,12 +89,12 @@ function isRegularFile(path: string): boolean {
   }
 }
 
+/** The made-up names in the test data, read from git (never from the disk, where a file could be a link). */
 function fixtureNames(): string[] {
   type Fixture = { character?: { name?: unknown }; displayName?: unknown; email?: unknown } | null;
+  const head = readerAt("HEAD");
   const read = (file: string) =>
-    Object.values(
-      (parse(readFileSync(join(ROOT, "tests", "fixtures", file), "utf8")) ?? {}) as Record<string, Fixture>,
-    );
+    Object.values((parse(head(`tests/fixtures/${file}`) ?? "") ?? {}) as Record<string, Fixture>);
   const characters = read("characters.yaml").map((c) => c?.character?.name);
   const users = read("users.yaml").flatMap((u) => [u?.displayName, u?.email]);
   return [...new Set([...characters, ...users])].filter((n): n is string => typeof n === "string" && n !== "");
