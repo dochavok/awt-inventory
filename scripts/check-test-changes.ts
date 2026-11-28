@@ -17,7 +17,9 @@ import {
   RULE,
   appCodeProblems,
   isAppFile,
-  linkProblems,
+  isRegularMode,
+  unfollowedProblems,
+  type TrackedPath,
   requirementsChanged,
   testChangeProblems,
   type Change,
@@ -57,28 +59,23 @@ function readerAt(ref: string): Reader {
 /**
  * Repository paths of the files part 2 reads (`isAppFile`), from the files git
  * tracks (TF-7), so what git ignores, such as packages and build output, never
- * counts. Only regular files are read: a tracked file deleted but not yet
- * committed is skipped, and so is a link (`linkProblems` names those).
+ * counts. Only what git stores as a regular file, and is one on the disk, is
+ * read: a tracked file deleted but not yet committed is skipped, and so are
+ * links and submodules (`unfollowedProblems` names those).
  */
 function appFiles(tracked: TrackedPath[]): string[] {
   return tracked
-    .filter(({ path, link }) => !link && isAppFile(path) && isRegularFile(join(ROOT, path)))
+    .filter(({ path, mode }) => isRegularMode(mode) && isAppFile(path) && isRegularFile(join(ROOT, path)))
     .map(({ path }) => path);
 }
 
-interface TrackedPath {
-  path: string;
-  /** Whether git stores it as a link (mode 120000), whatever the disk holds. */
-  link: boolean;
-}
-
-/** What git tracks under src/, data/ and functions/. */
+/** What git tracks under src/, data/ and functions/, with the mode git stores (whatever the disk holds). */
 function trackedAppPaths(): TrackedPath[] {
   // Each entry of `git ls-files -s` is "<mode> <object> <stage>\t<path>".
   return git("ls-files", "-s", "-z", "--", "src", "data", "functions")
     .split("\0")
     .filter(Boolean)
-    .map((entry) => ({ path: entry.slice(entry.indexOf("\t") + 1), link: entry.startsWith("120000 ") }));
+    .map((entry) => ({ path: entry.slice(entry.indexOf("\t") + 1), mode: entry.slice(0, entry.indexOf(" ")) }));
 }
 
 function isRegularFile(path: string): boolean {
@@ -111,8 +108,7 @@ function main(): number {
   const part1 = testChangeProblems(changes, readerAt(base), readerAt("HEAD"));
   const tracked = trackedAppPaths();
   const files = new Map(appFiles(tracked).map((p) => [p, readFileSync(join(ROOT, p), "utf8")] as const));
-  const links = tracked.filter(({ link }) => link).map(({ path }) => path);
-  const part2 = [...linkProblems(links), ...appCodeProblems(files, fixtureNames())];
+  const part2 = [...unfollowedProblems(tracked), ...appCodeProblems(files, fixtureNames())];
   const problems = [...part1, ...part2];
 
   const lines = [`Compared ${baseRef} (${base.slice(0, 7)}) with HEAD: ${changes.length} files changed.`];

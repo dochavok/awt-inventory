@@ -30,8 +30,8 @@
 //
 // Part 2, always: fails if app code (src/) or the server code (functions/)
 // imports the tests, test tools or test data, or if src/, data/ or functions/
-// names a made-up test character or user, or if git tracks a link there
-// (part 2 doesn't follow links).
+// names a made-up test character or user, or if git tracks a link or a
+// submodule there (part 2 doesn't follow either).
 
 import { isDeepStrictEqual } from "node:util";
 import ts from "typescript";
@@ -518,9 +518,27 @@ export function isAppFile(path: string): boolean {
 /** The entries directly in functions/ that part 2 never reads. */
 const SKIPPED_IN_FUNCTIONS = ["node_modules", "lib", "package-lock.json"];
 
-/** Part 2 doesn't follow links, so each link git tracks under src/, data/ or functions/ fails the check. */
-export function linkProblems(links: string[]): string[] {
-  return links.map((path) => `${path}: a link, which the check doesn't follow`);
+/** A path git tracks, with the mode git stores for it (`git ls-files -s`). */
+export interface TrackedPath {
+  path: string;
+  mode: string;
+}
+
+/** Whether git stores a regular file (100644, or 100755 when executable). */
+export function isRegularMode(mode: string): boolean {
+  return mode === "100644" || mode === "100755";
+}
+
+/**
+ * Part 2 doesn't follow links or submodules, so each one git tracks under src/,
+ * data/ or functions/ fails the check, named.
+ */
+export function unfollowedProblems(tracked: TrackedPath[]): string[] {
+  return tracked.flatMap(({ path, mode }) => {
+    if (mode === "120000") return [`${path}: a link, which the check doesn't follow`];
+    if (mode === "160000") return [`${path}: a submodule, which the check doesn't read`];
+    return [];
+  });
 }
 
 /**

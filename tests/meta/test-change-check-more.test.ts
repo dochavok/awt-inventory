@@ -262,7 +262,7 @@ function checkStep(root: string): { cwd: string; run: string } {
 
 rule(
   { req: ["TF-7"], m: "M1" },
-  "CI's check runs nothing from the pull request, and names a link git tracks in the app",
+  "CI's check runs nothing from the pull request, and names a link or submodule git tracks in the app",
   () => {
     const root = fileURLToPath(new URL("../..", import.meta.url));
     // CI's layout: main's checkout (with its packages) in base/, the pull request in pr/.
@@ -313,8 +313,8 @@ rule(
       git(["add", "."]);
       git(["commit", "-q", "-m", "start"]);
 
-      // The pull request, on a branch of its own: settings and code of its own, and a link from
-      // the app into the test data (stored as a link whatever the system).
+      // The pull request, on a branch of its own: settings and code of its own, a link from the app
+      // into the test data (stored as a link whatever the system) and a submodule in the app.
       git(["switch", "-q", "-c", "pull-request"]);
       write("src/app.ts", 'export const app = "Bramblewick";\n');
       write(
@@ -332,6 +332,8 @@ rule(
       );
       const target = git(["hash-object", "-w", "--stdin"], "../tests/fixtures/users.yaml").trim();
       git(["update-index", "--add", "--cacheinfo", `120000,${target},src/people.ts`]);
+      const start = git(["rev-parse", "HEAD"]).trim();
+      git(["update-index", "--add", "--cacheinfo", `160000,${start},src/vendor`]);
       git(["add", "tsconfig.json", "own.ts", "src/app.ts"]);
       git(["commit", "-q", "-m", "pull request"]);
       // The test data is read from git, not from the disk (where a file could be a link elsewhere):
@@ -351,6 +353,7 @@ rule(
       expect(existsSync(ran), out).toBe(false);
       expect(out).not.toContain("THE PULL REQUEST'S CODE RAN");
       expect(out).toContain("src/people.ts: a link, which the check doesn't follow");
+      expect(out).toContain("src/vendor: a submodule, which the check doesn't read");
       expect(out).toContain("tsconfig.json: changed (test settings and check scripts are protected)");
       expect(out).toContain('src/app.ts: names "Bramblewick", from the test fixtures');
       expect(run.status, out).toBe(1);
