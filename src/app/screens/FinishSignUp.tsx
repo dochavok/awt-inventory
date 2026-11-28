@@ -4,9 +4,8 @@
 
 import { useState, type FormEvent } from "react";
 import type { Accounts } from "../../data/accounts";
-import { LIMITS } from "../../data/validate";
 import { Feedback, useAction } from "../useAction";
-import { Terms } from "./Terms";
+import { AcceptTerms, DisplayNameField } from "./SignUpFields";
 
 export function FinishSignUp({ accounts, onFinished }: { accounts: Accounts; onFinished: () => void }) {
   const [displayName, setDisplayName] = useState("");
@@ -26,21 +25,8 @@ export function FinishSignUp({ accounts, onFinished }: { accounts: Accounts; onF
       <h2 id="finish-title">Finish creating your account</h2>
       <form onSubmit={finish}>
         <p>Your email is verified. Choose your display name and accept the terms of use to finish.</p>
-        <label>
-          Display name
-          <input
-            autoComplete="nickname"
-            required
-            maxLength={LIMITS.displayName}
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-          />
-        </label>
-        <Terms />
-        <label className="check">
-          <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />I accept the terms
-          of use
-        </label>
+        <DisplayNameField value={displayName} onChange={setDisplayName} />
+        <AcceptTerms accepted={accepted} onChange={setAccepted} />
         <Feedback error={error} notice={notice} />
         <button type="submit" disabled={!accepted || busy}>
           Finish

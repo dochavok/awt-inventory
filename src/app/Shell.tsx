@@ -164,14 +164,13 @@ export function RefusedNotices({ subscribe }: { subscribe: (listener: (c: Refuse
   );
 }
 
-/** Email sign-ins known to have their profile, this session, so it isn't looked up again on every screen. */
-const finished = new Set<string>();
-
 /**
  * AC-1: an email account must be verified before anything can be stored, and its
- * profile is made only then. Shown until it is; picks up a verification done in
+ * profile is made only then. Shown above every screen until it is, once per
+ * sign-in (App gives each sign-in its own); picks up a verification done in
  * another tab or app when the app is back in view. Once verified, the profile is
- * made with the display name this phone kept, or the user is asked for one.
+ * made with the display name this phone kept, or the user is asked for one, and
+ * `onFinished` lets the screen start afresh with it.
  */
 export function VerifyEmail({
   auth,
@@ -180,19 +179,24 @@ export function VerifyEmail({
 }: {
   auth: AuthProvider;
   accounts: Accounts;
-  onFinished?: () => void;
+  onFinished: () => void;
 }) {
   const [user, setUser] = useState<AuthUser | null>(() => auth.currentUser());
   const [askName, setAskName] = useState(false);
   const verify = useAction();
-  // The latest callback, without making the check below run again on every render.
-  const finishedCallback = useRef(onFinished);
-  finishedCallback.current = onFinished;
+  // Once this sign-in has its profile, it isn't looked up again.
+  const finished = useRef(false);
+
+  const done = useCallback(() => {
+    finished.current = true;
+    setAskName(false);
+    onFinished();
+  }, [onFinished]);
 
   /** Makes the profile of a verified email sign-in that has none yet. */
   const finish = useCallback(
     async (latest: AuthUser | null) => {
-      if (!latest || latest.provider !== "password" || !latest.emailVerified || finished.has(latest.uid)) return;
+      if (!latest || latest.provider !== "password" || !latest.emailVerified || finished.current) return;
       try {
         await accounts.finishSignUp();
       } catch (error) {
@@ -200,43 +204,30 @@ export function VerifyEmail({
         setAskName(true);
         return;
       }
-      finished.add(latest.uid);
-      setAskName(false);
-      finishedCallback.current?.();
+      done();
     },
-    [accounts],
+    [accounts, done],
   );
 
-  useEffect(() => {
-    // Without signal the profile may not be readable; it's tried again on the next screen.
-    void finish(auth.currentUser()).catch(() => undefined);
-    if (!auth.refresh) return;
-    const recheck = () => {
-      if (document.visibilityState !== "visible") return;
-      void auth
-        .refresh?.()
-        .then(async (latest) => {
-          await finish(latest);
-          setUser(latest);
-        })
-        .catch(() => undefined);
-    };
-    document.addEventListener("visibilitychange", recheck);
-    return () => document.removeEventListener("visibilitychange", recheck);
+  /** The latest sign-in, with its profile made if it's now verified. The notice stays until then. */
+  const recheck = useCallback(async () => {
+    const latest = (await auth.refresh?.()) ?? auth.currentUser();
+    await finish(latest);
+    setUser(latest);
+    return latest;
   }, [auth, finish]);
 
-  if (askName) {
-    return (
-      <FinishSignUp
-        accounts={accounts}
-        onFinished={() => {
-          if (user) finished.add(user.uid);
-          setAskName(false);
-          onFinished?.();
-        }}
-      />
-    );
-  }
+  useEffect(() => {
+    // Without signal the profile may not be readable; it's tried again when the app is next in view.
+    void finish(auth.currentUser()).catch(() => undefined);
+    const inView = () => {
+      if (document.visibilityState === "visible") void recheck().catch(() => undefined);
+    };
+    document.addEventListener("visibilitychange", inView);
+    return () => document.removeEventListener("visibilitychange", inView);
+  }, [auth, finish, recheck]);
+
+  if (askName) return <FinishSignUp accounts={accounts} onFinished={done} />;
   if (!user || user.provider !== "password" || user.emailVerified) return null;
   return (
     <section className="card note" aria-labelledby="verify-title">
@@ -265,10 +256,7 @@ export function VerifyEmail({
           disabled={verify.busy}
           onClick={() =>
             void verify.run(async () => {
-              const latest = await auth.refresh!();
-              // The notice stays until the profile is made, so nothing is stored before it exists.
-              await finish(latest);
-              setUser(latest);
+              const latest = await recheck();
               if (!latest?.emailVerified) return "Not verified yet. Check for the email, then try again.";
             })
           }

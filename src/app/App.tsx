@@ -2,12 +2,12 @@
 // signed in. Sign-ins last until the user signs out (AC-3). With signal, the
 // whole account is read once signed in, so all of it stays on the phone (NF-3).
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { characterOf, type RefusedChange } from "../data/firestore-store";
 import { useRoute, type Route } from "./router";
 import type { Services } from "./services";
 import type { NewVersion } from "./new-version";
-import { ConnectionBar, Header, NewVersionBar, RefusedNotices } from "./Shell";
+import { ConnectionBar, Header, NewVersionBar, RefusedNotices, VerifyEmail } from "./Shell";
 import { Account } from "./screens/Account";
 import { CharacterPage, Characters, NewCharacter } from "./screens/Characters";
 import { Category, EntryPage } from "./screens/Entries";
@@ -114,6 +114,10 @@ export function App({ services, newVersion }: { services: Services; newVersion?:
     };
   }, [services, ready, signedIn, holding]);
 
+  // AC-1: once the profile is made, the screen starts afresh with it.
+  const [finished, setFinished] = useState(0);
+  const onFinished = useCallback(() => setFinished((n) => n + 1), []);
+
   const inApp = ready && signedIn && holding === null;
   let screen;
   if (!ready) screen = <p className="center hint">Loading…</p>;
@@ -146,8 +150,16 @@ export function App({ services, newVersion }: { services: Services; newVersion?:
       {newVersion && <NewVersionBar newVersion={newVersion} />}
       {inApp && <ConnectionBar store={services.store} />}
       {inApp && <RefusedNotices subscribe={services.onWriteRefused} />}
-      {/* Each address, and each refusal that touches what's shown, starts the screen afresh. */}
-      <main className="page" key={`${refusals}:${JSON.stringify(route)}`}>
+      {inApp && (
+        <VerifyEmail
+          key={services.auth.currentUser()?.uid}
+          auth={services.auth}
+          accounts={services.accounts}
+          onFinished={onFinished}
+        />
+      )}
+      {/* Each address, each refusal that touches what's shown, and a finished sign-up start the screen afresh. */}
+      <main className="page" key={`${refusals}:${finished}:${JSON.stringify(route)}`}>
         {screen}
       </main>
     </>

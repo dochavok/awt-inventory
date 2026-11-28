@@ -22,7 +22,6 @@ import {
 import { effectLines, grantText, totalsView } from "../grant-text";
 import { go, href } from "../router";
 import type { Services } from "../services";
-import { VerifyEmail } from "../Shell";
 import { Feedback, useAction } from "../useAction";
 import { CharacterNotFound, LevelInput, Loading, useScreenData } from "./common";
 import { Alerts } from "./Equipment";
@@ -61,7 +60,6 @@ export function Characters({ services }: { services: Services }) {
   return (
     <>
       <h1>Your characters</h1>
-      <VerifyEmail auth={services.auth} accounts={services.accounts} />
       <Feedback error={load.error} notice={null} />
       <p>
         <a className="button" href={href("characters/new")}>

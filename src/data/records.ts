@@ -548,7 +548,7 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
 
     invited(email) {
       uid();
-      return backend.invited(email.trim().toLowerCase());
+      return backend.invited(check.inviteKey(email));
     },
 
     async setDisplayName(name) {

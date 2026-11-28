@@ -8,7 +8,6 @@ import { NotFoundError } from "../../errors";
 import { LIMITS } from "../../data/validate";
 import { href } from "../router";
 import type { Services } from "../services";
-import { VerifyEmail } from "../Shell";
 import { Feedback, useAction } from "../useAction";
 
 export function Account({ services }: { services: Services }) {
@@ -22,21 +21,19 @@ export function Account({ services }: { services: Services }) {
   const rename = useAction();
   const remove = useAction();
 
-  const loadProfile = () =>
+  useEffect(() => {
     void load.run(async () => {
       try {
         const p = await store.profile();
         setProfile(p);
         setName(p.displayName);
-        setMissing(false);
       } catch (error) {
         if (!(error instanceof NotFoundError)) throw error;
         setMissing(true);
       }
     });
-
-  // Load once when the page opens, and again once the account is finished (AC-1).
-  useEffect(loadProfile, []);
+    // Load once when the page opens.
+  }, []);
 
   const saveName = (e: FormEvent) => {
     e.preventDefault();
@@ -58,7 +55,6 @@ export function Account({ services }: { services: Services }) {
     <>
       <h1>Your account</h1>
       <Feedback error={load.error} notice={null} />
-      <VerifyEmail auth={auth} accounts={accounts} onFinished={loadProfile} />
       {profile && (
         <form className="card" onSubmit={saveName}>
           <label>

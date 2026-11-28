@@ -288,7 +288,8 @@ service cloud.firestore {
     }
 
     match /listings/{listingId} {
-      allow read: if isPlayer() || (signedIn() && resource.data.ownerUid == request.auth.uid);
+      // The owner's check first: it needs no read of the profile.
+      allow read: if isOwner(resource.data.ownerUid) || isPlayer();
       allow create: if signedIn() && validListing();
       allow update: if signedIn() && resource.data.ownerUid == request.auth.uid && validListing();
       allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
