@@ -367,6 +367,44 @@ rule(
 );
 
 rule(
+  { req: ["AC-1", "PV-2"], m: "M2" },
+  "removing a sign-in that has no profile also forgets the display name kept on the phone",
+  async () => {
+    const { auth, store } = await accountsWorld();
+    const phoneStorage = new Map<string, string>();
+    const kept = {
+      get: (uid: string) => phoneStorage.get(uid),
+      set: (uid: string, name: string) => void phoneStorage.set(uid, name),
+      delete: (uid: string) => void phoneStorage.delete(uid),
+    };
+    const accounts = createAccounts({ auth, store: () => store, inviteList: async () => null, kept });
+    await accounts.signUpWithEmail(signUp);
+    expect([...phoneStorage.values()], "what the phone kept after signing up").toEqual(["Wrenna"]);
+    await accounts.removeSignIn();
+    expect(auth.account("wren@example.test"), "Wrenna's sign-in").toBeUndefined();
+    expect(auth.currentUser(), "signed in after removing it").toBeNull();
+    expect([...phoneStorage.keys()], "what the phone kept after removing the sign-in").toEqual([]);
+  },
+);
+
+rule(
+  { req: ["AC-1"], m: "M2" },
+  "without a recent sign-in, removing a sign-in is refused and keeps what the phone kept",
+  async () => {
+    const w = world();
+    const auth = new StaleSignInAuth();
+    const store = w.forAuth(auth);
+    const accounts = createAccounts({ auth, store: () => store, inviteList: async () => null });
+    await accounts.signUpWithEmail(signUp);
+    const attempt = accounts.removeSignIn();
+    await expect(attempt, "removing after a stale sign-in").rejects.toThrow(ValidationError);
+    await expect(attempt, "removing after a stale sign-in").rejects.toThrow(/sign in again/i);
+    expect(auth.account("wren@example.test"), "Wrenna's sign-in").toBeDefined();
+    expect(accounts.keptDisplayName(), "the display name kept on the phone").toBe("Wrenna");
+  },
+);
+
+rule(
   { req: ["NF-13"], m: "M2" },
   "an email taken off the invite list before it's verified is told sign-up isn't open, and gets no profile",
   async () => {

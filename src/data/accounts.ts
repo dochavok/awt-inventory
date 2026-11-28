@@ -101,6 +101,16 @@ export function createAccounts(context: AccountsContext): Accounts {
         throw error;
       });
 
+  /** The provider deletes a sign-in only after a recent sign-in (AC-5); `what` is what needs it. */
+  async function requireRecentSignIn(what: string): Promise<void> {
+    if (auth.recentlySignedIn && !(await auth.recentlySignedIn())) {
+      throw new ValidationError(
+        "signIn",
+        `For your safety, sign out and sign in again, then ${what} within a few minutes.`,
+      );
+    }
+  }
+
   /** Makes the profile for a verified sign-in (AC-1). */
   async function createProfile(user: AuthUser, displayName: string): Promise<Profile> {
     try {
@@ -137,7 +147,11 @@ export function createAccounts(context: AccountsContext): Accounts {
     async finishSignUp(input) {
       let user = auth.currentUser();
       // Only an email not yet known to be verified is checked again, which takes the network.
-      if (user && !user.emailVerified && auth.refresh) user = await auth.refresh();
+      let refreshed = false;
+      if (user && !user.emailVerified && auth.refresh) {
+        user = await auth.refresh();
+        refreshed = true;
+      }
       if (!user) throw new ValidationError("signIn", "Sign in first.");
       if (!user.emailVerified) {
         throw new ValidationError("email", "Verify your email first: open the link in the email the app sent you.");
@@ -151,6 +165,8 @@ export function createAccounts(context: AccountsContext): Accounts {
       if (displayName === undefined) {
         throw new ValidationError("displayName", "Choose a display name to finish creating your account.");
       }
+      // The rules read "verified" from the sign-in's token, which can lag behind (an earlier refresh cut short).
+      if (!refreshed) await auth.refresh?.();
       const profile = await createProfile(user, displayName);
       kept.delete(user.uid);
       return profile;
@@ -163,6 +179,7 @@ export function createAccounts(context: AccountsContext): Accounts {
 
     async removeSignIn() {
       const user = auth.currentUser();
+      await requireRecentSignIn("remove the sign-in");
       await auth.deleteUser();
       if (user) kept.delete(user.uid);
     },
@@ -205,12 +222,7 @@ export function createAccounts(context: AccountsContext): Accounts {
     async deleteAccount(typedDisplayName) {
       // The sign-in can only be deleted after a recent sign-in; check before any record goes,
       // so a refusal never leaves the records gone and the sign-in still there.
-      if (auth.recentlySignedIn && !(await auth.recentlySignedIn())) {
-        throw new ValidationError(
-          "signIn",
-          "For your safety, sign out and sign in again, then delete your account within a few minutes.",
-        );
-      }
+      await requireRecentSignIn("delete your account");
       await context.store().deleteAccount(typedDisplayName);
       await auth.deleteUser();
     },

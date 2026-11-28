@@ -223,6 +223,53 @@ browserRule(
   },
 );
 
+/** Takes the player off the invite list (NF-13), as the maintainer would. */
+async function uninvite(email: string): Promise<void> {
+  const path = `projects/demo-awt-inventory/databases/(default)/documents/invites/${encodeURIComponent(email)}`;
+  const response = await fetch(`http://127.0.0.1:8080/v1/${path}`, {
+    method: "DELETE",
+    headers: { Authorization: "Bearer owner" },
+  });
+  expect(response.ok, `removing ${email}'s invite in the emulator`).toBe(true);
+}
+
+browserRule(
+  { req: ["TF-13", "AC-1", "NF-13"], m: "M3" },
+  "a sign-up whose invite is removed before it's verified is told sign-up isn't open, and finishes once it's back",
+  async ({ page }) => {
+    const player = madeUpPlayer();
+    await invite(player);
+    await page.goto("/#/sign-up");
+    await expect(page.getByRole("heading", { name: /create an account/i }), "the sign-up screen").toBeVisible({
+      timeout: 15_000,
+    });
+    await page.getByLabel("Display name").fill(player.displayName);
+    await page.getByLabel("Email").fill(player.email);
+    await page.getByLabel("Password").fill(player.password);
+    await page.getByRole("checkbox", { name: /accept the terms/i }).check();
+    await page.getByRole("button", { name: "Create account" }).click();
+    await expectSignedIn(page);
+
+    await uninvite(player.email);
+    await verifyEmail(player);
+    const verified = page.getByRole("button", { name: /i've verified it/i });
+    await expect(verified, "the button to pick up the verified email").toBeVisible();
+    await verified.click();
+    const refused = page.getByRole("alert").filter({ hasText: /not open yet/i });
+    await expect(refused, "the refusal once the invite is gone").toBeVisible({ timeout: 10_000 });
+    await expect(refused.getByRole("button", { name: "Sign out" }), "a way out of the refusal").toBeVisible();
+
+    await invite(player);
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await expect(refused, "the refusal once the invite is back").toBeHidden({ timeout: 10_000 });
+    await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+    await page.getByRole("link", { name: "Account" }).click();
+    await expect(page.getByLabel("Display name", { exact: true }), "the display name kept from sign-up").toHaveValue(
+      player.displayName,
+    );
+  },
+);
+
 browserRule(
   { req: ["TF-13", "AC-1", "AC-2", "AC-4"], m: "M3" },
   "an account finished on a phone that didn't sign up asks for the display name and terms again; the first phone keeps it",

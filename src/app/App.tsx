@@ -114,9 +114,9 @@ export function App({ services, newVersion }: { services: Services; newVersion?:
     };
   }, [services, ready, signedIn, holding]);
 
-  // AC-1: once the profile is made, the screen starts afresh with it.
-  const [finished, setFinished] = useState(0);
-  const onFinished = useCallback(() => setFinished((n) => n + 1), []);
+  // AC-1: once the profile is made (or refused), the screen starts afresh with it.
+  const [accountChanges, setAccountChanges] = useState(0);
+  const onAccountChange = useCallback(() => setAccountChanges((n) => n + 1), []);
 
   const inApp = ready && signedIn && holding === null;
   let screen;
@@ -155,11 +155,11 @@ export function App({ services, newVersion }: { services: Services; newVersion?:
           key={services.auth.currentUser()?.uid}
           auth={services.auth}
           accounts={services.accounts}
-          onFinished={onFinished}
+          onChange={onAccountChange}
         />
       )}
       {/* Each address, each refusal that touches what's shown, and a finished sign-up start the screen afresh. */}
-      <main className="page" key={`${refusals}:${finished}:${JSON.stringify(route)}`}>
+      <main className="page" key={`${refusals}:${accountChanges}:${JSON.stringify(route)}`}>
         {screen}
       </main>
     </>

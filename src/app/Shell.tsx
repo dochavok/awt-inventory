@@ -169,17 +169,17 @@ export function RefusedNotices({ subscribe }: { subscribe: (listener: (c: Refuse
  * profile is made only then. Shown above every screen until it is, once per
  * sign-in (App gives each sign-in its own); picks up a verification done in
  * another tab or app when the app is back in view. Once verified, the profile is
- * made with the display name this phone kept, or the user is asked for one, and
- * `onFinished` lets the screen start afresh with it.
+ * made with the display name this phone kept, or the user is asked for one.
+ * `onChange` lets the screen start afresh once that changes what it shows.
  */
 export function VerifyEmail({
   auth,
   accounts,
-  onFinished,
+  onChange,
 }: {
   auth: AuthProvider;
   accounts: Accounts;
-  onFinished: () => void;
+  onChange: () => void;
 }) {
   const [user, setUser] = useState<AuthUser | null>(() => auth.currentUser());
   const [askName, setAskName] = useState(false);
@@ -189,16 +189,15 @@ export function VerifyEmail({
   // Once this sign-in has its profile, it isn't looked up again; a finish under way is shared.
   const finished = useRef(false);
   const running = useRef<Promise<void> | null>(null);
+  // Whether the screen was shown before the account was finished: it then starts afresh once it is.
+  const waited = useRef(user?.provider === "password" && !user.emailVerified);
 
-  const done = useCallback(
-    (made: boolean) => {
-      finished.current = true;
-      setAskName(false);
-      // Only a profile made just now changes what the screen shows.
-      if (made) onFinished();
-    },
-    [onFinished],
-  );
+  const done = useCallback(() => {
+    finished.current = true;
+    setAskName(false);
+    setRefused(null);
+    if (waited.current) onChange();
+  }, [onChange]);
 
   /** Makes the profile of a verified email sign-in that has none yet. */
   const finish = useCallback(
@@ -207,22 +206,28 @@ export function VerifyEmail({
         return Promise.resolve();
       }
       running.current ??= (async () => {
-        // With nothing kept on this phone, a profile found was made before: nothing on screen changes.
-        const kept = accounts.keptDisplayName() !== undefined;
+        // With a display name kept on this phone, the profile is about to be made.
+        if (accounts.keptDisplayName() !== undefined) waited.current = true;
         try {
           await accounts.finishSignUp();
-          done(kept);
+          done();
         } catch (error) {
-          if (error instanceof ValidationError && error.field === "displayName") setAskName(true);
-          else if (error instanceof AccessDeniedError) setRefused(error.message);
-          else throw error;
+          waited.current = true;
+          if (error instanceof ValidationError && error.field === "displayName") {
+            setRefused(null);
+            setAskName(true);
+          } else if (error instanceof AccessDeniedError) {
+            setRefused(error.message);
+            // The screen behind no longer waits for a verified email.
+            onChange();
+          } else throw error;
         }
       })().finally(() => {
         running.current = null;
       });
       return running.current;
     },
-    [accounts, done],
+    [accounts, done, onChange],
   );
 
   /** The latest sign-in, with its profile made if it's now verified. The notice stays until then. */
@@ -248,11 +253,24 @@ export function VerifyEmail({
   if (refused) {
     return (
       <div className="card error-card" role="alert">
-        <p>{refused}</p>
+        <p>{refused} Ask the maintainer to add your email; the app tries again when you come back to it.</p>
+        <button type="button" className="secondary" onClick={() => void accounts.signOut()}>
+          Sign out
+        </button>
       </div>
     );
   }
-  if (askName) return <FinishSignUp accounts={accounts} onFinished={() => done(true)} />;
+  if (askName) {
+    return (
+      <FinishSignUp
+        accounts={accounts}
+        onFinished={() => {
+          waited.current = true;
+          done();
+        }}
+      />
+    );
+  }
   if (!user || user.provider !== "password" || user.emailVerified) return null;
   return (
     <section className="card note" aria-labelledby="verify-title">
