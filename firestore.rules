@@ -175,7 +175,9 @@ service cloud.firestore {
         && data.kind in ['missing-skill', 'bug', 'idea', 'account-problem']
         && data.subject is string && data.subject.size() > 0 && data.subject.size() <= 200
         && data.message is string && data.message.size() > 0 && data.message.size() <= 10000
-        && wholeNumber(data, 'number') && text(data, 'characterId', 100) && text(data, 'sentAt', 40)
+        // SP-1: the report number's range is the app's (src/data/validate.ts LIMITS).
+        && data.number is int && data.number >= 10000000 && data.number <= 99999999
+        && text(data, 'characterId', 100) && text(data, 'sentAt', 40)
         && text(data, 'appVersion', 40) && (!('delivery' in data) || data.delivery == 'pending');
     }
 
@@ -208,7 +210,8 @@ service cloud.firestore {
       // only the server (which isn't bound by these rules) marks it delivered.
       match /reports/{reportId} {
         allow read, delete: if isOwner(uid);
-        allow create: if canStore(uid) && validReport();
+        // SP-1: the ID is the database's own, 20 letters and digits, as the app makes it.
+        allow create: if canStore(uid) && reportId.matches('[A-Za-z0-9]{20}') && validReport();
       }
 
       // NF-3, CH-1: which character has a name, ignoring case. The app writes a

@@ -1,6 +1,6 @@
 # Privacy
 
-reviewed: 2026-11-12
+reviewed: 2026-11-28
 
 ## What the app stores
 
@@ -17,7 +17,7 @@ Only you. Your records can be read and changed only by you, and the server enfor
 
 When trading arrives, an entry you choose to list for trade will show its name, category, description, rarity, item family and quantity, with your display name, to other players. Never your notes, your character's name or your history.
 
-The maintainer has no screens for browsing anyone's data, and looks at stored data through the hosting provider's console only for support you've asked for. Reports you send are read by the maintainer; your email address and display name are kept out of the copy used to track them.
+The maintainer has no screens for browsing anyone's data, and looks at stored data through the hosting provider's console only for support you've asked for. Reports you send are read by the maintainer. The copy used to track them holds only the report's kind, number and the app's version, never what you typed.
 
 ## When something goes wrong
 

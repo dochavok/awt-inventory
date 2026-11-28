@@ -164,21 +164,28 @@ limit too, and marks reports over it `not-sent` without passing them on.
 
 - **Missing or wrong skills, bugs and ideas (SP-2)** become issues in the
   private repository `dochavok/awt-inventory-reports`, labelled with their kind.
-  An issue leaves out the player's email address and display name. Answer by
-  fixing the data or the code by pull request; close the issue when it's
-  released. Players aren't told through GitHub: they never see the repository.
+  An issue holds only the report's kind, app version, number and ID: read the
+  subject and message in the database (below). Answer by fixing the data or
+  the code by pull request; close the issue when it's released. Players aren't
+  told through GitHub: they never see the repository.
 - **Account problems (SP-3)** come by email from `onboarding@resend.dev`,
-  holding only the report number. Add that sender to your contacts so it isn't
-  filed as spam.
-- **Reading a full report:** the email or issue gives only the report number.
-  Firebase console → Firestore Database → switch from Panel View to **Query
-  Builder** (Panel View doesn't list reports). Query the collection group
-  `reports`, add a **WHERE** clause with field `number`, type **number** (not
-  string), and the report number as the value. The result's path is
-  `users/{uid}/reports/{id}`, and `{uid}` is the sender. Their `users/{uid}`
-  document has their display name and email for a reply. Authentication →
-  Users, searched by that uid, shows how they sign in and when they last did.
-  Look only for support the player asked for (PV-3).
+  holding only the report number and ID. Add that sender to your contacts so it
+  isn't filed as spam.
+- **Reading a full report:** the email or issue gives only the report number
+  and the report's ID. Firebase console → Firestore Database → switch from
+  Panel View to **Query Builder** (Panel View doesn't list reports). Query the
+  collection group `reports`, add a **WHERE** clause with field `number`, type
+  **number** (not string), and the report number as the value. The result's
+  path is `users/{uid}/reports/{id}`, and `{uid}` is the sender. Check that
+  `{id}` is the ID the email or issue gives. Their `users/{uid}` document has
+  their display name and email for a reply. Authentication → Users, searched
+  by that uid, shows how they sign in and when they last did. Look only for
+  support the player asked for (PV-3).
+- **More than one report with the same number:** phones pick numbers at
+  random, so two reports can share one. Use the report whose `{id}` matches
+  the email or issue. Before acting on an account change any of them asks
+  for, check with the player who sent it. If two reports have both the same
+  number and the same ID, check with both players before acting on either.
 - **A report that wasn't delivered** (GitHub or Resend down) waits in
   `reportQueue` and is retried every hour. One that stays there for a day
   points to a broken secret or account: read `retryReports`' logs. "GitHub

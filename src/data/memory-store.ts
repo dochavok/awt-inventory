@@ -8,6 +8,7 @@ import type { Backend, Change, StoredRecord } from "./backend";
 import { createRecordsStore } from "./records";
 import { requireUid, type InventoryStore, type StoreContext } from "./store";
 import type { Profile, Report } from "./types";
+import { LIMITS } from "./validate";
 
 interface Owned<T> {
   uid: string;
@@ -109,7 +110,8 @@ function memoryBackend(db: MemoryDatabase, context: Pick<StoreContext, "currentU
   return {
     newId: (kind) => db.newId(PREFIX[kind]),
     nextSeq: () => db.nextSeq(),
-    reportNumber: () => db.nextSeq(),
+    // SP-1's range, as the phone's numbers are; counting up keeps them apart in tests.
+    reportNumber: () => LIMITS.reportNumberMin + db.nextSeq(),
 
     async profile() {
       const profile = db.profiles.get(uid());
