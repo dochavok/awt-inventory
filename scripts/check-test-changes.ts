@@ -63,8 +63,15 @@ function readerAt(ref: string): Reader {
 
 /** The mode git stores for a path at `ref`; undefined if it isn't there. */
 function modeAt(ref: string): (path: string) => string | undefined {
-  // `git ls-tree` gives "<mode> <type> <object>\t<path>".
-  return (path) => git("ls-tree", "-z", ref, "--", path).split(" ")[0] || undefined;
+  // `git ls-tree` gives "<mode> <type> <object>\t<path>"; --full-tree takes the path from the
+  // repository's root, as `git show <ref>:<path>` does.
+  return (path) => {
+    try {
+      return git("ls-tree", "-z", "--full-tree", ref, "--", path).split(" ")[0] || undefined;
+    } catch {
+      return undefined;
+    }
+  };
 }
 
 /**

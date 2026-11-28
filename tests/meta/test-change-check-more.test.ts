@@ -321,7 +321,7 @@ function checkStep(root: string): { cwd: string; run: string } {
 
 rule(
   { req: ["TF-7"], m: "M1" },
-  "CI's check runs nothing from the pull request, and names a link or submodule git tracks in the app",
+  "CI's check runs nothing from the pull request, and names a link or submodule in the app and test data stored as a link",
   () => {
     const root = fileURLToPath(new URL("../..", import.meta.url));
     // CI's layout: main's checkout (with its packages) in base/, the pull request in pr/.

@@ -550,8 +550,9 @@ export function unfollowedProblems(tracked: TrackedPath[]): string[] {
  * The made-up characters' and users' names in the test data, for part 2.
  * `read` gives a file at the pull request's head, and `modeOf` the mode git
  * stores for it there. A fixture file that's missing, isn't stored as a
- * regular file (a link's text is its target), or isn't valid YAML records is a
- * problem, so no names are lost.
+ * regular file (a link's text is its target), or isn't valid YAML with a map
+ * of records at the top is a problem, so it never passes as a file with no
+ * names. Records in other shapes give no names (a known gap).
  */
 export function fixtureNames(
   read: Reader,
