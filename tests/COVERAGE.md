@@ -122,7 +122,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | NF-8 | Must | M2+ | data/history.test.ts (2), platform/platform.test.ts (3) |
 | NF-9 | Should | M2+ | browser/screens.spec.ts (2) |
 | NF-10 | Must | M3 | ops/operations.test.ts (4) |
-| NF-11 | Must | M3 | ops/operations.test.ts (7) |
+| NF-11 | Must | M3 | ops/operations.test.ts (8) |
 | NF-12 | Must | M3 | app/messages.test.ts (2), platform/platform.test.ts (11) |
 | NF-13 | Must | M2 | access/accounts.test.ts (4), access/privacy.test.ts (4), data/accounts.test.ts (3) |
 | NF-14 | Must | M4 | app/version-checks.test.ts (6), browser/phone.spec.ts (6) |

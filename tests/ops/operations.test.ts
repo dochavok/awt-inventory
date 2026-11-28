@@ -68,6 +68,38 @@ rule(
 );
 
 rule(
+  { req: ["NF-11"], m: "M3" },
+  "every workflow refers to each action by a full commit SHA, with its version in a comment",
+  () => {
+    const workflows = readdirSync(new URL(".github/workflows/", ROOT)).filter((f) => /\.ya?ml$/.test(f));
+    expect(workflows, "the workflows checked").toEqual(
+      expect.arrayContaining(["ci.yml", "deploy.yml", "test-change-rule.yml"]),
+    );
+    let actions = 0;
+    for (const file of workflows) {
+      const text = read(`.github/workflows/${file}`);
+      const workflow = parse(text) as {
+        jobs?: Record<string, { uses?: string; steps?: { uses?: string }[] }>;
+      } | null;
+      const uses = Object.values(workflow?.jobs ?? {}).flatMap((job) => [
+        ...(job.uses ? [job.uses] : []),
+        ...(job.steps ?? []).flatMap((step) => (step.uses ? [step.uses] : [])),
+      ]);
+      for (const action of uses) {
+        actions++;
+        expect(action, `${file}: ${action}`).toMatch(/^[\w.-]+\/[\w.-]+(\/[\w./-]+)?@[0-9a-f]{40}$/);
+        const lines = text.split("\n").filter((line) => line.includes(`uses: ${action}`));
+        expect(lines.length, `${file}: the lines using ${action}`).toBeGreaterThan(0);
+        for (const line of lines) {
+          expect(line, `${file}: the version comment for ${action}`).toMatch(/@[0-9a-f]{40} # v\d+\.\d+\.\d+\s*$/);
+        }
+      }
+    }
+    expect(actions, "the actions the workflows use").toBeGreaterThanOrEqual(20);
+  },
+);
+
+rule(
   { req: ["NF-10"], m: "M3" },
   "the database is backed up every night, encrypted, to another project, and kept 30 days",
   () => {

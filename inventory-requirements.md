@@ -496,6 +496,7 @@ These describe *how well* the app must work, not what it does. **M2+** means the
 - The GitHub account uses two-factor authentication, and `main` requires a pull request.
 - Deploy credentials live only in a GitHub environment that only `main` can use.
 - Dependabot keeps dependencies up to date.
+- Each workflow refers to every action it uses by a full commit SHA, with its version in a comment (`actions/checkout@<sha> # v7.0.1`), so moving a tag can't change what CI or the deploy runs. Dependabot updates the pins.
 
 **NF-12 · Must · M3: Error reports.** Errors in the app are reported to the maintainer automatically. Reports never include game records, display names or email addresses. Refusals the app shows the user, such as a name already in use or a full slot, aren't errors and aren't reported. A change the server refuses when it syncs is still reported, so the maintainer sees the app and the server disagreeing.
 
