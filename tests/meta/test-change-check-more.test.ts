@@ -277,17 +277,33 @@ rule(
 rule({ req: ["TF-7"], m: "M1" }, "test data the check can't read fails it, named, rather than giving no names", () => {
   const users = "bram:\n  displayName: Bramblewick\n  email: bram@example.test\n";
   const characters = "aldric:\n  character: { name: Aldric }\n";
-  const reader = (files: Record<string, string>) => (path: string) => files[path];
+  // Each file is [mode, text], as git stores it.
+  const names = (files: Record<string, [string, string]>) =>
+    fixtureNames(
+      (path) => files[path]?.[1],
+      (path) => files[path]?.[0],
+    );
+  const unreadable = (path: string) => `${path}: can't be read as the test data, so part 2 can't check the names in it`;
   expect(
-    fixtureNames(reader({ "tests/fixtures/characters.yaml": characters, "tests/fixtures/users.yaml": users })),
+    names({
+      "tests/fixtures/characters.yaml": ["100644", characters],
+      "tests/fixtures/users.yaml": ["100644", users],
+    }),
   ).toEqual({ names: ["Aldric", "Bramblewick", "bram@example.test"], problems: [] });
-  // Missing, and a link (git gives a link's target as its text).
-  expect(fixtureNames(reader({ "tests/fixtures/users.yaml": "../elsewhere/users.yaml" }))).toEqual({
+  // Missing; and a link, whose text (its target) reads as YAML records.
+  expect(names({ "tests/fixtures/users.yaml": ["120000", "bram: Bramblewick"] })).toEqual({
     names: [],
-    problems: [
-      "tests/fixtures/characters.yaml: can't be read as the test data, so part 2 can't check the names in it",
-      "tests/fixtures/users.yaml: can't be read as the test data, so part 2 can't check the names in it",
-    ],
+    problems: [unreadable("tests/fixtures/characters.yaml"), unreadable("tests/fixtures/users.yaml")],
+  });
+  // Not valid YAML (a key twice), and not a set of records.
+  expect(
+    names({
+      "tests/fixtures/characters.yaml": ["100644", "aldric: 1\naldric: 2\n"],
+      "tests/fixtures/users.yaml": ["100644", "- Bramblewick\n"],
+    }),
+  ).toEqual({
+    names: [],
+    problems: [unreadable("tests/fixtures/characters.yaml"), unreadable("tests/fixtures/users.yaml")],
   });
 });
 
@@ -379,6 +395,9 @@ rule(
       git(["update-index", "--add", "--cacheinfo", `120000,${target},src/people.ts`]);
       const start = git(["rev-parse", "HEAD"]).trim();
       git(["update-index", "--add", "--cacheinfo", `160000,${start},src/vendor`]);
+      // Test data stored as a link, whose target reads as YAML records: it fails, named.
+      const records = git(["hash-object", "-w", "--stdin"], "aldric: elsewhere").trim();
+      git(["update-index", "--cacheinfo", `120000,${records},tests/fixtures/characters.yaml`]);
       write("tests/rules/ré.test.ts", 'rule({ req: ["GR-8"], m: "M4" }, "Aldric\'s CM", () => 171);\n');
       git(["add", "tsconfig.json", "own.ts", "src/app.ts", "tests/rules/ré.test.ts"]);
       git(["commit", "-q", "-m", "pull request"]);
@@ -405,6 +424,9 @@ rule(
       expect(out).toContain("tsconfig.json: changed (test settings and check scripts are protected)");
       expect(out).toContain('src/app.ts: names "Bramblewick", from the test fixtures');
       expect(out).not.toContain("src/people.ts: names");
+      expect(out).toContain(
+        "tests/fixtures/characters.yaml: can't be read as the test data, so part 2 can't check the names in it",
+      );
       expect(out).toContain(`tests/rules/ré.test.ts: rule(… "Aldric's CM") was changed or removed`);
       expect(run.status, out).toBe(1);
     } finally {

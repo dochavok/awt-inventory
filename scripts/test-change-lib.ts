@@ -30,8 +30,11 @@
 //
 // Part 2, always: fails if app code (src/) or the server code (functions/)
 // imports the tests, test tools or test data, or if src/, data/ or functions/
-// names a made-up test character or user, or if git tracks a link or a
-// submodule there (part 2 doesn't follow either).
+// names a made-up test character or user; if git tracks anything there that
+// isn't a regular file, such as a link or a submodule (part 2 doesn't follow
+// them); or if it can't read the test data's names (tests/fixtures/
+// characters.yaml and users.yaml missing, not regular files, or not valid YAML
+// records).
 
 import { isDeepStrictEqual } from "node:util";
 import ts from "typescript";
@@ -545,16 +548,30 @@ export function unfollowedProblems(tracked: TrackedPath[]): string[] {
 
 /**
  * The made-up characters' and users' names in the test data, for part 2.
- * `read` gives a file at the pull request's head. A fixture file that's
- * missing, or isn't a set of records, is a problem, so no names are lost.
+ * `read` gives a file at the pull request's head, and `modeOf` the mode git
+ * stores for it there. A fixture file that's missing, isn't stored as a
+ * regular file (a link's text is its target), or isn't valid YAML records is a
+ * problem, so no names are lost.
  */
-export function fixtureNames(read: Reader): { names: string[]; problems: string[] } {
+export function fixtureNames(
+  read: Reader,
+  modeOf: (path: string) => string | undefined,
+): { names: string[]; problems: string[] } {
   type Fixture = { character?: { name?: unknown }; displayName?: unknown; email?: unknown } | null;
   const problems: string[] = [];
+  const parsed = (path: string): unknown => {
+    const mode = modeOf(path);
+    const text = mode !== undefined && isRegularMode(mode) ? read(path) : undefined;
+    if (text === undefined) return undefined;
+    try {
+      return parse(text);
+    } catch {
+      return undefined;
+    }
+  };
   const records = (file: string): Fixture[] => {
     const path = `tests/fixtures/${file}`;
-    const text = read(path);
-    const value: unknown = text === undefined ? undefined : parse(text);
+    const value = parsed(path);
     if (typeof value !== "object" || value === null || Array.isArray(value)) {
       problems.push(`${path}: can't be read as the test data, so part 2 can't check the names in it`);
       return [];

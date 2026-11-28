@@ -61,12 +61,18 @@ function readerAt(ref: string): Reader {
   };
 }
 
+/** The mode git stores for a path at `ref`; undefined if it isn't there. */
+function modeAt(ref: string): (path: string) => string | undefined {
+  // `git ls-tree` gives "<mode> <type> <object>\t<path>".
+  return (path) => git("ls-tree", "-z", ref, "--", path).split(" ")[0] || undefined;
+}
+
 /**
  * Repository paths of the files part 2 reads (`isAppFile`), from the files git
  * tracks (TF-7), so what git ignores, such as packages and build output, never
  * counts. Only what git stores as a regular file, and is one on the disk, is
  * read: a tracked file deleted but not yet committed is skipped, and so are
- * links and submodules (`unfollowedProblems` names those).
+ * links, submodules and any other mode (`unfollowedProblems` names those).
  */
 function appFiles(tracked: TrackedPath[]): string[] {
   return tracked
@@ -103,7 +109,7 @@ function main(): number {
   const tracked = trackedAppPaths();
   const files = new Map(appFiles(tracked).map((p) => [p, readFileSync(join(ROOT, p), "utf8")] as const));
   // The test data's names come from git, never from the disk, where a file could be a link.
-  const fixtures = fixtureNames(readerAt("HEAD"));
+  const fixtures = fixtureNames(readerAt("HEAD"), modeAt("HEAD"));
   const part2 = [...unfollowedProblems(tracked), ...fixtures.problems, ...appCodeProblems(files, fixtures.names)];
   const problems = [...part1, ...part2];
 
