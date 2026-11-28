@@ -539,10 +539,10 @@ When a DM answers a question, start at step 2.
 **TF-7 · Must · M1: Enforcement.**
 
 - `CLAUDE.md` states the rule.
-- Claude Code must ask before editing tests, fixtures, test settings, CI workflows, the check scripts or its own settings.
+- Claude Code must ask before editing tests, fixtures, test settings, the TypeScript settings (`tsconfig.json`), CI workflows, the check scripts or its own settings.
 - CI fails any change that alters or removes an existing test, fixture or harness file unless the same change edits this document. Adding tests is always allowed.
-- CI also fails if app code, the server code included, refers to the tests or test data. It reads only the files git tracks, so files git ignores (installed packages, build output) never count.
-- The check is required before merging to `main`, and always runs as it is on `main`, so a pull request can't change how it's judged.
+- CI also fails if app code, the server code included, refers to the tests or test data. It reads only the files git tracks, so files git ignores (installed packages, build output) never count. Anything git tracks under `src/`, `data/` or `functions/` that isn't a regular file (a link, a submodule) fails the check, named, since the check doesn't follow it. So does test data it can't read: a fixture file that's missing, isn't stored as a regular file, or isn't valid YAML records.
+- The check is required before merging to `main`, and always runs as it is on `main`, so a pull request can't change how it's judged. It runs nothing from the pull request: it runs in `main`'s own checkout, with `main`'s packages and settings, and reads the pull request's files only as data.
 
 **TF-8 · Must · M1: Assertions that can fail.**
 

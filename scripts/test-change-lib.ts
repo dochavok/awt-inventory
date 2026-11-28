@@ -18,8 +18,8 @@
 //     tests/support/ and tests/meta/probes/. tests/COVERAGE.md is exempt: it's
 //     generated;
 //   - changes or deletes anything in scripts/, the test settings
-//     (vitest.config.ts, playwright.config.ts, firebase.json, eslint.config.js)
-//     or .claude/settings.json;
+//     (vitest.config.ts, playwright.config.ts, firebase.json, eslint.config.js),
+//     the TypeScript settings (tsconfig.json) or .claude/settings.json;
 //   - changes the test scripts in package.json, or adds or changes a script npm
 //     runs by itself (its lifecycle scripts such as postinstall and prepare, or
 //     pre<name>/post<name> for an existing script), or removes a finished
@@ -30,7 +30,11 @@
 //
 // Part 2, always: fails if app code (src/) or the server code (functions/)
 // imports the tests, test tools or test data, or if src/, data/ or functions/
-// names a made-up test character or user.
+// names a made-up test character or user; if git tracks anything there that
+// isn't a regular file, such as a link or a submodule (part 2 doesn't follow
+// them); or if it can't read the test data's names (tests/fixtures/
+// characters.yaml and users.yaml missing, not regular files, or not valid YAML
+// records).
 
 import { isDeepStrictEqual } from "node:util";
 import ts from "typescript";
@@ -51,6 +55,7 @@ const PROTECTED_FILES = new Set([
   "playwright.config.ts",
   "firebase.json",
   "eslint.config.js",
+  "tsconfig.json",
   ".claude/settings.json",
 ]);
 
@@ -515,6 +520,70 @@ export function isAppFile(path: string): boolean {
 
 /** The entries directly in functions/ that part 2 never reads. */
 const SKIPPED_IN_FUNCTIONS = ["node_modules", "lib", "package-lock.json"];
+
+/** A path git tracks, with the mode git stores for it (`git ls-files -s`). */
+export interface TrackedPath {
+  path: string;
+  mode: string;
+}
+
+/** Whether git stores a regular file (100644, or 100755 when executable). */
+export function isRegularMode(mode: string): boolean {
+  return mode === "100644" || mode === "100755";
+}
+
+/**
+ * Part 2 reads only regular files, so everything else git tracks under src/,
+ * data/ or functions/ fails the check, named: links, submodules, and any other
+ * mode.
+ */
+export function unfollowedProblems(tracked: TrackedPath[]): string[] {
+  return tracked.flatMap(({ path, mode }) => {
+    if (isRegularMode(mode)) return [];
+    if (mode === "120000") return [`${path}: a link, which the check doesn't follow`];
+    if (mode === "160000") return [`${path}: a submodule, which the check doesn't read`];
+    return [`${path}: stored with mode ${mode}, which the check doesn't read`];
+  });
+}
+
+/**
+ * The made-up characters' and users' names in the test data, for part 2.
+ * `read` gives a file at the pull request's head, and `modeOf` the mode git
+ * stores for it there. A fixture file that's missing, isn't stored as a
+ * regular file (a link's text is its target), or isn't valid YAML with a map
+ * of records at the top is a problem, so it never passes as a file with no
+ * names. Records in other shapes give no names (a known gap).
+ */
+export function fixtureNames(
+  read: Reader,
+  modeOf: (path: string) => string | undefined,
+): { names: string[]; problems: string[] } {
+  type Fixture = { character?: { name?: unknown }; displayName?: unknown; email?: unknown } | null;
+  const problems: string[] = [];
+  const parsed = (path: string): unknown => {
+    const mode = modeOf(path);
+    const text = mode !== undefined && isRegularMode(mode) ? read(path) : undefined;
+    if (text === undefined) return undefined;
+    try {
+      return parse(text);
+    } catch {
+      return undefined;
+    }
+  };
+  const records = (file: string): Fixture[] => {
+    const path = `tests/fixtures/${file}`;
+    const value = parsed(path);
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      problems.push(`${path}: can't be read as the test data, so part 2 can't check the names in it`);
+      return [];
+    }
+    return Object.values(value as Record<string, Fixture>);
+  };
+  const characters = records("characters.yaml").map((c) => c?.character?.name);
+  const users = records("users.yaml").flatMap((u) => [u?.displayName, u?.email]);
+  const names = [...new Set([...characters, ...users])].filter((n): n is string => typeof n === "string" && n !== "");
+  return { names, problems };
+}
 
 /**
  * Part 2: `files` maps the paths `isAppFile` accepts to their contents;
