@@ -18,7 +18,13 @@ import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "vitest";
 import { parse } from "yaml";
-import { packageProblems, testChangeProblems, testFileProblems } from "../../scripts/test-change-lib";
+import {
+  fixtureNames,
+  packageProblems,
+  testChangeProblems,
+  testFileProblems,
+  unfollowedProblems,
+} from "../../scripts/test-change-lib";
 import { rule } from "../support/rule";
 
 const TEST_FILE = `import { expect } from "vitest";
@@ -248,6 +254,43 @@ rule({ req: ["TF-7"], m: "M1" }, "changing or deleting the TypeScript settings i
   ]);
 });
 
+rule(
+  { req: ["TF-7"], m: "M1" },
+  "only regular files in the app pass unnamed: links, submodules and other modes fail",
+  () => {
+    expect(
+      unfollowedProblems([
+        { path: "src/a.ts", mode: "100644" },
+        { path: "src/run.sh", mode: "100755" },
+        { path: "src/people.ts", mode: "120000" },
+        { path: "src/vendor", mode: "160000" },
+        { path: "src/odd", mode: "040000" },
+      ]),
+    ).toEqual([
+      "src/people.ts: a link, which the check doesn't follow",
+      "src/vendor: a submodule, which the check doesn't read",
+      "src/odd: stored with mode 040000, which the check doesn't read",
+    ]);
+  },
+);
+
+rule({ req: ["TF-7"], m: "M1" }, "test data the check can't read fails it, named, rather than giving no names", () => {
+  const users = "bram:\n  displayName: Bramblewick\n  email: bram@example.test\n";
+  const characters = "aldric:\n  character: { name: Aldric }\n";
+  const reader = (files: Record<string, string>) => (path: string) => files[path];
+  expect(
+    fixtureNames(reader({ "tests/fixtures/characters.yaml": characters, "tests/fixtures/users.yaml": users })),
+  ).toEqual({ names: ["Aldric", "Bramblewick", "bram@example.test"], problems: [] });
+  // Missing, and a link (git gives a link's target as its text).
+  expect(fixtureNames(reader({ "tests/fixtures/users.yaml": "../elsewhere/users.yaml" }))).toEqual({
+    names: [],
+    problems: [
+      "tests/fixtures/characters.yaml: can't be read as the test data, so part 2 can't check the names in it",
+      "tests/fixtures/users.yaml: can't be read as the test data, so part 2 can't check the names in it",
+    ],
+  });
+});
+
 /** The step of the test-change rule workflow that runs the check: its folder and command. */
 function checkStep(root: string): { cwd: string; run: string } {
   type Workflow = { jobs: Record<string, { steps: { run?: string; "working-directory"?: string }[] }> };
@@ -309,6 +352,8 @@ rule(
       write("tests/fixtures/users.yaml", "bram:\n  displayName: Bramblewick\n  email: bram@example.test\n");
       write("src/app.ts", "export const app = 1;\n");
       write("tsconfig.json", "{}\n");
+      // A test whose path has a letter outside ASCII, which git quotes unless asked not to.
+      write("tests/rules/ré.test.ts", 'rule({ req: ["GR-8"], m: "M4" }, "Aldric\'s CM", () => 170);\n');
       git(["init", "-q", "-b", "main"]);
       git(["add", "."]);
       git(["commit", "-q", "-m", "start"]);
@@ -334,8 +379,11 @@ rule(
       git(["update-index", "--add", "--cacheinfo", `120000,${target},src/people.ts`]);
       const start = git(["rev-parse", "HEAD"]).trim();
       git(["update-index", "--add", "--cacheinfo", `160000,${start},src/vendor`]);
-      git(["add", "tsconfig.json", "own.ts", "src/app.ts"]);
+      write("tests/rules/ré.test.ts", 'rule({ req: ["GR-8"], m: "M4" }, "Aldric\'s CM", () => 171);\n');
+      git(["add", "tsconfig.json", "own.ts", "src/app.ts", "tests/rules/ré.test.ts"]);
       git(["commit", "-q", "-m", "pull request"]);
+      // Where git keeps links as plain files (as on Windows), the link is still never read.
+      write("src/people.ts", 'export const who = "Bramblewick";\n');
       // The test data is read from git, not from the disk (where a file could be a link elsewhere):
       // an uncommitted copy with other names changes nothing.
       write("tests/fixtures/users.yaml", "bram:\n  displayName: Quillon\n");
@@ -356,6 +404,8 @@ rule(
       expect(out).toContain("src/vendor: a submodule, which the check doesn't read");
       expect(out).toContain("tsconfig.json: changed (test settings and check scripts are protected)");
       expect(out).toContain('src/app.ts: names "Bramblewick", from the test fixtures');
+      expect(out).not.toContain("src/people.ts: names");
+      expect(out).toContain(`tests/rules/ré.test.ts: rule(… "Aldric's CM") was changed or removed`);
       expect(run.status, out).toBe(1);
     } finally {
       // The links to the repository go first, on their own, so the clean-up never reaches into it:

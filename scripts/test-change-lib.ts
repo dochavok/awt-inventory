@@ -530,15 +530,41 @@ export function isRegularMode(mode: string): boolean {
 }
 
 /**
- * Part 2 doesn't follow links or submodules, so each one git tracks under src/,
- * data/ or functions/ fails the check, named.
+ * Part 2 reads only regular files, so everything else git tracks under src/,
+ * data/ or functions/ fails the check, named: links, submodules, and any other
+ * mode.
  */
 export function unfollowedProblems(tracked: TrackedPath[]): string[] {
   return tracked.flatMap(({ path, mode }) => {
+    if (isRegularMode(mode)) return [];
     if (mode === "120000") return [`${path}: a link, which the check doesn't follow`];
     if (mode === "160000") return [`${path}: a submodule, which the check doesn't read`];
-    return [];
+    return [`${path}: stored with mode ${mode}, which the check doesn't read`];
   });
+}
+
+/**
+ * The made-up characters' and users' names in the test data, for part 2.
+ * `read` gives a file at the pull request's head. A fixture file that's
+ * missing, or isn't a set of records, is a problem, so no names are lost.
+ */
+export function fixtureNames(read: Reader): { names: string[]; problems: string[] } {
+  type Fixture = { character?: { name?: unknown }; displayName?: unknown; email?: unknown } | null;
+  const problems: string[] = [];
+  const records = (file: string): Fixture[] => {
+    const path = `tests/fixtures/${file}`;
+    const text = read(path);
+    const value: unknown = text === undefined ? undefined : parse(text);
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      problems.push(`${path}: can't be read as the test data, so part 2 can't check the names in it`);
+      return [];
+    }
+    return Object.values(value as Record<string, Fixture>);
+  };
+  const characters = records("characters.yaml").map((c) => c?.character?.name);
+  const users = records("users.yaml").flatMap((u) => [u?.displayName, u?.email]);
+  const names = [...new Set([...characters, ...users])].filter((n): n is string => typeof n === "string" && n !== "");
+  return { names, problems };
 }
 
 /**

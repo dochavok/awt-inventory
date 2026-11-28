@@ -7,15 +7,19 @@
 // script from main's checkout, with --repo naming the pull request's, so
 // nothing in the pull request is loaded or run: its files are only read (TF-7).
 // On GitHub Actions it also writes a job summary.
+//
+// The test data's names come from HEAD, but app code from the disk, so a local
+// run checks uncommitted app code against the last commit's names; CI's
+// checkout has nothing uncommitted.
 
 import { execFileSync } from "node:child_process";
 import { appendFileSync, lstatSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { parse } from "yaml";
 import {
   RULE,
   appCodeProblems,
+  fixtureNames,
   isAppFile,
   isRegularMode,
   unfollowedProblems,
@@ -37,13 +41,14 @@ function git(...args: string[]): string {
 }
 
 function changedFiles(base: string): Change[] {
-  return git("diff", "--name-status", "--no-renames", base, "HEAD")
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => {
-      const [status, path] = line.split("\t");
-      return { status: (status === "A" || status === "D" ? status : "M") as Change["status"], path: path! };
-    });
+  // With -z, each change is "<status>\0<path>\0", and paths come as they are, never quoted.
+  const fields = git("diff", "--name-status", "--no-renames", "-z", base, "HEAD").split("\0");
+  const changes: Change[] = [];
+  for (let i = 0; i + 1 < fields.length; i += 2) {
+    const status = fields[i]!;
+    changes.push({ status: status === "A" || status === "D" ? status : "M", path: fields[i + 1]! });
+  }
+  return changes;
 }
 
 function readerAt(ref: string): Reader {
@@ -86,17 +91,6 @@ function isRegularFile(path: string): boolean {
   }
 }
 
-/** The made-up names in the test data, read from git (never from the disk, where a file could be a link). */
-function fixtureNames(): string[] {
-  type Fixture = { character?: { name?: unknown }; displayName?: unknown; email?: unknown } | null;
-  const head = readerAt("HEAD");
-  const read = (file: string) =>
-    Object.values((parse(head(`tests/fixtures/${file}`) ?? "") ?? {}) as Record<string, Fixture>);
-  const characters = read("characters.yaml").map((c) => c?.character?.name);
-  const users = read("users.yaml").flatMap((u) => [u?.displayName, u?.email]);
-  return [...new Set([...characters, ...users])].filter((n): n is string => typeof n === "string" && n !== "");
-}
-
 function main(): number {
   const { base: baseRef } = ARGS;
   if (!baseRef) {
@@ -108,7 +102,9 @@ function main(): number {
   const part1 = testChangeProblems(changes, readerAt(base), readerAt("HEAD"));
   const tracked = trackedAppPaths();
   const files = new Map(appFiles(tracked).map((p) => [p, readFileSync(join(ROOT, p), "utf8")] as const));
-  const part2 = [...unfollowedProblems(tracked), ...appCodeProblems(files, fixtureNames())];
+  // The test data's names come from git, never from the disk, where a file could be a link.
+  const fixtures = fixtureNames(readerAt("HEAD"));
+  const part2 = [...unfollowedProblems(tracked), ...fixtures.problems, ...appCodeProblems(files, fixtures.names)];
   const problems = [...part1, ...part2];
 
   const lines = [`Compared ${baseRef} (${base.slice(0, 7)}) with HEAD: ${changes.length} files changed.`];
