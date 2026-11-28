@@ -15,7 +15,7 @@ import {
 } from "firebase/auth";
 import { connectFirestoreEmulator, doc, getFirestore, setDoc } from "firebase/firestore";
 import { afterEach, beforeEach, expect } from "vitest";
-import { createAccounts } from "../../src/data/accounts";
+import { createAccounts, type Accounts } from "../../src/data/accounts";
 import { createFirestoreStore } from "../../src/data/firestore-store";
 import { AccessDeniedError, ConfirmationError } from "../../src/errors";
 import { createFirebaseAuth } from "../../src/platform/firebase-auth";
@@ -100,16 +100,28 @@ async function canSignIn(auth: Auth, email: string, password: string): Promise<b
 const wren = { email: "wren@example.test", password: "a made-up password", displayName: "Wrenna", acceptedTerms: true };
 const invite = (email: string) => seed({ [`invites/${email}`]: { addedBy: "maintainer" } });
 
+/** The email's owner opens the verification link the Auth emulator kept, and the app makes the profile (AC-1). */
+async function verified(accounts: Accounts, email = wren.email) {
+  const response = await fetch(`http://${AUTH_HOST}/emulator/v1/projects/${PROJECT_ID}/oobCodes`);
+  const body = (await response.json()) as { oobCodes: { email: string; requestType: string; oobLink: string }[] };
+  const code = body.oobCodes.find((c) => c.email === email && c.requestType === "VERIFY_EMAIL");
+  expect(code, `the verification email for ${email}`).toBeDefined();
+  expect((await fetch(code!.oobLink)).ok, "following the verification link").toBe(true);
+  return accounts.finishSignUp();
+}
+
 rule(
   { req: ["AC-1", "AC-2", "PV-2", "NF-13"], m: "M2" },
-  "an invited email signs up through Firebase: a verification email, and a profile of only the display name and email",
+  "an invited email signs up through Firebase: a verification email, and once verified a profile of only the display name and email",
   async () => {
     await invite(wren.email);
     const { auth, accounts } = phone();
-    const profile = await accounts.signUpWithEmail(wren);
-    expect(profile, "Wrenna's profile").toMatchObject({ displayName: "Wrenna", email: wren.email });
+    await accounts.signUpWithEmail(wren);
     expect(auth.currentUser?.email, "signed in as").toBe(wren.email);
     expect(await sentEmails(), "emails sent").toEqual([[wren.email, "VERIFY_EMAIL"]]);
+    expect(await stored(`users/${auth.currentUser!.uid}`), "Wrenna's profile before verifying").toBeNull();
+    const profile = await verified(accounts);
+    expect(profile, "Wrenna's profile").toMatchObject({ displayName: "Wrenna", email: wren.email });
     const doc = await stored(`users/${auth.currentUser!.uid}`);
     expect(Object.keys(doc ?? {}).sort(), "the stored profile's fields").toEqual(["displayName", "email"]);
     expect(doc?.displayName, "the stored display name").toEqual({ stringValue: "Wrenna" });
@@ -164,6 +176,7 @@ rule(
     await invite(wren.email);
     const { auth, accounts } = phone();
     await accounts.signUpWithEmail(wren);
+    await verified(accounts);
     const uid = auth.currentUser!.uid;
     await seed({
       "listings/wrens": {
@@ -194,6 +207,7 @@ rule(
     await invite(wren.email);
     const { auth, accounts } = phone();
     await accounts.signUpWithEmail(wren);
+    await verified(accounts);
     const rook = `users/${auth.currentUser!.uid}/characters/rook`;
     const docs: Record<string, Record<string, unknown>> = { [rook]: { name: "Rook", className: "Warrior", level: 1 } };
     for (let i = 0; i < 510; i++) docs[`${rook}/history/l${i}`] = { event: "level-changed" };
@@ -247,6 +261,7 @@ rule({ req: ["AC-2"], m: "M2" }, "a display name changed in the app is changed o
   await invite(wren.email);
   const { auth, store, accounts } = phone();
   await accounts.signUpWithEmail(wren);
+  await verified(accounts);
   await store.setDisplayName("Wren the Wanderer");
   expect((await stored(`users/${auth.currentUser!.uid}`))?.displayName, "the stored display name").toEqual({
     stringValue: "Wren the Wanderer",
@@ -260,6 +275,7 @@ rule(
     await invite(wren.email);
     const { auth, accounts } = phone();
     await accounts.signUpWithEmail(wren);
+    await verified(accounts);
     const uid = auth.currentUser!.uid;
     const rook = `users/${uid}/characters/rook`;
     await seed({

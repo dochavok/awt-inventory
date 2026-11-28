@@ -47,6 +47,12 @@ export function signedIn(user: string): RulesTestContext {
   return environment().authenticatedContext(u.uid, { email: u.email, email_verified: true });
 }
 
+/** A fixture user signed in with an email that isn't verified yet (AC-1). */
+export function signedInUnverified(user: string): RulesTestContext {
+  const u = fixtureUser(user);
+  return environment().authenticatedContext(u.uid, { email: u.email, email_verified: false });
+}
+
 /** One phone signed in as a fixture user: its own Firestore instance and offline cache. */
 export function device(user: string): ReturnType<RulesTestContext["firestore"]> {
   return signedIn(user).firestore();

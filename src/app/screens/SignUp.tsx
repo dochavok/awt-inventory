@@ -3,11 +3,9 @@
 
 import { useState, type FormEvent } from "react";
 import type { Accounts } from "../../data/accounts";
-import { LIMITS } from "../../data/validate";
 import { go, href } from "../router";
 import { Feedback, useAction } from "../useAction";
-import { Hinted } from "./common";
-import { Terms } from "./Terms";
+import { AcceptTerms, DisplayNameField } from "./SignUpFields";
 
 export function SignUp({ accounts, onBusy }: { accounts: Accounts; onBusy: (busy: boolean) => void }) {
   const [displayName, setDisplayName] = useState("");
@@ -36,21 +34,7 @@ export function SignUp({ accounts, onBusy }: { accounts: Accounts; onBusy: (busy
     <>
       <h1>Create an account</h1>
       <form className="card" onSubmit={create}>
-        <Hinted
-          label="Display name"
-          hint="Other players see only this, if you list something for trade. No real name needed."
-        >
-          {(hint) => (
-            <input
-              autoComplete="nickname"
-              required
-              maxLength={LIMITS.displayName}
-              value={displayName}
-              aria-describedby={hint}
-              onChange={(e) => setDisplayName(e.target.value)}
-            />
-          )}
-        </Hinted>
+        <DisplayNameField value={displayName} onChange={setDisplayName} />
         <label>
           Email
           <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -66,11 +50,7 @@ export function SignUp({ accounts, onBusy }: { accounts: Accounts; onBusy: (busy
             onChange={(e) => setPassword(e.target.value)}
           />
         </label>
-        <Terms />
-        <label className="check">
-          <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />I accept the terms
-          of use
-        </label>
+        <AcceptTerms accepted={accepted} onChange={setAccepted} />
         <p className="hint">
           What the app stores and who can see it: <a href={href("privacy")}>Privacy note</a>
         </p>

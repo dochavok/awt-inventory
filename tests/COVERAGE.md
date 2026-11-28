@@ -8,13 +8,13 @@ Tests shows each file with the number of its tests that name the requirement.
 
 | ID | Priority | Milestone | Tests |
 |---|---|---|---|
-| AC-1 | Must | M2 | access/accounts.test.ts (4), browser/characters.spec.ts (1), data/accounts.test.ts (6) |
-| AC-2 | Must | M2 | access/accounts.test.ts (2), data/accounts.test.ts (4) |
+| AC-1 | Must | M2 | access/accounts.test.ts (4), access/privacy.test.ts (2), browser/characters.spec.ts (3), data/accounts.test.ts (14) |
+| AC-2 | Must | M2 | access/accounts.test.ts (2), browser/characters.spec.ts (1), data/accounts.test.ts (7) |
 | AC-3 | Must | M2 | access/accounts.test.ts (1), browser/characters.spec.ts (1), data/accounts.test.ts (1) |
-| AC-4 | Must | M2 | browser/phone.spec.ts (1), data/accounts.test.ts (1), docs/help-pages.test.ts (1) |
-| AC-5 | Must | M2 | access/accounts.test.ts (3), access/firestore-store.test.ts (2), data/accounts.test.ts (3), data/reports.test.ts (1), server/reports.test.ts (1) |
-| PV-1 | Must | M2 | access/accounts.test.ts (1), access/firestore-store.test.ts (1), access/privacy.test.ts (19), data/inventory.test.ts (1), data/privacy.test.ts (6), data/reports.test.ts (1), data/search-export.test.ts (1), data/titles.test.ts (1) |
-| PV-2 | Must | M2 | access/accounts.test.ts (1), access/privacy.test.ts (2), data/accounts.test.ts (2), server/reports.test.ts (10) |
+| AC-4 | Must | M2 | browser/characters.spec.ts (1), browser/phone.spec.ts (1), data/accounts.test.ts (2), docs/help-pages.test.ts (1) |
+| AC-5 | Must | M2 | access/accounts.test.ts (3), access/firestore-store.test.ts (2), access/privacy.test.ts (1), data/accounts.test.ts (3), data/reports.test.ts (1), server/reports.test.ts (1) |
+| PV-1 | Must | M2 | access/accounts.test.ts (1), access/firestore-store.test.ts (1), access/privacy.test.ts (21), data/inventory.test.ts (1), data/privacy.test.ts (6), data/reports.test.ts (1), data/search-export.test.ts (1), data/titles.test.ts (1) |
+| PV-2 | Must | M2 | access/accounts.test.ts (1), access/privacy.test.ts (2), data/accounts.test.ts (3), server/reports.test.ts (10) |
 | PV-3 | Must | M2 | access/privacy.test.ts (1), data/privacy.test.ts (3) |
 | PV-4 | Must | M2 | browser/phone.spec.ts (1), browser/screens.spec.ts (1), docs/help-pages.test.ts (1) |
 | CH-1 | Must | M2 | access/firestore-store.test.ts (3), access/offline.test.ts (5), access/privacy.test.ts (3), browser/characters.spec.ts (1), browser/screens.spec.ts (3), browser/search-export.spec.ts (3), data/characters.test.ts (6), data/grants.test.ts (2) |
@@ -124,7 +124,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | NF-10 | Must | M3 | ops/operations.test.ts (4) |
 | NF-11 | Must | M3 | ops/operations.test.ts (8) |
 | NF-12 | Must | M3 | app/messages.test.ts (2), platform/platform.test.ts (11) |
-| NF-13 | Must | M2 | access/accounts.test.ts (4), access/privacy.test.ts (4), data/accounts.test.ts (3) |
+| NF-13 | Must | M2 | access/accounts.test.ts (4), access/privacy.test.ts (6), browser/characters.spec.ts (1), data/accounts.test.ts (5) |
 | NF-14 | Must | M4 | app/version-checks.test.ts (6), browser/phone.spec.ts (6) |
 | NF-15 | Must | M4 | ops/operations.test.ts (1) |
 | TF-1 | Must | M1 | meta/requirements.test.ts (1) |
@@ -137,9 +137,9 @@ Tests shows each file with the number of its tests that name the requirement.
 | TF-8 | Must | M1 | meta/harness.test.ts (2) |
 | TF-9 | Must | M1 | meta/scenarios.test.ts (3), meta/test-change-check.test.ts (1) |
 | TF-10 | Must | M1 | properties/damage.test.ts (4), properties/equipping.test.ts (3), properties/totals.test.ts (5) |
-| TF-11 | Must | M1 | access/privacy.test.ts (35) |
+| TF-11 | Must | M1 | access/privacy.test.ts (40) |
 | TF-12 | Must | M2+ | checked in review (TF-4) |
-| TF-13 | Should | M3 | browser/characters.spec.ts (7), browser/inventory.spec.ts (7), browser/search-export.spec.ts (6) |
+| TF-13 | Should | M3 | browser/characters.spec.ts (9), browser/inventory.spec.ts (7), browser/search-export.spec.ts (6) |
 | TF-14 | Must | M3 | checked in review (TF-4) |
 | TR-1 | Could | later | none |
 | TR-2 | Could | later | none |

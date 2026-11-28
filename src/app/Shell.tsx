@@ -2,8 +2,11 @@
 // help link (DOC-1), the connection bar (NF-3), the new-version bar (NF-14),
 // what the server refused (NF-3), and the reminder to verify an email (AC-1).
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { Accounts } from "../data/accounts";
 import type { RefusedChange } from "../data/firestore-store";
+import { AccessDeniedError, ValidationError } from "../errors";
+import { FinishSignUp } from "./screens/FinishSignUp";
 import type { InventoryStore } from "../data/store";
 import type { AuthProvider, AuthUser } from "../platform/auth";
 import type { NewVersion } from "./new-version";
@@ -162,23 +165,116 @@ export function RefusedNotices({ subscribe }: { subscribe: (listener: (c: Refuse
 }
 
 /**
- * AC-1: an email account must be verified before anything can be stored. Shown
- * until it is; picks up a verification done in another tab or app when the app
- * is back in view.
+ * AC-1: an email account must be verified before anything can be stored, and its
+ * profile is made only then. Shown above every screen until it is, once per
+ * sign-in (App gives each sign-in its own); picks up a verification done in
+ * another tab or app when the app is back in view. Once verified, the profile is
+ * made with the display name this phone kept, or the user is asked for one. If
+ * the server refuses it (NF-13: the invite was removed since signing up), that's
+ * shown with a way to sign out, and tried again whenever the app is back in view.
+ * `onChange` lets the screen start afresh once the profile is made, or first refused.
  */
-export function VerifyEmail({ auth }: { auth: AuthProvider }) {
+export function VerifyEmail({
+  auth,
+  accounts,
+  onChange,
+}: {
+  auth: AuthProvider;
+  accounts: Accounts;
+  onChange: () => void;
+}) {
   const [user, setUser] = useState<AuthUser | null>(() => auth.currentUser());
+  const [askName, setAskName] = useState(false);
+  /** Why the profile was refused (NF-13: the email was taken off the invite list since signing up). */
+  const [refused, setRefused] = useState<string | null>(null);
   const verify = useAction();
+  // Once this sign-in has its profile, it isn't looked up again; a finish under way is shared.
+  const finished = useRef(false);
+  const running = useRef<Promise<void> | null>(null);
+  // Whether the screen was shown before the account was finished: it then starts afresh once it is.
+  const waited = useRef(user?.provider === "password" && !user.emailVerified);
+  const refusedBefore = useRef(false);
+
+  const done = useCallback(() => {
+    finished.current = true;
+    setAskName(false);
+    setRefused(null);
+    if (waited.current) onChange();
+  }, [onChange]);
+
+  /** Makes the profile of a verified email sign-in that has none yet. */
+  const finish = useCallback(
+    (latest: AuthUser | null): Promise<void> => {
+      if (!latest || latest.provider !== "password" || !latest.emailVerified || finished.current) {
+        return Promise.resolve();
+      }
+      running.current ??= (async () => {
+        // With a display name kept on this phone, the profile is about to be made.
+        if (accounts.keptDisplayName() !== undefined) waited.current = true;
+        try {
+          await accounts.finishSignUp();
+          done();
+        } catch (error) {
+          waited.current = true;
+          if (error instanceof ValidationError && error.field === "displayName") {
+            setRefused(null);
+            setAskName(true);
+          } else if (error instanceof AccessDeniedError) {
+            // The screen behind no longer waits for a verified email: it starts afresh the first time only.
+            if (!refusedBefore.current) onChange();
+            refusedBefore.current = true;
+            setRefused(error.message);
+          } else throw error;
+        }
+      })().finally(() => {
+        running.current = null;
+      });
+      return running.current;
+    },
+    [accounts, done, onChange],
+  );
+
+  /** The latest sign-in, with its profile made if it's now verified. The notice stays until then. */
+  const recheck = useCallback(async () => {
+    let latest = auth.currentUser();
+    // Only a sign-in still waiting for its email takes the network to check again.
+    if (latest?.provider === "password" && !latest.emailVerified && auth.refresh) latest = await auth.refresh();
+    await finish(latest);
+    setUser(latest);
+    return latest;
+  }, [auth, finish]);
 
   useEffect(() => {
-    if (!auth.refresh) return;
-    const recheck = () => {
-      if (document.visibilityState === "visible") void auth.refresh?.().then(setUser, () => undefined);
+    // Without signal the profile may not be readable; it's tried again when the app is next in view.
+    void finish(auth.currentUser()).catch(() => undefined);
+    const inView = () => {
+      if (document.visibilityState === "visible" && !finished.current) void recheck().catch(() => undefined);
     };
-    document.addEventListener("visibilitychange", recheck);
-    return () => document.removeEventListener("visibilitychange", recheck);
-  }, [auth]);
+    document.addEventListener("visibilitychange", inView);
+    return () => document.removeEventListener("visibilitychange", inView);
+  }, [auth, finish, recheck]);
 
+  if (refused) {
+    return (
+      <div className="card error-card" role="alert">
+        <p>{refused}</p>
+        <button type="button" className="secondary" onClick={() => void accounts.signOut()}>
+          Sign out
+        </button>
+      </div>
+    );
+  }
+  if (askName) {
+    return (
+      <FinishSignUp
+        accounts={accounts}
+        onFinished={() => {
+          waited.current = true;
+          done();
+        }}
+      />
+    );
+  }
   if (!user || user.provider !== "password" || user.emailVerified) return null;
   return (
     <section className="card note" aria-labelledby="verify-title">
@@ -207,8 +303,7 @@ export function VerifyEmail({ auth }: { auth: AuthProvider }) {
           disabled={verify.busy}
           onClick={() =>
             void verify.run(async () => {
-              const latest = await auth.refresh!();
-              setUser(latest);
+              const latest = await recheck();
               if (!latest?.emailVerified) return "Not verified yet. Check for the email, then try again.";
             })
           }

@@ -19,7 +19,16 @@ import "firebase/compat/firestore";
 import { expect } from "vitest";
 import { LIMITS } from "../../src/data/validate";
 import { rule } from "../support/rule";
-import { expectAllowed, expectRefused, seed, signedIn, signedOut, uid, useEmulator } from "../support/emulator";
+import {
+  expectAllowed,
+  expectRefused,
+  seed,
+  signedIn,
+  signedInUnverified,
+  signedOut,
+  uid,
+  useEmulator,
+} from "../support/emulator";
 
 useEmulator();
 
@@ -117,10 +126,11 @@ rule(
 
 rule(
   { req: ["PV-1", "TF-11"], m: "M2" },
-  "any signed-in user can read a trade listing, only its owner can change it, and signed-out visitors can't read it",
+  "any player with a profile can read a trade listing, only its owner can change it, and signed-out visitors can't read it",
   async () => {
     await seedListingOwner();
     await seed({
+      [`users/${uid("cass")}`]: { displayName: "Cassia Vane", email: "cass@example.test" },
       "listings/l1": {
         ownerUid: bram(),
         ownerName: "Bramblewick",
@@ -175,9 +185,12 @@ rule({ req: ["SP-1", "TF-11"], m: "M3" }, "Bram can send and read his own report
 
 rule(
   { req: ["NF-13", "TF-11"], m: "M2" },
-  "only an email on the invite list can create an account profile, and nobody can read the list",
+  "only an email on the invite list can create an account profile, and nobody can read another email's invite or list them",
   async () => {
-    await seed({ "invites/bram@example.test": { addedBy: "maintainer" } });
+    await seed({
+      "invites/bram@example.test": { addedBy: "maintainer" },
+      "invites/wren@example.test": { addedBy: "maintainer" },
+    });
     await expectAllowed(
       signedIn("bram").firestore().doc(`users/${bram()}`).set({ displayName: "Bramblewick" }),
       "Bram, who is invited, creating his profile",
@@ -190,8 +203,8 @@ rule(
       "Cass, who isn't invited, creating her profile",
     );
     await expectRefused(
-      signedIn("bram").firestore().doc("invites/bram@example.test").get(),
-      "Bram reading the invite list",
+      signedIn("bram").firestore().doc("invites/wren@example.test").get(),
+      "Bram reading Wren's invite",
     );
     await expectRefused(signedIn("bram").firestore().collection("invites").get(), "Bram listing the invite list");
   },
@@ -918,5 +931,111 @@ rule(
       mine.doc(character()).set({ manualGrants: "not a list" }, { merge: true }),
       "Aldric's manual grants as text",
     );
+  },
+);
+
+// ---------------------------------------------------------------- verified players only (AC-1, NF-13, PV-1)
+
+rule(
+  { req: ["AC-1", "NF-13", "TF-11"], m: "M2" },
+  "an invited email can't create its profile until it's verified",
+  async () => {
+    await seed({ "invites/bram@example.test": { addedBy: "maintainer" } });
+    const profile = { displayName: "Bramblewick", email: "bram@example.test" };
+    await expectRefused(
+      signedInUnverified("bram").firestore().doc(`users/${bram()}`).set(profile),
+      "Bram, invited but not yet verified, creating his profile",
+    );
+    await expectAllowed(
+      signedIn("bram").firestore().doc(`users/${bram()}`).set(profile),
+      "Bram, invited and verified, creating his profile",
+    );
+  },
+);
+
+rule(
+  { req: ["NF-13", "TF-11"], m: "M2" },
+  "a signed-in user can read their own email's invite, verified or not, and no one else's",
+  async () => {
+    await seed({ "invites/bram@example.test": { addedBy: "maintainer" } });
+    for (const [what, context] of [
+      ["verified", signedIn("bram")],
+      ["not yet verified", signedInUnverified("bram")],
+    ] as const) {
+      const snap = await context.firestore().doc("invites/bram@example.test").get();
+      expect(snap.exists, `Bram (${what}) finding his own invite`).toBe(true);
+    }
+    const cass = signedInUnverified("cass").firestore();
+    const own = await cass.doc("invites/cass@example.test").get();
+    expect(own.exists, "Cass, who isn't invited, finding her own invite").toBe(false);
+    await expectRefused(cass.doc("invites/bram@example.test").get(), "Cass reading Bram's invite");
+    await expectRefused(cass.collection("invites").get(), "Cass listing the invites");
+    await expectRefused(signedOut().firestore().doc("invites/bram@example.test").get(), "a signed-out visitor");
+  },
+);
+
+rule(
+  { req: ["AC-1", "TF-11"], m: "M2" },
+  "a profile whose email isn't verified can store no records, even in its own account",
+  async () => {
+    await seed({ [`users/${bram()}`]: { displayName: "Bramblewick", email: "bram@example.test" } });
+    const character = { name: "Aldric", className: "Warrior", level: 25 };
+    const unverified = signedInUnverified("bram").firestore();
+    await expectRefused(
+      unverified.doc(`users/${bram()}/characters/aldric`).set(character),
+      "Bram, not yet verified, creating a character",
+    );
+    await expectRefused(
+      unverified.doc(`users/${bram()}/titles/t1`).set({ name: "Made-up Title" }),
+      "Bram, not yet verified, adding a title",
+    );
+    await expectAllowed(
+      signedIn("bram").firestore().doc(`users/${bram()}/characters/aldric`).set(character),
+      "Bram, verified, creating a character",
+    );
+  },
+);
+
+rule(
+  { req: ["PV-1", "TF-11"], m: "M2" },
+  "a signed-in user with no profile, or with an unverified email, can't read trade listings",
+  async () => {
+    await seedListingOwner();
+    await seed({
+      "listings/l1": { ownerUid: bram(), ownerName: "Bramblewick", name: "Duskfang", category: "weapons", quantity: 1 },
+    });
+    const all = (db: ReturnType<typeof signedOut>) => db.firestore().collection("listings").get();
+    const one = (db: ReturnType<typeof signedOut>) => db.firestore().doc("listings/l1").get();
+    for (const [who, context] of [
+      ["Cass, signed in with no profile", signedIn("cass")],
+      ["Cass, not yet verified and with no profile", signedInUnverified("cass")],
+    ] as const) {
+      await expectRefused(one(context), `${who}, reading Bram's listing`);
+      await expectRefused(all(context), `${who}, listing every listing`);
+    }
+    await seed({ [`users/${uid("cass")}`]: { displayName: "Cassia Vane", email: "cass@example.test" } });
+    await expectRefused(one(signedInUnverified("cass")), "Cass, with a profile but not yet verified, reading it");
+    await expectRefused(all(signedInUnverified("cass")), "Cass, with a profile but not yet verified, listing them");
+    await expectAllowed(one(signedIn("cass")), "Cass, a verified player with a profile, reading it");
+    await expectAllowed(all(signedIn("cass")), "Cass, a verified player with a profile, listing them");
+  },
+);
+
+rule(
+  { req: ["PV-1", "AC-5", "TF-11"], m: "M2" },
+  "an owner can find their own listings to delete them, even before verifying; no one else can find them that way",
+  async () => {
+    await seedListingOwner();
+    await seed({
+      "listings/l1": { ownerUid: bram(), ownerName: "Bramblewick", name: "Duskfang", category: "weapons", quantity: 1 },
+    });
+    const ownedByBram = (db: ReturnType<typeof signedOut>) =>
+      db.firestore().collection("listings").where("ownerUid", "==", bram()).get();
+    const found = await ownedByBram(signedInUnverified("bram"));
+    expect(
+      found.docs.map((d) => d.id),
+      "Bram's listings, found by Bram before verifying",
+    ).toEqual(["l1"]);
+    await expectRefused(ownedByBram(signedIn("cass")), "Cass, with no profile, finding Bram's listings");
   },
 );

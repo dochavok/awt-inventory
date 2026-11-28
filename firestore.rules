@@ -15,16 +15,24 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
-    // A user's records can be written once their profile exists, which only an invited email can create (NF-13),
-    // and their email is verified, so the sign-in belongs to that email's owner (AC-1).
-    function canStore(uid) {
-      return isOwner(uid) && request.auth.token.email_verified == true
-        && exists(/databases/$(database)/documents/users/$(uid));
+    // The sign-in belongs to its email's owner: Google's are verified, and email accounts once the link is opened (AC-1).
+    function verified() {
+      return signedIn() && request.auth.token.email_verified == true;
     }
 
-    // NF-13: before 1.0, only an email on the invite list can create a profile.
+    // A player (PV-1): a verified sign-in whose profile exists, which only an invited email can create (NF-13).
+    function isPlayer() {
+      return verified() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    // A user's records can be written only by that player.
+    function canStore(uid) {
+      return isOwner(uid) && isPlayer();
+    }
+
+    // NF-13: before 1.0, only a verified email on the invite list can create a profile (AC-1).
     function invited() {
-      return request.auth.token.email != null
+      return verified() && request.auth.token.email != null
         && exists(/databases/$(database)/documents/invites/$(request.auth.token.email.lower()));
     }
 
@@ -263,7 +271,8 @@ service cloud.firestore {
       }
     }
 
-    // Trade listings (PV-1, section 3.2): any signed-in user can read one; only
+    // Trade listings (PV-1, section 3.2): any player can read one, and an owner
+    // can find their own (to delete them with the account, AC-5); only
     // its owner can create, change or remove it, and it carries only the
     // fields section 3.2 allows, never notes or the character's name. The owner
     // must be able to store records (invited profile, verified email), and the
@@ -279,12 +288,17 @@ service cloud.firestore {
     }
 
     match /listings/{listingId} {
-      allow read: if signedIn();
+      // The owner's check first: it needs no read of the profile.
+      allow read: if isOwner(resource.data.ownerUid) || isPlayer();
       allow create: if signedIn() && validListing();
       allow update: if signedIn() && resource.data.ownerUid == request.auth.uid && validListing();
       allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
     }
 
-    // The invite list (NF-13) is kept by the maintainer in the console; no user can read or change it.
+    // The invite list (NF-13) is kept by the maintainer in the console. A signed-in user can read only
+    // their own email's entry, so sign-up can say "not open yet" at once; no user can list or change it.
+    match /invites/{email} {
+      allow get: if signedIn() && request.auth.token.email != null && request.auth.token.email.lower() == email;
+    }
   }
 }

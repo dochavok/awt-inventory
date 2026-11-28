@@ -82,6 +82,13 @@ export class FakeAuth implements AuthProvider {
     this.signedIn = null;
   }
 
+  /** Test helper: the email's owner opened the verification link (AC-1). */
+  verifyEmail(email: string): void {
+    const account = this.accounts.get(email);
+    if (!account) throw new FakeAuthError("auth/user-not-found");
+    account.user.emailVerified = true;
+  }
+
   /** Test helper: the account for an email, if it exists. */
   account(email: string): AuthUser | undefined {
     return this.accounts.get(email)?.user;

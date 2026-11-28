@@ -116,6 +116,11 @@ export function characterNameKey(name: string): string {
   return name.toLowerCase();
 }
 
+/** An email as the invite list keys it (NF-13): the rules compare it in lower case. */
+export function inviteKey(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 export function displayName(value: unknown): string {
   return requiredText("displayName", value, LIMITS.displayName, "display name");
 }

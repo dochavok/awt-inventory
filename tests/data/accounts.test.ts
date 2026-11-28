@@ -2,7 +2,7 @@
 // the fake sign-in. The terms page itself is in tests/browser/phone.spec.ts.
 
 import { expect } from "vitest";
-import { createAccounts } from "../../src/data/accounts";
+import { createAccounts, type Accounts } from "../../src/data/accounts";
 import { AccessDeniedError, ConfirmationError, NotFoundError, ValidationError } from "../../src/errors";
 import { FakeAuth } from "../support/fake-auth";
 import { rule } from "../support/rule";
@@ -27,14 +27,22 @@ const signUp = {
   acceptedTerms: true,
 };
 
+/** The email's owner opens the verification link, and the app makes the profile (AC-1). */
+async function verified(auth: FakeAuth, accounts: Accounts, email = signUp.email) {
+  auth.verifyEmail(email);
+  return accounts.finishSignUp();
+}
+
 rule(
   { req: ["AC-1", "AC-2"], m: "M2" },
-  "signing up with email sends a verification email and creates the profile with the display name",
+  "signing up with email sends a verification email, and the profile is made with the display name once it's verified",
   async () => {
     const { auth, store, accounts } = await accountsWorld();
-    const profile = await accounts.signUpWithEmail(signUp);
-    expect(profile, "Wrenna's profile").toMatchObject({ displayName: "Wrenna", email: "wren@example.test" });
+    await accounts.signUpWithEmail(signUp);
     expect(auth.sentEmails, "emails sent").toEqual([{ to: "wren@example.test", kind: "verification" }]);
+    await expect(store.profile(), "Wrenna's profile before verifying").rejects.toThrow(NotFoundError);
+    const profile = await verified(auth, accounts);
+    expect(profile, "Wrenna's profile").toMatchObject({ displayName: "Wrenna", email: "wren@example.test" });
     expect((await store.profile()).displayName, "the stored display name").toBe("Wrenna");
   },
 );
@@ -70,6 +78,7 @@ rule({ req: ["AC-2"], m: "M2" }, "a display name is needed at sign-up and can be
   await expect(blank, "signing up with a blank display name").rejects.toMatchObject({ field: "displayName" });
   expect(auth.account("wren@example.test"), "an account created with a blank display name").toBeUndefined();
   await accounts.signUpWithEmail(signUp);
+  await verified(auth, accounts);
   await store.setDisplayName("Wren the Wanderer");
   expect((await store.profile()).displayName, "the changed display name").toBe("Wren the Wanderer");
 });
@@ -97,8 +106,9 @@ rule(
   { req: ["AC-5"], m: "M2" },
   "deleting an account needs the display name typed; a wrong one deletes nothing",
   async () => {
-    const { store, accounts } = await accountsWorld();
+    const { auth, store, accounts } = await accountsWorld();
     await accounts.signUpWithEmail(signUp);
+    await verified(auth, accounts);
     await store.createCharacter({ name: "Rook", className: "Warrior", level: 1 });
     const attempt = accounts.deleteAccount("Wrena");
     await expect(attempt, "deleting with the wrong name").rejects.toThrow(ConfirmationError);
@@ -119,6 +129,7 @@ rule(
     await seedProfile(cass, "cass");
     await seedCharacter(cass, "brin");
     await accounts.signUpWithEmail(signUp);
+    await verified(auth, accounts);
     const oldUid = auth.currentUser()!.uid;
     const rook = await store.createCharacter({ name: "Rook", className: "Warrior", level: 1 });
     const retired = await store.createCharacter({ name: "Old Rook", className: "Warrior", level: 1 });
@@ -154,8 +165,9 @@ rule(
 );
 
 rule({ req: ["PV-2"], m: "M2" }, "the profile holds only the sign-in identity and the display name", async () => {
-  const { store, accounts } = await accountsWorld();
+  const { auth, store, accounts } = await accountsWorld();
   await accounts.signUpWithEmail(signUp);
+  await verified(auth, accounts);
   expect(Object.keys(await store.profile()).sort(), "the profile's fields").toEqual(["displayName", "email", "uid"]);
 });
 
@@ -174,8 +186,9 @@ rule(
 );
 
 rule({ req: ["NF-13"], m: "M2" }, "once the invite list is removed, anyone can sign up", async () => {
-  const { accounts } = await accountsWorld(null);
-  const profile = await accounts.signUpWithEmail({ ...signUp, email: "anyone@example.test" });
+  const { auth, accounts } = await accountsWorld(null);
+  await accounts.signUpWithEmail({ ...signUp, email: "anyone@example.test" });
+  const profile = await verified(auth, accounts, "anyone@example.test");
   expect(profile.email, "the new account").toBe("anyone@example.test");
 });
 
@@ -222,6 +235,7 @@ rule(
     const store = w.forAuth(auth);
     const accounts = createAccounts({ auth, store: () => store, inviteList: async () => null });
     await accounts.signUpWithEmail(signUp);
+    await verified(auth, accounts);
     await store.createCharacter({ name: "Rook", className: "Warrior", level: 1 });
     const attempt = accounts.deleteAccount("Wrenna");
     await expect(attempt, "deleting after a stale sign-in").rejects.toThrow(ValidationError);
@@ -244,12 +258,12 @@ class NoDeleteAuth extends FakeAuth {
 
 rule(
   { req: ["NF-13"], m: "M2" },
-  "when the server refuses the profile, the user is told why, even if cleaning up fails",
+  "when the server finds no invite for the email, the user is told why, even if cleaning up fails",
   async () => {
     const w = world();
     const auth = new NoDeleteAuth();
     const store = w.forAuth(auth);
-    const refusing = { ...store, createProfile: () => Promise.reject(new AccessDeniedError("refused by the server")) };
+    const refusing = { ...store, invited: async () => false };
     const accounts = createAccounts({ auth, store: () => refusing, inviteList: async () => null });
     await expect(accounts.signUpWithEmail(signUp), "a sign-up the server refuses").rejects.toThrow(/not open yet/i);
   },
@@ -267,8 +281,188 @@ rule({ req: ["AC-1", "AC-2"], m: "M2" }, "an account is made even if the verific
   const auth = new NoEmailAuth();
   const store = w.forAuth(auth);
   const accounts = createAccounts({ auth, store: () => store, inviteList: async () => null });
-  const profile = await accounts.signUpWithEmail(signUp);
-  expect(profile.displayName, "the new account's display name").toBe("Wrenna");
+  await accounts.signUpWithEmail(signUp);
   expect(auth.currentUser()?.email, "signed in as").toBe("wren@example.test");
+  const profile = await verified(auth, accounts);
+  expect(profile.displayName, "the new account's display name").toBe("Wrenna");
   expect((await store.profile()).displayName, "the stored display name").toBe("Wrenna");
 });
+
+rule(
+  { req: ["AC-1"], m: "M2" },
+  "finishing sign-up is refused until the email is verified, and makes no profile",
+  async () => {
+    const { auth, store, accounts } = await accountsWorld();
+    await accounts.signUpWithEmail(signUp);
+    const attempt = accounts.finishSignUp();
+    await expect(attempt, "finishing before verifying").rejects.toThrow(ValidationError);
+    await expect(attempt, "finishing before verifying").rejects.toThrow(/verif/i);
+    await expect(store.profile(), "Wrenna's profile after the refusal").rejects.toThrow(NotFoundError);
+    expect(accounts.keptDisplayName(), "the display name kept on the phone").toBe("Wrenna");
+    expect(auth.account("wren@example.test"), "Wrenna's sign-in").toBeDefined();
+  },
+);
+
+rule(
+  { req: ["AC-1", "AC-2"], m: "M2" },
+  "the display name kept on the phone is still there when the app is opened again, and goes once the profile is made",
+  async () => {
+    const { w, auth, store } = await accountsWorld();
+    const phoneStorage = new Map<string, string>();
+    const kept = {
+      get: (uid: string) => phoneStorage.get(uid),
+      set: (uid: string, name: string) => void phoneStorage.set(uid, name),
+      delete: (uid: string) => void phoneStorage.delete(uid),
+    };
+    const open = () => createAccounts({ auth, store: () => store, inviteList: async () => null, kept });
+    await open().signUpWithEmail(signUp);
+    auth.verifyEmail(signUp.email);
+    const reopened = open();
+    expect(reopened.keptDisplayName(), "the kept display name after reopening").toBe("Wrenna");
+    expect((await reopened.finishSignUp()).displayName, "the profile's display name").toBe("Wrenna");
+    expect(reopened.keptDisplayName(), "the kept display name once the profile is made").toBeUndefined();
+    expect([...phoneStorage.keys()], "what's left in the phone's storage").toEqual([]);
+    expect(w.db.profiles.size, "profiles in the database").toBe(1);
+  },
+);
+
+rule(
+  { req: ["AC-1", "AC-2", "AC-4"], m: "M2" },
+  "on a phone that didn't sign up, finishing asks for the display name and the terms again",
+  async () => {
+    const { auth, store, accounts } = await accountsWorld();
+    await accounts.signUpWithEmail(signUp);
+    auth.verifyEmail(signUp.email);
+    const other = createAccounts({ auth, store: () => store, inviteList: async () => null });
+    expect(other.keptDisplayName(), "the display name kept on the other phone").toBeUndefined();
+    await expect(other.finishSignUp(), "finishing with nothing kept").rejects.toMatchObject({ field: "displayName" });
+    await expect(
+      other.finishSignUp({ displayName: "Wren B", acceptedTerms: false }),
+      "finishing without accepting the terms",
+    ).rejects.toMatchObject({ field: "acceptedTerms" });
+    await expect(store.profile(), "the profile before the terms are accepted").rejects.toThrow(NotFoundError);
+    const profile = await other.finishSignUp({ displayName: "Wren B", acceptedTerms: true });
+    expect(profile, "the profile made on the other phone").toMatchObject({
+      displayName: "Wren B",
+      email: "wren@example.test",
+    });
+    expect((await store.profile()).displayName, "the stored display name").toBe("Wren B");
+  },
+);
+
+rule(
+  { req: ["AC-1", "AC-2"], m: "M2" },
+  "finishing on the phone that signed up keeps a profile already made on another phone",
+  async () => {
+    const { auth, store, accounts } = await accountsWorld();
+    await accounts.signUpWithEmail(signUp);
+    auth.verifyEmail(signUp.email);
+    const other = createAccounts({ auth, store: () => store, inviteList: async () => null });
+    await other.finishSignUp({ displayName: "Wren Elsewhere", acceptedTerms: true });
+    const profile = await accounts.finishSignUp();
+    expect(profile.displayName, "the profile the first phone finishes with").toBe("Wren Elsewhere");
+    expect((await store.profile()).displayName, "the stored display name").toBe("Wren Elsewhere");
+    expect(accounts.keptDisplayName(), "the display name kept on the first phone").toBeUndefined();
+  },
+);
+
+rule(
+  { req: ["AC-1", "PV-2"], m: "M2" },
+  "removing a sign-in that has no profile also forgets the display name kept on the phone",
+  async () => {
+    const { auth, store } = await accountsWorld();
+    const phoneStorage = new Map<string, string>();
+    const kept = {
+      get: (uid: string) => phoneStorage.get(uid),
+      set: (uid: string, name: string) => void phoneStorage.set(uid, name),
+      delete: (uid: string) => void phoneStorage.delete(uid),
+    };
+    const accounts = createAccounts({ auth, store: () => store, inviteList: async () => null, kept });
+    await accounts.signUpWithEmail(signUp);
+    expect([...phoneStorage.values()], "what the phone kept after signing up").toEqual(["Wrenna"]);
+    await accounts.removeSignIn();
+    expect(auth.account("wren@example.test"), "Wrenna's sign-in").toBeUndefined();
+    expect(auth.currentUser(), "signed in after removing it").toBeNull();
+    expect([...phoneStorage.keys()], "what the phone kept after removing the sign-in").toEqual([]);
+  },
+);
+
+rule(
+  { req: ["AC-1"], m: "M2" },
+  "without a recent sign-in, removing a sign-in is refused and keeps what the phone kept",
+  async () => {
+    const w = world();
+    const auth = new StaleSignInAuth();
+    const store = w.forAuth(auth);
+    const accounts = createAccounts({ auth, store: () => store, inviteList: async () => null });
+    await accounts.signUpWithEmail(signUp);
+    const attempt = accounts.removeSignIn();
+    await expect(attempt, "removing after a stale sign-in").rejects.toThrow(ValidationError);
+    await expect(attempt, "removing after a stale sign-in").rejects.toThrow(/sign in again/i);
+    expect(auth.account("wren@example.test"), "Wrenna's sign-in").toBeDefined();
+    expect(accounts.keptDisplayName(), "the display name kept on the phone").toBe("Wrenna");
+  },
+);
+
+/** A sign-in whose token still says "unverified" after the email was verified, until it's refreshed. */
+class LaggingTokenAuth extends FakeAuth {
+  tokenFresh = false;
+  refreshes = 0;
+  async refresh() {
+    this.refreshes += 1;
+    this.tokenFresh = true;
+    return this.currentUser();
+  }
+}
+
+rule(
+  { req: ["AC-1", "NF-13"], m: "M2" },
+  "a profile refused because the sign-in's token lags behind the verified email is made after one refresh",
+  async () => {
+    const w = world();
+    const auth = new LaggingTokenAuth();
+    const store = w.forAuth(auth);
+    // Like the server's rules: an unverified token can't make a profile.
+    const rules = {
+      ...store,
+      createProfile: (input: { displayName: string; email: string }) =>
+        auth.tokenFresh ? store.createProfile(input) : Promise.reject(new AccessDeniedError("refused by the server")),
+    };
+    const accounts = createAccounts({ auth, store: () => rules, inviteList: async () => null });
+    await accounts.signUpWithEmail(signUp);
+    auth.verifyEmail(signUp.email);
+    const profile = await accounts.finishSignUp();
+    expect(profile.displayName, "the profile made once the token was refreshed").toBe("Wrenna");
+    expect(auth.refreshes, "refreshes of the sign-in").toBe(1);
+  },
+);
+
+rule(
+  { req: ["AC-1"], m: "M2" },
+  "finishing with a sign-in already known to be verified doesn't refresh it when the profile is made at once",
+  async () => {
+    const w = world();
+    const auth = new LaggingTokenAuth();
+    auth.tokenFresh = true;
+    const store = w.forAuth(auth);
+    const accounts = createAccounts({ auth, store: () => store, inviteList: async () => null });
+    await accounts.signUpWithEmail(signUp);
+    auth.verifyEmail(signUp.email);
+    await accounts.finishSignUp();
+    expect(auth.refreshes, "refreshes of the sign-in").toBe(0);
+  },
+);
+
+rule(
+  { req: ["NF-13"], m: "M2" },
+  "an email taken off the invite list before it's verified is told sign-up isn't open, and gets no profile",
+  async () => {
+    const { auth, store } = await accountsWorld();
+    const refusing = { ...store, createProfile: () => Promise.reject(new AccessDeniedError("refused by the server")) };
+    const accounts = createAccounts({ auth, store: () => refusing, inviteList: async () => null });
+    await accounts.signUpWithEmail(signUp);
+    auth.verifyEmail(signUp.email);
+    await expect(accounts.finishSignUp(), "finishing once the invite is gone").rejects.toThrow(/not open yet/i);
+    await expect(store.profile(), "Wrenna's profile").rejects.toThrow(NotFoundError);
+  },
+);

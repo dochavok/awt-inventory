@@ -60,6 +60,8 @@ export interface Backend {
   profile(): Promise<Profile | undefined>;
   /** Waits for the server: creating a profile needs signal (NF-3) and may be refused (NF-13). */
   createProfile(profile: Profile): Promise<void>;
+  /** NF-13: whether the signed-in user's own email is on the invite list; needs signal. */
+  invited(email: string): Promise<boolean>;
   setDisplayName(displayName: string): Promise<void>;
   /** AC-5: removes everything in the account. */
   deleteAccount(): Promise<void>;

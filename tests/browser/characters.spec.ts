@@ -4,7 +4,16 @@
 
 import { expect } from "@playwright/test";
 import { browserRule } from "../support/browser-rule";
-import { addCharacter, expectSignedIn, signIn, signUp } from "../support/browser-account";
+import {
+  addCharacter,
+  expectSignedIn,
+  invite,
+  madeUpPlayer,
+  secondPhone,
+  signIn,
+  signUp,
+  verifyEmail,
+} from "../support/browser-account";
 
 browserRule(
   { req: ["TF-13", "AC-1", "AC-3"], m: "M3" },
@@ -211,5 +220,98 @@ browserRule(
       "the titles screen after a reload",
     ).toBeVisible();
     await expect(page.getByText("Patron of the High Tower"), "the removed title after a reload").toHaveCount(0);
+  },
+);
+
+/** Takes the player off the invite list (NF-13), as the maintainer would. */
+async function uninvite(email: string): Promise<void> {
+  const path = `projects/demo-awt-inventory/databases/(default)/documents/invites/${encodeURIComponent(email)}`;
+  const response = await fetch(`http://127.0.0.1:8080/v1/${path}`, {
+    method: "DELETE",
+    headers: { Authorization: "Bearer owner" },
+  });
+  expect(response.ok, `removing ${email}'s invite in the emulator`).toBe(true);
+}
+
+browserRule(
+  { req: ["TF-13", "AC-1", "NF-13"], m: "M3" },
+  "a sign-up whose invite is removed before it's verified is told sign-up isn't open, and finishes once it's back",
+  async ({ page }) => {
+    const player = madeUpPlayer();
+    await invite(player);
+    await page.goto("/#/sign-up");
+    await expect(page.getByRole("heading", { name: /create an account/i }), "the sign-up screen").toBeVisible({
+      timeout: 15_000,
+    });
+    await page.getByLabel("Display name").fill(player.displayName);
+    await page.getByLabel("Email").fill(player.email);
+    await page.getByLabel("Password").fill(player.password);
+    await page.getByRole("checkbox", { name: /accept the terms/i }).check();
+    await page.getByRole("button", { name: "Create account" }).click();
+    await expectSignedIn(page);
+
+    await uninvite(player.email);
+    await verifyEmail(player);
+    const verified = page.getByRole("button", { name: /i've verified it/i });
+    await expect(verified, "the button to pick up the verified email").toBeVisible();
+    await verified.click();
+    const refused = page.getByRole("alert").filter({ hasText: /not open yet/i });
+    await expect(refused, "the refusal once the invite is gone").toBeVisible({ timeout: 10_000 });
+    await expect(refused.getByRole("button", { name: "Sign out" }), "a way out of the refusal").toBeVisible();
+
+    await invite(player);
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await expect(refused, "the refusal once the invite is back").toBeHidden({ timeout: 10_000 });
+    await addCharacter(page, { name: "Wren", className: "Rogue", level: 3 });
+    await page.getByRole("link", { name: "Account" }).click();
+    await expect(page.getByLabel("Display name", { exact: true }), "the display name kept from sign-up").toHaveValue(
+      player.displayName,
+    );
+  },
+);
+
+browserRule(
+  { req: ["TF-13", "AC-1", "AC-2", "AC-4"], m: "M3" },
+  "an account finished on a phone that didn't sign up asks for the display name and terms again; the first phone keeps it",
+  async ({ page, context }) => {
+    const player = madeUpPlayer();
+    await invite(player);
+    await page.goto("/#/sign-up");
+    await expect(page.getByRole("heading", { name: /create an account/i }), "the sign-up screen").toBeVisible({
+      timeout: 15_000,
+    });
+    await page.getByLabel("Display name").fill(player.displayName);
+    await page.getByLabel("Email").fill(player.email);
+    await page.getByLabel("Password").fill(player.password);
+    await page.getByRole("checkbox", { name: /accept the terms/i }).check();
+    await page.getByRole("button", { name: "Create account" }).click();
+    await expectSignedIn(page);
+    await verifyEmail(player);
+
+    const other = await secondPhone(context.browser()!, page);
+    try {
+      await signIn(other.page, player);
+      const finish = other.page.getByRole("region", { name: "Finish creating your account" });
+      await expect(finish, "the form to finish the account on the second phone").toBeVisible({ timeout: 10_000 });
+      const button = finish.getByRole("button", { name: "Finish" });
+      await finish.getByLabel("Display name").fill("Wren Elsewhere");
+      await expect(button, "Finish before the terms are accepted").toBeDisabled();
+      await finish.getByRole("checkbox", { name: /accept the terms/i }).check();
+      await button.click();
+      await expect(finish, "the form once the account is finished").toBeHidden({ timeout: 10_000 });
+      await addCharacter(other.page, { name: "Wren", className: "Rogue", level: 3 });
+
+      // The first phone kept the sign-up's display name, but the account was finished elsewhere.
+      const verified = page.getByRole("button", { name: /i've verified it/i });
+      await expect(verified, "the first phone's button to pick up the verified email").toBeVisible();
+      await verified.click();
+      await expect(verified, "the verification notice once verified").toBeHidden({ timeout: 10_000 });
+      await page.getByRole("link", { name: "Account" }).click();
+      await expect(page.getByLabel("Display name", { exact: true }), "the display name on the first phone").toHaveValue(
+        "Wren Elsewhere",
+      );
+    } finally {
+      await other.context.close();
+    }
   },
 );

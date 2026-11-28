@@ -117,6 +117,8 @@ rule({ req: ["SP-1", "AC-5"], m: "M3" }, "reports are deleted with the account",
     acceptedTerms: true,
   };
   await accounts.signUpWithEmail(signUp);
+  auth.verifyEmail(signUp.email);
+  await accounts.finishSignUp();
   const oldUid = auth.currentUser()!.uid;
   await store.sendReport({ kind: "idea", subject: "Made up", message: "Made up." });
   await accounts.deleteAccount("Wrenna");

@@ -84,8 +84,12 @@ email address in lower case (fields don't matter; add `added` with the date).
 
 - **Invite:** Firebase console → Firestore → `invites` → Add document, with the
   address in lower case as the document ID.
-- **Remove:** delete that document. It stops new sign-ups with that address;
-  an account already made stays.
+- **Remove:** delete that document. It stops new sign-ups with that address,
+  and a sign-up still waiting for its email to be verified never gets its
+  account: the app tells them sign-up isn't open. An account already made
+  stays.
+- A player can read only their own address's document, so sign-up can say
+  "not open yet" straight away; nobody can list or change the collection.
 
 ## Applying a DM's answer
 
