@@ -73,8 +73,10 @@ export interface StoreContext {
 
 export interface InventoryStore {
   // ---------------------------------------------------------------- account (AC, PV)
-  /** Creates the signed-in user's profile at sign-up (AC-2). */
+  /** Creates the signed-in user's profile once their email is verified (AC-1, AC-2). */
   createProfile(input: { displayName: string; email: string }): Promise<Profile>;
+  /** NF-13: whether the signed-in user's own email is on the invite list. */
+  invited(email: string): Promise<boolean>;
   profile(): Promise<Profile>;
   setDisplayName(displayName: string): Promise<Profile>;
   /** AC-5: everything goes, after typing the display name to confirm. */

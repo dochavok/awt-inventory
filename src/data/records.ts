@@ -546,6 +546,11 @@ export function createRecordsStore(backend: Backend, context: StoreContext, labe
 
     profile: ownProfile,
 
+    invited(email) {
+      uid();
+      return backend.invited(email.trim().toLowerCase());
+    },
+
     async setDisplayName(name) {
       const displayName = check.displayName(name);
       const profile = await ownProfile();

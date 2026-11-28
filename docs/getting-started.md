@@ -1,6 +1,6 @@
 # Getting started
 
-reviewed: 2026-11-12
+reviewed: 2026-11-27
 
 AWT Inventory keeps your Adventures from the Wizards Tower characters' records on your phone: what they own, what's equipped, their skills, titles and history. It's your own record, not an official one.
 
@@ -12,7 +12,7 @@ Until release 1.0 the app is invite-only: the maintainer adds your email address
 2. Choose a **display name**. It's the only thing about you other players ever see, and only if you list something for trade. No real name is needed.
 3. Sign up with an email address and password, or with your Google account.
 4. Read and accept the [terms of use](terms-of-use.md). The [privacy note](privacy.md) says what's stored and who can see it.
-5. With an email address, open the link the app emails you, then choose **I've verified it**. Until your email is verified, nothing can be saved to your account.
+5. With an email address, open the link the app emails you, then choose **I've verified it**. Your account is made then: until your email is verified, nothing can be saved. If you finish on another phone, or after resetting your password, the app asks for your display name and the terms again.
 
 ## Signing in
 

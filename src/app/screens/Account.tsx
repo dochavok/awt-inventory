@@ -22,19 +22,21 @@ export function Account({ services }: { services: Services }) {
   const rename = useAction();
   const remove = useAction();
 
-  useEffect(() => {
+  const loadProfile = () =>
     void load.run(async () => {
       try {
         const p = await store.profile();
         setProfile(p);
         setName(p.displayName);
+        setMissing(false);
       } catch (error) {
         if (!(error instanceof NotFoundError)) throw error;
         setMissing(true);
       }
     });
-    // Load once when the page opens.
-  }, []);
+
+  // Load once when the page opens, and again once the account is finished (AC-1).
+  useEffect(loadProfile, []);
 
   const saveName = (e: FormEvent) => {
     e.preventDefault();
@@ -56,7 +58,7 @@ export function Account({ services }: { services: Services }) {
     <>
       <h1>Your account</h1>
       <Feedback error={load.error} notice={null} />
-      <VerifyEmail auth={auth} />
+      <VerifyEmail auth={auth} accounts={accounts} onFinished={loadProfile} />
       {profile && (
         <form className="card" onSubmit={saveName}>
           <label>

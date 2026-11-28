@@ -61,7 +61,7 @@ export function Characters({ services }: { services: Services }) {
   return (
     <>
       <h1>Your characters</h1>
-      <VerifyEmail auth={services.auth} />
+      <VerifyEmail auth={services.auth} accounts={services.accounts} />
       <Feedback error={load.error} notice={null} />
       <p>
         <a className="button" href={href("characters/new")}>

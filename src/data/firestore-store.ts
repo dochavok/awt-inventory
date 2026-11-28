@@ -417,6 +417,11 @@ export function createFirestoreStore(
       }
     },
 
+    async invited(email) {
+      // The rules let a user read only their own email's invite (NF-13); from the server, never an old copy.
+      return (await getDocFromServer(doc(db, "invites", email))).exists();
+    },
+
     async setDisplayName(displayName) {
       const batch = writeBatch(db);
       batch.update(user(), { displayName });

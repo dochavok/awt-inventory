@@ -118,6 +118,10 @@ function memoryBackend(db: MemoryDatabase, context: Pick<StoreContext, "currentU
     async createProfile(profile) {
       db.profiles.set(profile.uid, copy(profile));
     },
+    // No invite list here: the accounts' own list stands in for it (NF-13).
+    async invited() {
+      return true;
+    },
     async setDisplayName(displayName) {
       const profile = db.profiles.get(uid());
       if (profile) profile.displayName = displayName;

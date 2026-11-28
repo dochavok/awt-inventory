@@ -17,7 +17,19 @@ export interface SignUp {
 export interface Accounts {
   /** Called when the app starts: sign-ins last until signing out (AC-3). */
   start(): Promise<void>;
-  signUpWithEmail(input: SignUp & { email: string; password: string }): Promise<Profile>;
+  /**
+   * Makes the sign-in and sends the verification email. The profile waits until the
+   * email is verified (AC-1); the display name is kept on this phone until then.
+   */
+  signUpWithEmail(input: SignUp & { email: string; password: string }): Promise<AuthUser>;
+  /**
+   * AC-1: makes the profile once the email is verified, with the display name kept
+   * on this phone, or with `input` where nothing was kept. A profile already made
+   * (on another phone, say) is kept as it is.
+   */
+  finishSignUp(input?: SignUp): Promise<Profile>;
+  /** The display name this phone kept from signing up, for whoever is signed in. */
+  keptDisplayName(): string | undefined;
   signUpWithGoogle(input: SignUp): Promise<Profile>;
   signInWithEmail(email: string, password: string): Promise<AuthUser>;
   signInWithGoogle(): Promise<AuthUser>;
@@ -33,6 +45,27 @@ export interface AccountsContext {
   store: () => InventoryStore;
   /** NF-13: emails allowed to sign up before 1.0; null once sign-up is open to all. */
   inviteList: () => Promise<Set<string> | null>;
+  /**
+   * AC-1: the phone's own storage for the display name chosen at sign-up, by uid,
+   * until the profile is made. Kept in memory when absent.
+   */
+  kept?: KeptSignUps;
+}
+
+/** Display names kept on the phone between signing up and verifying the email (AC-1). */
+export interface KeptSignUps {
+  get(uid: string): string | undefined;
+  set(uid: string, displayName: string): void;
+  delete(uid: string): void;
+}
+
+function keptInMemory(): KeptSignUps {
+  const names = new Map<string, string>();
+  return {
+    get: (uid) => names.get(uid),
+    set: (uid, name) => void names.set(uid, name),
+    delete: (uid) => void names.delete(uid),
+  };
 }
 
 /** What every sign-up needs before an account is created: the terms accepted and a display name (AC-2, AC-4). */
@@ -45,6 +78,7 @@ function checkSignUp(input: SignUp): string {
 
 export function createAccounts(context: AccountsContext): Accounts {
   const { auth } = context;
+  const kept = context.kept ?? keptInMemory();
 
   /** NF-13: before 1.0, only an email on the invite list may sign up. */
   async function invited(email: string): Promise<boolean> {
@@ -56,16 +90,16 @@ export function createAccounts(context: AccountsContext): Accounts {
     new AccessDeniedError("Sign-up is not open yet: the app is invite-only until its first full release.");
 
   /**
-   * The profile for the account just signed in to. If it can't be made (e.g. the
-   * server refuses an email that isn't invited), a new email sign-in is removed
-   * and a Google one signed out, so nothing is left half made.
+   * The profile for the Google account just signed in to. If it can't be made (e.g.
+   * the server refuses an email that isn't invited), it's signed out again, so
+   * nothing is left half made.
    */
-  async function createProfile(user: AuthUser, displayName: string, isNew: boolean): Promise<Profile> {
+  async function createGoogleProfile(user: AuthUser, displayName: string): Promise<Profile> {
     try {
       return await context.store().createProfile({ displayName, email: user.email });
     } catch (error) {
       // Clean up as far as possible, but the reason shown is why the profile was refused.
-      await (isNew ? auth.deleteUser() : auth.signOut()).catch(() => undefined);
+      await auth.signOut().catch(() => undefined);
       // A server that refuses a new profile is enforcing the invite list (NF-13).
       throw error instanceof AccessDeniedError ? notOpen() : error;
     }
@@ -80,10 +114,60 @@ export function createAccounts(context: AccountsContext): Accounts {
       const displayName = checkSignUp(input);
       if (!(await invited(input.email))) throw notOpen();
       const user = await auth.createUserWithPassword(input.email, input.password);
-      const profile = await createProfile(user, displayName, true);
-      // The account is made either way: if the email can't go now, the account page sends it again.
+      // NF-13: the server says straight away whether this email is invited, so an
+      // uninvited one is told now, and its sign-in removed, not after verifying.
+      let onTheList: boolean;
+      try {
+        onTheList = await context.store().invited(user.email);
+      } catch (error) {
+        await auth.deleteUser().catch(() => undefined);
+        throw error;
+      }
+      if (!onTheList) {
+        await auth.deleteUser().catch(() => undefined);
+        throw notOpen();
+      }
+      kept.set(user.uid, displayName);
+      // The sign-in is made either way: if the email can't go now, the app offers to send it again.
       await auth.sendEmailVerification().catch(() => undefined);
+      return user;
+    },
+
+    async finishSignUp(input) {
+      const user = (await auth.refresh?.()) ?? auth.currentUser();
+      if (!user) throw new ValidationError("signIn", "Sign in first.");
+      if (!user.emailVerified) {
+        throw new ValidationError("email", "Verify your email first: open the link in the email the app sent you.");
+      }
+      const existing = await context
+        .store()
+        .profile()
+        .catch((error: unknown) => {
+          if (error instanceof NotFoundError) return null;
+          throw error;
+        });
+      if (existing) {
+        kept.delete(user.uid);
+        return existing;
+      }
+      const displayName = input ? checkSignUp(input) : kept.get(user.uid);
+      if (displayName === undefined) {
+        throw new ValidationError("displayName", "Choose a display name to finish creating your account.");
+      }
+      let profile: Profile;
+      try {
+        profile = await context.store().createProfile({ displayName, email: user.email });
+      } catch (error) {
+        // The email was verified, so the refusal is the invite list (NF-13): taken off it since signing up.
+        throw error instanceof AccessDeniedError ? notOpen() : error;
+      }
+      kept.delete(user.uid);
       return profile;
+    },
+
+    keptDisplayName() {
+      const user = auth.currentUser();
+      return user ? kept.get(user.uid) : undefined;
     },
 
     async signUpWithGoogle(input) {
@@ -101,7 +185,7 @@ export function createAccounts(context: AccountsContext): Accounts {
           if (error instanceof NotFoundError) return null;
           throw error;
         });
-      return existing ?? createProfile(user, displayName, false);
+      return existing ?? createGoogleProfile(user, displayName);
     },
 
     signInWithEmail: (email, password) => auth.signInWithPassword(email, password),

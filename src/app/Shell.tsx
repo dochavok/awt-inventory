@@ -2,8 +2,11 @@
 // help link (DOC-1), the connection bar (NF-3), the new-version bar (NF-14),
 // what the server refused (NF-3), and the reminder to verify an email (AC-1).
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { Accounts } from "../data/accounts";
 import type { RefusedChange } from "../data/firestore-store";
+import { ValidationError } from "../errors";
+import { FinishSignUp } from "./screens/FinishSignUp";
 import type { InventoryStore } from "../data/store";
 import type { AuthProvider, AuthUser } from "../platform/auth";
 import type { NewVersion } from "./new-version";
@@ -161,24 +164,79 @@ export function RefusedNotices({ subscribe }: { subscribe: (listener: (c: Refuse
   );
 }
 
+/** Email sign-ins known to have their profile, this session, so it isn't looked up again on every screen. */
+const finished = new Set<string>();
+
 /**
- * AC-1: an email account must be verified before anything can be stored. Shown
- * until it is; picks up a verification done in another tab or app when the app
- * is back in view.
+ * AC-1: an email account must be verified before anything can be stored, and its
+ * profile is made only then. Shown until it is; picks up a verification done in
+ * another tab or app when the app is back in view. Once verified, the profile is
+ * made with the display name this phone kept, or the user is asked for one.
  */
-export function VerifyEmail({ auth }: { auth: AuthProvider }) {
+export function VerifyEmail({
+  auth,
+  accounts,
+  onFinished,
+}: {
+  auth: AuthProvider;
+  accounts: Accounts;
+  onFinished?: () => void;
+}) {
   const [user, setUser] = useState<AuthUser | null>(() => auth.currentUser());
+  const [askName, setAskName] = useState(false);
   const verify = useAction();
+  // The latest callback, without making the check below run again on every render.
+  const finishedCallback = useRef(onFinished);
+  finishedCallback.current = onFinished;
+
+  /** Makes the profile of a verified email sign-in that has none yet. */
+  const finish = useCallback(
+    async (latest: AuthUser | null) => {
+      if (!latest || latest.provider !== "password" || !latest.emailVerified || finished.has(latest.uid)) return;
+      try {
+        await accounts.finishSignUp();
+      } catch (error) {
+        if (!(error instanceof ValidationError && error.field === "displayName")) throw error;
+        setAskName(true);
+        return;
+      }
+      finished.add(latest.uid);
+      setAskName(false);
+      finishedCallback.current?.();
+    },
+    [accounts],
+  );
 
   useEffect(() => {
+    // Without signal the profile may not be readable; it's tried again on the next screen.
+    void finish(auth.currentUser()).catch(() => undefined);
     if (!auth.refresh) return;
     const recheck = () => {
-      if (document.visibilityState === "visible") void auth.refresh?.().then(setUser, () => undefined);
+      if (document.visibilityState !== "visible") return;
+      void auth
+        .refresh?.()
+        .then(async (latest) => {
+          await finish(latest);
+          setUser(latest);
+        })
+        .catch(() => undefined);
     };
     document.addEventListener("visibilitychange", recheck);
     return () => document.removeEventListener("visibilitychange", recheck);
-  }, [auth]);
+  }, [auth, finish]);
 
+  if (askName) {
+    return (
+      <FinishSignUp
+        accounts={accounts}
+        onFinished={() => {
+          if (user) finished.add(user.uid);
+          setAskName(false);
+          onFinished?.();
+        }}
+      />
+    );
+  }
   if (!user || user.provider !== "password" || user.emailVerified) return null;
   return (
     <section className="card note" aria-labelledby="verify-title">
@@ -208,6 +266,8 @@ export function VerifyEmail({ auth }: { auth: AuthProvider }) {
           onClick={() =>
             void verify.run(async () => {
               const latest = await auth.refresh!();
+              // The notice stays until the profile is made, so nothing is stored before it exists.
+              await finish(latest);
               setUser(latest);
               if (!latest?.emailVerified) return "Not verified yet. Check for the email, then try again.";
             })

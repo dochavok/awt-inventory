@@ -13,7 +13,7 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager,
 } from "firebase/firestore";
-import { createAccounts, type Accounts } from "../data/accounts";
+import { createAccounts, type Accounts, type KeptSignUps } from "../data/accounts";
 import { createFirestoreStore, loadWholeAccount, type RefusedChange } from "../data/firestore-store";
 // Section 13: data/'s files, read and checked when the app was built (RD-4), so nothing is parsed here (NF-4).
 import ref from "virtual:reference-data";
@@ -61,6 +61,27 @@ function firebaseConfig() {
     };
   }
   return { config: { apiKey: "demo-api-key", projectId: "demo-awt-inventory" }, emulators: true };
+}
+
+/**
+ * AC-1: the display name chosen at sign-up, kept in this phone's storage until the
+ * email is verified and the profile made. If the storage can't be used (a private
+ * window, say), the app asks for the name again when finishing.
+ */
+function keptOnPhone(): KeptSignUps {
+  const key = (uid: string) => `awt-inventory.sign-up.${uid}`;
+  const attempt = <T>(action: () => T): T | undefined => {
+    try {
+      return action();
+    } catch {
+      return undefined;
+    }
+  };
+  return {
+    get: (uid) => attempt(() => localStorage.getItem(key(uid))) ?? undefined,
+    set: (uid, name) => void attempt(() => localStorage.setItem(key(uid), name)),
+    delete: (uid) => void attempt(() => localStorage.removeItem(key(uid))),
+  };
 }
 
 /** How long after reading the whole account it's read again when signal returns. */
@@ -123,7 +144,7 @@ export function createServices(): Services {
     }
   });
   // The invite list (NF-13) is enforced by the server's rules, which no user can read past.
-  const accounts = createAccounts({ auth, store: () => store, inviteList: async () => null });
+  const accounts = createAccounts({ auth, store: () => store, inviteList: async () => null, kept: keptOnPhone() });
   return {
     auth,
     onSignInChange: (listener) => firebaseAuth.onAuthStateChanged(() => listener()),
