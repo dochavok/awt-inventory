@@ -30,6 +30,8 @@ export interface Accounts {
   finishSignUp(input?: SignUp): Promise<Profile>;
   /** The display name this phone kept from signing up, for whoever is signed in. */
   keptDisplayName(): string | undefined;
+  /** Removes a sign-in that has no profile, and what this phone kept for it (AC-1, PV-2). */
+  removeSignIn(): Promise<void>;
   signUpWithGoogle(input: SignUp): Promise<Profile>;
   signInWithEmail(email: string, password: string): Promise<AuthUser>;
   signInWithGoogle(): Promise<AuthUser>;
@@ -157,6 +159,12 @@ export function createAccounts(context: AccountsContext): Accounts {
     keptDisplayName() {
       const user = auth.currentUser();
       return user ? kept.get(user.uid) : undefined;
+    },
+
+    async removeSignIn() {
+      const user = auth.currentUser();
+      await auth.deleteUser();
+      if (user) kept.delete(user.uid);
     },
 
     async signUpWithGoogle(input) {

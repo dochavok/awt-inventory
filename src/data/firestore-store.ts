@@ -419,7 +419,13 @@ export function createFirestoreStore(
 
     async invited(email) {
       // The rules let a user read only their own email's invite (NF-13); from the server, never an old copy.
-      return (await getDocFromServer(doc(db, "invites", email))).exists();
+      try {
+        return (await getDocFromServer(doc(db, "invites", email))).exists();
+      } catch (error) {
+        // A refused read is the same answer: the user may not see that invite, so the email isn't theirs to sign up.
+        if (isPermissionDenied(error)) return false;
+        throw error;
+      }
     },
 
     async setDisplayName(displayName) {

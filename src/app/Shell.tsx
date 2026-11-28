@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { Accounts } from "../data/accounts";
 import type { RefusedChange } from "../data/firestore-store";
-import { ValidationError } from "../errors";
+import { AccessDeniedError, ValidationError } from "../errors";
 import { FinishSignUp } from "./screens/FinishSignUp";
 import type { InventoryStore } from "../data/store";
 import type { AuthProvider, AuthUser } from "../platform/auth";
@@ -183,35 +183,53 @@ export function VerifyEmail({
 }) {
   const [user, setUser] = useState<AuthUser | null>(() => auth.currentUser());
   const [askName, setAskName] = useState(false);
+  /** Why the profile was refused (NF-13: the email was taken off the invite list since signing up). */
+  const [refused, setRefused] = useState<string | null>(null);
   const verify = useAction();
-  // Once this sign-in has its profile, it isn't looked up again.
+  // Once this sign-in has its profile, it isn't looked up again; a finish under way is shared.
   const finished = useRef(false);
+  const running = useRef<Promise<void> | null>(null);
 
-  const done = useCallback(() => {
-    finished.current = true;
-    setAskName(false);
-    onFinished();
-  }, [onFinished]);
+  const done = useCallback(
+    (made: boolean) => {
+      finished.current = true;
+      setAskName(false);
+      // Only a profile made just now changes what the screen shows.
+      if (made) onFinished();
+    },
+    [onFinished],
+  );
 
   /** Makes the profile of a verified email sign-in that has none yet. */
   const finish = useCallback(
-    async (latest: AuthUser | null) => {
-      if (!latest || latest.provider !== "password" || !latest.emailVerified || finished.current) return;
-      try {
-        await accounts.finishSignUp();
-      } catch (error) {
-        if (!(error instanceof ValidationError && error.field === "displayName")) throw error;
-        setAskName(true);
-        return;
+    (latest: AuthUser | null): Promise<void> => {
+      if (!latest || latest.provider !== "password" || !latest.emailVerified || finished.current) {
+        return Promise.resolve();
       }
-      done();
+      running.current ??= (async () => {
+        // With nothing kept on this phone, a profile found was made before: nothing on screen changes.
+        const kept = accounts.keptDisplayName() !== undefined;
+        try {
+          await accounts.finishSignUp();
+          done(kept);
+        } catch (error) {
+          if (error instanceof ValidationError && error.field === "displayName") setAskName(true);
+          else if (error instanceof AccessDeniedError) setRefused(error.message);
+          else throw error;
+        }
+      })().finally(() => {
+        running.current = null;
+      });
+      return running.current;
     },
     [accounts, done],
   );
 
   /** The latest sign-in, with its profile made if it's now verified. The notice stays until then. */
   const recheck = useCallback(async () => {
-    const latest = (await auth.refresh?.()) ?? auth.currentUser();
+    let latest = auth.currentUser();
+    // Only a sign-in still waiting for its email takes the network to check again.
+    if (latest?.provider === "password" && !latest.emailVerified && auth.refresh) latest = await auth.refresh();
     await finish(latest);
     setUser(latest);
     return latest;
@@ -221,13 +239,20 @@ export function VerifyEmail({
     // Without signal the profile may not be readable; it's tried again when the app is next in view.
     void finish(auth.currentUser()).catch(() => undefined);
     const inView = () => {
-      if (document.visibilityState === "visible") void recheck().catch(() => undefined);
+      if (document.visibilityState === "visible" && !finished.current) void recheck().catch(() => undefined);
     };
     document.addEventListener("visibilitychange", inView);
     return () => document.removeEventListener("visibilitychange", inView);
   }, [auth, finish, recheck]);
 
-  if (askName) return <FinishSignUp accounts={accounts} onFinished={done} />;
+  if (refused) {
+    return (
+      <div className="card error-card" role="alert">
+        <p>{refused}</p>
+      </div>
+    );
+  }
+  if (askName) return <FinishSignUp accounts={accounts} onFinished={() => done(true)} />;
   if (!user || user.provider !== "password" || user.emailVerified) return null;
   return (
     <section className="card note" aria-labelledby="verify-title">

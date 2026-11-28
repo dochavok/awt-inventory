@@ -51,6 +51,10 @@ export function Account({ services }: { services: Services }) {
     });
   };
 
+  const user = auth.currentUser();
+  /** An email sign-in still waiting for its link has no profile yet, as expected. */
+  const waiting = user?.provider === "password" && !user.emailVerified;
+
   return (
     <>
       <h1>Your account</h1>
@@ -71,16 +75,23 @@ export function Account({ services }: { services: Services }) {
       {missing && (
         <section className="card note" aria-labelledby="missing-title">
           <h2 id="missing-title">No account records</h2>
-          <p>
-            This sign-in has no account: deleting the account stopped partway, or creating it didn&apos;t finish. You
-            can remove the sign-in, or sign out and create an account again.
-          </p>
+          {waiting ? (
+            <p>
+              Your account is made once your email is verified: open the link in the email the app sent you. If you no
+              longer want it, you can remove this sign-in.
+            </p>
+          ) : (
+            <p>
+              This sign-in has no account: deleting the account stopped partway, or creating it didn&apos;t finish. You
+              can remove the sign-in, or sign out and create an account again.
+            </p>
+          )}
           <Feedback error={remove.error} notice={null} />
           <button
             type="button"
             className="danger"
             disabled={remove.busy}
-            onClick={() => void remove.run(() => auth.deleteUser())}
+            onClick={() => void remove.run(() => accounts.removeSignIn())}
           >
             Remove this sign-in
           </button>
