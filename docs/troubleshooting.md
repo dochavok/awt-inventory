@@ -10,7 +10,7 @@ Every refusal and warning the app shows, and what to do about it.
 
 ## Signing up and signing in
 
-- **"Not open yet":** until release 1.0 only invited email addresses can sign up. Ask the maintainer to add yours.
+- **"Not open yet":** until release 1.0 only invited email addresses can sign up. Ask the maintainer to add yours. If you see it after verifying your email, your address was taken off the list since you signed up: once it's added back, open the app again and your account is finished. **Sign out** leaves in the meantime.
 - **Nothing can be saved:** an email account must be verified first. Open the link in the email the app sent, then choose **I've verified it**. **Send the email again** sends a new one.
 - **"Finish creating your account":** your email is verified, but this phone didn't keep the display name you chose at sign-up (you signed up on another phone, or reset your password). Choose a display name, accept the terms, and choose **Finish**.
 - **"That email and password don't match an account":** check both, or choose **Forgot your password?**.
