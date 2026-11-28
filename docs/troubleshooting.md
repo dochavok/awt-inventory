@@ -80,4 +80,4 @@ If something here doesn't help, tell the maintainer: choose **Send a report** on
 - You can send up to 15 reports a day. The day starts at midnight UTC (for example, 7 PM in Chicago in summer), so a refusal says when you can send more, in your own time.
 - A report written without signal is sent when signal returns.
 - An account problem isn't posted anywhere: the maintainer is told only its number and ID.
-- Other reports are tracked by their kind, number and ID, never by what you wrote; the maintainer reads what you wrote in the app's database.
+- Other reports are tracked by their kind, number, ID and the app's version, never by what you wrote; the maintainer reads what you wrote in the app's database.
