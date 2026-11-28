@@ -42,6 +42,9 @@ export const LIMITS = {
   grantAmount: 999,
   /** Slots one grant adds (GR-1). */
   slotGrant: 10,
+  /** A report number's range (SP-1). Also in firestore.rules. */
+  reportNumberMin: 10_000_000,
+  reportNumberMax: 99_999_999,
 } as const;
 
 /** A required single-line text: trimmed, not blank, at most `max` characters. */

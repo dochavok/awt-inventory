@@ -4,7 +4,6 @@
 
 import { REPORT_KIND_NAMES, REPORTS_PER_DAY, type Report } from "../data/types";
 import type { Clock } from "../platform/clock";
-import { EMAIL_PATTERN, escapeRegExp } from "../platform/text";
 
 export interface IssueTracker {
   /** The new issue's number, if GitHub's reply gave one. */
@@ -19,42 +18,29 @@ export interface ReportDelivery {
   issues: IssueTracker;
   mailer: Mailer;
   maintainerEmail: string;
-  /** The user's display name, so the issue can leave it out (SP-2). */
-  displayNameOf?: (uid: string) => Promise<string | undefined>;
   /** Where a failed delivery is recorded for the maintainer: the report number and the error, never the report's text. */
   log?: (line: string) => void;
 }
 
-/**
- * Replaces email addresses and the sender's display name (as a whole word, any
- * case) with a marker, so the issue never holds them (SP-2, PV-2).
- */
-function scrubbed(text: string, displayName: string | undefined): string {
-  let out = text.replace(EMAIL_PATTERN, "[email removed]");
-  const name = displayName?.trim();
-  if (name) {
-    const whole = `(?<![\\p{L}\\p{N}_])${escapeRegExp(name)}(?![\\p{L}\\p{N}_])`;
-    out = out.replace(new RegExp(whole, "giu"), "[name removed]");
-  }
-  return out;
-}
+/** An app version as the app writes it (SP-2): three whole numbers joined by dots. */
+const APP_VERSION_FORM = /^\d+\.\d+\.\d+$/;
 
 /**
- * The issue for a report (SP-2): subject, message, kind, app version and report
- * number, with the sender's email address and display name replaced by a
- * marker. It points to the full report, as sent, in the database.
+ * The issue for a report (SP-2): only its kind, app version, report number and
+ * ID, never the subject or message, so nothing the user typed reaches GitHub.
+ * It points to the full report, as sent, in the database. The number can be
+ * shared by another report; the ID can't (SP-1).
  */
-function issueFor(report: Report, displayName: string | undefined): { title: string; body: string; labels: string[] } {
+function issueFor(report: Report): { title: string; body: string; labels: string[] } {
+  const kindName = REPORT_KIND_NAMES[report.kind];
   return {
-    title: scrubbed(report.subject, displayName),
+    title: `${kindName} report ${report.number}`,
     body: [
-      scrubbed(report.message, displayName),
-      "",
-      "---",
-      `Kind: ${report.kind} (${REPORT_KIND_NAMES[report.kind]})`,
-      `App version: ${report.appVersion}`,
+      `Kind: ${report.kind} (${kindName})`,
+      `App version: ${APP_VERSION_FORM.test(report.appVersion) ? report.appVersion : "unknown"}`,
       `Report number: ${report.number}`,
-      `Email addresses and the sender's name are removed here. The full report, as sent, is in the app's database under report number ${report.number}.`,
+      `Report ID: ${report.id}`,
+      `The subject and message aren't copied here. The full report, as sent, is in the app's database under report number ${report.number}, ID ${report.id}.`,
     ].join("\n"),
     labels: [report.kind],
   };
@@ -65,18 +51,15 @@ export async function deliverReport(report: Report, delivery: ReportDelivery): P
   if (report.delivery !== "pending") return report;
   try {
     if (report.kind === "account-problem") {
-      // SP-3: only the report number leaves the database.
+      // SP-3: only the report number and ID leave the database.
       await delivery.mailer.send({
         to: delivery.maintainerEmail,
         subject: `AWT Inventory: account problem report ${report.number}`,
-        text: `A player sent an account problem report, number ${report.number}. Read it in the database console.`,
+        text: `A player sent an account problem report, number ${report.number}, ID ${report.id}. Read it in the database console.`,
       });
       return { ...report, delivery: "emailed" };
     }
-    // If the name can't be looked up, the catch below leaves the report pending
-    // rather than send it unscrubbed.
-    const displayName = await delivery.displayNameOf?.(report.uid);
-    const issue = await delivery.issues.createIssue(issueFor(report, displayName));
+    const issue = await delivery.issues.createIssue(issueFor(report));
     const created: Report = { ...report, delivery: "issue-created" };
     if (issue.number !== undefined) created.issueNumber = issue.number;
     return created;
@@ -117,15 +100,14 @@ export interface QueueEntry {
 }
 
 /**
- * What the server keeps about reports: the reports themselves, the senders'
- * display names, a per-sender daily counter and a queue of reports to deliver.
+ * What the server keeps about reports: the reports themselves, a per-sender
+ * daily counter and a queue of reports to deliver.
  * Cloud Firestore in functions/; a fake in tests. The `update*` methods apply
  * `change` atomically and store its result.
  */
 export interface DeliveryStore {
   /** The report, or undefined once it's gone (its account was deleted). */
   report(ref: ReportRef): Promise<Report | undefined>;
-  displayName(uid: string): Promise<string | undefined>;
   saveDelivery(ref: ReportRef, result: Pick<Report, "delivery" | "issueNumber">): Promise<void>;
   updateCounter(uid: string, change: (counter: ReportCounter | undefined) => ReportCounter): Promise<ReportCounter>;
   /** `change` returns the new entry, or undefined to remove it; resolves to what `change` returned. */
@@ -136,8 +118,8 @@ export interface DeliveryStore {
   queued(): Promise<ReportRef[]>;
 }
 
-/** Everything the server needs to deliver reports. The store supplies the display name lookup. */
-export interface ServerDelivery extends Omit<ReportDelivery, "displayNameOf"> {
+/** Everything the server needs to deliver reports. */
+export interface ServerDelivery extends ReportDelivery {
   store: DeliveryStore;
   clock: Clock;
 }
@@ -201,7 +183,7 @@ export async function deliverQueued(ref: ReportRef, server: ServerDelivery): Pro
       }
       await store.updateQueue(ref, (entry) => entry && { ...entry, counted: true });
     }
-    const done = await deliverReport(report, { ...server, displayNameOf: (uid) => store.displayName(uid) });
+    const done = await deliverReport(report, server);
     if (done.delivery === "pending") return;
     await store.saveDelivery(
       ref,

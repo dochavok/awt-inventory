@@ -45,7 +45,7 @@ import type { Character, Entry, Id, Title } from "../rules/types";
 import type { Backend, Change, RecordKind, StoredRecord } from "./backend";
 import { createRecordsStore } from "./records";
 import { requireUid, type InventoryStore, type StoreContext } from "./store";
-import { characterNameKey } from "./validate";
+import { LIMITS, characterNameKey } from "./validate";
 import type { HistoryRecord, Report } from "./types";
 
 /** Firestore's limit on writes in one batch. */
@@ -396,7 +396,8 @@ export function createFirestoreStore(
     },
     reportNumber() {
       // Made on the phone, so a report written offline has its number straight away.
-      return 10_000_000 + Math.floor(Math.random() * 90_000_000);
+      const { reportNumberMin: min, reportNumberMax: max } = LIMITS;
+      return min + Math.floor(Math.random() * (max - min + 1));
     },
 
     async profile() {

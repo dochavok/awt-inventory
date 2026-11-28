@@ -88,8 +88,8 @@ export function ReportForm({ services, kind: chosen }: { services: Services; kin
         </Hinted>
         {kind === "account-problem" && (
           <p className="hint">
-            Account problems aren&apos;t posted anywhere: the maintainer is told only the report&apos;s number, and
-            reads it in the app&apos;s database.
+            Account problems aren&apos;t posted anywhere: the maintainer is told only the report&apos;s number and ID,
+            and reads it in the app&apos;s database.
           </p>
         )}
         <Feedback error={send.error} notice={send.notice} />

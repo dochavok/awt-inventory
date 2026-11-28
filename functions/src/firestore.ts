@@ -25,11 +25,6 @@ export function firestoreDeliveryStore(db: Firestore): DeliveryStore {
       return snap.exists ? ({ ...snap.data(), id: ref.id, uid: ref.uid } as Report) : undefined;
     },
 
-    async displayName(uid) {
-      const name: unknown = (await db.doc(`users/${uid}`).get()).get("displayName");
-      return typeof name === "string" ? name : undefined;
-    },
-
     async saveDelivery(ref, result) {
       try {
         await reportDoc(ref).update(result);

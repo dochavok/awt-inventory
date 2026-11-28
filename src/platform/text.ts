@@ -1,5 +1,5 @@
-// Text helpers for keeping personal details out of what leaves the app:
-// error reports (NF-12) and issues made from reports (SP-2).
+// Text helpers for keeping personal details out of what leaves the app's
+// error reports (NF-12).
 
 /** An email address anywhere in text. Global: use with `replace`. */
 export const EMAIL_PATTERN = /[\w.+-]+@[\w-]+(\.[\w-]+)+/g;

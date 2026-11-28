@@ -71,6 +71,16 @@ rule({ req: ["SP-1"], m: "M3" }, "report numbers are different for every report"
   expect(a.number, "two reports' numbers").not.toBe(b.number);
 });
 
+rule({ req: ["SP-1"], m: "M3" }, "a report's number is a whole number from 10,000,000 to 99,999,999", async () => {
+  const { bram } = await setUp();
+  for (let i = 1; i <= 5; i++) {
+    const report = await bram.sendReport({ kind: "bug", subject: `Bug ${i}`, message: "Made up." });
+    expect(Number.isInteger(report.number), `report ${i}'s number ${report.number}, a whole number`).toBe(true);
+    expect(report.number, `report ${i}'s number`).toBeGreaterThanOrEqual(10_000_000);
+    expect(report.number, `report ${i}'s number`).toBeLessThanOrEqual(99_999_999);
+  }
+});
+
 rule(
   { req: ["SP-1"], m: "M3" },
   "at most 15 reports a day: the sixteenth is refused, and the next day works again",
