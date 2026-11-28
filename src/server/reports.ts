@@ -23,7 +23,7 @@ export interface ReportDelivery {
 }
 
 /** An app version as the app writes it (SP-2): three whole numbers joined by dots. */
-const APP_VERSION = /^\d+\.\d+\.\d+$/;
+const APP_VERSION_FORM = /^\d+\.\d+\.\d+$/;
 
 /**
  * The issue for a report (SP-2): only its kind, app version, report number and
@@ -37,7 +37,7 @@ function issueFor(report: Report): { title: string; body: string; labels: string
     title: `${kindName} report ${report.number}`,
     body: [
       `Kind: ${report.kind} (${kindName})`,
-      `App version: ${APP_VERSION.test(report.appVersion) ? report.appVersion : "unknown"}`,
+      `App version: ${APP_VERSION_FORM.test(report.appVersion) ? report.appVersion : "unknown"}`,
       `Report number: ${report.number}`,
       `Report ID: ${report.id}`,
       `The subject and message aren't copied here. The full report, as sent, is in the app's database under report number ${report.number}, ID ${report.id}.`,
