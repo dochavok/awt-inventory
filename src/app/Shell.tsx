@@ -169,8 +169,10 @@ export function RefusedNotices({ subscribe }: { subscribe: (listener: (c: Refuse
  * profile is made only then. Shown above every screen until it is, once per
  * sign-in (App gives each sign-in its own); picks up a verification done in
  * another tab or app when the app is back in view. Once verified, the profile is
- * made with the display name this phone kept, or the user is asked for one.
- * `onChange` lets the screen start afresh once that changes what it shows.
+ * made with the display name this phone kept, or the user is asked for one. If
+ * the server refuses it (NF-13: the invite was removed since signing up), that's
+ * shown with a way to sign out, and tried again whenever the app is back in view.
+ * `onChange` lets the screen start afresh once the profile is made, or first refused.
  */
 export function VerifyEmail({
   auth,
@@ -191,6 +193,7 @@ export function VerifyEmail({
   const running = useRef<Promise<void> | null>(null);
   // Whether the screen was shown before the account was finished: it then starts afresh once it is.
   const waited = useRef(user?.provider === "password" && !user.emailVerified);
+  const refusedBefore = useRef(false);
 
   const done = useCallback(() => {
     finished.current = true;
@@ -217,9 +220,10 @@ export function VerifyEmail({
             setRefused(null);
             setAskName(true);
           } else if (error instanceof AccessDeniedError) {
+            // The screen behind no longer waits for a verified email: it starts afresh the first time only.
+            if (!refusedBefore.current) onChange();
+            refusedBefore.current = true;
             setRefused(error.message);
-            // The screen behind no longer waits for a verified email.
-            onChange();
           } else throw error;
         }
       })().finally(() => {
@@ -253,7 +257,7 @@ export function VerifyEmail({
   if (refused) {
     return (
       <div className="card error-card" role="alert">
-        <p>{refused} Ask the maintainer to add your email; the app tries again when you come back to it.</p>
+        <p>{refused}</p>
         <button type="button" className="secondary" onClick={() => void accounts.signOut()}>
           Sign out
         </button>

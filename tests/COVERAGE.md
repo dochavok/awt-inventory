@@ -8,7 +8,7 @@ Tests shows each file with the number of its tests that name the requirement.
 
 | ID | Priority | Milestone | Tests |
 |---|---|---|---|
-| AC-1 | Must | M2 | access/accounts.test.ts (4), access/privacy.test.ts (2), browser/characters.spec.ts (3), data/accounts.test.ts (12) |
+| AC-1 | Must | M2 | access/accounts.test.ts (4), access/privacy.test.ts (2), browser/characters.spec.ts (3), data/accounts.test.ts (14) |
 | AC-2 | Must | M2 | access/accounts.test.ts (2), browser/characters.spec.ts (1), data/accounts.test.ts (7) |
 | AC-3 | Must | M2 | access/accounts.test.ts (1), browser/characters.spec.ts (1), data/accounts.test.ts (1) |
 | AC-4 | Must | M2 | browser/characters.spec.ts (1), browser/phone.spec.ts (1), data/accounts.test.ts (2), docs/help-pages.test.ts (1) |
@@ -124,7 +124,7 @@ Tests shows each file with the number of its tests that name the requirement.
 | NF-10 | Must | M3 | ops/operations.test.ts (4) |
 | NF-11 | Must | M3 | ops/operations.test.ts (8) |
 | NF-12 | Must | M3 | app/messages.test.ts (2), platform/platform.test.ts (11) |
-| NF-13 | Must | M2 | access/accounts.test.ts (4), access/privacy.test.ts (6), browser/characters.spec.ts (1), data/accounts.test.ts (4) |
+| NF-13 | Must | M2 | access/accounts.test.ts (4), access/privacy.test.ts (6), browser/characters.spec.ts (1), data/accounts.test.ts (5) |
 | NF-14 | Must | M4 | app/version-checks.test.ts (6), browser/phone.spec.ts (6) |
 | NF-15 | Must | M4 | ops/operations.test.ts (1) |
 | TF-1 | Must | M1 | meta/requirements.test.ts (1) |

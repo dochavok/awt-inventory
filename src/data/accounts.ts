@@ -165,9 +165,16 @@ export function createAccounts(context: AccountsContext): Accounts {
       if (displayName === undefined) {
         throw new ValidationError("displayName", "Choose a display name to finish creating your account.");
       }
-      // The rules read "verified" from the sign-in's token, which can lag behind (an earlier refresh cut short).
-      if (!refreshed) await auth.refresh?.();
-      const profile = await createProfile(user, displayName);
+      let profile: Profile;
+      try {
+        profile = await createProfile(user, displayName);
+      } catch (error) {
+        // The rules read "verified" from the sign-in's token, which can lag behind the email
+        // (an earlier refresh cut short): refused, it's refreshed once and tried again.
+        if (refreshed || !auth.refresh || !(error instanceof AccessDeniedError)) throw error;
+        await auth.refresh();
+        profile = await createProfile(user, displayName);
+      }
       kept.delete(user.uid);
       return profile;
     },

@@ -404,6 +404,55 @@ rule(
   },
 );
 
+/** A sign-in whose token still says "unverified" after the email was verified, until it's refreshed. */
+class LaggingTokenAuth extends FakeAuth {
+  tokenFresh = false;
+  refreshes = 0;
+  async refresh() {
+    this.refreshes += 1;
+    this.tokenFresh = true;
+    return this.currentUser();
+  }
+}
+
+rule(
+  { req: ["AC-1", "NF-13"], m: "M2" },
+  "a profile refused because the sign-in's token lags behind the verified email is made after one refresh",
+  async () => {
+    const w = world();
+    const auth = new LaggingTokenAuth();
+    const store = w.forAuth(auth);
+    // Like the server's rules: an unverified token can't make a profile.
+    const rules = {
+      ...store,
+      createProfile: (input: { displayName: string; email: string }) =>
+        auth.tokenFresh ? store.createProfile(input) : Promise.reject(new AccessDeniedError("refused by the server")),
+    };
+    const accounts = createAccounts({ auth, store: () => rules, inviteList: async () => null });
+    await accounts.signUpWithEmail(signUp);
+    auth.verifyEmail(signUp.email);
+    const profile = await accounts.finishSignUp();
+    expect(profile.displayName, "the profile made once the token was refreshed").toBe("Wrenna");
+    expect(auth.refreshes, "refreshes of the sign-in").toBe(1);
+  },
+);
+
+rule(
+  { req: ["AC-1"], m: "M2" },
+  "finishing with a sign-in already known to be verified doesn't refresh it when the profile is made at once",
+  async () => {
+    const w = world();
+    const auth = new LaggingTokenAuth();
+    auth.tokenFresh = true;
+    const store = w.forAuth(auth);
+    const accounts = createAccounts({ auth, store: () => store, inviteList: async () => null });
+    await accounts.signUpWithEmail(signUp);
+    auth.verifyEmail(signUp.email);
+    await accounts.finishSignUp();
+    expect(auth.refreshes, "refreshes of the sign-in").toBe(0);
+  },
+);
+
 rule(
   { req: ["NF-13"], m: "M2" },
   "an email taken off the invite list before it's verified is told sign-up isn't open, and gets no profile",

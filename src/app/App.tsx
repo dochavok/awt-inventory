@@ -158,7 +158,7 @@ export function App({ services, newVersion }: { services: Services; newVersion?:
           onChange={onAccountChange}
         />
       )}
-      {/* Each address, each refusal that touches what's shown, and a finished sign-up start the screen afresh. */}
+      {/* Each address, each refusal that touches what's shown, and a sign-up finished or refused start the screen afresh. */}
       <main className="page" key={`${refusals}:${accountChanges}:${JSON.stringify(route)}`}>
         {screen}
       </main>
