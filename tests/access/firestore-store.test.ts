@@ -206,6 +206,24 @@ rule(
 );
 
 rule(
+  { req: ["SP-1"], m: "M3" },
+  "through Firestore, a report's number is from 10,000,000 to 99,999,999, and the server stores the report",
+  async () => {
+    const bram = await signedUp("bram");
+    const sent = [];
+    for (let i = 1; i <= 5; i++)
+      sent.push(await bram.store.sendReport({ kind: "bug", subject: `Bug ${i}`, message: "Made up." }));
+    await synced(bram);
+    for (const [i, report] of sent.entries()) {
+      expect(Number.isInteger(report.number), `report ${i + 1}'s number ${report.number}, a whole number`).toBe(true);
+      expect(report.number, `report ${i + 1}'s number`).toBeGreaterThanOrEqual(10_000_000);
+      expect(report.number, `report ${i + 1}'s number`).toBeLessThanOrEqual(99_999_999);
+    }
+    expect(await storedCount(`users/${uid("bram")}/reports`), "Bram's stored reports").toBe(5);
+  },
+);
+
+rule(
   { req: ["AC-5", "NF-3", "CH-1"], m: "M3" },
   "through Firestore, deleting the account removes the claims on its characters' names, past names included",
   async () => {

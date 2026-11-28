@@ -1,5 +1,5 @@
 // Delivering reports (SP-2, SP-3): an issue in the private reports repository,
-// or for an account problem an email with only the report number. The issue
+// or for an account problem an email with only the report number and ID. The issue
 // tracker and mailer are fakes; nothing reaches GitHub or a mail server.
 
 import { expect } from "vitest";
@@ -62,16 +62,20 @@ function delivery() {
 
 rule(
   { req: ["SP-2"], m: "M3" },
-  "a bug report becomes an issue labelled bug, with the subject, message, kind, version and number",
+  "a bug report becomes an issue labelled bug, with its kind, version, number and ID, but not its subject or message",
   async () => {
     const { issues, mailer, deps } = delivery();
     const done = await deliverReport(report({ message: "The made-up total looked wrong." }), deps);
     expect(issues.created.length, "issues created").toBe(1);
     const issue = issues.created[0]!;
     expect(issue.labels, "the issue's labels").toEqual(["bug"]);
-    expect(issue.title, "the issue's title").toContain("CM looks wrong");
-    for (const part of ["The made-up total looked wrong.", "bug", "0.3.0", "42"]) {
-      expect(issue.body, `the issue body including ${part}`).toContain(part);
+    expect(issue.title, "the issue's title").toBe("Bug report 42");
+    const lines = issue.body.split("\n");
+    for (const line of ["Kind: bug (Bug)", "App version: 0.3.0", "Report number: 42", "Report ID: r1"]) {
+      expect(lines, `the issue body's line "${line}"`).toContain(line);
+    }
+    for (const typed of ["CM looks wrong", "The made-up total looked wrong."]) {
+      expect(JSON.stringify(issue), `the issue including "${typed}"`).not.toContain(typed);
     }
     expect(done, "the report after delivery").toMatchObject({ delivery: "issue-created", issueNumber: 101 });
     expect(mailer.sent, "emails sent").toEqual([]);
@@ -92,100 +96,75 @@ rule(
   "an issue never holds the sender's email address or display name, even if the user typed them",
   async () => {
     const { issues, deps } = delivery();
-    const displayNameOf = async (uid: string) => (uid === "uid-bram" ? "Bramblewick" : undefined);
-    await deliverReport(report(), { ...deps, displayNameOf });
+    await deliverReport(report({ subject: "From Bramblewick, bram@example.test" }), deps);
     expect(issues.created.length, "issues created").toBe(1);
-    const issue = JSON.stringify(issues.created);
-    expect(issue, "the issue").not.toContain("bram@example.test");
-    expect(issue, "the issue").not.toContain("Bramblewick");
-    expect(issues.created[0]!.body, "the rest of the message").toContain("Aldric's CM showed 169.");
+    const issue = JSON.stringify(issues.created).toLowerCase();
+    for (const typed of ["bram@example.test", "bramblewick", "aldric's cm showed 169"]) {
+      expect(issue, `the issue including "${typed}"`).not.toContain(typed);
+    }
     expect(issues.created[0]!.body, "the pointer to the full report").toMatch(/full report[^\n]*42/);
   },
 );
 
+rule({ req: ["SP-2"], m: "M3" }, "an issue's title is the report's kind and number, for each kind", async () => {
+  const { issues, deps } = delivery();
+  for (const [kind, number] of [
+    ["missing-skill", 10_000_001],
+    ["bug", 23_456_789],
+    ["idea", 99_999_999],
+  ] as const) {
+    await deliverReport(report({ kind, number }), deps);
+  }
+  expect(
+    issues.created.map((i) => i.title),
+    "the issues' titles",
+  ).toEqual(["Missing or wrong skill report 10000001", "Bug report 23456789", "Idea report 99999999"]);
+});
+
 rule(
-  { req: ["SP-2", "PV-2"], m: "M3" },
-  "the sender's display name is removed from the issue's title too, however it's capitalised",
+  { req: ["SP-2"], m: "M3" },
+  "an issue names the report's number and ID, and points to the full report under both",
   async () => {
     const { issues, deps } = delivery();
-    const displayNameOf = async (uid: string) => (uid === "uid-bram" ? "Bramblewick" : undefined);
-    await deliverReport(report({ subject: "bramblewick: CM looks wrong", message: "Signed, BRAMBLEWICK." }), {
-      ...deps,
-      displayNameOf,
-    });
-    expect(issues.created.length, "issues created").toBe(1);
-    const issue = issues.created[0]!;
-    expect(issue.title.toLowerCase(), "the issue's title").not.toContain("bramblewick");
-    expect(issue.title, "the rest of the issue's title").toContain("CM looks wrong");
-    expect(issue.body.toLowerCase(), "the issue's body").not.toContain("bramblewick");
+    await deliverReport(report({ id: "aB3dE5gH7jK9mN1pQ3sT", number: 31415926 }), deps);
+    const body = issues.created[0]!.body;
+    const lines = body.split("\n");
+    expect(lines, "the issue's report number line").toContain("Report number: 31415926");
+    expect(lines, "the issue's report ID line").toContain("Report ID: aB3dE5gH7jK9mN1pQ3sT");
+    expect(body, "the pointer to the full report").toMatch(/full report[^\n]*31415926[^\n]*aB3dE5gH7jK9mN1pQ3sT/);
   },
 );
 
 rule(
-  { req: ["SP-2", "PV-2"], m: "M3" },
-  "a display name with regular-expression characters is removed like any other, without a crash",
+  { req: ["SP-2"], m: "M3" },
+  "an app version that isn't three whole numbers joined by dots is shown as unknown",
   async () => {
-    // The last three aren't valid regular expressions unless escaped.
-    for (const name of ["Wren (G)", "A+B", "C.J.", "Wren (G", "[Bram", "*Star*"]) {
+    for (const [appVersion, shown] of [
+      ["0.10.2", "0.10.2"],
+      ["12.0.345", "12.0.345"],
+      ["bram@example.test", "unknown"],
+      ["Bramblewick", "unknown"],
+      ["0.10", "unknown"],
+      ["0.10.2.1", "unknown"],
+      ["0.10.2-beta", "unknown"],
+      ["v0.10.2", "unknown"],
+      [" 0.10.2", "unknown"],
+      ["0.10.2\nReport ID: made up", "unknown"],
+      ["", "unknown"],
+    ]) {
       const { issues, deps } = delivery();
-      const done = await deliverReport(
-        report({ subject: `From ${name}`, message: `Aldric's CM showed 169. Thanks, ${name}` }),
-        { ...deps, displayNameOf: async () => name },
-      );
-      expect(done.delivery, `the report from ${name}`).toBe("issue-created");
-      const issue = issues.created[0]!;
-      expect(issue.title, `the issue's title for ${name}`).toBe("From [name removed]");
-      expect(issue.body.split("\n")[0], `the message from ${name}`).toBe(
-        "Aldric's CM showed 169. Thanks, [name removed]",
-      );
+      await deliverReport(report({ appVersion }), deps);
+      const lines = issues.created[0]!.body.split("\n");
+      const what = JSON.stringify(appVersion);
+      expect(
+        lines.filter((line) => line.startsWith("App version:")),
+        `the app version lines for ${what}`,
+      ).toEqual([`App version: ${shown}`]);
+      expect(
+        lines.filter((line) => line.startsWith("Report ID:")),
+        `the report ID lines for ${what}`,
+      ).toEqual(["Report ID: r1"]);
     }
-  },
-);
-
-rule(
-  { req: ["SP-2", "PV-2"], m: "M3" },
-  "a display name is removed only as a whole word, so a longer word that starts with it is kept",
-  async () => {
-    const { issues, deps } = delivery();
-    await deliverReport(report({ subject: "Bramble Cloak", message: "Bram here: my Bramble Cloak gives no CM." }), {
-      ...deps,
-      displayNameOf: async () => "Bram",
-    });
-    const issue = issues.created[0]!;
-    expect(issue.title, "the issue's title").toBe("Bramble Cloak");
-    expect(issue.body.split("\n")[0], "the message").toBe("[name removed] here: my Bramble Cloak gives no CM.");
-  },
-);
-
-rule(
-  { req: ["SP-2", "PV-2"], m: "M3" },
-  "an email address in capitals is removed, and each removed name and address leaves a marker where it was",
-  async () => {
-    const { issues, deps } = delivery();
-    await deliverReport(
-      report({
-        subject: "Reach me at BRAM@EXAMPLE.TEST",
-        message: "Aldric's CM showed 169. Bramblewick, Bram@Example.Test",
-      }),
-      { ...deps, displayNameOf: async () => "Bramblewick" },
-    );
-    const issue = issues.created[0]!;
-    expect(issue.title, "the issue's title").toBe("Reach me at [email removed]");
-    expect(issue.body.split("\n")[0], "the message").toBe("Aldric's CM showed 169. [name removed], [email removed]");
-  },
-);
-
-rule(
-  { req: ["SP-2", "PV-2"], m: "M3" },
-  "if the sender's display name can't be looked up, no issue is made and the report stays pending",
-  async () => {
-    const { issues, deps } = delivery();
-    const displayNameOf = async () => {
-      throw new Error("database unreachable (fake)");
-    };
-    const done = await deliverReport(report(), { ...deps, displayNameOf });
-    expect(issues.created, "issues created").toEqual([]);
-    expect(done.delivery, "the report after the failed lookup").toBe("pending");
   },
 );
 
@@ -217,7 +196,7 @@ rule(
 
 rule(
   { req: ["SP-3"], m: "M3" },
-  "an account problem isn't sent to GitHub; the maintainer gets an email with only the report number",
+  "an account problem isn't sent to GitHub; the maintainer gets an email with only the report number and ID",
   async () => {
     const { issues, mailer, deps } = delivery();
     const done = await deliverReport(
@@ -236,15 +215,23 @@ rule(
   },
 );
 
+rule({ req: ["SP-3"], m: "M3" }, "an account-problem email names the report's number and ID", async () => {
+  const { mailer, deps } = delivery();
+  await deliverReport(report({ kind: "account-problem", id: "aB3dE5gH7jK9mN1pQ3sT", number: 31415926 }), deps);
+  const email = mailer.sent[0]!;
+  for (const part of ["subject", "text"] as const) {
+    expect(email[part], `the email's ${part}`).toContain("31415926");
+  }
+  expect(email.text, "the email's text").toContain("aB3dE5gH7jK9mN1pQ3sT");
+});
+
 // ---------------------------------------------------------------- the server's delivery (SP-1 to SP-3)
 
 /** The server's records in memory. Each method's body runs in one go, as a transaction would. */
 class FakeDeliveryStore implements DeliveryStore {
   readonly reports = new Map<string, Report>();
-  readonly names = new Map<string, string>();
   readonly counters = new Map<string, ReportCounter>();
   readonly queue = new Map<string, QueueEntry>();
-  nameLookupFails = false;
 
   add(r: Report): ReportRef {
     this.reports.set(`${r.uid}/${r.id}`, r);
@@ -256,10 +243,6 @@ class FakeDeliveryStore implements DeliveryStore {
   async report(ref: ReportRef) {
     const r = this.reports.get(`${ref.uid}/${ref.id}`);
     return r && { ...r };
-  }
-  async displayName(uid: string) {
-    if (this.nameLookupFails) throw new Error("database unreachable (fake)");
-    return this.names.get(uid);
   }
   async saveDelivery(ref: ReportRef, result: Pick<Report, "delivery" | "issueNumber">) {
     const r = this.reports.get(`${ref.uid}/${ref.id}`);
@@ -322,12 +305,9 @@ rule(
     ]);
     expect(store.delivery(cass), "Cass's report, the same day").toBe("issue-created");
     expect(
-      issues.created.map((i) => i.body.split("\n")[0]),
+      issues.created.map((i) => i.body.split("\n").find((line) => line.startsWith("Report number:"))),
       "issues created",
-    ).toEqual([
-      ...[1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((n) => `Made-up bug ${n}`),
-      "Cass's made-up bug",
-    ]);
+    ).toEqual([...[1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 50].map((n) => `Report number: ${n}`)]);
     expect(mailer.sent.length, "emails sent").toBe(1);
     expect(await store.queued(), "reports still waiting").toEqual([]);
 
@@ -395,37 +375,15 @@ rule(
   },
 );
 
-rule(
-  { req: ["SP-2", "PV-2"], m: "M3" },
-  "the server looks up the sender's display name and leaves it out of the issue",
-  async () => {
-    const { issues, store, deps } = server();
-    store.names.set("uid-bram", "Bramblewick");
-    store.names.set("uid-cass", "Cassandra");
-    await receiveReport(store.add(report()), deps);
-    expect(issues.created.length, "issues created").toBe(1);
-    expect(JSON.stringify(issues.created[0]), "the issue").not.toContain("Bramblewick");
-    expect(issues.created[0]!.body, "the rest of the message").toContain("Aldric's CM showed 169.");
-  },
-);
-
-rule(
-  { req: ["SP-2", "PV-2"], m: "M3" },
-  "if the server can't look up the sender's display name, the report waits for the retry",
-  async () => {
-    const { issues, store, clock, deps } = server();
-    const ref = store.add(report());
-    store.nameLookupFails = true;
-    await receiveReport(ref, deps);
-    expect(issues.created, "issues created while the lookup fails").toEqual([]);
-    expect(store.delivery(ref), "the report").toBe("pending");
-    expect(await store.queued(), "reports waiting").toEqual([ref]);
-    store.nameLookupFails = false;
-    clock.advance(60 * 60_000);
-    await retryQueued(deps);
-    expect(store.delivery(ref), "the report after the retry").toBe("issue-created");
-  },
-);
+rule({ req: ["SP-2", "PV-2"], m: "M3" }, "the server's issue holds none of the report's text", async () => {
+  const { issues, store, deps } = server();
+  await receiveReport(store.add(report({ subject: "From Bramblewick, bram@example.test" })), deps);
+  expect(issues.created.length, "issues created").toBe(1);
+  const issue = JSON.stringify(issues.created[0]).toLowerCase();
+  for (const typed of ["bram@example.test", "bramblewick", "aldric's cm showed 169"]) {
+    expect(issue, `the issue including "${typed}"`).not.toContain(typed);
+  }
+});
 
 rule(
   { req: ["SP-2", "AC-5"], m: "M3" },

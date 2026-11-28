@@ -173,10 +173,15 @@ rule(
   },
 );
 
+/** A report ID in the database's own form (SP-1): `label`, padded to 20 letters and digits. */
+function reportId(label: string): string {
+  return label.replace(/[^A-Za-z0-9]/g, "").padEnd(20, "0");
+}
+
 rule({ req: ["SP-1", "TF-11"], m: "M3" }, "Bram can send and read his own reports; Cass can't read them", async () => {
   await seedAldric();
-  const path = `users/${bram()}/reports/r1`;
-  const report = { kind: "bug", subject: "Totals", message: "The CM looked wrong." };
+  const path = `users/${bram()}/reports/${reportId("r1")}`;
+  const report = { number: 12345678, kind: "bug", subject: "Totals", message: "The CM looked wrong." };
   await expectAllowed(signedIn("bram").firestore().doc(path).set(report), "Bram sending a report");
   await expectAllowed(signedIn("bram").firestore().doc(path).get(), "Bram reading his report");
   await expectRefused(signedIn("cass").firestore().doc(path).get(), "Cass reading Bram's report");
@@ -570,25 +575,80 @@ rule(
       message: "The CM looked wrong.",
       delivery: "pending",
     };
-    await seed({ [`${reports}/r1`]: report });
+    const [r1, r2, r3] = ["r1", "r2", "r3"].map(reportId);
+    await seed({ [`${reports}/${r1}`]: report });
     for (const [who, db] of [
       ["Cass", signedIn("cass").firestore()],
       ["a signed-out visitor", signedOut().firestore()],
     ] as const) {
-      await expectRefused(db.doc(`${reports}/r2`).set(report), `${who} sending a report in Bram's name`);
-      await expectRefused(db.doc(`${reports}/r1`).update({ message: "Changed." }), `${who} changing Bram's report`);
-      await expectRefused(db.doc(`${reports}/r1`).delete(), `${who} deleting Bram's report`);
+      await expectRefused(db.doc(`${reports}/${r2}`).set(report), `${who} sending a report in Bram's name`);
+      await expectRefused(db.doc(`${reports}/${r1}`).update({ message: "Changed." }), `${who} changing Bram's report`);
+      await expectRefused(db.doc(`${reports}/${r1}`).delete(), `${who} deleting Bram's report`);
     }
     const mine = signedIn("bram").firestore();
     await expectRefused(
-      mine.doc(`${reports}/r1`).update({ delivery: "issue-created" }),
+      mine.doc(`${reports}/${r1}`).update({ delivery: "issue-created" }),
       "Bram marking his own report delivered",
     );
     await expectRefused(
-      mine.doc(`${reports}/r1`).update({ message: "A new message after sending." }),
+      mine.doc(`${reports}/${r1}`).update({ message: "A new message after sending." }),
       "Bram changing his report's message after sending it",
     );
-    await expectAllowed(mine.doc(`${reports}/r3`).set(report), "Bram sending another report");
+    await expectAllowed(mine.doc(`${reports}/${r3}`).set(report), "Bram sending another report");
+  },
+);
+
+rule(
+  { req: ["SP-1", "TF-11"], m: "M3" },
+  "a report's ID must be 20 letters and digits, as the database makes them",
+  async () => {
+    await seedAldric();
+    const mine = signedIn("bram").firestore();
+    const report = { number: 12345678, kind: "bug", subject: "Totals", message: "The CM looked wrong." };
+    for (const [what, id] of [
+      ["a short ID", "r1"],
+      ["19 characters", "a".repeat(19)],
+      ["21 characters", "a".repeat(21)],
+      ["hyphens", "made-up-report-id-12"],
+      ["an email address", "bram@example.test000"],
+      ["a space", "Report number 123456"],
+    ] as const) {
+      await expectRefused(mine.doc(`users/${bram()}/reports/${id}`).set(report), `Bram sending a report with ${what}`);
+    }
+    await expectAllowed(
+      mine.doc(`users/${bram()}/reports/aB3dE5gH7jK9mN1pQ3sT`).set(report),
+      "Bram sending a report with 20 letters and digits",
+    );
+  },
+);
+
+rule(
+  { req: ["SP-1", "TF-11"], m: "M3" },
+  "a report's number must be a whole number from 10,000,000 to 99,999,999",
+  async () => {
+    await seedAldric();
+    const mine = signedIn("bram").firestore();
+    const report = { kind: "bug", subject: "Totals", message: "The CM looked wrong." };
+    const refused: [string, Record<string, unknown>][] = [
+      ["no number", report],
+      ["the number as text", { ...report, number: "12345678" }],
+      ["a number with a fraction", { ...report, number: 12345678.5 }],
+      ["a negative number", { ...report, number: -1 }],
+      ["one below the range", { ...report, number: 9_999_999 }],
+      ["one above the range", { ...report, number: 100_000_000 }],
+    ];
+    for (const [n, [what, data]] of refused.entries()) {
+      await expectRefused(
+        mine.doc(`users/${bram()}/reports/${reportId(`bad${n}`)}`).set(data),
+        `Bram sending a report with ${what}`,
+      );
+    }
+    for (const number of [10_000_000, 99_999_999]) {
+      await expectAllowed(
+        mine.doc(`users/${bram()}/reports/${reportId(`ok${number}`)}`).set({ ...report, number }),
+        `Bram sending report number ${number}`,
+      );
+    }
   },
 );
 
@@ -717,12 +777,12 @@ rule(
     await atTheLimit("a history link", LIMITS.link, (padding, n) =>
       mine.doc(`${character()}/history/link-${n}`).set({ ...record, link: site + padding.slice(site.length) }),
     );
-    const report = { kind: "bug", subject: "Totals", message: "The CM looked wrong." };
+    const report = { number: 12345678, kind: "bug", subject: "Totals", message: "The CM looked wrong." };
     await atTheLimit("a report subject", LIMITS.reportSubject, (subject, n) =>
-      mine.doc(`users/${bram()}/reports/subject-${n}`).set({ ...report, subject }),
+      mine.doc(`users/${bram()}/reports/${reportId(`subject${n}`)}`).set({ ...report, subject }),
     );
     await atTheLimit("a report message", LIMITS.reportMessage, (message, n) =>
-      mine.doc(`users/${bram()}/reports/message-${n}`).set({ ...report, message }),
+      mine.doc(`users/${bram()}/reports/${reportId(`message${n}`)}`).set({ ...report, message }),
     );
   },
 );
